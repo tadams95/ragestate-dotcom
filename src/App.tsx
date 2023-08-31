@@ -8,15 +8,15 @@ function App() {
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
         <p>
-          Edit <code>src/App.tsx</code> and save to reload.
+          This will be the new RAGESTATE website built in TypeScript
         </p>
         <a
           className="App-link"
-          href="https://reactjs.org"
+          href="https://www.ragestate.com"
           target="_blank"
           rel="noopener noreferrer"
         >
-          Learn React
+          Link to existing site
         </a>
       </header>
     </div>
