@@ -1,11 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { Dialog, DialogPanel } from "@headlessui/react";
 import Link from "next/link";
 
+import { useState } from "react";
+import { Dialog, DialogPanel } from "@headlessui/react";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
+
+import fetchShopifyProducts from "../../../shopify/shopifyService";
+
 import Footer from "../components/Footer";
+import ProductList from "../../../components/ProductTile";
+import ProductTile from "../../../components/ProductTile";
 const navigation = [
   { name: "SHOP", href: "/shop" },
   { name: "EVENTS", href: "/events" },
@@ -14,66 +19,15 @@ const navigation = [
   { name: "BLOG", href: "/blog" },
 ];
 
-const products = [
-  {
-    id: 1,
-    name: "ARES | Wrath of Gods",
-    price: "$32",
-    href: "#",
-    imageSrc:
-      "https://ragestate.com/cdn/shop/files/unisex-performance-crew-neck-t-shirt-black-back-654d74a654351.png?v=1699574962&width=1426",
-    imageAlt: "Ares Wrath of Gods Black tee",
-  },
-  {
-    id: 2,
-    name: "Premium T-Shirt",
-    price: "$32",
-    href: "#",
-    imageSrc:
-      "https://ragestate.com/cdn/shop/products/mens-premium-heavyweight-tee-black-left-front-2-6408dc8f24896.png?v=1678302360",
-    imageAlt: "Model wearing women's black cotton crewneck tee.",
-  },
-  {
-    id: 3,
-    name: "RND Windbreaker",
-    price: "$32",
-    href: "#",
-    imageSrc:
-      "https://ragestate.com/cdn/shop/products/unisex-lightweight-zip-up-windbreaker-blush-white-zipper-back-6410cb054ceef.png?v=1678822203",
-    imageAlt: "Model wearing women's black cotton crewneck tee.",
-  },
-  {
-    id: 4,
-    name: "ARES | Wrath of Gods",
-    price: "$32",
-    href: "#",
-    imageSrc:
-      "https://ragestate.com/cdn/shop/files/unisex-performance-crew-neck-t-shirt-black-back-654d74a654351.png?v=1699574962&width=1426",
-    imageAlt: "Ares Wrath of Gods Black tee",
-  },
-  {
-    id: 5,
-    name: "Premium T-Shirt",
-    price: "$32",
-    href: "#",
-    imageSrc:
-      "https://ragestate.com/cdn/shop/products/mens-premium-heavyweight-tee-black-left-front-2-6408dc8f24896.png?v=1678302360",
-    imageAlt: "Model wearing women's black cotton crewneck tee.",
-  },
-  {
-    id: 6,
-    name: "RND Windbreaker",
-    price: "$32",
-    href: "#",
-    imageSrc:
-      "https://ragestate.com/cdn/shop/products/unisex-lightweight-zip-up-windbreaker-blush-white-zipper-back-6410cb054ceef.png?v=1678822203",
-    imageAlt: "Model wearing women's black cotton crewneck tee.",
-  },
-  // More products...
-];
-
-export default function Shop() {
+export default async function Shop() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const fetchedProducts = await fetchShopifyProducts();
+  const productsWithHref = fetchedProducts.map((product) => ({
+    ...product,
+    href: `/product/${product.id}`,
+    imageSrc: product.images[0]?.src, // Accessing the first image URL from the images array
+  }));
 
   return (
     <div className="bg-black">
@@ -175,52 +129,10 @@ export default function Shop() {
       </header>
       <div>
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-          {/* <div className="sm:flex sm:items-baseline sm:justify-between"> */}
-          {/* <h2 className="text-2xl font-bold tracking-tight text-gray-100">
-              SHOP RAGESTATE
-            </h2> */}
-          {/* <a
-              href="#"
-              className="hidden text-sm font-semibold text-indigo-600 hover:text-indigo-500 sm:block"
-            >
-              Browse all favorites
-              <span aria-hidden="true"> &rarr;</span>
-            </a> */}
-          {/* </div> */}
-
-          
-          
-
           <div className="mt-6 grid grid-cols-1 gap-y-10 sm:grid-cols-3 sm:gap-x-6 sm:gap-y-0 lg:gap-x-8">
-            {products.map((product) => (
-              <div key={product.id} className="group relative">
-                <div className="h-96 w-full overflow-hidden rounded-lg sm:aspect-h-3 sm:aspect-w-2 group-hover:opacity-75 sm:h-auto">
-                  <img
-                    src={product.imageSrc}
-                    alt={product.imageAlt}
-                    className="h-full w-full object-cover object-center"
-                  />
-                </div>
-                <h3 className="mt-4 text-base font-semibold text-gray-100">
-                  <Link href={product.href}>
-                    <span className="absolute inset-0" />
-                    {product.name}
-                  </Link>
-                </h3>
-                <p className="mt-1 text-sm text-gray-300">{product.price}</p>
-              </div>
+            {productsWithHref.map((product) => (
+              <ProductTile key={product.id} product={product} />
             ))}
-          </div>
-          
-
-          <div className="mt-6 sm:hidden">
-            <Link
-              href="#"
-              className="block text-sm font-semibold text-indigo-600 hover:text-indigo-500"
-            >
-              Browse all favorites
-              <span aria-hidden="true"> &rarr;</span>
-            </Link>
           </div>
         </div>
       </div>
