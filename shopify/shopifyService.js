@@ -5,7 +5,7 @@ const client = Client.buildClient({
   storefrontAccessToken: "e4803750ab24a8c8b98cc614e0f34d98",
 });
 
-const fetchShopifyProducts = async () => {
+export async function fetchShopifyProducts() {
   try {
     const products = await client.product.fetchAll();
     return products;
@@ -13,6 +13,19 @@ const fetchShopifyProducts = async () => {
     console.error("Error fetching Shopify products:", error);
     throw error;
   }
-};
+}
 
-export default fetchShopifyProducts;
+export async function fetchProduct() {
+  try {
+    // Fetch a single product by ID
+    const productId = "gid://shopify/Product/7857989384";
+
+    client.product.fetch(productId).then((product) => {
+      // Do something with the product
+      console.log(product);
+    });
+  } catch (error) {
+    console.error("Error fetching product:", error);
+    throw error;
+  }
+}

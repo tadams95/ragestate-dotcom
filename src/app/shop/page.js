@@ -1,16 +1,13 @@
-"use client";
+"use client"
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-
-import { useState } from "react";
 import { Dialog, DialogPanel } from "@headlessui/react";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
-
-import fetchShopifyProducts from "../../../shopify/shopifyService";
-
+import { fetchShopifyProducts } from "../../../shopify/shopifyService";
 import Footer from "../components/Footer";
-import ProductList from "../../../components/ProductTile";
 import ProductTile from "../../../components/ProductTile";
+
 const navigation = [
   { name: "SHOP", href: "/shop" },
   { name: "EVENTS", href: "/events" },
@@ -19,15 +16,27 @@ const navigation = [
   { name: "BLOG", href: "/blog" },
 ];
 
-export default async function Shop() {
+export default function Shop() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [productsWithHref, setProductsWithHref] = useState([]);
 
-  const fetchedProducts = await fetchShopifyProducts();
-  const productsWithHref = fetchedProducts.map((product) => ({
-    ...product,
-    href: `/product/${product.id}`,
-    imageSrc: product.images[0]?.src, // Accessing the first image URL from the images array
-  }));
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const fetchedProducts = await fetchShopifyProducts();
+        const products = fetchedProducts.map((product) => ({
+          ...product,
+          href: `/product/${product.id}`,
+          imageSrc: product.images[0]?.src,
+        }));
+        setProductsWithHref(products);
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return (
     <div className="bg-black">
