@@ -9,6 +9,7 @@ import {
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
 import Header from "@/app/components/Header";
+import Image from "next/image";
 
 const product = {
   name: "Basic Tee",
@@ -87,9 +88,14 @@ function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
-export default function Example() {
-  const [selectedColor, setSelectedColor] = useState(product.colors[0]);
-  const [selectedSize, setSelectedSize] = useState(product.sizes[2]);
+export default function ProductDetails({ product }) {
+  const [selectedColor, setSelectedColor] = useState("product.colors[0]");
+  const [selectedSize, setSelectedSize] = useState("product.sizes[2]");
+
+  const priceNumber = parseFloat(product.variants[0].price.amount);
+  const formattedPrice = priceNumber.toFixed(2);
+
+  // console.log("Product imageSrc: ", product.imageAlt);
 
   return (
     <div className="bg-black">
@@ -99,10 +105,10 @@ export default function Example() {
             <div className="lg:col-span-5 lg:col-start-8">
               <div className="flex justify-between">
                 <h1 className="text-xl font-medium text-gray-100">
-                  {product.name}
+                  {product.title}
                 </h1>
                 <p className="text-xl font-medium text-gray-100">
-                  {product.price}
+                  ${formattedPrice}
                 </p>
               </div>
             </div>
@@ -112,16 +118,16 @@ export default function Example() {
               <h2 className="sr-only">Images</h2>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 lg:grid-rows-3 lg:gap-8">
-                {product.images.map((image) => (
+                {product.images.map((image, index) => (
                   <img
                     key={image.id}
-                    src={image.imageSrc}
-                    alt={image.imageAlt}
+                    src={image.src}
+                    alt={image.altText}
                     className={classNames(
-                      image.primary
+                      index === 0
                         ? "lg:col-span-2 lg:row-span-2"
-                        : "hidden lg:block",
-                      "rounded-lg"
+                        : "hidden lg:block lg:col-span-1 lg:row-span-1", // Apply different classes based on index
+                      "rounded-lg overflow-hidden"
                     )}
                   />
                 ))}
@@ -131,7 +137,7 @@ export default function Example() {
             <div className="mt-8 lg:col-span-5">
               <form>
                 {/* Color picker */}
-                <div>
+                {/* <div>
                   <h2 className="text-sm font-medium text-gray-100">Color</h2>
 
                   <fieldset aria-label="Choose a color" className="mt-2">
@@ -165,10 +171,10 @@ export default function Example() {
                       ))}
                     </RadioGroup>
                   </fieldset>
-                </div>
+                </div> */}
 
                 {/* Size picker */}
-                <div className="mt-8">
+                {/* <div className="mt-8">
                   <div className="flex items-center justify-between">
                     <h2 className="text-sm font-medium text-gray-100">Size</h2>
                   </div>
@@ -204,7 +210,7 @@ export default function Example() {
                       ))}
                     </RadioGroup>
                   </fieldset>
-                </div>
+                </div> */}
 
                 <button
                   type="submit"
@@ -232,11 +238,11 @@ export default function Example() {
                 </h2>
 
                 <div className="prose prose-sm mt-4 text-gray-100">
-                  <ul role="list">
+                  {/* <ul role="list">
                     {product.details.map((item) => (
                       <li key={item}>{item}</li>
                     ))}
-                  </ul>
+                  </ul> */}
                 </div>
               </div>
 
