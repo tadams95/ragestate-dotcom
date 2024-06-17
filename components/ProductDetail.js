@@ -11,66 +11,32 @@ import {
 import Header from "@/app/components/Header";
 import Image from "next/image";
 
-const product = {
-  name: "Basic Tee",
-  price: "$35",
-  rating: 3.9,
-  reviewCount: 512,
-  href: "#",
-  breadcrumbs: [
-    { id: 1, name: "Women", href: "#" },
-    { id: 2, name: "Clothing", href: "#" },
-  ],
-  images: [
-    {
-      id: 1,
-      imageSrc:
-        "https://tailwindui.com/img/ecommerce-images/product-page-01-featured-product-shot.jpg",
-      imageAlt: "Back of women's Basic Tee in black.",
-      primary: true,
-    },
-    {
-      id: 2,
-      imageSrc:
-        "https://tailwindui.com/img/ecommerce-images/product-page-01-product-shot-01.jpg",
-      imageAlt: "Side profile of women's Basic Tee in black.",
-      primary: false,
-    },
-    {
-      id: 3,
-      imageSrc:
-        "https://tailwindui.com/img/ecommerce-images/product-page-01-product-shot-02.jpg",
-      imageAlt: "Front of women's Basic Tee in black.",
-      primary: false,
-    },
-  ],
-  colors: [
-    { name: "Black", bgColor: "bg-gray-900", selectedColor: "ring-gray-900" },
-    {
-      name: "Heather Grey",
-      bgColor: "bg-gray-400",
-      selectedColor: "ring-gray-400",
-    },
-  ],
-  sizes: [
-    { name: "XXS", inStock: true },
-    { name: "XS", inStock: true },
-    { name: "S", inStock: true },
-    { name: "M", inStock: true },
-    { name: "L", inStock: true },
-    { name: "XL", inStock: false },
-  ],
-  description: `
-    <p>The Basic tee is an honest new take on a classic. The tee uses super soft, pre-shrunk cotton for true comfort and a dependable fit. They are hand cut and sewn locally, with a special dye technique that gives each tee it's own look.</p>
-    <p>Looking to stock your closet? The Basic tee also comes in a 3-pack or 5-pack at a bundle discount.</p>
-  `,
-  details: [
-    "Only the best materials",
-    "Ethically and locally made",
-    "Pre-washed and pre-shrunk",
-    "Machine wash cold with similar colors",
-  ],
-};
+// const colors = {
+//   colors: [
+//     {
+//       name: "Blush/White Zipper",
+//       bgColor: "bg-pink-200",
+//       selectedColor: "ring-pink-200",
+//     },
+//     {
+//       name: "Aqua/White Zipper",
+//       bgColor: "bg-blue-200",
+//       selectedColor: "ring-blue-200",
+//     },
+//     {
+//       name: "Safety Yellow",
+//       bgColor: "bg-yellow-300",
+//       selectedColor: "ring-yellow-300",
+//     },
+//     {
+//       name: "White Camo",
+//       bgColor: "bg-gray-300",
+//       selectedColor: "ring-gray-300",
+//     },
+//     // Add more color options as needed
+//   ],
+// };
+
 const policies = [
   {
     name: "National delivery",
@@ -89,13 +55,44 @@ function classNames(...classes) {
 }
 
 export default function ProductDetails({ product }) {
-  const [selectedColor, setSelectedColor] = useState("product.colors[0]");
+  const [selectedColor, setSelectedColor] = useState(null);
   const [selectedSize, setSelectedSize] = useState("product.sizes[2]");
 
   const priceNumber = parseFloat(product.variants[0].price.amount);
   const formattedPrice = priceNumber.toFixed(2);
 
-  // console.log("Product imageSrc: ", product.imageAlt);
+  // Function to filter and get unique color options from selectedOptions
+  const getColorOptions = () => {
+    const colorSet = new Set(); // Set to store unique color options
+
+    product.variants.forEach((variant) => {
+      const colorOption = variant.selectedOptions.find(
+        (option) => option.name === "Color"
+      );
+      if (colorOption) {
+        colorSet.add(colorOption.value); // Add color value to set (ignores duplicates)
+      }
+    });
+
+    const colorOptions = Array.from(colorSet).map((color) => ({
+      value: color,
+      name: product.variants.find((variant) => {
+        const option = variant.selectedOptions.find(
+          (opt) => opt.name === "Color"
+        );
+        return option && option.value === color;
+      }).title, // Assuming 'title' is the name of the product variant
+    }));
+
+    console.log("Color Options:", colorOptions); // Log all color options
+
+    return colorOptions; // Return the color options array
+  };
+
+  const handleColorChange = (event) => {
+    const { value } = event.target; // Destructure value from event.target
+    setSelectedColor(value); // Update selectedColor state with the selected value
+  };
 
   return (
     <div className="bg-black">
@@ -137,41 +134,27 @@ export default function ProductDetails({ product }) {
             <div className="mt-8 lg:col-span-5">
               <form>
                 {/* Color picker */}
-                {/* <div>
+                <div>
                   <h2 className="text-sm font-medium text-gray-100">Color</h2>
 
                   <fieldset aria-label="Choose a color" className="mt-2">
-                    <RadioGroup
+                    <select
                       value={selectedColor}
-                      onChange={setSelectedColor}
-                      className="flex items-center space-x-3"
+                      onChange={handleColorChange}
+                      className="px-2 py-2 bordertext-base font-medium text-black  border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      {product.colors.map((color) => (
-                        <Radio
-                          key={color.name}
-                          value={color}
-                          aria-label={color.name}
-                          className={({ focus, checked }) =>
-                            classNames(
-                              color.selectedColor,
-                              focus && checked ? "ring ring-offset-1" : "",
-                              !focus && checked ? "ring-2" : "",
-                              "relative -m-0.5 flex cursor-pointer items-center justify-center rounded-full p-0.5 focus:outline-none"
-                            )
-                          }
+                      <option value="">Select Color</option>
+                      {getColorOptions().map((colorOption) => (
+                        <option
+                          key={colorOption.value}
+                          value={colorOption.value}
                         >
-                          <span
-                            aria-hidden="true"
-                            className={classNames(
-                              color.bgColor,
-                              "h-8 w-8 rounded-full border border-black border-opacity-10"
-                            )}
-                          />
-                        </Radio>
+                          {colorOption.value}
+                        </option>
                       ))}
-                    </RadioGroup>
+                    </select>
                   </fieldset>
-                </div> */}
+                </div>
 
                 {/* Size picker */}
                 {/* <div className="mt-8">

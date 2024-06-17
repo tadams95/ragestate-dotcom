@@ -7,7 +7,7 @@ export default function ProductDetail() {
   // Retrieve product from localStorage
   const selectedProduct = JSON.parse(localStorage.getItem("selectedProduct"));
 
-  // console.log(selectedProduct);
+  console.log(selectedProduct);
 
   return (
     <>
