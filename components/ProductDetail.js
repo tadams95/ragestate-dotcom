@@ -56,10 +56,12 @@ function classNames(...classes) {
 
 export default function ProductDetails({ product }) {
   const [selectedColor, setSelectedColor] = useState(null);
-  const [selectedSize, setSelectedSize] = useState("product.sizes[2]");
+  const [selectedSize, setSelectedSize] = useState(null);
 
   const priceNumber = parseFloat(product.variants[0].price.amount);
   const formattedPrice = priceNumber.toFixed(2);
+
+  console.log("Product Detail: ", product);
 
   // Function to filter and get unique color options from selectedOptions
   const getColorOptions = () => {
@@ -84,9 +86,33 @@ export default function ProductDetails({ product }) {
       }).title, // Assuming 'title' is the name of the product variant
     }));
 
-    console.log("Color Options:", colorOptions); // Log all color options
+    // console.log("Color Options:", colorOptions); // Log all color options
 
     return colorOptions; // Return the color options array
+  };
+
+  const getSizeOptions = () => {
+    const sizeSet = new Set();
+
+    product.variants.forEach((variant) => {
+      const sizeOption = variant.selectedOptions.find(
+        (option) => option.name === "Size"
+      );
+      if (sizeOption) {
+        sizeSet.add(sizeOption.value);
+      }
+    });
+
+    const sizeOptions = Array.from(sizeSet).map((size) => ({
+      value: size,
+      name: product.variants.find((variant) => {
+        const option = variant.selectedOptions.find(
+          (opt) => opt.name === "Size"
+        );
+        return option && option.value === size;
+      }).title,
+    }));
+    return sizeOptions;
   };
 
   const handleColorChange = (event) => {
@@ -98,7 +124,7 @@ export default function ProductDetails({ product }) {
     <div className="bg-black">
       <div className="pb-16 pt-6 sm:pb-24">
         <div className="mx-auto mt-8 max-w-2xl px-4 sm:px-6 lg:max-w-7xl lg:px-8">
-          <div className="lg:grid lg:auto-rows-min lg:grid-cols-12 lg:gap-x-8">
+          <div className="lg:grid lg:auto-rows-min lg:grid-cols-10 lg:gap-x-8">
             <div className="lg:col-span-5 lg:col-start-8">
               <div className="flex justify-between">
                 <h1 className="text-xl font-medium text-gray-100">
@@ -157,43 +183,26 @@ export default function ProductDetails({ product }) {
                 </div>
 
                 {/* Size picker */}
-                {/* <div className="mt-8">
+                <div className="mt-8">
                   <div className="flex items-center justify-between">
                     <h2 className="text-sm font-medium text-gray-100">Size</h2>
                   </div>
 
-                  <fieldset aria-label="Choose a size" className="mt-2">
-                    <RadioGroup
+                  <fieldset aria-label="Choose a color" className="mt-2">
+                    <select
                       value={selectedSize}
-                      onChange={setSelectedSize}
-                      className="grid grid-cols-3 gap-3 sm:grid-cols-6"
+                      onChange={handleColorChange}
+                      className="px-2 py-2 bordertext-base font-medium text-black  border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      {product.sizes.map((size) => (
-                        <Radio
-                          key={size.name}
-                          value={size}
-                          className={({ focus, checked }) =>
-                            classNames(
-                              size.inStock
-                                ? "cursor-pointer focus:outline-none"
-                                : "cursor-not-allowed opacity-25",
-                              focus
-                                ? "ring-2 ring-indigo-500 ring-offset-2"
-                                : "",
-                              checked
-                                ? "outline-1 bg-black text-white"
-                                : "border-gray-200 bg-white text-gray-900 hover:bg-gray-50",
-                              "flex items-center justify-center rounded-md border px-3 py-3 text-sm font-medium uppercase sm:flex-1"
-                            )
-                          }
-                          disabled={!size.inStock}
-                        >
-                          {size.name}
-                        </Radio>
+                      <option value="">Select Size</option>
+                      {getSizeOptions().map((sizeOption) => (
+                        <option key={sizeOption.value} value={sizeOption.value}>
+                          {sizeOption.value}
+                        </option>
                       ))}
-                    </RadioGroup>
+                    </select>
                   </fieldset>
-                </div> */}
+                </div>
 
                 <button
                   type="submit"
