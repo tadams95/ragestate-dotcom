@@ -1,7 +1,12 @@
 "use client";
 
 import { Dialog, DialogPanel } from "@headlessui/react";
-import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
+import {
+  Bars3Icon,
+  XMarkIcon,
+  ShoppingBagIcon,
+  UserIcon,
+} from "@heroicons/react/24/outline";
 import { useState } from "react";
 import Link from "next/link";
 
@@ -27,7 +32,7 @@ export default function Header() {
               <span className="sr-only">RAGESTATE</span>
               <img
                 className="h-8 w-auto"
-                src="/assets/RSLogo.png"
+                src="/assets/RSLogoW.png"
                 alt="RAGESTATE LOGO"
               />
             </Link>
@@ -56,9 +61,17 @@ export default function Header() {
           <div className="hidden lg:flex lg:flex-1 lg:justify-end">
             <Link
               href="#"
+              className="text-sm font-semibold leading-6 text-gray-100 px-20"
+            >
+              <ShoppingBagIcon className="h-6 w-6" aria-hidden="true" />
+              <span aria-hidden="true"></span>
+            </Link>
+            <Link
+              href="#"
               className="text-sm font-semibold leading-6 text-gray-100"
             >
-              LOG IN <span aria-hidden="true">&rarr;</span>
+              <UserIcon className="h-6 w-6" aria-hidden="true" />
+              <span aria-hidden="true"></span>
             </Link>
           </div>
         </nav>

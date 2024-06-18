@@ -67,25 +67,26 @@ const navigation = {
           />
         </svg>
       ),
-    },{
-        name: "TikTok",
-        href: "https://github.com/tadams95/ragestate-dotcom",
-        icon: (props) => (
-          <svg fill="currentColor" viewBox="0 0 24 24" {...props}>
-            <path
-              fillRule="evenodd"
-              d="M448 209.9a210.1 210.1 0 0 1 -122.8-39.3V349.4A162.6 162.6 0 1 1 185 188.3V278.2a74.6 74.6 0 1 0 52.2 71.2V0l88 0a121.2 121.2 0 0 0 1.9 22.2h0A122.2 122.2 0 0 0 381 102.4a121.4 121.4 0 0 0 67 20.1z"
-              clipRule="evenodd"
-            />
-          </svg>
-        ),
-      },
+    },
+    {
+      name: "TikTok",
+      href: "https://github.com/tadams95/ragestate-dotcom",
+      icon: (props) => (
+        <svg fill="currentColor" viewBox="0 0 24 24" {...props}>
+          <path
+            fillRule="evenodd"
+            d="M14 5h1.98c.144.715.54 1.617 1.235 2.512C17.895 8.389 18.797 9 20 9v2c-1.753 0-3.07-.814-4-1.829V16a5 5 0 1 1-5-5v2a3 3 0 1 0 3 3z" 
+            clipRule="evenodd"
+          />
+        </svg>
+      ),
+    },
   ],
 };
 
 export default function Footer() {
   return (
-    <footer >
+    <footer>
       <div className="mx-auto max-w-7xl overflow-hidden px-6 py-20 sm:py-24 lg:px-8">
         <nav
           className="-mb-6 columns-2 sm:flex sm:justify-center sm:space-x-12"

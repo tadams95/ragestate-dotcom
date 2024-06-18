@@ -1,41 +1,7 @@
 "use client";
 import { useState } from "react";
-import { StarIcon } from "@heroicons/react/20/solid";
-import { Radio, RadioGroup } from "@headlessui/react";
-import {
-  CurrencyDollarIcon,
-  GlobeAmericasIcon,
-  TruckIcon,
-  UserGroupIcon,
-} from "@heroicons/react/24/outline";
-import Header from "@/app/components/Header";
-import Image from "next/image";
-
-// const colors = {
-//   colors: [
-//     {
-//       name: "Blush/White Zipper",
-//       bgColor: "bg-pink-200",
-//       selectedColor: "ring-pink-200",
-//     },
-//     {
-//       name: "Aqua/White Zipper",
-//       bgColor: "bg-blue-200",
-//       selectedColor: "ring-blue-200",
-//     },
-//     {
-//       name: "Safety Yellow",
-//       bgColor: "bg-yellow-300",
-//       selectedColor: "ring-yellow-300",
-//     },
-//     {
-//       name: "White Camo",
-//       bgColor: "bg-gray-300",
-//       selectedColor: "ring-gray-300",
-//     },
-//     // Add more color options as needed
-//   ],
-// };
+import { TruckIcon, UserGroupIcon } from "@heroicons/react/24/outline";
+import Footer from "@/app/components/Footer";
 
 const policies = [
   {
@@ -122,7 +88,7 @@ export default function ProductDetails({ product }) {
 
   return (
     <div className="bg-black">
-      <div className="pb-16 pt-6 sm:pb-24">
+      <div className="pb-8 pt-6 sm:pb-12">
         <div className="mx-auto mt-8 max-w-2xl px-4 sm:px-6 lg:max-w-7xl lg:px-8">
           <div className="lg:grid lg:auto-rows-min lg:grid-cols-10 lg:gap-x-8">
             <div className="lg:col-span-5 lg:col-start-8">
@@ -270,6 +236,7 @@ export default function ProductDetails({ product }) {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }
