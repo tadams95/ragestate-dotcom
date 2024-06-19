@@ -40,7 +40,7 @@ export default function Header() {
           <div className="flex lg:hidden">
             <button
               type="button"
-              className="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-700"
+              className="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-100"
               onClick={() => setMobileMenuOpen(true)}
             >
               <span className="sr-only">Open main menu</span>
@@ -60,7 +60,7 @@ export default function Header() {
           </div>
           <div className="hidden lg:flex lg:flex-1 lg:justify-end">
             <Link
-              href="#"
+              href="/cart"
               className="text-sm font-semibold leading-6 text-gray-100 px-20"
             >
               <ShoppingBagIcon className="h-6 w-6" aria-hidden="true" />

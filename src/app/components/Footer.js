@@ -70,12 +70,12 @@ const navigation = {
     },
     {
       name: "TikTok",
-      href: "https://github.com/tadams95/ragestate-dotcom",
+      href: "https://www.tiktok.com/@ragestate",
       icon: (props) => (
         <svg fill="currentColor" viewBox="0 0 24 24" {...props}>
           <path
             fillRule="evenodd"
-            d="M14 5h1.98c.144.715.54 1.617 1.235 2.512C17.895 8.389 18.797 9 20 9v2c-1.753 0-3.07-.814-4-1.829V16a5 5 0 1 1-5-5v2a3 3 0 1 0 3 3z" 
+            d="M14 5h1.98c.144.715.54 1.617 1.235 2.512C17.895 8.389 18.797 9 20 9v2c-1.753 0-3.07-.814-4-1.829V16a5 5 0 1 1-5-5v2a3 3 0 1 0 3 3z"
             clipRule="evenodd"
           />
         </svg>
