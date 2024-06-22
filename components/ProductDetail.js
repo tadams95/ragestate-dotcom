@@ -1,6 +1,10 @@
 "use client";
 import { useState } from "react";
 import { TruckIcon, UserGroupIcon } from "@heroicons/react/24/outline";
+
+import { useDispatch } from "react-redux";
+import { addToCart } from "../store/redux/cartSlice";
+
 import Footer from "@/app/components/Footer";
 
 const policies = [
@@ -21,15 +25,56 @@ function classNames(...classes) {
 }
 
 export default function ProductDetails({ product }) {
-  const [selectedColor, setSelectedColor] = useState(null);
-  const [selectedSize, setSelectedSize] = useState(null);
+  const [selectedColor, setSelectedColor] = useState("");
+  const [selectedSize, setSelectedSize] = useState("");
 
   const priceNumber = parseFloat(product.variants[0].price.amount);
   const formattedPrice = priceNumber.toFixed(2);
 
-  console.log("Product Detail: ", product);
+  // Ensure product is defined before accessing its properties
+  if (!product) {
+    return <div>Loading...</div>; // or handle differently while product is loading
+  }
 
-  // Function to filter and get unique color options from selectedOptions
+  // Destructure necessary fields from product
+  const {
+    id,
+    title,
+    images,
+    price,
+    // Add other necessary fields
+  } = product;
+
+  const handleAddToCart = (e) => {
+    e.preventDefault(); // Prevent form submission
+
+    // Check if all required selections are made
+    if (selectedSize && selectedColor) {
+      const productToAdd = {
+        productId: id,
+        images,
+        title,
+        price,
+        selectedSize,
+        selectedColor,
+      };
+
+      console.log("Product Added: ", productToAdd);
+      // Implement dispatch or function to add to cart
+      dispatch(addToCart(productToAdd));
+      setSelectedSize(""); // Reset selectedSize
+      setSelectedColor(""); // Reset selectedColor
+    } else {
+      // Handle the case where not all required selections are made
+      if (!selectedSize) {
+        window.alert("Please select a size.");
+      }
+      if (!selectedColor) {
+        window.alert("Please select a color.");
+      }
+    }
+  };
+
   const getColorOptions = () => {
     const colorSet = new Set(); // Set to store unique color options
 
@@ -81,11 +126,6 @@ export default function ProductDetails({ product }) {
     return sizeOptions;
   };
 
-  const handleColorChange = (event) => {
-    const { value } = event.target; // Destructure value from event.target
-    setSelectedColor(value); // Update selectedColor state with the selected value
-  };
-
   return (
     <div className="bg-black">
       <div className="pb-8 pt-6 sm:pb-12">
@@ -124,7 +164,7 @@ export default function ProductDetails({ product }) {
             </div>
 
             <div className="mt-8 lg:col-span-5">
-              <form>
+              <form onSubmit={handleAddToCart}>
                 {/* Color picker */}
                 <div>
                   <h2 className="text-sm font-medium text-gray-100">Color</h2>
@@ -132,8 +172,8 @@ export default function ProductDetails({ product }) {
                   <fieldset aria-label="Choose a color" className="mt-2">
                     <select
                       value={selectedColor}
-                      onChange={handleColorChange}
-                      className="px-2 py-2 bordertext-base font-medium text-black  border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onChange={(e) => setSelectedColor(e.target.value)}
+                      className="px-2 py-2 bordertext-base font-medium text-black  border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                     >
                       <option value="">Select Color</option>
                       {getColorOptions().map((colorOption) => (
@@ -157,8 +197,8 @@ export default function ProductDetails({ product }) {
                   <fieldset aria-label="Choose a color" className="mt-2">
                     <select
                       value={selectedSize}
-                      onChange={handleColorChange}
-                      className="px-2 py-2 bordertext-base font-medium text-black  border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onChange={(e) => setSelectedSize(e.target.value)}
+                      className="px-2 py-2 bordertext-base font-medium text-black  border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                     >
                       <option value="">Select Size</option>
                       {getSizeOptions().map((sizeOption) => (
@@ -190,22 +230,10 @@ export default function ProductDetails({ product }) {
                 />
               </div>
 
-              <div className="mt-8 border-t border-gray-200 pt-8">
-                <h2 className="text-sm font-medium text-gray-300">
-                  Fabric &amp; Care
-                </h2>
-
-                <div className="prose prose-sm mt-4 text-gray-100">
-                  {/* <ul role="list">
-                    {product.details.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul> */}
-                </div>
-              </div>
+              <div className="mt-8 border-t border-gray-200 pt-8" />
 
               {/* Policies */}
-              <section aria-labelledby="policies-heading" className="mt-10">
+              <section aria-labelledby="policies-heading" className="mt-0">
                 <h2 id="policies-heading" className="sr-only">
                   Our Policies
                 </h2>

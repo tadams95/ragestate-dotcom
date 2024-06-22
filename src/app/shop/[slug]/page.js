@@ -5,9 +5,11 @@ import ProductDetails from "../../../../components/ProductDetail";
 
 export default function ProductDetail() {
   // Retrieve product from localStorage
-  const selectedProduct = JSON.parse(localStorage.getItem("selectedProduct"));
+  let selectedProduct = null;
 
-  // console.log(selectedProduct);
+  if (typeof window !== "undefined") {
+    selectedProduct = JSON.parse(localStorage.getItem("selectedProduct"));
+  }
 
   return (
     <>
