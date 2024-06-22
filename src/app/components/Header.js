@@ -115,6 +115,12 @@ export default function Header() {
                 </div>
                 <div className="py-6">
                   <Link
+                    href="/cart"
+                    className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-100 hover:bg-zinc-900"
+                  >
+                   CART
+                  </Link>
+                  <Link
                     href="#"
                     className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-100 hover:bg-zinc-900"
                   >

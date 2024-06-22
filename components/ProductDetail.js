@@ -1,9 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { TruckIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 
 import { useDispatch } from "react-redux";
-import { addToCart } from "../store/redux/cartSlice";
+import { addToCart } from "../lib/features/todos/cartSlice";
 
 import Footer from "@/app/components/Footer";
 
@@ -25,11 +25,18 @@ function classNames(...classes) {
 }
 
 export default function ProductDetails({ product }) {
+  const dispatch = useDispatch();
   const [selectedColor, setSelectedColor] = useState("");
   const [selectedSize, setSelectedSize] = useState("");
+  const [productPrice, setProductPrice] = useState(0);
 
   const priceNumber = parseFloat(product.variants[0].price.amount);
   const formattedPrice = priceNumber.toFixed(2);
+
+  // Update productPrice when formattedPrice changes
+  useEffect(() => {
+    setProductPrice(formattedPrice); // Update productPrice with the formatted price
+  }, [formattedPrice]);
 
   // Ensure product is defined before accessing its properties
   if (!product) {
@@ -41,7 +48,6 @@ export default function ProductDetails({ product }) {
     id,
     title,
     images,
-    price,
     // Add other necessary fields
   } = product;
 
@@ -54,7 +60,7 @@ export default function ProductDetails({ product }) {
         productId: id,
         images,
         title,
-        price,
+        price: productPrice,
         selectedSize,
         selectedColor,
       };

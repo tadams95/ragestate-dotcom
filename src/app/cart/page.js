@@ -1,6 +1,19 @@
+"use client";
+
+import { useState, useEffect } from "react";
+
 import { TruckIcon, XMarkIcon } from "@heroicons/react/20/solid";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+
+import { useSelector, useDispatch } from "react-redux";
+
+import {
+  selectCartItems,
+  removeFromCart,
+  setCheckoutPrice,
+} from "../../../lib/features/todos/cartSlice";
+import Link from "next/link";
 
 const products = [
   {
@@ -42,16 +55,52 @@ const products = [
 ];
 
 export default function Cart() {
-  const cartSubtotal = products.reduce((accumulator, product) => {
-    // Extract numerical value from price string and convert to float
-    const price = parseFloat(product.price.replace("$", ""));
-    return accumulator + price;
-  }, 0);
+  const dispatch = useDispatch();
+  const cartItems = useSelector(selectCartItems);
+  const [cartSubtotal, setCartSubtotal] = useState(0);
+  const [totalPrice, setTotalPrice] = useState(0);
+
+  console.log("Cart Items: ", cartItems);
+
+  const handleRemoveFromCart = (productId, selectedColor, selectedSize) => {
+    dispatch(removeFromCart({ productId, selectedColor, selectedSize }));
+  };
+
+  useEffect(() => {
+    // Calculate subtotal price
+    const newCartSubtotal = cartItems.reduce((accumulator, item) => {
+      const itemPrice = parseFloat(item.price);
+      return accumulator + itemPrice;
+    }, 0);
+
+    setCartSubtotal(newCartSubtotal);
+
+    // Calculate tax and total price
+    const taxRate = 0.075;
+    const taxTotal = newCartSubtotal * taxRate;
+
+    const newTotalPrice = newCartSubtotal + taxTotal + shipping;
+
+    setTotalPrice(newTotalPrice);
+    dispatch(setCheckoutPrice(newTotalPrice * 100)); // Convert to cents for Stripe
+  }, [cartItems, dispatch]);
 
   const taxRate = 0.075;
   const taxTotal = (cartSubtotal * taxRate).toFixed(2);
-  const shipping = 9.99;
-  const total = (cartSubtotal + parseFloat(taxTotal) + shipping).toFixed(2);
+
+  let shipping;
+
+  if (cartItems.length === 0) {
+    shipping = 0.0;
+  } else {
+    shipping = 9.99;
+  }
+
+  const total = (
+    parseFloat(cartSubtotal) +
+    parseFloat(taxTotal) +
+    shipping
+  ).toFixed(2);
 
   return (
     <div className="bg-black">
@@ -70,12 +119,15 @@ export default function Cart() {
               role="list"
               className="divide-y divide-gray-200 border-b border-t border-gray-100"
             >
-              {products.map((product, productIdx) => (
-                <li key={product.id} className="flex py-6 sm:py-10">
+              {cartItems.map((item, index) => (
+                <li
+                  key={`${item.productId}-${item.selectedColor}-${item.selectedSize}-${index}`}
+                  className="flex py-6 sm:py-10"
+                >
                   <div className="flex-shrink-0">
                     <img
-                      src={product.imageSrc}
-                      alt={product.imageAlt}
+                      src={item.images[0].src}
+                      alt={item.title}
                       className="h-24 w-24 rounded-md object-cover object-center sm:h-48 sm:w-48"
                     />
                   </div>
@@ -85,37 +137,37 @@ export default function Cart() {
                       <div>
                         <div className="flex justify-between">
                           <h3 className="text-sm">
-                            <a
-                              href={product.href}
+                            <Link
+                              href="/shop"
                               className="font-medium text-gray-100 hover:text-gray-500"
                             >
-                              {product.name}
-                            </a>
+                              {item.title}
+                            </Link>
                           </h3>
                         </div>
                         <div className="mt-1 flex text-sm">
-                          <p className="text-gray-100">{product.color}</p>
-                          {product.size ? (
+                          <p className="text-gray-100">{item.selectedColor}</p>
+                          {item.selectedSize ? (
                             <p className="ml-4 border-l border-gray-200 pl-4 text-gray-100">
-                              {product.size}
+                              {item.selectedSize}
                             </p>
                           ) : null}
                         </div>
                         <p className="mt-1 text-sm font-medium text-gray-100">
-                          {product.price}
+                          ${item.price}
                         </p>
                       </div>
 
                       <div className="mt-4 sm:mt-0 sm:pr-9">
                         <label
-                          htmlFor={`quantity-${productIdx}`}
+                          htmlFor={`quantity-${index}`}
                           className="sr-only"
                         >
-                          Quantity, {product.name}
+                          Quantity, {item.title}
                         </label>
                         <select
-                          id={`quantity-${productIdx}`}
-                          name={`quantity-${productIdx}`}
+                          id={`quantity-${index}`}
+                          name={`quantity-${index}`}
                           className="max-w-full rounded-md border border-gray-900 py-1.5 text-left text-base font-medium leading-5 text-gray-900 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
                         >
                           <option value={1}>1</option>
@@ -132,6 +184,13 @@ export default function Cart() {
                           <button
                             type="button"
                             className="-m-2 inline-flex p-2 text-gray-100 hover:text-gray-500"
+                            onClick={() =>
+                              handleRemoveFromCart(
+                                item.productId,
+                                item.selectedColor,
+                                item.selectedSize
+                              )
+                            }
                           >
                             <span className="sr-only">Remove</span>
                             <XMarkIcon className="h-5 w-5" aria-hidden="true" />
@@ -170,44 +229,20 @@ export default function Cart() {
               <div className="flex items-center justify-between">
                 <dt className="text-sm text-gray-100">Subtotal</dt>
                 <dd className="text-sm font-medium text-gray-100">
-                  ${cartSubtotal}
+                  ${cartSubtotal.toFixed(2)}
                 </dd>
               </div>
               <div className="flex items-center justify-between border-t border-gray-200 pt-4">
                 <dt className="flex items-center text-sm text-gray-100">
                   <span>Shipping</span>
-                  {/* <a
-                    href="#"
-                    className="ml-2 flex-shrink-0 text-gray-100 hover:text-gray-500"
-                  >
-                    <span className="sr-only">
-                      Learn more about how shipping is calculated
-                    </span>
-                    <QuestionMarkCircleIcon
-                      className="h-5 w-5"
-                      aria-hidden="true"
-                    />
-                  </a> */}
                 </dt>
                 <dd className="text-sm font-medium text-gray-100">
-                  ${shipping}
+                  ${shipping.toFixed(2)}
                 </dd>
               </div>
               <div className="flex items-center justify-between border-t border-gray-200 pt-4">
                 <dt className="flex text-sm text-gray-100">
                   <span>Tax</span>
-                  {/* <a
-                    href="#"
-                    className="ml-2 flex-shrink-0 text-gray-100 hover:text-gray-500"
-                  >
-                    <span className="sr-only">
-                      Learn more about how tax is calculated
-                    </span>
-                    <QuestionMarkCircleIcon
-                      className="h-5 w-5"
-                      aria-hidden="true"
-                    />
-                  </a> */}
                 </dt>
                 <dd className="text-sm font-medium text-gray-100">
                   ${taxTotal}
@@ -234,13 +269,13 @@ export default function Cart() {
 
             <div className="mt-6 text-center text-sm">
               <p>
-                <a
+                <Link
                   href="/shop"
                   className="font-medium text-gray-100 hover:text-gray-300"
                 >
                   Continue Shopping
                   <span aria-hidden="true"> &rarr;</span>
-                </a>
+                </Link>
               </p>
             </div>
           </section>
