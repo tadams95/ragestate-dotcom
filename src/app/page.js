@@ -1,22 +1,6 @@
-"use client";
-
-import { useState } from "react";
-import { Dialog, DialogPanel } from "@headlessui/react";
-import Link from "next/link";
-
 import Header from "./components/Header";
 
-const navigation = [
-  { name: "SHOP", href: "/shop" },
-  { name: "EVENTS", href: "/events" },
-  { name: "ABOUT", href: "/about" },
-  { name: "PRODUCTS", href: "/products" },
-  { name: "BLOG", href: "/blog" },
-];
-
 export default function Home() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
   return (
     <>
       <div className="bg-black">
