@@ -165,7 +165,7 @@ export default function ProductDetails({ product }) {
                     className={classNames(
                       index === 0
                         ? "lg:col-span-2 lg:row-span-2"
-                        : "hidden lg:block lg:col-span-1 lg:row-span-1", // Apply different classes based on index
+                        : " lg:block lg:col-span-1 lg:row-span-1", // Apply different classes based on index
                       "rounded-lg overflow-hidden"
                     )}
                   />
@@ -222,7 +222,7 @@ export default function ProductDetails({ product }) {
 
                 <button
                   type="submit"
-                  className="mt-8 flex  items-center justify-center rounded-md border border-transparent bg-white px-8 py-2 text-base font-medium text-black hover:bg-black hover:text-white focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                  className="mt-8 flex  items-center justify-center rounded-md border border-gray-100 px-8 py-2 text-base font-medium text-white hover:bg-red-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
                 >
                   Add to cart
                 </button>

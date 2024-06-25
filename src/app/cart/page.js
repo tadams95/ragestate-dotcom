@@ -280,7 +280,7 @@ export default function Cart() {
                 <p>
                   <Link
                     href="/shop"
-                    className="font-medium text-gray-100 hover:text-gray-300"
+                    className="font-medium text-gray-100 hover:text-red-500"
                   >
                     Continue Shopping
                     <span aria-hidden="true"> &rarr;</span>

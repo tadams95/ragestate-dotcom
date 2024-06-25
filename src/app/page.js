@@ -2,7 +2,7 @@ import Header from "./components/Header";
 
 export default function Home() {
   return (
-    <>
+    <div className="bg-black">
       <div className="bg-black">
         <Header />
         <div className="relative isolate px-6 pt-14 lg:px-8">
@@ -43,6 +43,6 @@ export default function Home() {
       <p className="mt-60 text-center text-xs leading-5 text-gray-500">
         &copy; 2024 RAGESTATE, LLC. All rights reserved.
       </p>
-    </>
+    </div>
   );
 }
