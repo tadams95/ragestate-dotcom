@@ -32,7 +32,7 @@ export default function Shop() {
       <Header />
       <div>
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-          <div className="mt-6 grid grid-cols-1 gap-y-10 sm:grid-cols-3 sm:gap-x-6 sm:gap-y-0 lg:gap-x-8">
+          <div className="mt-6 grid gap-y-10 lg:grid-cols-3 sm:grid-cols-2  sm:gap-x-6 sm:gap-y-0 lg:gap-x-8">
             {productsWithHref.map((product) => (
               <ProductTile key={product.id} product={product} />
             ))}

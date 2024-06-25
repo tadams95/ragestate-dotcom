@@ -18,7 +18,7 @@ export default function Home() {
               }}
             />
           </div>
-          <div className="mx-auto max-w-2xl py-32 pt-72">
+          <div className="mx-auto max-w-2xl py-20 pt-72">
             <div className="text-center">
               <h1 className="text-4xl font-bold tracking-tight text-gray-100 sm:text-5xl font-sans pt-10">
                 WELCOME TO RAGESTATE

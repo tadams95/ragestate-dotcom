@@ -189,7 +189,7 @@ export default function Cart() {
                           <div className="absolute right-0 top-0">
                             <button
                               type="button"
-                              className="-m-2 inline-flex p-2 text-gray-100 hover:text-gray-500"
+                              className="-m-2 inline-flex p-2 text-gray-100 hover:text-red-500"
                               onClick={() =>
                                 handleRemoveFromCart(
                                   item.productId,
@@ -270,7 +270,7 @@ export default function Cart() {
               <div className="mt-10">
                 <button
                   type="submit"
-                  className="w-full rounded-md border border-solid border-gray-100 bg-black px-4 py-3 text-base font-medium text-white shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-50  "
+                  className="w-full rounded-md border border-solid border-gray-100 bg-black px-4 py-3 text-base font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-50  "
                 >
                   Checkout
                 </button>

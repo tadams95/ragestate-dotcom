@@ -252,18 +252,18 @@ export default function ProductDetails({ product }) {
                   {policies.map((policy) => (
                     <div
                       key={policy.name}
-                      className="rounded-lg border border-gray-200 bg-gray-50 p-6 text-center"
+                      className="rounded-lg border border-gray-100 bg-black p-6 text-center"
                     >
                       <dt>
                         <policy.icon
-                          className="mx-auto h-6 w-6 flex-shrink-0 text-gray-400"
+                          className="mx-auto h-6 w-6 flex-shrink-0 text-gray-100"
                           aria-hidden="true"
                         />
-                        <span className="mt-4 text-sm font-medium text-gray-900">
+                        <span className="mt-4 text-sm font-medium text-gray-100">
                           {policy.name}
                         </span>
                       </dt>
-                      <dd className="mt-1 text-sm text-gray-500">
+                      <dd className="mt-1 text-sm text-gray-300">
                         {policy.description}
                       </dd>
                     </div>
