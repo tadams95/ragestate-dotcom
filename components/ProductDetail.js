@@ -43,6 +43,8 @@ export default function ProductDetails({ product }) {
     return <div>Loading...</div>; // or handle differently while product is loading
   }
 
+  console.log("Product: ", product.images);
+
   // Destructure necessary fields from product
   const {
     id,
@@ -148,6 +150,8 @@ export default function ProductDetails({ product }) {
               </div>
             </div>
 
+            
+
             {/* Image gallery */}
             <div className="mt-8 lg:col-span-7 lg:col-start-1 lg:row-span-3 lg:row-start-1 lg:mt-0">
               <h2 className="sr-only">Images</h2>
@@ -218,7 +222,7 @@ export default function ProductDetails({ product }) {
 
                 <button
                   type="submit"
-                  className="mt-8 flex w-full items-center justify-center rounded-md border border-transparent bg-white px-8 py-3 text-base font-medium text-black hover:bg-black hover:text-white focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                  className="mt-8 flex  items-center justify-center rounded-md border border-transparent bg-white px-8 py-2 text-base font-medium text-black hover:bg-black hover:text-white focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
                 >
                   Add to cart
                 </button>
