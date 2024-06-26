@@ -1,7 +1,7 @@
 "use client";
 
-import EventStyling1 from "../../../components/styling/EventStyling1";
-import EventStyling2 from "../../../components/styling/EventStyling2";
+import EventStyling1 from "../components/styling/EventStyling1";
+import EventStyling2 from "../components/styling/EventStyling2";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 

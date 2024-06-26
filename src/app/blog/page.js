@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
-import BlogStyling from "../../../components/styling/BlogStyling";
+import BlogStyling from "../components/styling/BlogStyling";
 
 const posts = [
   {

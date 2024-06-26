@@ -1,6 +1,6 @@
 "use client";
 
-import AboutStyling from "../../../components/styling/AboutStyling";
+import AboutStyling from "../components/styling/AboutStyling";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 

@@ -1,5 +1,5 @@
-import HomeStyling1 from "../../components/styling/HomeStyling1";
-import HomeStyling2 from "../../components/styling/HomeStyling2";
+import HomeStyling1 from "./components/styling/HomeStyling1";
+import HomeStyling2 from "./components/styling/HomeStyling2";
 import Header from "./components/Header";
 
 export default function Home() {
