@@ -55,11 +55,12 @@ export default function Events() {
         <div className="sm:flex sm:items-baseline sm:justify-between">
           <div
             className={`transition-opacity ${
-              isLoading ? "opacity-0 duration-2500" : "opacity-100"
+              isLoading ? "opacity-0" : "opacity-100 duration-1000"
             }`}
           >
             <EventTile events={events} />
           </div>
+
           <EventStyling2 />
         </div>
         <Footer />
