@@ -52,14 +52,16 @@ export default function Events() {
         <h2 className="text-2xl font-bold tracking-tight text-gray-100">
           RAGESTATE EVENTS
         </h2>
-        {isLoading ? (
-          <p>Loading...</p> // Render loading indicator while data is being fetched
-        ) : (
-          <div className="sm:flex sm:items-baseline sm:justify-between">
+        <div className="sm:flex sm:items-baseline sm:justify-between">
+          <div
+            className={`transition-opacity ${
+              isLoading ? "opacity-0 duration-2500" : "opacity-100"
+            }`}
+          >
             <EventTile events={events} />
-            <EventStyling2 />
           </div>
-        )}
+          <EventStyling2 />
+        </div>
         <Footer />
       </div>
     </>
