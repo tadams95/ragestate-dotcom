@@ -30,7 +30,7 @@ export default function Events() {
             return eventDateTime >= currentDate;
           });
 
-        console.log("Event Data: ", eventData);
+        setEvents(eventData);
       } catch (error) {
         console.error("Error fetching event data:", error);
       } finally {
