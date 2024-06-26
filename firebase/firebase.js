@@ -5,21 +5,18 @@ import { initializeAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
-
 const firebaseConfig = {
-  apiKey: process.env.API_KEY,
-  authDomain: process.env.AUTHDOMAIN,
-  databaseURL: process.env.DATABASEURL,
-  projectId: process.env.PROJECTID,
-  storageBucket: process.env.STORAGEBUCKET,
-  messagingSenderId: process.env.MESSAGINGSENDERID,
-  appId: process.env.APPID,
-  measurementId: process.env.MEASUREMENTID,
+  apiKey: process.env.NEXT_PUBLIC_apiKey,
+  authDomain: process.env.NEXT_PUBLIC_authDomain,
+  databaseURL: process.env.NEXT_PUBLIC_databaseURL,
+  projectId: "ragestate-app",
+  storageBucket: process.env.NEXT_PUBLIC_storageBucket,
+  messagingSenderId: process.env.NEXT_PUBLIC_messagingSenderId,
+  appId: process.env.NEXT_PUBLIC_appId,
+  measurementId: process.env.NEXT_PUBLIC_measurementId,
 };
-
 // Initialize Firebase app
 const app = initializeApp(firebaseConfig);
-
 
 // Initialize Firebase Firestore
 const db = getFirestore(app);
