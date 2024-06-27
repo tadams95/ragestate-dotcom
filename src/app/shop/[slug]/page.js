@@ -23,6 +23,8 @@ export default function ProductDetail() {
     return () => clearTimeout(timer); // Clean up timeout on component unmount
   }, []);
 
+ 
+
   return (
     <>
       <Header />
