@@ -163,7 +163,7 @@ export default function EventDetails({ event }) {
           <div className="mt-10 border-t border-gray-100 pt-10">
             <h3 className="text-sm font-medium text-gray-100">Location</h3>
             <div className="prose prose-sm mt-4 text-gray-300">
-              <p className="mt-6 text-gray-300">{event[0].location}</p>
+              <p className="mt-4 text-gray-300">{event[0].location}</p>
             </div>
           </div>
 
@@ -173,12 +173,18 @@ export default function EventDetails({ event }) {
           </div>
 
           <div className="mt-10 border-t border-gray-100 pt-10">
+            <h3 className="text-sm font-medium text-gray-100">Age</h3>
+            <p className="mt-4 text-sm text-gray-300">{date.toDateString()}</p>
+          </div>
+
+
+          <div className="mt-10 border-t border-gray-100 pt-10">
             <h3 className="text-sm font-medium text-gray-100">Share</h3>
             <ul role="list" className="mt-4 flex items-center space-x-6">
               <li>
                 <a
                   href="#"
-                  className="flex h-6 w-6 items-center justify-center text-gray-400 hover:text-gray-500"
+                  className="flex h-6 w-6 items-center justify-center text-gray-100 hover:text-red-500"
                 >
                   <span className="sr-only">Share on Facebook</span>
                   <svg
@@ -198,7 +204,7 @@ export default function EventDetails({ event }) {
               <li>
                 <a
                   href="#"
-                  className="flex h-6 w-6 items-center justify-center text-gray-400 hover:text-gray-500"
+                  className="flex h-6 w-6 items-center justify-center text-gray-100 hover:text-red-500"
                 >
                   <span className="sr-only">Share on Instagram</span>
                   <svg
@@ -218,7 +224,7 @@ export default function EventDetails({ event }) {
               <li>
                 <a
                   href="#"
-                  className="flex h-6 w-6 items-center justify-center text-gray-400 hover:text-gray-500"
+                  className="flex h-6 w-6 items-center justify-center text-gray-100 hover:text-red-500"
                 >
                   <span className="sr-only">Share on X</span>
                   <svg

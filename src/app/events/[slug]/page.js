@@ -1,21 +1,37 @@
 "use client";
 
 import Header from "@/app/components/Header";
-import Link from "next/link";
-import Image from "next/image";
+
+import { useState, useEffect } from "react";
 
 import EventDetails from "../../../../components/EventDetails";
 
 export default function EventDetail() {
+  const [loading, setLoading] = useState(true);
+
   let selectedEvent = null;
   if (typeof window !== "undefined") {
     selectedEvent = JSON.parse(localStorage.getItem("selectedEvent"));
   }
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false); // Simulate loading completion after 2000ms (adjust as needed)
+    }, 100); // Adjust the timeout duration as per your requirement
+
+    return () => clearTimeout(timer); // Clean up timeout on component unmount
+  }, []);
+
   return (
     <div className="bg-transparent">
       <Header />
-      <EventDetails event={selectedEvent} />
+      <div
+        className={`transition-opacity ${
+          loading ? "opacity-0" : "opacity-100 duration-1000"
+        } bg-black px-4 py-20 lg:px-8`}
+      >
+        <EventDetails event={selectedEvent} />
+      </div>
     </div>
   );
 }
