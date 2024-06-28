@@ -5,6 +5,7 @@ import Header from "@/app/components/Header";
 import { useState, useEffect } from "react";
 
 import EventDetails from "../../../../components/EventDetails";
+import EventStyling1 from "@/app/components/styling/EventStyling1";
 
 export default function EventDetail() {
   const [loading, setLoading] = useState(true);
@@ -25,6 +26,7 @@ export default function EventDetail() {
   return (
     <div className="bg-transparent">
       <Header />
+      <EventStyling1 />
       <div
         className={`transition-opacity ${
           loading ? "opacity-0" : "opacity-100 duration-1000"

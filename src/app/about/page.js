@@ -14,7 +14,7 @@ export default function Events() {
         {/* Background */}
         <AboutStyling />
 
-        <div className="px-6 pt-14 lg:px-8">
+        <div className="px-6 lg:px-8">
           <div className="mx-auto max-w-2xl pt-24 text-center sm:pt-40">
             <h2 className="text-4xl font-bold tracking-tight text-white sm:text-6xl">
               ABOUT RAGESTATE

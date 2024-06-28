@@ -44,15 +44,14 @@ export default function Events() {
 
   return (
     <>
-      <div className="bg-black">
+      <div className="bg-black isolate">
         <Header />
       </div>
       <EventStyling1 />
-
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-        <h2 className="text-2xl font-bold tracking-tight text-gray-100">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 sm:pt-24 lg:px-8">
+        {/* <h2 className="text-2xl font-bold tracking-tight text-gray-100">
           RAGESTATE EVENTS
-        </h2>
+        </h2> */}
         <div className="sm:flex sm:items-baseline sm:justify-between">
           <div
             className={`transition-opacity ${
