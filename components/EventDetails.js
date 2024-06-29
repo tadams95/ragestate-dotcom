@@ -1,6 +1,6 @@
 "use client";
 
-import EventDetailStyling from "@/app/components/styling/EventDetailStyling";
+import RandomDetailStyling from "@/app/components/styling/RandomDetailStyling";
 
 import { useDispatch } from "react-redux";
 import { addToCart } from "../lib/features/todos/cartSlice";
@@ -67,7 +67,7 @@ export default function EventDetails({ event }) {
   return (
     <>
       <div className="mx-auto px-4 py-16 sm:px-6 sm:py-24 lg:max-w-7xl lg:px-8 isolate">
-        <EventDetailStyling />
+        <RandomDetailStyling />
         {/* Product */}
         <div className="lg:grid lg:grid-cols-7 lg:grid-rows-1 lg:gap-x-8 lg:gap-y-10 xl:gap-x-16">
           {/* Product image */}

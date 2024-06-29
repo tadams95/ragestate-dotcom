@@ -1,7 +1,7 @@
 // firebase.js
 
 import { initializeApp } from "firebase/app";
-import { initializeAuth } from "firebase/auth";
+import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
@@ -15,8 +15,11 @@ const firebaseConfig = {
   appId: process.env.appId,
   measurementId: process.env.measurementId,
 };
+
 // Initialize Firebase app
 const app = initializeApp(firebaseConfig);
+
+const auth = getAuth(app);
 
 // Initialize Firebase Firestore
 const db = getFirestore(app);
@@ -25,4 +28,4 @@ const db = getFirestore(app);
 const storage = getStorage(app);
 
 // Export the initialized app, auth, db, and storage
-export { app, db, storage };
+export { app, db, storage, auth };

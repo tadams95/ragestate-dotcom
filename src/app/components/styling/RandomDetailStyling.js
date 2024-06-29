@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 const generateRandomClipPath = () => {
   const points = 16; // Number of points in the clip path polygon
   let clipPath = "polygon(";
@@ -13,7 +15,7 @@ const generateRandomClipPath = () => {
   return clipPath;
 };
 
-export default function EventDetailStyling() {
+const X = () => {
   return (
     <>
       <div className="relative isolate -z-10">
@@ -44,4 +46,8 @@ export default function EventDetailStyling() {
       </div>
     </>
   );
-}
+};
+
+const RandomDetailStyling = memo(X);
+
+export default RandomDetailStyling;

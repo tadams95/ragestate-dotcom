@@ -67,7 +67,7 @@ export default function Header() {
               <span aria-hidden="true"></span>
             </Link>
             <Link
-              href="#"
+              href="/login"
               className="text-sm font-semibold leading-6 text-gray-100"
             >
               <UserIcon className="h-6 w-6" aria-hidden="true" />
@@ -118,10 +118,10 @@ export default function Header() {
                     href="/cart"
                     className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-100 hover:bg-zinc-900"
                   >
-                   CART
+                    CART
                   </Link>
                   <Link
-                    href="#"
+                    href="/login"
                     className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-100 hover:bg-zinc-900"
                   >
                     LOG IN
