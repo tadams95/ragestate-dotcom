@@ -153,10 +153,10 @@ export default function ProductDetails({ product }) {
             
 
             {/* Image gallery */}
-            <div className="mt-8 lg:col-span-7 lg:col-start-1 lg:row-span-3 lg:row-start-1 lg:mt-0">
+            <div className="mt-8 lg:col-span-7 col-start-1 lg:row-span-3 lg:row-start-1 lg:mt-0">
               <h2 className="sr-only">Images</h2>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 lg:grid-rows-3 lg:gap-8">
+              <div className="grid grid-cols-2 grid-rows-3 gap-8">
                 {product.images.map((image, index) => (
                   <img
                     key={image.id}
@@ -164,7 +164,7 @@ export default function ProductDetails({ product }) {
                     alt={image.altText}
                     className={classNames(
                       index === 0
-                        ? "lg:col-span-2 lg:row-span-2"
+                        ? "lg:col-span-2 lg:row-span-2 "
                         : " lg:block lg:col-span-1 lg:row-span-1", // Apply different classes based on index
                       "rounded-lg overflow-hidden"
                     )}
