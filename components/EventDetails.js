@@ -2,6 +2,9 @@
 
 import EventDetailStyling from "@/app/components/styling/EventDetailStyling";
 
+import { useDispatch } from "react-redux";
+import { addToCart } from "../lib/features/todos/cartSlice";
+
 const faqs = [
   {
     question: "What format are these icons?",
@@ -17,6 +20,8 @@ const faqs = [
 ];
 
 export default function EventDetails({ event }) {
+  const dispatch = useDispatch();
+
   let selectedEvent = null;
   if (typeof window !== "undefined") {
     selectedEvent = JSON.parse(localStorage.getItem("selectedEvent"));
@@ -39,6 +44,24 @@ export default function EventDetails({ event }) {
   const generateAppleMapsLink = (location) => {
     const encodedLocation = encodeURIComponent(location);
     return `https://maps.apple.com/?q=${encodedLocation}`;
+  };
+
+  const handleAddToCart = () => {
+    if (selectedEvent && selectedEvent[0].quantity > 0) {
+      const cartItem = {
+        productId: selectedEvent[0].name,
+        title: selectedEvent[0].name,
+        images: selectedEvent[0].imgURL,
+        selectedQuantity: 1,
+        price: selectedEvent[0].price,
+        eventDetails: {
+          location: selectedEvent[0].location,
+        },
+      };
+
+      // Dispatch the addToCart action with the cart item
+      dispatch(addToCart(cartItem));
+    }
   };
 
   return (
@@ -80,6 +103,7 @@ export default function EventDetails({ event }) {
               <button
                 type="button"
                 className="flex  items-center justify-center rounded-md border border-gray-100 px-8 py-2 text-base font-medium text-white hover:bg-red-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                onClick={handleAddToCart}
               >
                 Add to Cart
               </button>
@@ -88,29 +112,28 @@ export default function EventDetails({ event }) {
             <div className="mt-10 border-t border-gray-100 pt-10">
               <h3 className="text-sm font-medium text-gray-100">Location</h3>
               <div className="prose prose-sm mt-4 text-gray-300">
-                <p className="mt-4 text-gray-300">
-                  {location}
-                  <br />
-                  {/* Google Maps link */}
+                <p className="mt-4 text-gray-300">{location}</p>
+                <div className="mt-4 space-y-4">
+                  {/* Google Maps link wrapped in a button */}
                   <a
                     href={generateGoogleMapsLink(location)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="underline text-blue-400 hover:text-blue-600"
+                    className="inline-block rounded-md border border-gray-100 px-4 py-2 text-sm font-medium text-blue-400 hover:bg-blue-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
                     Open in Google Maps
                   </a>
-                  {" | "}
-                  {/* Apple Maps link */}
+                  {"  |  "}
+                  {/* Apple Maps link wrapped in a button */}
                   <a
                     href={generateAppleMapsLink(location)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="underline text-blue-400 hover:text-blue-600"
+                    className="inline-block rounded-md border border-gray-100 px-4 py-2 text-sm font-medium text-blue-400 hover:bg-blue-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
                     Open in Apple Maps
                   </a>
-                </p>
+                </div>
               </div>
             </div>
 

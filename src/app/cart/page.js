@@ -16,45 +16,6 @@ import {
 import Link from "next/link";
 import EmptyCart from "../../../components/EmptyCart";
 
-const products = [
-  {
-    id: 1,
-    name: "RAGERS NEVER DIE Tee (W)",
-    href: "/shop",
-    price: "$30.00",
-    color: "White",
-    inStock: true,
-    size: "Large",
-    imageSrc:
-      "https://cdn.shopify.com/s/files/1/0727/7484/4695/files/unisex-performance-crew-neck-t-shirt-white-back-6670ae3b21833.png?v=1718660681",
-    imageAlt: "RAGERS NEVER DIE Tee (W)",
-  },
-  {
-    id: 2,
-    name: "RAGERS NEVER DIE Tee",
-    href: "/shop",
-    price: "$32.00",
-    color: "Black",
-    inStock: false,
-    leadTime: "3–4 weeks",
-    size: "Large",
-    imageSrc:
-      "https://cdn.shopify.com/s/files/1/0727/7484/4695/files/unisex-performance-crew-neck-t-shirt-black-back-66707a716349b.png?v=1718647420",
-    imageAlt: "RAGERS NEVER DIE Tee",
-  },
-  {
-    id: 3,
-    name: "ARES | Wrath of Gods",
-    href: "#",
-    price: "$30.00",
-    color: "Black",
-    inStock: true,
-    imageSrc:
-      "https://cdn.shopify.com/s/files/1/0727/7484/4695/files/unisex-performance-crew-neck-t-shirt-black-back-654d74a654351.png?v=1699574962",
-    imageAlt: "ARES | Wrath of Gods",
-  },
-];
-
 export default function Cart() {
   const dispatch = useDispatch();
   const cartItems = useSelector(selectCartItems);
@@ -130,7 +91,7 @@ export default function Cart() {
                   >
                     <div className="flex-shrink-0">
                       <img
-                        src={item.images[0].src}
+                        src={item.images[0].src || item.images}
                         alt={item.title}
                         className="h-24 w-24 rounded-md object-cover object-center sm:h-48 sm:w-48"
                       />
