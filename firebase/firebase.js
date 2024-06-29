@@ -5,8 +5,10 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
+import { api, key } from "../lib/features/todos/userSlice";
+
 const firebaseConfig = {
-  apiKey: process.env.apiKey,
+  apiKey: api + key,
   authDomain: process.env.authDomain,
   databaseURL: process.env.databaseURL,
   projectId: "ragestate-app",
