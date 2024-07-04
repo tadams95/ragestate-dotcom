@@ -1,23 +1,26 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../../../firebase/firebase";
+import { setAuthenticated } from "../../../lib/features/todos/userSlice";
+
+import { useRouter } from "next/navigation";
+import { useDispatch } from "react-redux";
 
 import Link from "next/link";
-
 import Header from "../components/Header";
 import RandomDetailStyling from "../components/styling/RandomDetailStyling";
 import Footer from "../components/Footer";
 import SocialLogins from "./socialLogin/SocialLogins";
 
-import { signInWithEmailAndPassword } from "firebase/auth";
-
-import { auth } from "../../../firebase/firebase";
-
 export default function Login() {
+  const router = useRouter();
+  const dispatch = useDispatch();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
 
   // Memoize the onChange handlers using useCallback
   const handleEmailChange = useCallback((e) => {
@@ -40,6 +43,8 @@ export default function Login() {
       );
       console.log("User Credential: ", userCredential);
       setIsAuthenticating(false);
+      dispatch(setAuthenticated(true));
+      router.push("/");
     } catch (error) {
       console.error("Error signing in:", error.message);
       // Handle login failure
@@ -170,7 +175,7 @@ export default function Login() {
             Not a member?{" "}
             <Link
               href="/create-account"
-              className="font-semibold leading-6 text-blue-700 hover:text-red-700"
+              className="font-semibold leading-6 text-sky-700 hover:text-red-700"
             >
               Create Account
             </Link>

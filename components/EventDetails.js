@@ -57,6 +57,7 @@ export default function EventDetails({ event }) {
         eventDetails: {
           location: selectedEvent[0].location,
         },
+        isDigital: selectedEvent[0].isDigital,
       };
 
       // Dispatch the addToCart action with the cart item

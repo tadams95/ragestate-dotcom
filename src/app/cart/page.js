@@ -1,26 +1,29 @@
 "use client";
 
 import { useState, useEffect } from "react";
-
 import { TruckIcon, XMarkIcon } from "@heroicons/react/20/solid";
+import { useSelector, useDispatch } from "react-redux";
+import { selectAuthenticated } from "../../../lib/features/todos/userSlice";
+
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-
-import { useSelector, useDispatch } from "react-redux";
 
 import {
   selectCartItems,
   removeFromCart,
   setCheckoutPrice,
 } from "../../../lib/features/todos/cartSlice";
+
 import Link from "next/link";
 import EmptyCart from "../../../components/EmptyCart";
+import RandomDetailStyling from "../components/styling/RandomDetailStyling";
 
 export default function Cart() {
   const dispatch = useDispatch();
   const cartItems = useSelector(selectCartItems);
   const [cartSubtotal, setCartSubtotal] = useState(0);
   const [totalPrice, setTotalPrice] = useState(0);
+  const isAuthenticated = useSelector(selectAuthenticated);
 
   console.log("Cart Items: ", cartItems);
 
@@ -50,12 +53,17 @@ export default function Cart() {
   const taxRate = 0.075;
   const taxTotal = (cartSubtotal * taxRate).toFixed(2);
 
-  let shipping;
+  // Initialize shipping cost
+  let shipping = 0.0;
 
-  if (cartItems.length === 0) {
-    shipping = 0.0;
-  } else {
+  // Check if there are any physical (non-digital) items in the cart
+  const hasPhysicalItems = cartItems.some((item) => !item.isDigital);
+
+  // Adjust shipping based on the presence of physical items
+  if (hasPhysicalItems) {
     shipping = 9.99;
+  } else {
+    shipping = 0.0; // No shipping cost for digital items
   }
 
   const total = (
@@ -65,12 +73,13 @@ export default function Cart() {
   ).toFixed(2);
 
   return (
-    <div className="bg-black">
+    <div className="bg-black isolate">
       <Header />
       {cartItems.length === 0 ? (
         <EmptyCart />
       ) : (
         <div className="mx-auto max-w-2xl px-4 pb-24 pt-32 sm:px-6 lg:max-w-7xl lg:px-8">
+          <RandomDetailStyling />
           <h1 className="text-3xl font-bold tracking-tight text-gray-100 sm:text-4xl">
             Shopping Cart
           </h1>
@@ -186,7 +195,7 @@ export default function Cart() {
             {/* Order summary */}
             <section
               aria-labelledby="summary-heading"
-              className="mt-16 rounded-lg bg-black px-4 py-6 sm:p-6 lg:col-span-5 lg:mt-0 lg:p-8 border border-solid border-gray-100"
+              className="mt-16 rounded-lg bg-transparent px-4 py-6 sm:p-6 lg:col-span-5 lg:mt-0 lg:p-8 border border-solid border-gray-100"
             >
               <h2
                 id="summary-heading"
@@ -231,7 +240,7 @@ export default function Cart() {
               <div className="mt-10">
                 <button
                   type="submit"
-                  className="w-full rounded-md border border-solid border-gray-100 bg-black px-4 py-3 text-base font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-50  "
+                  className="w-full rounded-md border border-solid border-gray-100 bg-transparent px-4 py-3 text-base font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-50  "
                 >
                   Checkout
                 </button>

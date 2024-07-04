@@ -65,6 +65,7 @@ export default function ProductDetails({ product }) {
         price: productPrice,
         selectedSize,
         selectedColor,
+        isDigital: false,
       };
 
       console.log("Product Added: ", productToAdd);
@@ -149,8 +150,6 @@ export default function ProductDetails({ product }) {
                 </p>
               </div>
             </div>
-
-            
 
             {/* Image gallery */}
             <div className="mt-8 lg:col-span-7 col-start-1 lg:row-span-3 lg:row-start-1 lg:mt-0">
