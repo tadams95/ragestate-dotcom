@@ -2,6 +2,8 @@
 
 import React, { useState, useCallback } from "react";
 
+import Link from "next/link";
+
 import Header from "../components/Header";
 import RandomDetailStyling from "../components/styling/RandomDetailStyling";
 import Footer from "../components/Footer";
@@ -120,15 +122,15 @@ export default function Login() {
                   </label>
                 </div>
                 <div className="text-sm leading-6">
-                  <a
-                    href="#"
+                  <Link
+                    href="/forgot-password"
                     className="font-semibold text-gray-300 hover:text-red-700"
-                    onClick={(e) => {
-                      e.preventDefault();
-                    }}
+                    // onClick={(e) => {
+                    //   e.preventDefault();
+                    // }}
                   >
                     Forgot password?
-                  </a>
+                  </Link>
                 </div>
               </div>
 
@@ -145,7 +147,7 @@ export default function Login() {
             </form>
 
             {/* Social Logins */}
-            <div>
+            {/* <div>
               <div className="relative mt-10">
                 <div
                   className="absolute inset-0 flex items-center"
@@ -160,18 +162,18 @@ export default function Login() {
                 </div>
               </div>
               <SocialLogins />
-            </div>
+            </div> */}
           </div>
 
           {/* Create Account link */}
           <p className="mt-10 text-center text-sm text-gray-100">
             Not a member?{" "}
-            <a
-              href="#"
+            <Link
+              href="/create-account"
               className="font-semibold leading-6 text-blue-700 hover:text-red-700"
             >
               Create Account
-            </a>
+            </Link>
           </p>
         </div>
       </div>

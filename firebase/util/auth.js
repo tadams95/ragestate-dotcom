@@ -1,9 +1,9 @@
 import axios from "axios";
 
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../firebase/firebase";
+import { auth } from "../firebase";
 
-import { setLocalId } from "../store/redux/userSlice";
+import { setLocalId } from "../../lib/features/todos/userSlice";
 
 const API_KEY = "AIzaSyDcHCRWrYonzJa_Pyfwzbfp-r3bxz2bUX8";
 
