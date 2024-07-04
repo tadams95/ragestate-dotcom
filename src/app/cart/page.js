@@ -238,12 +238,36 @@ export default function Cart() {
               </dl>
 
               <div className="mt-10">
-                <button
-                  type="submit"
-                  className="w-full rounded-md border border-solid border-gray-100 bg-transparent px-4 py-3 text-base font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-50  "
-                >
-                  Checkout
-                </button>
+                {isAuthenticated ? (
+                  <button
+                    type="submit"
+                    className="w-full rounded-md border border-solid border-gray-100 bg-transparent px-4 py-3 text-base font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-50"
+                  >
+                    Checkout
+                  </button>
+                ) : (
+                  <div>
+                    <p className="text-sm text-gray-100 mb-2 text-center">
+                      Please log in or create an account to checkout.
+                    </p>
+                    {/* You can add a link to the login or signup page here */}
+                    <div className="mt-10 flex items-center justify-center gap-x-6">
+                      <Link
+                        href="/login"
+                        className="flex  items-center justify-center rounded-md border border-gray-100 px-8 py-2 text-base font-medium text-white hover:bg-red-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                      >
+                        Login
+                      </Link>
+
+                      <Link
+                        href="/create-account"
+                        className="flex  items-center justify-center rounded-md border border-gray-100 px-8 py-2 text-base font-medium text-white hover:bg-red-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                      >
+                        Create Account
+                      </Link>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="mt-6 text-center text-sm">

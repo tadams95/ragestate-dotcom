@@ -44,7 +44,7 @@ export default function Login() {
       console.log("User Credential: ", userCredential);
       setIsAuthenticating(false);
       dispatch(setAuthenticated(true));
-      router.push("/");
+      router.back();
     } catch (error) {
       console.error("Error signing in:", error.message);
       // Handle login failure
