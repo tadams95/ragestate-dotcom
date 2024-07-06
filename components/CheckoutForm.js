@@ -83,7 +83,7 @@ export default function CheckoutForm() {
 
   return (
     <form id="payment-form" onSubmit={handleSubmit}>
-      <PaymentElement id="payment-element" options={paymentElementOptions} />
+      <PaymentElement className="mt-4" id="payment-element" options={paymentElementOptions} />
       <button
         className="mt-6 rounded-md border-1 border px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
         disabled={isLoading || !stripe || !elements}

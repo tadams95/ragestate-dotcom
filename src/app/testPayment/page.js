@@ -5,6 +5,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import CheckoutForm from "../../../components/CheckoutForm";
 import RandomDetailStyling from "../components/styling/RandomDetailStyling";
+import AddressForm from "../../../components/AddressForm";
 
 export default function Payment() {
   const [stripePromise, setStripePromise] = useState(null);
@@ -66,6 +67,7 @@ export default function Payment() {
           <h1>React Stripe and the Payment Element</h1>
           {clientSecret && stripePromise && (
             <Elements stripe={stripePromise} options={options}>
+              <AddressForm />
               <CheckoutForm />
             </Elements>
           )}
