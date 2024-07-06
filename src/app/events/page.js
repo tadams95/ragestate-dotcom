@@ -48,17 +48,17 @@ export default function Events() {
         <Header />
       </div>
       <EventStyling1 />
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 sm:pt-24 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6  sm:pt-24 lg:px-8">
         {/* <h2 className="text-2xl font-bold tracking-tight text-gray-100">
           RAGESTATE EVENTS
         </h2> */}
-        <div className="sm:flex sm:items-baseline sm:justify-between">
+        <div className="sm:flex sm:items-baseline pt-8 sm:justify-between">
           <div
             className={`transition-opacity ${
               isLoading ? "opacity-0" : "opacity-100 duration-1000"
             }`}
           >
-            <EventTile events={events} />
+            <EventTile  events={events} />
           </div>
 
           <EventStyling2 />

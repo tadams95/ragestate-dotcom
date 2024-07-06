@@ -87,9 +87,9 @@ const navigation = {
 export default function Footer() {
   return (
     <footer>
-      <div className="mx-auto max-w-7xl overflow-hidden px-6 py-20 sm:py-24 lg:px-8">
+      <div className="mx-auto max-w-7xl overflow-hidden px-16 py-20 lg:px-8">
         <nav
-          className="-mb-6 columns-2 sm:flex sm:justify-center sm:space-x-12"
+          className="-mb-6 columns-3 sm:flex justify-center sm:space-x-12"
           aria-label="Footer"
         >
           {navigation.main.map((item) => (
@@ -108,7 +108,7 @@ export default function Footer() {
             <Link
               key={item.name}
               href={item.href}
-              className="text-gray-200 hover:text-gray-700"
+              className="text-gray-200 hover:text-gray-500"
             >
               <span className="sr-only">{item.name}</span>
               <item.icon className="h-6 w-6" aria-hidden="true" />
