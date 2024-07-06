@@ -87,7 +87,7 @@ const navigation = {
 export default function Footer() {
   return (
     <footer>
-      <div className="mx-auto max-w-7xl overflow-hidden px-16 py-20 lg:px-8">
+      <div className="mx-auto max-w-7xl overflow-hidden py-20 lg:px-8">
         <nav
           className="-mb-6 columns-3 sm:flex justify-center sm:space-x-12"
           aria-label="Footer"
