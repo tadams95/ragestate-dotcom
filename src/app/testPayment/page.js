@@ -11,7 +11,8 @@ export default function Payment() {
   const [clientSecret, setClientSecret] = useState("");
 
   useEffect(() => {
-    const publishableKey = process.env.NEXT_PUBLIC_stripe_testPk;
+    const publishableKey =
+      "pk_test_51NFhuOHnXmOBmfaDAdOEefavmmfZzMX4F0uOpbvrK1P49isqVY6uBUDeXnCqNjiu6g89dh9CMZj7wDOAFLX5z93t007GOWlK8e";
 
     setStripePromise(loadStripe(publishableKey));
   }, []);
@@ -48,8 +49,8 @@ export default function Payment() {
   const appearance = {
     theme: "stripe",
     variables: {
-        colorText: "#ffffff",
-        colorBackground: '#000000',
+      colorText: "#ffffff",
+      colorBackground: "#000000",
     },
   };
   const options = {
