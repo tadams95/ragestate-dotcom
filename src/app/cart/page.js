@@ -304,6 +304,7 @@ export default function Cart() {
                     </Elements>
                   </>
                 ) : (
+                  // Login or Create Account
                   <div>
                     <p className="text-sm text-gray-100 mb-2 text-center">
                       Please log in or create an account to checkout.
@@ -328,6 +329,7 @@ export default function Cart() {
                 )}
               </div>
 
+                  {/* Continue Shopping */}
               <div className="mt-6 text-center text-sm">
                 <p>
                   <Link

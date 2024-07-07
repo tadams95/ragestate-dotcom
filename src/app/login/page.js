@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../../firebase/firebase";
+import { loginSuccess } from "../../../lib/features/todos/authSlice";
 import { setAuthenticated } from "../../../lib/features/todos/userSlice";
+import { signInWithEmailAndPassword } from "firebase/auth";
 
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
@@ -42,14 +43,22 @@ export default function Login() {
         password
       );
       console.log("User Credential: ", userCredential);
+      dispatch(
+        loginSuccess({
+          userId: userCredential.user.uid,
+          email: userCredential.user.email,
+        })
+      );
       setIsAuthenticating(false);
       dispatch(setAuthenticated(true));
+
       router.back();
     } catch (error) {
       console.error("Error signing in:", error.message);
       // Handle login failure
     }
   };
+
   return (
     <>
       <RandomDetailStyling />
