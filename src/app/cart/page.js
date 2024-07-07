@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { TruckIcon, XMarkIcon } from "@heroicons/react/20/solid";
+import {
+  TruckIcon,
+  XMarkIcon,
+  DevicePhoneMobileIcon,
+} from "@heroicons/react/20/solid";
 import { useSelector, useDispatch } from "react-redux";
 import { selectAuthenticated } from "../../../lib/features/todos/userSlice";
 
@@ -135,27 +139,6 @@ export default function Cart() {
                         </div>
 
                         <div className="mt-4 sm:mt-0 sm:pr-9">
-                          <label
-                            htmlFor={`quantity-${index}`}
-                            className="sr-only"
-                          >
-                            Quantity, {item.title}
-                          </label>
-                          <select
-                            id={`quantity-${index}`}
-                            name={`quantity-${index}`}
-                            className="max-w-full rounded-md border border-gray-900 py-1.5 text-left text-base font-medium leading-5 text-gray-900 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
-                          >
-                            <option value={1}>1</option>
-                            <option value={2}>2</option>
-                            <option value={3}>3</option>
-                            <option value={4}>4</option>
-                            <option value={5}>5</option>
-                            <option value={6}>6</option>
-                            <option value={7}>7</option>
-                            <option value={8}>8</option>
-                          </select>
-
                           <div className="absolute right-0 top-0">
                             <button
                               type="button"
@@ -178,14 +161,29 @@ export default function Cart() {
                         </div>
                       </div>
 
-                      <p className="mt-4 flex space-x-2 text-sm text-gray-500">
-                        <TruckIcon
-                          className="h-5 w-5 flex-shrink-0 text-gray-100"
-                          aria-hidden="true"
-                        />
-                        {/* Always render ClockIcon */}
-                        <span className="text-gray-200">{`Ships in 1-2 weeks`}</span>
-                      </p>
+                      <div className="mt-4 flex space-x-2 text-sm text-gray-500">
+                        {item.isDigital ? (
+                          <>
+                            <span className="text-gray-100">
+                              <DevicePhoneMobileIcon
+                                className="h-5 w-5 flex-shrink-0"
+                                aria-hidden="true"
+                              />
+                            </span>
+                            <span className="text-gray-200">{`Delivered digitally`}</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-gray-100">
+                              <TruckIcon
+                                className="h-5 w-5 flex-shrink-0"
+                                aria-hidden="true"
+                              />
+                            </span>
+                            <span className="text-gray-200">{`Ships in 1-2 weeks`}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </li>
                 ))}
