@@ -9,18 +9,22 @@ import {
 import { useSelector, useDispatch } from "react-redux";
 import { selectAuthenticated } from "../../../lib/features/todos/userSlice";
 
-import Header from "../components/Header";
-import Footer from "../components/Footer";
-
 import {
   selectCartItems,
   removeFromCart,
   setCheckoutPrice,
 } from "../../../lib/features/todos/cartSlice";
 
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
+
+import Header from "../components/Header";
+import Footer from "../components/Footer";
 import Link from "next/link";
 import EmptyCart from "../../../components/EmptyCart";
 import RandomDetailStyling from "../components/styling/RandomDetailStyling";
+import CheckoutForm from "../../../components/CheckoutForm";
+import AddressForm from "../../../components/AddressForm";
 
 export default function Cart() {
   const dispatch = useDispatch();
@@ -28,6 +32,8 @@ export default function Cart() {
   const [cartSubtotal, setCartSubtotal] = useState(0);
   const [totalPrice, setTotalPrice] = useState(0);
   const isAuthenticated = useSelector(selectAuthenticated);
+  const [stripePromise, setStripePromise] = useState(null);
+  const [clientSecret, setClientSecret] = useState("");
 
   console.log("Cart Items: ", cartItems);
 
@@ -54,6 +60,42 @@ export default function Cart() {
     dispatch(setCheckoutPrice(newTotalPrice * 100)); // Convert to cents for Stripe
   }, [cartItems, dispatch]);
 
+  useEffect(() => {
+    const publishableKey =
+      "pk_test_51NFhuOHnXmOBmfaDAdOEefavmmfZzMX4F0uOpbvrK1P49isqVY6uBUDeXnCqNjiu6g89dh9CMZj7wDOAFLX5z93t007GOWlK8e";
+
+    setStripePromise(loadStripe(publishableKey));
+  }, []);
+
+  useEffect(() => {
+    const fetchClientSecret = async () => {
+      try {
+        const response = await fetch(
+          "https://us-central1-ragestate-app.cloudfunctions.net/stripePayment/create-payment-intent",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({}),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch payment intent");
+        }
+
+        const { client_secret } = await response.json();
+        setClientSecret(client_secret);
+        console.log("Client Secret: ", client_secret);
+      } catch (error) {
+        console.error("Error fetching payment intent:", error.message);
+      }
+    };
+
+    fetchClientSecret();
+  }, []);
+
   const taxRate = 0.075;
   const taxTotal = (cartSubtotal * taxRate).toFixed(2);
 
@@ -75,6 +117,18 @@ export default function Cart() {
     parseFloat(taxTotal) +
     shipping
   ).toFixed(2);
+
+  const appearance = {
+    theme: "stripe",
+    variables: {
+      colorText: "#ffffff",
+      colorBackground: "#000000",
+    },
+  };
+  const options = {
+    clientSecret,
+    appearance,
+  };
 
   return (
     <div className="bg-black isolate">
@@ -236,13 +290,13 @@ export default function Cart() {
               </dl>
 
               <div className="mt-10">
-                {isAuthenticated ? (
-                  <button
-                    type="submit"
-                    className="w-full rounded-md border border-solid border-gray-100 bg-transparent px-4 py-3 text-base font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-50"
-                  >
-                    Checkout
-                  </button>
+                {isAuthenticated && clientSecret && stripePromise ? (
+                  <>
+                    <Elements stripe={stripePromise} options={options}>
+                      <CheckoutForm />
+                    </Elements>
+                  
+                  </>
                 ) : (
                   <div>
                     <p className="text-sm text-gray-100 mb-2 text-center">
