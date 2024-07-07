@@ -290,19 +290,25 @@ export default function Cart() {
               </dl>
 
               <div className="mt-10">
+                {/* Conditionally render based on authentication and presence of physical items */}
                 {isAuthenticated && clientSecret && stripePromise ? (
                   <>
+                    {/* Render Elements and CheckoutForm for authenticated users */}
                     <Elements stripe={stripePromise} options={options}>
+                      {hasPhysicalItems && (
+                        <div className="mt-4">
+                          <AddressForm />
+                        </div>
+                      )}
                       <CheckoutForm />
                     </Elements>
-                  
                   </>
                 ) : (
                   <div>
                     <p className="text-sm text-gray-100 mb-2 text-center">
                       Please log in or create an account to checkout.
                     </p>
-                    {/* You can add a link to the login or signup page here */}
+                    {/* Links to login or create account pages */}
                     <div className="mt-10 flex items-center justify-center gap-x-6">
                       <Link
                         href="/login"
