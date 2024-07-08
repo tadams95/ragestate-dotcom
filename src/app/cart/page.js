@@ -18,6 +18,16 @@ import {
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 
+import {
+  doc,
+  setDoc,
+  updateDoc,
+  getDoc,
+  collection,
+  addDoc,
+  getFirestore,
+} from "firebase/firestore";
+
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Link from "next/link";
@@ -29,9 +39,11 @@ import AddressForm from "../../../components/AddressForm";
 export default function Cart() {
   const dispatch = useDispatch();
   const cartItems = useSelector(selectCartItems);
+  const isAuthenticated = useSelector(selectAuthenticated);
+  const firestore = getFirestore();
+  
   const [cartSubtotal, setCartSubtotal] = useState(0);
   const [totalPrice, setTotalPrice] = useState(0);
-  const isAuthenticated = useSelector(selectAuthenticated);
   const [stripePromise, setStripePromise] = useState(null);
   const [clientSecret, setClientSecret] = useState("");
 
@@ -329,7 +341,7 @@ export default function Cart() {
                 )}
               </div>
 
-                  {/* Continue Shopping */}
+              {/* Continue Shopping */}
               <div className="mt-6 text-center text-sm">
                 <p>
                   <Link

@@ -6,14 +6,26 @@ import { loginSuccess } from "../../../lib/features/todos/authSlice";
 import { setAuthenticated } from "../../../lib/features/todos/userSlice";
 import { signInWithEmailAndPassword } from "firebase/auth";
 
+import {
+  setLocalId,
+  setUserEmail,
+  selectUsername,
+  setStripeCustomerId,
+} from "../../../lib/features/todos/userSlice";
+
+import { getDatabase, ref as databaseRef, get } from "firebase/database";
+
 import { useRouter } from "next/navigation";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 
 import Link from "next/link";
 import Header from "../components/Header";
 import RandomDetailStyling from "../components/styling/RandomDetailStyling";
 import Footer from "../components/Footer";
 import SocialLogins from "./socialLogin/SocialLogins";
+
+const API_URL =
+  "https://us-central1-ragestate-app.cloudfunctions.net/stripePayment";
 
 export default function Login() {
   const router = useRouter();
@@ -36,6 +48,8 @@ export default function Login() {
     event.preventDefault();
     setIsAuthenticating(true);
 
+    const db = getDatabase();
+
     try {
       const userCredential = await signInWithEmailAndPassword(
         auth,
@@ -44,9 +58,10 @@ export default function Login() {
       );
 
       // // Extract necessary data from userCredential
-      // const { uid, email } = userCredential.user;
       const idToken = userCredential._tokenResponse.idToken; // Access idToken from _tokenResponse
       const refreshToken = userCredential._tokenResponse.refreshToken; // Access refreshToken directly
+      const userEmail = userCredential.user.email;
+      const userId = userCredential.user.uid;
 
       // Dispatch loginSuccess action with user information and tokens
       dispatch(
@@ -61,7 +76,11 @@ export default function Login() {
       // Save tokens to local storage
       localStorage.setItem("idToken", idToken);
       localStorage.setItem("refreshToken", refreshToken);
+      localStorage.setItem("email", userEmail);
+      localStorage.setItem("userId", userId);
 
+      console.log(userCredential);
+      dispatch(setAuthenticated(true));
       setIsAuthenticating(false);
       router.back(); // Navigate back after successful login
     } catch (error) {
