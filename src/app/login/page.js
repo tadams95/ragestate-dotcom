@@ -42,17 +42,28 @@ export default function Login() {
         email,
         password
       );
-      console.log("User Credential: ", userCredential);
+
+      // // Extract necessary data from userCredential
+      // const { uid, email } = userCredential.user;
+      const idToken = userCredential._tokenResponse.idToken; // Access idToken from _tokenResponse
+      const refreshToken = userCredential._tokenResponse.refreshToken; // Access refreshToken directly
+
+      // Dispatch loginSuccess action with user information and tokens
       dispatch(
         loginSuccess({
           userId: userCredential.user.uid,
           email: userCredential.user.email,
+          idToken: userCredential._tokenResponse.idToken,
+          refreshToken: userCredential._tokenResponse.refreshToken,
         })
       );
-      setIsAuthenticating(false);
-      dispatch(setAuthenticated(true));
 
-      router.back();
+      // Save tokens to local storage
+      localStorage.setItem("idToken", idToken);
+      localStorage.setItem("refreshToken", refreshToken);
+
+      setIsAuthenticating(false);
+      router.back(); // Navigate back after successful login
     } catch (error) {
       console.error("Error signing in:", error.message);
       // Handle login failure
