@@ -7,7 +7,7 @@ import {
   ShoppingBagIcon,
   UserIcon,
 } from "@heroicons/react/24/outline";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 const navigation = [
@@ -20,9 +20,18 @@ const navigation = [
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [idToken, setIdToken] = useState(null);
+  const [refreshToken, setRefreshToken] = useState(null);
 
-  const idToken = localStorage.getItem("idToken");
-  const refreshToken = localStorage.getItem("refreshToken");
+  useEffect(() => {
+    // Check if window object is defined (ensures we are in the browser)
+    if (typeof window !== "undefined") {
+      const storedIdToken = localStorage.getItem("idToken");
+      const storedRefreshToken = localStorage.getItem("refreshToken");
+      setIdToken(storedIdToken);
+      setRefreshToken(storedRefreshToken);
+    }
+  }, []);
   return (
     <div className="bg-black">
       <header className="absolute inset-x-0 top-0 z-50">
