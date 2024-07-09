@@ -20,6 +20,9 @@ const navigation = [
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const idToken = localStorage.getItem("idToken");
+  const refreshToken = localStorage.getItem("refreshToken");
   return (
     <div className="bg-black">
       <header className="absolute inset-x-0 top-0 z-50">
@@ -66,13 +69,23 @@ export default function Header() {
               <ShoppingBagIcon className="h-6 w-6" aria-hidden="true" />
               <span aria-hidden="true"></span>
             </Link>
-            <Link
-              href="/login"
-              className="text-sm font-semibold leading-6 text-gray-100"
-            >
-              <UserIcon className="h-6 w-6" aria-hidden="true" />
-              <span aria-hidden="true"></span>
-            </Link>
+            {idToken && refreshToken ? (
+              <Link
+                href="/account"
+                className="text-sm font-semibold leading-6 text-gray-100"
+              >
+                <UserIcon className="h-6 w-6" aria-hidden="true" />
+                <span aria-hidden="true"></span>
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="text-sm font-semibold leading-6 text-gray-100"
+              >
+                <UserIcon className="h-6 w-6" aria-hidden="true" />
+                <span aria-hidden="true"></span>
+              </Link>
+            )}
           </div>
         </nav>
         <Dialog
@@ -120,12 +133,21 @@ export default function Header() {
                   >
                     CART
                   </Link>
-                  <Link
-                    href="/login"
-                    className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-100 hover:bg-zinc-900"
-                  >
-                    LOG IN
-                  </Link>
+                  {idToken && refreshToken ? (
+                    <Link
+                      href="/account"
+                      className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-100 hover:bg-zinc-900"
+                    >
+                      ACCOUNT
+                    </Link>
+                  ) : (
+                    <Link
+                      href="/login"
+                      className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-100 hover:bg-zinc-900"
+                    >
+                      LOGIN
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>

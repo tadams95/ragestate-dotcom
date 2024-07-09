@@ -8,8 +8,9 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 
 import {
   setLocalId,
+  setUserName,
   setUserEmail,
-  selectUsername,
+  selectUserName,
   setStripeCustomerId,
 } from "../../../lib/features/todos/userSlice";
 
@@ -22,6 +23,7 @@ import Link from "next/link";
 import Header from "../components/Header";
 import RandomDetailStyling from "../components/styling/RandomDetailStyling";
 import Footer from "../components/Footer";
+import ErrorModal from "../../../components/ErrorModal";
 import SocialLogins from "./socialLogin/SocialLogins";
 
 const API_URL =
@@ -30,7 +32,8 @@ const API_URL =
 export default function Login() {
   const router = useRouter();
   const dispatch = useDispatch();
-
+  const userName = useSelector(selectUserName);
+  const [error, setError] = useState(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isAuthenticating, setIsAuthenticating] = useState(false);
@@ -79,6 +82,26 @@ export default function Login() {
       localStorage.setItem("email", userEmail);
       localStorage.setItem("userId", userId);
 
+      const userRef = databaseRef(db, `users/${userId}`);
+      get(userRef)
+        .then((snapshot) => {
+          if (snapshot.exists()) {
+            // Extract the user's name and profile picture URL from the snapshot data
+            const userData = snapshot.val();
+            const name = userData.firstName + " " + userData.lastName;
+
+            // Dispatch the setUserName action with the fetched user name
+            dispatch(setUserName(name));
+            localStorage.setItem("name", name);
+          } else {
+            // console.log("No data available");
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching user data:", error);
+          setError(error);
+        });
+
       console.log(userCredential);
       dispatch(setAuthenticated(true));
       setIsAuthenticating(false);
@@ -93,6 +116,7 @@ export default function Login() {
     <>
       <RandomDetailStyling />
       <Header />
+
       <div className="flex min-h-full flex-1 flex-col justify-center py-12 sm:px-6 lg:px-8 isolate">
         <div className="sm:mx-auto sm:w-1/2">
           <h2 className="mt-20 text-center text-2xl font-bold leading-9 tracking-tight text-gray-100">
@@ -120,7 +144,7 @@ export default function Login() {
                     required
                     value={email}
                     onChange={handleEmailChange}
-                    className="block w-full rounded-md border-0 py-1.5 pl-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                    className="block w-full rounded-md bg-transparent border-0 py-1.5 pl-3 text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                     style={{ paddingLeft: "10px" }} // Adjust the padding-left here
                   />
                 </div>
@@ -143,7 +167,7 @@ export default function Login() {
                     required
                     value={password}
                     onChange={handlePasswordChange}
-                    className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                    className="block w-full rounded-md bg-transparent border-0 py-1.5 text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                     style={{ paddingLeft: "10px" }} // Adjust the padding-left here
                   />
                 </div>
@@ -221,6 +245,7 @@ export default function Login() {
           </p>
         </div>
       </div>
+
       <Footer />
     </>
   );

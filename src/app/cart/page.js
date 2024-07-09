@@ -41,13 +41,13 @@ export default function Cart() {
   const cartItems = useSelector(selectCartItems);
   const isAuthenticated = useSelector(selectAuthenticated);
   const firestore = getFirestore();
-  
+
   const [cartSubtotal, setCartSubtotal] = useState(0);
   const [totalPrice, setTotalPrice] = useState(0);
   const [stripePromise, setStripePromise] = useState(null);
   const [clientSecret, setClientSecret] = useState("");
 
-  console.log("Cart Items: ", cartItems);
+  // console.log("Cart Items: ", cartItems);
 
   const handleRemoveFromCart = (productId, selectedColor, selectedSize) => {
     dispatch(removeFromCart({ productId, selectedColor, selectedSize }));
@@ -99,7 +99,7 @@ export default function Cart() {
 
         const { client_secret } = await response.json();
         setClientSecret(client_secret);
-        console.log("Client Secret: ", client_secret);
+        // console.log("Client Secret: ", client_secret);
       } catch (error) {
         console.error("Error fetching payment intent:", error.message);
       }
