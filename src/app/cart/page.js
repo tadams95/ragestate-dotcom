@@ -47,6 +47,9 @@ export default function Cart() {
   const [stripePromise, setStripePromise] = useState(null);
   const [clientSecret, setClientSecret] = useState("");
 
+  const [idToken, setIdToken] = useState(null);
+  const [refreshToken, setRefreshToken] = useState(null);
+
   // console.log("Cart Items: ", cartItems);
 
   const handleRemoveFromCart = (productId, selectedColor, selectedSize) => {
@@ -77,6 +80,12 @@ export default function Cart() {
       "pk_test_51NFhuOHnXmOBmfaDAdOEefavmmfZzMX4F0uOpbvrK1P49isqVY6uBUDeXnCqNjiu6g89dh9CMZj7wDOAFLX5z93t007GOWlK8e";
 
     setStripePromise(loadStripe(publishableKey));
+    if (typeof window !== "undefined") {
+      const storedIdToken = localStorage.getItem("idToken");
+      const storedRefreshToken = localStorage.getItem("refreshToken");
+      setIdToken(storedIdToken);
+      setRefreshToken(storedRefreshToken);
+    }
   }, []);
 
   useEffect(() => {
@@ -303,7 +312,7 @@ export default function Cart() {
 
               <div className="mt-10">
                 {/* Conditionally render based on authentication and presence of physical items */}
-                {isAuthenticated && clientSecret && stripePromise ? (
+                {idToken && refreshToken && clientSecret && stripePromise ? (
                   <>
                     {/* Render Elements and CheckoutForm for authenticated users */}
                     <Elements stripe={stripePromise} options={options}>
