@@ -54,7 +54,7 @@ export default function OrderHistory() {
         <div className="max-w-l">
           <h1
             id="your-orders-heading"
-            className="text-3xl font-bold tracking-tight text-gray-100"
+            className="text-3xl font-bold tracking-tight text-gray-100 text-center"
           >
             Your Orders
           </h1>

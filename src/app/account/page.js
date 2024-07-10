@@ -1,55 +1,19 @@
-/*
-  This example requires some changes to your config:
-  
-  ```
-  // tailwind.config.js
-  module.exports = {
-    // ...
-    plugins: [
-      // ...
-      require('@tailwindcss/forms'),
-    ],
-  }
-  ```
-*/
 "use client";
 
-import { useState } from "react";
-import {
-  Dialog,
-  DialogPanel,
-  Label,
-  Listbox,
-  ListboxButton,
-  ListboxOption,
-  ListboxOptions,
-  Menu,
-  MenuButton,
-  MenuItem,
-  MenuItems,
-} from "@headlessui/react";
-import {
-  Bars3Icon,
-  FaceFrownIcon,
-  FaceSmileIcon,
-  FireIcon,
-  HandThumbUpIcon,
-  HeartIcon,
-  PaperClipIcon,
-  UserCircleIcon,
-  XMarkIcon as XMarkIconMini,
-} from "@heroicons/react/20/solid";
+import { useEffect, useState } from "react";
+import { Dialog, DialogPanel } from "@headlessui/react";
+import { useRouter } from "next/navigation";
+
+import { Bars3Icon } from "@heroicons/react/20/solid";
+
 import {
   BellIcon,
   XMarkIcon as XMarkIconOutline,
 } from "@heroicons/react/24/outline";
-import { CheckCircleIcon } from "@heroicons/react/24/solid";
 
 import QRCode from "qrcode.react";
 import Link from "next/link";
 import OrderHistory from "../../../components/OrderHistory";
-
-import { useRouter } from "next/navigation";
 import RandomDetailStyling from "../components/styling/RandomDetailStyling";
 
 const navigation = [
@@ -60,55 +24,17 @@ const navigation = [
   { name: "BLOG", href: "/blog" },
 ];
 
-const moods = [
-  {
-    name: "Excited",
-    value: "excited",
-    icon: FireIcon,
-    iconColor: "text-white",
-    bgColor: "bg-red-500",
-  },
-  {
-    name: "Loved",
-    value: "loved",
-    icon: HeartIcon,
-    iconColor: "text-white",
-    bgColor: "bg-pink-400",
-  },
-  {
-    name: "Happy",
-    value: "happy",
-    icon: FaceSmileIcon,
-    iconColor: "text-white",
-    bgColor: "bg-green-400",
-  },
-  {
-    name: "Sad",
-    value: "sad",
-    icon: FaceFrownIcon,
-    iconColor: "text-white",
-    bgColor: "bg-yellow-400",
-  },
-  {
-    name: "Thumbsy",
-    value: "thumbsy",
-    icon: HandThumbUpIcon,
-    iconColor: "text-white",
-    bgColor: "bg-blue-500",
-  },
-  {
-    name: "I feel nothing",
-    value: null,
-    icon: XMarkIconMini,
-    iconColor: "text-gray-400",
-    bgColor: "bg-transparent",
-  },
-];
-
 export default function Account() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [selected, setSelected] = useState(moods[5]);
   const router = useRouter();
+  const [userId, setUserId] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const userId = localStorage.getItem("userId");
+      setUserId(userId);
+    }
+  }, []);
 
   const handleLogout = (event) => {
     event.preventDefault();
@@ -237,16 +163,22 @@ export default function Account() {
       </header>
       <main>
         <header className="relative isolate pt-16" />
-         
-
 
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
           <div className="mx-auto grid max-w-2xl grid-cols-1 grid-rows-1 items-start gap-x-8 gap-y-8 lg:mx-0 lg:max-w-none lg:grid-cols-3">
             {/* Invoice summary */}
             <div className="lg:col-start-3 lg:row-end-1 flex justify-center items-center">
               <h2 className="sr-only">QR Code</h2>
-              <div className="rounded-lg bg-gray-200 shadow-sm ring-1 ring-gray-900/5 p-4">
-                <QRCode value="https://ragestate.vercel.app" size={250} />
+              <div className="">
+                <h1
+                  id="your-orders-heading"
+                  className="text-3xl font-bold tracking-tight text-gray-100 text-center mb-2"
+                >
+                  Your QR Code
+                </h1>
+                <div className="rounded-lg bg-white shadow-sm ring-1 ring-gray-900/5 p-4">
+                  <QRCode value={userId} size={250} />
+                </div>
               </div>
             </div>
             {/* Invoice */}
