@@ -24,7 +24,7 @@ export default function ProductTile({ product }) {
       className="group"
       onClick={handleLinkClick}
     >
-      <div className="aspect-h-1 aspect-w-1 w-full overflow-hidden rounded-lg bg-gray-200 xl:aspect-h-8 xl:aspect-w-7 mt-4">
+      <div className="aspect-h-1 aspect-w-1 w-full overflow-hidden rounded-lg xl:aspect-h-8 xl:aspect-w-7 mt-4">
         <Image
           priority
           src={product.imageSrc}

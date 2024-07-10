@@ -18,7 +18,9 @@ export default function Shop() {
           ...product,
           href: `/product/${product.id}`,
           imageSrc: product.images[0]?.src,
+          description: product.descriptionHtml,
         }));
+
         setProductsWithHref(products);
         setLoading(false);
       } catch (error) {
