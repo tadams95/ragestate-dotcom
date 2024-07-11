@@ -27,12 +27,12 @@ export default function EventDetails({ event }) {
     selectedEvent = JSON.parse(localStorage.getItem("selectedEvent"));
   }
 
-  let timestamp = event[0].dateTime;
+  let timestamp = event.dateTime;
   const date = new Date(
     timestamp.seconds * 1000 + timestamp.nanoseconds / 1000000
   );
 
-  const location = event[0].location;
+  const location = event.location;
 
   // Function to generate Google Maps link
   const generateGoogleMapsLink = (location) => {
@@ -47,17 +47,17 @@ export default function EventDetails({ event }) {
   };
 
   const handleAddToCart = () => {
-    if (selectedEvent && selectedEvent[0].quantity > 0) {
+    if (selectedEvent && selectedEvent.quantity > 0) {
       const cartItem = {
-        productId: selectedEvent[0].name,
-        title: selectedEvent[0].name,
-        images: selectedEvent[0].imgURL,
+        productId: selectedEvent.name,
+        title: selectedEvent.name,
+        images: selectedEvent.imgURL,
         selectedQuantity: 1,
-        price: selectedEvent[0].price,
+        price: selectedEvent.price,
         eventDetails: {
-          location: selectedEvent[0].location,
+          location: selectedEvent.location,
         },
-        isDigital: selectedEvent[0].isDigital,
+        isDigital: selectedEvent.isDigital,
       };
 
       // Dispatch the addToCart action with the cart item
@@ -75,8 +75,8 @@ export default function EventDetails({ event }) {
           <div className="lg:col-span-4 lg:row-end-1">
             <div className="aspect-h-3 aspect-w-4 overflow-hidden rounded-lg bg-gray-100">
               <img
-                src={event[0].imgURL}
-                alt={event[0].name}
+                src={event.imgURL}
+                alt={event.name}
                 className="object-cover object-center"
               />
             </div>
@@ -87,7 +87,7 @@ export default function EventDetails({ event }) {
             <div className="flex flex-col-reverse">
               <div className="mt-4">
                 <h1 className="text-2xl font-bold tracking-tight text-gray-100 sm:text-3xl">
-                  {event[0].name}
+                  {event.name}
                 </h1>
 
                 <h2 id="information-heading" className="sr-only">
@@ -96,9 +96,9 @@ export default function EventDetails({ event }) {
               </div>
             </div>
 
-            <p className="mt-6 text-gray-300">{event[0].description}</p>
+            <p className="mt-6 text-gray-300">{event.description}</p>
 
-            <p className="mt-6 text-gray-100 text-lg">${event[0].price}</p>
+            <p className="mt-6 text-gray-100 text-lg">${event.price}</p>
 
             <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
               <button
@@ -147,7 +147,7 @@ export default function EventDetails({ event }) {
 
             <div className="mt-10 border-t border-gray-100 pt-10">
               <h3 className="text-sm font-medium text-gray-100">Age</h3>
-              <p className="mt-4 text-sm text-gray-300">{event[0].age}+</p>
+              <p className="mt-4 text-sm text-gray-300">{event.age}+</p>
             </div>
 
             <div className="mt-10 border-t border-gray-100 pt-10">

@@ -48,19 +48,21 @@ export default function Events() {
         <Header />
       </div>
       <EventStyling1 />
-      <div className="mx-auto max-w-7xl px-4 sm:px-6  sm:pt-24 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6   lg:px-8 items-center">
         {/* <h2 className="text-2xl font-bold tracking-tight text-gray-100">
           RAGESTATE EVENTS
         </h2> */}
-        <div className="sm:flex sm:items-baseline pt-8 sm:justify-between">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 sm:pt-20 lg:px-8 flex justify-center">
+       
           <div
             className={`transition-opacity ${
               isLoading ? "opacity-0" : "opacity-100 duration-1000"
-            }`}
+            } flex flex-wrap`}
           >
-            <EventTile  events={events} />
+            {events.map((event) => (
+              <EventTile key={event.id} event={event} />
+            ))}
           </div>
-
           <EventStyling2 />
         </div>
         <Footer />
