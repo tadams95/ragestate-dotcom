@@ -2,6 +2,9 @@ import Header from "../components/Header";
 import RandomDetailStyling from "../components/styling/RandomDetailStyling";
 
 export default function CreateAccount() {
+  const inputStyling =
+    "block w-full bg-transparent pl-2 rounded-md border-0 py-1.5 px-1 text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6";
+
   return (
     <>
       <RandomDetailStyling />
@@ -29,7 +32,7 @@ export default function CreateAccount() {
                   type="text"
                   autoComplete="given-name"
                   required
-                  className="block w-full rounded-md border-0 py-1.5 px-1 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                  className={inputStyling}
                 />
               </div>
             </div>
@@ -48,7 +51,7 @@ export default function CreateAccount() {
                   type="text"
                   autoComplete="family-name"
                   required
-                  className="block w-full rounded-md border-0 py-1.5 px-1 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                  className={inputStyling}
                 />
               </div>
             </div>
@@ -67,7 +70,7 @@ export default function CreateAccount() {
                   type="tel"
                   autoComplete="tel"
                   required
-                  className="block w-full rounded-md border-0 py-1.5 px-1 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                  className={inputStyling}
                 />
               </div>
             </div>
@@ -86,7 +89,7 @@ export default function CreateAccount() {
                   type="email"
                   autoComplete="email"
                   required
-                  className="block w-full rounded-md border-0 py-1.5 px-1 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                  className={inputStyling}
                 />
               </div>
             </div>
@@ -105,7 +108,7 @@ export default function CreateAccount() {
                   type="password"
                   autoComplete="new-password"
                   required
-                  className="block w-full rounded-md border-0 py-1.5 px-1 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                  className={inputStyling}
                 />
               </div>
             </div>
@@ -124,13 +127,13 @@ export default function CreateAccount() {
                   type="password"
                   autoComplete="new-password"
                   required
-                  className="block w-full rounded-md border-0 py-1.5 px-1 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                  className={inputStyling}
                 />
               </div>
               <div className="mt-8">
                 <button
                   type="submit"
-                  className="flex w-full justify-center rounded-md bg-transparent border-gray-100 border-2 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                  className="flex w-full justify-center rounded-md bg-transparent border-gray-100 border-2 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700"
                 >
                   CREATE
                 </button>
