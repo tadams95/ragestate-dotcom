@@ -48,14 +48,14 @@ export default function Events() {
         <Header />
       </div>
       <EventStyling1 />
-      <div className="mx-auto max-w-7xl px-4 sm:px-6   lg:px-8 items-center">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 items-center">
         {/* <h2 className="text-2xl font-bold tracking-tight text-gray-100">
           RAGESTATE EVENTS
         </h2> */}
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 sm:pt-20 lg:px-8 flex justify-center">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex justify-center">
        
           <div
-            className={`transition-opacity ${
+            className={`transition-opacity pt-12 ${
               isLoading ? "opacity-0" : "opacity-100 duration-1000"
             } flex flex-wrap`}
           >

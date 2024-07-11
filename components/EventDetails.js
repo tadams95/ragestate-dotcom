@@ -1,23 +1,10 @@
 "use client";
 
-import RandomDetailStyling from "@/app/components/styling/RandomDetailStyling";
-
 import { useDispatch } from "react-redux";
 import { addToCart } from "../lib/features/todos/cartSlice";
 
-const faqs = [
-  {
-    question: "What format are these icons?",
-    answer:
-      "The icons are in SVG (Scalable Vector Graphic) format. They can be imported into your design tool of choice and used directly in code.",
-  },
-  {
-    question: "Can I use the icons at different sizes?",
-    answer:
-      "Yes. The icons are drawn on a 24 x 24 pixel grid, but the icons can be scaled to different sizes as needed. We don't recommend going smaller than 20 x 20 or larger than 64 x 64 to retain legibility and visual balance.",
-  },
-  // More FAQs...
-];
+import Image from "next/image";
+import RandomDetailStyling from "@/app/components/styling/RandomDetailStyling";
 
 export default function EventDetails({ event }) {
   const dispatch = useDispatch();
@@ -73,11 +60,14 @@ export default function EventDetails({ event }) {
         <div className="lg:grid lg:grid-cols-7 lg:grid-rows-1 lg:gap-x-8 lg:gap-y-10 xl:gap-x-16">
           {/* Product image */}
           <div className="lg:col-span-4 lg:row-end-1">
-            <div className="aspect-h-3 aspect-w-4 overflow-hidden rounded-lg bg-gray-100">
-              <img
+            <div className="aspect-h-1 aspect-w-1 w-full overflow-hidden items-center flex justify-center">
+              <Image
+                priority
                 src={event.imgURL}
                 alt={event.name}
-                className="object-cover object-center"
+                className="object-cover object-center group-hover:opacity-75 rounded-lg"
+                height={500}
+                width={500}
               />
             </div>
           </div>
@@ -85,7 +75,7 @@ export default function EventDetails({ event }) {
           {/* Product details */}
           <div className="mx-auto mt-14 max-w-2xl sm:mt-16 lg:col-span-3 lg:row-span-2 lg:row-end-2 lg:mt-0 lg:max-w-none">
             <div className="flex flex-col-reverse">
-              <div className="mt-4">
+              <div className="">
                 <h1 className="text-2xl font-bold tracking-tight text-gray-100 sm:text-3xl">
                   {event.name}
                 </h1>

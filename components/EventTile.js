@@ -18,7 +18,7 @@ export default function EventTile({ event }) {
 
   return (
     <div className="bg-transparent">
-      <div className="mx-auto max-w-2xl px-4 py-16 lg:max-w-7xl lg:px-4">
+      <div className="mx-auto max-w-2xl px-4 pt-16 lg:max-w-7xl lg:px-4">
         <h2 className="sr-only">Events</h2>
 
         <div>
