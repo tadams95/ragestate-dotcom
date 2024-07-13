@@ -52,6 +52,13 @@ export default function Account() {
       <header className="absolute inset-x-0 top-0 z-50 flex h-16 border-b border-gray-900/10 ">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex flex-1 items-center gap-x-6">
+            <Link href="/">
+              <img
+                alt="RAGESTATE"
+                src="/assets/RSLogoW.png"
+                className="h-8 w-auto"
+              />
+            </Link>
             <button
               type="button"
               onClick={() => setMobileMenuOpen(true)}
@@ -60,13 +67,6 @@ export default function Account() {
               <span className="sr-only">Open main menu</span>
               <Bars3Icon aria-hidden="true" className="h-5 w-5 text-gray-100" />
             </button>
-            <Link href="/">
-              <img
-                alt="Your Company"
-                src="/assets/RSLogoW.png"
-                className="h-8 w-auto"
-              />
-            </Link>
           </div>
           <nav className="hidden md:flex md:gap-x-11 md:text-sm md:font-semibold md:leading-6 text-gray-100">
             {navigation.map((item, itemIdx) => (

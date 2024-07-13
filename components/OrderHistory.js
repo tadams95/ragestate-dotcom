@@ -1,3 +1,8 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { getFirestore, collection, getDocs } from "firebase/firestore";
+
 const orders = [
   {
     number: "4376",
@@ -47,7 +52,39 @@ const orders = [
   // More orders...
 ];
 
+const fetchUserPurchases = async (userId) => {
+  try {
+    const firestore = getFirestore();
+    const purchasesRef = collection(firestore, `customers/${userId}/purchases`);
+    const querySnapshot = await getDocs(purchasesRef);
+    const userPurchases = [];
+    querySnapshot.forEach((doc) => {
+      const purchaseData = doc.data();
+      userPurchases.push(purchaseData);
+    });
+    return userPurchases;
+  } catch (error) {
+    console.error("Error fetching user purchases: ", error);
+    return [];
+  }
+};
+
 export default function OrderHistory() {
+  const userId = localStorage.getItem("userId");
+  const [userPurchases, setUserPurchases] = useState([]);
+
+  useEffect(() => {
+    fetchUserPurchases(userId)
+      .then((userPurchases) => {
+        setUserPurchases(userPurchases);
+      })
+      .catch((error) => {
+        console.error("Error: ", error);
+      });
+  }, [userId]);
+
+  console.log("User Purchases from Order History: ", userPurchases);
+
   return (
     <div className="bg-transparent">
       <div className="mx-auto max-w-3xl px-4  sm:px-6 ">
@@ -81,27 +118,6 @@ export default function OrderHistory() {
                 >
                   Order #{order.number}
                 </h2>
-                {/* <div className="space-y-5 sm:flex sm:items-baseline sm:justify-between sm:space-y-0 md:min-w-0 md:flex-1">
-                  <p className="text-sm font-medium text-gray-500">
-                    {order.status}
-                  </p>
-                  <div className="flex text-sm font-medium">
-                    <a
-                      href={order.href}
-                      className="text-indigo-600 hover:text-indigo-500"
-                    >
-                      Manage order
-                    </a>
-                    <div className="ml-4 border-l border-gray-200 pl-4 sm:ml-6 sm:pl-6">
-                      <a
-                        href={order.invoiceHref}
-                        className="text-indigo-600 hover:text-indigo-500"
-                      >
-                        View Invoice
-                      </a>
-                    </div>
-                  </div>
-                </div> */}
               </div>
 
               <div className="-mb-6 mt-6 flow-root divide-y divide-gray-200 border-t border-gray-200">
