@@ -9,6 +9,7 @@ import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import { useState } from "react";
 import { useDispatch } from "react-redux";
 import { setStripeCustomerId } from "../../../lib/features/todos/userSlice";
+import { loginSuccess } from "../../../lib/features/todos/authSlice";
 
 export default function CreateAccount() {
   const [firstName, setFirstName] = useState("");
@@ -103,6 +104,34 @@ export default function CreateAccount() {
 
       console.log("Created User: ", createdUser);
 
+      // Update user data in Firebase Realtime Database
+      const userId = createdUser.uid;
+      const firebaseDatabaseUrl = `https://ragestate-app-default-rtdb.firebaseio.com/users/${userId}.json`;
+      const firebaseResponse = await fetch(firebaseDatabaseUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email,
+          firstName: firstName,
+          lastName: lastName,
+          phoneNumber: phoneNumber,
+          expoPushToken: "",
+          qrCode: userId,
+        }),
+      });
+
+      if (!firebaseResponse.ok) {
+        console.error(
+          "Failed to update user data in Firebase. Status:",
+          firebaseResponse.status
+        );
+        const errorMessage = await firebaseResponse.text();
+        console.error("Error Message:", errorMessage);
+        throw new Error("Failed to update user data in Firebase");
+      }
+
       const stripeCustomerResponse = await fetch(`${API_URL}/create-customer`, {
         method: "POST",
         headers: {
@@ -130,6 +159,28 @@ export default function CreateAccount() {
 
       dispatch(setStripeCustomerId(stripeCustomerData));
 
+      // // Extract necessary data from userCredential
+      const idToken = userCredential._tokenResponse.idToken; // Access idToken from _tokenResponse
+      const refreshToken = userCredential._tokenResponse.refreshToken; // Access refreshToken directly
+      const userEmail = userCredential.user.email;
+
+      // Dispatch loginSuccess action with user information and tokens
+      dispatch(
+        loginSuccess({
+          userId: userCredential.user.uid,
+          email: userCredential.user.email,
+          idToken: userCredential._tokenResponse.idToken,
+          refreshToken: userCredential._tokenResponse.refreshToken,
+        })
+      );
+
+      // Save tokens to local storage
+      localStorage.setItem("idToken", idToken);
+      localStorage.setItem("refreshToken", refreshToken);
+      localStorage.setItem("email", userEmail);
+      localStorage.setItem("userId", userId);
+      localStorage.setItem("name", `${firstName} ${lastName}`);
+
       // Reset input fields after successful creation
       setFirstName("");
       setLastName("");
@@ -138,6 +189,7 @@ export default function CreateAccount() {
       setPassword("");
       setConfirmPassword("");
       setIsAuthenticating(false);
+      router.push("/account");
     } catch (error) {
       if (error.code === "auth/email-already-in-use") {
         setFormError(

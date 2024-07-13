@@ -39,10 +39,8 @@ export default function Account() {
   const handleLogout = (event) => {
     event.preventDefault();
 
-    // Remove tokens from local storage
-    localStorage.removeItem("idToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("userId");
+    // Clear all items from localStorage
+    localStorage.clear();
 
     // Redirect to login page after logout
     router.push("/login");
@@ -107,7 +105,7 @@ export default function Account() {
                 <span className="sr-only">RAGESTATE</span>
                 <img
                   className="h-8 w-auto"
-                  src="https://firebasestorage.googleapis.com/v0/b/ragestate-app.appspot.com/o/RSLogo.png?alt=media&token=ca235ae9-35e5-4666-8ba2-3090a3e54b37"
+                  src="/assets/RSLogoW.png"
                   alt="RAGESTATE LOGO"
                 />
               </Link>
