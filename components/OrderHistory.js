@@ -3,54 +3,7 @@
 import { useState, useEffect } from "react";
 import { getFirestore, collection, getDocs } from "firebase/firestore";
 
-const orders = [
-  {
-    number: "4376",
-    status: "Delivered on January 22, 2021",
-    href: "#",
-    invoiceHref: "#",
-    products: [
-      {
-        id: 1,
-        name: "Machined Brass Puzzle",
-        href: "#",
-        price: "$95.00",
-        color: "Brass",
-        size: '3" x 3" x 3"',
-        imageSrc:
-          "https://tailwindui.com/img/ecommerce-images/order-history-page-07-product-01.jpg",
-        imageAlt:
-          "Brass puzzle in the shape of a jack with overlapping rounded posts.",
-      },
-      {
-        id: 2,
-        name: "Machined Brass Puzzle",
-        href: "#",
-        price: "$95.00",
-        color: "Brass",
-        size: '3" x 3" x 3"',
-        imageSrc:
-          "https://tailwindui.com/img/ecommerce-images/order-history-page-07-product-01.jpg",
-        imageAlt:
-          "Brass puzzle in the shape of a jack with overlapping rounded posts.",
-      },
-      {
-        id: 3,
-        name: "Machined Brass Puzzle",
-        href: "#",
-        price: "$95.00",
-        color: "Brass",
-        size: '3" x 3" x 3"',
-        imageSrc:
-          "https://tailwindui.com/img/ecommerce-images/order-history-page-07-product-01.jpg",
-        imageAlt:
-          "Brass puzzle in the shape of a jack with overlapping rounded posts.",
-      },
-      // More products...
-    ],
-  },
-  // More orders...
-];
+import Image from "next/image";
 
 const fetchUserPurchases = async (userId) => {
   try {
@@ -92,23 +45,18 @@ export default function OrderHistory() {
     }
   }, [userId]);
 
-  console.log("User Purchases from Order History: ", userPurchases);
-
   return (
     <div className="bg-transparent">
-      <div className="mx-auto max-w-3xl px-4  sm:px-6 ">
+      <div className="mx-auto max-w-3xl px-4 sm:px-6">
         <div className="max-w-l">
-          <h1
-            id="your-orders-heading"
-            className="text-3xl font-bold tracking-tight text-gray-100 text-center"
-          >
+          <h1 className="text-3xl font-bold tracking-tight text-gray-100 text-center">
             Your Orders
           </h1>
-          <p className="mt-2 text-sm text-gray-200">
+          <p className="mt-2 text-sm text-center text-gray-200">
             View your order history. In the future we'll have more here such as
             order status.
           </p>
-          <p className="mt-2 text-sm text-gray-200">
+          <p className="mt-2 text-sm text-center text-gray-200">
             If you have any questions or concerns, email contact@ragestate.com
             or DM @ragestate on IGs
           </p>
@@ -116,48 +64,51 @@ export default function OrderHistory() {
 
         <div className="mt-12 space-y-16 sm:mt-16">
           {userPurchases.map((purchase, index) => (
-            <section key={index} aria-labelledby={`${index}-heading`}>
-              <div className="space-y-1 md:flex md:items-baseline md:space-x-2 md:space-y-0">
-                {/* <h2
-                  id={`${order.number}-heading`}
-                  className="text-lg font-medium text-gray-100 md:flex-shrink-0"
-                >
-                  Order #{order.number}
-                </h2> */}
+            <div key={index} className="space-y-6 border rounded-md p-4 sm:justify-center mt-4">
+              <div className="dateContainer">
+                <h2 className="text-lg text-center font-medium text-gray-100">
+                  Purchase Date:{" "}
+                  {purchase.dateTime.toDate().toLocaleDateString()}
+                </h2>
               </div>
 
-              <div className="-mb-6 mt-6 flow-root divide-y divide-gray-200 border-t border-gray-200">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-4">
+                
                 {purchase.cartItems.map((item, itemIndex) => (
-                  <div key={itemIndex} className="py-6 sm:flex items-center">
-                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-6 lg:space-x-8">
-                      <img
-                        alt={item.productImageSrc}
-                        src={item.productImageSrc}
-                        className="h-20 w-20 sm:h-48 sm:w-48 flex-none rounded-md object-cover object-center"
-                      />
-                      <div className="min-w-0 flex-1 sm:mt-0 mt-4">
-                        <h3 className="text-sm font-medium text-gray-100">
-                          <p>{item.title}</p>
-                        </h3>
-                        <p className="truncate text-sm text-gray-300">
-                          <span>{item.color}</span>
-                          <span
-                            aria-hidden="true"
-                            className="mx-1 text-gray-300"
-                          >
-                            &middot;
-                          </span>
-                          <span>{item.size}</span>
-                        </p>
-                        <p className="mt-1 font-medium text-gray-100">
-                          ${item.price}
-                        </p>
-                      </div>
-                    </div>
+                  <div
+                    key={itemIndex}
+                    className="cartItem bg-transparent p-4 rounded-lg shadow-md"
+                  >
+                    <Image
+                      src={item.productImageSrc}
+                      alt={item.title}
+                      height={250}
+                      width={250}
+                    />
+                    <p className="text-sm font-medium text-gray-100 mb-2 mt-2">
+                      {item.title}
+                    </p>
+                    <p className="text-sm text-gray-300 mb-1">
+                      QTY: {item.quantity}
+                    </p>
+                    <p className="text-sm text-gray-300 mb-1">
+                      Price: ${item.price}
+                    </p>
+                    {item.color && (
+                      <p className="text-sm text-gray-300 mb-1">
+                        Color: {item.color}
+                      </p>
+                    )}
+                    {item.size && (
+                      <p className="text-sm text-gray-300 mb-1">
+                        Size: {item.size}
+                      </p>
+                    )}
+                    {/* Add more details as needed */}
                   </div>
                 ))}
               </div>
-            </section>
+            </div>
           ))}
         </div>
       </div>
