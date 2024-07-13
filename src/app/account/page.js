@@ -15,6 +15,7 @@ import QRCode from "qrcode.react";
 import Link from "next/link";
 import OrderHistory from "../../../components/OrderHistory";
 import RandomDetailStyling from "../components/styling/RandomDetailStyling";
+import Footer from "../components/Footer";
 
 const navigation = [
   { name: "SHOP", href: "/shop" },
@@ -195,6 +196,7 @@ export default function Account() {
           </div>
         </div>
       </main>
+      <Footer />
     </>
   );
 }
