@@ -70,17 +70,26 @@ const fetchUserPurchases = async (userId) => {
 };
 
 export default function OrderHistory() {
-  const userId = localStorage.getItem("userId");
+  const [userId, setUserId] = useState("");
   const [userPurchases, setUserPurchases] = useState([]);
 
   useEffect(() => {
-    fetchUserPurchases(userId)
-      .then((userPurchases) => {
-        setUserPurchases(userPurchases);
-      })
-      .catch((error) => {
-        console.error("Error: ", error);
-      });
+    if (typeof window !== "undefined") {
+      const userIdFromLocalStorage = localStorage.getItem("userId");
+      setUserId(userIdFromLocalStorage);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (userId) {
+      fetchUserPurchases(userId)
+        .then((userPurchases) => {
+          setUserPurchases(userPurchases);
+        })
+        .catch((error) => {
+          console.error("Error: ", error);
+        });
+    }
   }, [userId]);
 
   console.log("User Purchases from Order History: ", userPurchases);
@@ -106,45 +115,42 @@ export default function OrderHistory() {
         </div>
 
         <div className="mt-12 space-y-16 sm:mt-16">
-          {orders.map((order) => (
-            <section
-              key={order.number}
-              aria-labelledby={`${order.number}-heading`}
-            >
+          {userPurchases.map((purchase, index) => (
+            <section key={index} aria-labelledby={`${index}-heading`}>
               <div className="space-y-1 md:flex md:items-baseline md:space-x-2 md:space-y-0">
-                <h2
+                {/* <h2
                   id={`${order.number}-heading`}
                   className="text-lg font-medium text-gray-100 md:flex-shrink-0"
                 >
                   Order #{order.number}
-                </h2>
+                </h2> */}
               </div>
 
               <div className="-mb-6 mt-6 flow-root divide-y divide-gray-200 border-t border-gray-200">
-                {order.products.map((product) => (
-                  <div key={product.id} className="py-6 sm:flex items-center">
+                {purchase.cartItems.map((item, itemIndex) => (
+                  <div key={itemIndex} className="py-6 sm:flex items-center">
                     <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-6 lg:space-x-8">
                       <img
-                        alt={product.imageAlt}
-                        src={product.imageSrc}
+                        alt={item.productImageSrc}
+                        src={item.productImageSrc}
                         className="h-20 w-20 sm:h-48 sm:w-48 flex-none rounded-md object-cover object-center"
                       />
                       <div className="min-w-0 flex-1 sm:mt-0 mt-4">
                         <h3 className="text-sm font-medium text-gray-100">
-                          <a href={product.href}>{product.name}</a>
+                          <p>{item.title}</p>
                         </h3>
                         <p className="truncate text-sm text-gray-300">
-                          <span>{product.color}</span>{" "}
+                          <span>{item.color}</span>
                           <span
                             aria-hidden="true"
                             className="mx-1 text-gray-300"
                           >
                             &middot;
-                          </span>{" "}
-                          <span>{product.size}</span>
+                          </span>
+                          <span>{item.size}</span>
                         </p>
                         <p className="mt-1 font-medium text-gray-100">
-                          {product.price}
+                          ${item.price}
                         </p>
                       </div>
                     </div>
