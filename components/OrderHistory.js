@@ -64,7 +64,7 @@ export default function OrderHistory() {
 
         <div className="mt-12 space-y-16 sm:mt-16">
           {userPurchases.map((purchase, index) => (
-            <div key={index} className="space-y-6 border rounded-md p-4 sm:justify-center mt-4">
+            <div key={index} className="space-y-6 border rounded-md p-4  mt-4">
               <div className="dateContainer">
                 <h2 className="text-lg text-center font-medium text-gray-100">
                   Purchase Date:{" "}
@@ -73,11 +73,10 @@ export default function OrderHistory() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-4">
-                
                 {purchase.cartItems.map((item, itemIndex) => (
                   <div
                     key={itemIndex}
-                    className="cartItem bg-transparent p-4 rounded-lg shadow-md"
+                    className="bg-transparent p-4 mx-auto" // Add mx-auto to center horizontally
                   >
                     <Image
                       src={item.productImageSrc}
