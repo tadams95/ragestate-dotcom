@@ -82,28 +82,24 @@ export default function Account() {
             ))}
           </nav>
           <div className="flex flex-1 items-center justify-end gap-x-8">
-            <button
+            {/* <button
               type="button"
               className="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500"
             >
               <span className="sr-only">View notifications</span>
               <BellIcon aria-hidden="true" className="h-6 w-6" />
-            </button>
-            <a href="#" className="-m-1.5 p-1.5">
+            </button> */}
+            <Link href="/account" className="-m-1.5 p-1.5">
               <span className="sr-only">Your profile</span>
-              {profilePicture ? (
-                <Image
-                  priority
-                  alt="Profile Picture"
-                  src={profilePicture}
-                  className="h-8 w-8 rounded-full bg-gray-800"
-                  height={50}
-                  width={50}
-                />
-              ) : (
-                <UserCircleIcon className="h-8 w-8 text-gray-800" />
-              )}
-            </a>
+              <Image
+                priority
+                alt="ProfilePicture"
+                src={profilePicture} // Use profilePicture if defined, otherwise fallback to default image
+                className="h-8 w-8 rounded-full"
+                height={50}
+                width={50}
+              />
+            </Link>
           </div>
         </div>
         <Dialog
@@ -183,7 +179,7 @@ export default function Account() {
               <div className="">
                 <h1
                   id="your-orders-heading"
-                  className="text-3xl font-bold tracking-tight text-gray-100 text-center mb-2"
+                  className="text-3xl font-bold tracking-tight text-gray-100 text-center mb-6"
                 >
                   Your QR Code
                 </h1>

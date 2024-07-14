@@ -43,7 +43,7 @@ export default function ProductDetails({ product }) {
     return <div>Loading...</div>; // or handle differently while product is loading
   }
 
-  console.log("Product: ", product.description);
+  // console.log("Product: ", product.description);
 
   // Destructure necessary fields from product
   const {

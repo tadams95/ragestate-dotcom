@@ -91,7 +91,11 @@ export default function Login() {
             // Dispatch the setUserName action with the fetched user name
             dispatch(setUserName(name));
             localStorage.setItem("name", name);
-            localStorage.setItem("profilePicture", userData.profilePicture);
+            if (userData.profilePicture) {
+              localStorage.setItem("profilePicture", userData.profilePicture);
+            } else {
+              localStorage.setItem("profilePicture", "/assets/trollface.png");
+            }
           } else {
             // console.log("No data available");
           }
@@ -101,7 +105,36 @@ export default function Login() {
           setError(error);
         });
 
-      console.log(userCredential);
+      const stripeCustomerResponse = await fetch(`${API_URL}/create-customer`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email,
+          name: userName,
+          firebaseId: userId,
+        }),
+      });
+
+      if (!stripeCustomerResponse.ok) {
+        // Log response status and error message if available
+        console.error(
+          "Failed to create Stripe customer. Status:",
+          stripeCustomerResponse.status
+        );
+        const errorMessage = await stripeCustomerResponse.text();
+        console.error("Error Message:", errorMessage);
+        throw new Error("Failed to create Stripe customer");
+      }
+
+      const stripeCustomerData = await stripeCustomerResponse.json();
+
+      localStorage.setItem("stripeCustomerData", stripeCustomerData);
+
+      // console.log(stripeCustomerData);
+      setEmail("");
+      setPassword("");
       dispatch(setAuthenticated(true));
       setIsAuthenticating(false);
       router.back(); // Navigate back after successful login

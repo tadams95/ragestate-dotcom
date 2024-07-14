@@ -157,7 +157,8 @@ export default function CreateAccount() {
 
       const stripeCustomerData = await stripeCustomerResponse.json();
 
-      dispatch(setStripeCustomerId(stripeCustomerData));
+      // dispatch(setStripeCustomerId(stripeCustomerData));
+      localStorage.setItem("stripeCustomerData", stripeCustomerData);
 
       // // Extract necessary data from userCredential
       const idToken = userCredential._tokenResponse.idToken; // Access idToken from _tokenResponse
