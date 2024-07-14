@@ -12,6 +12,8 @@ export default function CheckoutForm() {
   const [message, setMessage] = React.useState(null);
   const [isLoading, setIsLoading] = React.useState(false);
 
+  let returnURL;
+
   React.useEffect(() => {
     if (!stripe) {
       return;
@@ -54,11 +56,16 @@ export default function CheckoutForm() {
 
     setIsLoading(true);
 
+    if (process.env.NODE_ENV === "development") {
+      returnURL = process.env.NEXT_PUBLIC_BASE_URL_DEV + "/completion";
+    } else {
+      returnURL = process.env.NEXT_PUBLIC_URL_PROD + "/completion";
+    }
+
     const { error } = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        // Make sure to change this to your payment completion page
-        return_url: "http://localhost:3000/completion",
+        return_url: returnURL,
       },
     });
 
