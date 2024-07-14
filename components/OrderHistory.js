@@ -79,6 +79,7 @@ export default function OrderHistory() {
                     className="bg-transparent p-4 mx-auto" // Add mx-auto to center horizontally
                   >
                     <Image
+                      priority
                       src={item.productImageSrc}
                       alt={item.title}
                       height={250}

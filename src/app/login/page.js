@@ -23,8 +23,6 @@ import Link from "next/link";
 import Header from "../components/Header";
 import RandomDetailStyling from "../components/styling/RandomDetailStyling";
 import Footer from "../components/Footer";
-import ErrorModal from "../../../components/ErrorModal";
-import SocialLogins from "./socialLogin/SocialLogins";
 
 const API_URL =
   "https://us-central1-ragestate-app.cloudfunctions.net/stripePayment";
@@ -93,6 +91,7 @@ export default function Login() {
             // Dispatch the setUserName action with the fetched user name
             dispatch(setUserName(name));
             localStorage.setItem("name", name);
+            localStorage.setItem("profilePicture", userData.profilePicture);
           } else {
             // console.log("No data available");
           }
