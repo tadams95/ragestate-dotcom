@@ -4,7 +4,6 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
-import { theme } from "../tailwind.config";
 
 export default function CheckoutForm() {
   const stripe = useStripe();

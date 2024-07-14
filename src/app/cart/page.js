@@ -7,7 +7,6 @@ import {
   DevicePhoneMobileIcon,
 } from "@heroicons/react/20/solid";
 import { useSelector, useDispatch } from "react-redux";
-import { selectAuthenticated } from "../../../lib/features/todos/userSlice";
 
 import {
   selectCartItems,
@@ -38,10 +37,9 @@ import AddressForm from "../../../components/AddressForm";
 
 export default function Cart() {
   const dispatch = useDispatch();
-  const cartItems = useSelector(selectCartItems);
-  const isAuthenticated = useSelector(selectAuthenticated);
-  const firestore = getFirestore();
 
+  const cartItems = useSelector(selectCartItems);
+  const firestore = getFirestore();
   const [cartSubtotal, setCartSubtotal] = useState(0);
   const [totalPrice, setTotalPrice] = useState(0);
   const [stripePromise, setStripePromise] = useState(null);
@@ -147,8 +145,8 @@ export default function Cart() {
     },
   };
   const options = {
-    clientSecret,
-    appearance,
+    clientSecret: clientSecret,
+    appearance: appearance,
   };
 
   return (
@@ -162,7 +160,7 @@ export default function Cart() {
           <h1 className="text-3xl font-bold tracking-tight text-gray-100 sm:text-4xl">
             Shopping Cart
           </h1>
-          <form className="mt-12 lg:grid lg:grid-cols-12 lg:items-start lg:gap-x-12 xl:gap-x-16">
+          <div className="mt-12 lg:grid lg:grid-cols-12 lg:items-start lg:gap-x-12 xl:gap-x-16">
             <section aria-labelledby="cart-heading" className="lg:col-span-7">
               <h2 id="cart-heading" className="sr-only">
                 Items in your shopping cart
@@ -363,7 +361,7 @@ export default function Cart() {
                 </p>
               </div>
             </section>
-          </form>
+          </div>
         </div>
       )}
 
