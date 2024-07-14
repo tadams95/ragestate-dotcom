@@ -73,6 +73,8 @@ export default function ProductDetails({ product }) {
       dispatch(addToCart(productToAdd));
       setSelectedSize(""); // Reset selectedSize
       setSelectedColor(""); // Reset selectedColor
+      // Show browser alert
+      window.alert("Added to Cart!");
     } else {
       // Handle the case where not all required selections are made
       if (!selectedSize) {

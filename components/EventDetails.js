@@ -49,6 +49,9 @@ export default function EventDetails({ event }) {
 
       // Dispatch the addToCart action with the cart item
       dispatch(addToCart(cartItem));
+
+      // Show browser alert
+      window.alert("Added to Cart!");
     }
   };
 
