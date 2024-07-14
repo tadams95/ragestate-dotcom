@@ -94,7 +94,7 @@ export default function Account() {
               <Image
                 priority
                 alt="ProfilePicture"
-                src={profilePicture} // Use profilePicture if defined, otherwise fallback to default image
+                src={profilePicture || "/assets/default-profile.png"}
                 className="h-8 w-8 rounded-full"
                 height={50}
                 width={50}

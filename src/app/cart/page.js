@@ -37,16 +37,21 @@ import AddressForm from "../../../components/AddressForm";
 
 export default function Cart() {
   const dispatch = useDispatch();
-
   const cartItems = useSelector(selectCartItems);
   const firestore = getFirestore();
   const [cartSubtotal, setCartSubtotal] = useState(0);
   const [totalPrice, setTotalPrice] = useState(0);
   const [stripePromise, setStripePromise] = useState(null);
   const [clientSecret, setClientSecret] = useState("");
+  const [userName, setUserName] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [userId, setUserId] = useState("");
 
   const [idToken, setIdToken] = useState(null);
   const [refreshToken, setRefreshToken] = useState(null);
+
+  const API_URL =
+    "https://us-central1-ragestate-app.cloudfunctions.net/stripePayment";
 
   // console.log("Cart Items: ", cartItems);
 
@@ -81,8 +86,14 @@ export default function Cart() {
     if (typeof window !== "undefined") {
       const storedIdToken = localStorage.getItem("idToken");
       const storedRefreshToken = localStorage.getItem("refreshToken");
+      // const storedUserName = localStorage.getItem("name");
+      // const storedEmail = localStorage.getItem("email");
+      // const storedUserId = localStorage.getItem("userId");
       setIdToken(storedIdToken);
       setRefreshToken(storedRefreshToken);
+      // setUserName(storedUserName);
+      // setUserEmail(storedEmail);
+      // setUserId(storedUserId);
     }
   }, []);
 
@@ -136,6 +147,8 @@ export default function Cart() {
     parseFloat(taxTotal) +
     shipping
   ).toFixed(2);
+
+  const stripeTotal = total * 100;
 
   const appearance = {
     theme: "stripe",

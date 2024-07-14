@@ -32,7 +32,7 @@ export default function EventTile({ event }) {
                 priority
                 src={event.imgURL}
                 alt={event.name}
-                className="object-cover object-center group-hover:opacity-75"
+                className="object-center group-hover:opacity-75"
                 height={500}
                 width={500}
               />
