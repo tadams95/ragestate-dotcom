@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Dialog, DialogPanel } from "@headlessui/react";
 import { useRouter } from "next/navigation";
 
-import { Bars3Icon } from "@heroicons/react/20/solid";
+import { Bars3Icon, UserCircleIcon } from "@heroicons/react/20/solid";
 
 import {
   BellIcon,
@@ -16,6 +16,7 @@ import Link from "next/link";
 import OrderHistory from "../../../components/OrderHistory";
 import RandomDetailStyling from "../components/styling/RandomDetailStyling";
 import Footer from "../components/Footer";
+import Image from "next/image";
 
 const navigation = [
   { name: "SHOP", href: "/shop" },
@@ -90,11 +91,18 @@ export default function Account() {
             </button>
             <a href="#" className="-m-1.5 p-1.5">
               <span className="sr-only">Your profile</span>
-              <img
-                alt=""
-                src={profilePicture}
-                className="h-8 w-8 rounded-full bg-gray-800"
-              />
+              {profilePicture ? (
+                <Image
+                  priority
+                  alt="Profile Picture"
+                  src={profilePicture}
+                  className="h-8 w-8 rounded-full bg-gray-800"
+                  height={50}
+                  width={50}
+                />
+              ) : (
+                <UserCircleIcon className="h-8 w-8 text-gray-800" />
+              )}
             </a>
           </div>
         </div>
