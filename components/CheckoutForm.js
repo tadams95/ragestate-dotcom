@@ -56,16 +56,11 @@ export default function CheckoutForm() {
 
     setIsLoading(true);
 
-    if (process.env.NODE_ENV === "development") {
-      returnURL = process.env.NEXT_PUBLIC_BASE_URL_DEV + "/completion";
-    } else {
-      returnURL = process.env.NEXT_PUBLIC_URL_PROD + "/completion";
-    }
-
     const { error } = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        return_url: returnURL,
+        // Make sure to change this to your payment completion page
+        return_url: "http://ragestate.vercel.app/completion",
       },
     });
 
