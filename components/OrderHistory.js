@@ -84,6 +84,7 @@ export default function OrderHistory() {
                       alt={item.title}
                       height={250}
                       width={250}
+                      className="rounded-md"
                     />
                     <p className="text-sm font-medium text-gray-100 mb-2 mt-2">
                       {item.title}
