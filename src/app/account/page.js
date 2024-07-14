@@ -29,11 +29,15 @@ export default function Account() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
   const [userId, setUserId] = useState("");
+  const [profilePicture, setProfilePicture] = useState("");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const userId = localStorage.getItem("userId");
-      setUserId(userId);
+      const storedUserId = localStorage.getItem("userId");
+      const storedProfilePicture = localStorage.getItem("profilePicture");
+
+      setUserId(storedUserId);
+      setProfilePicture(storedProfilePicture);
     }
   }, []);
 
@@ -88,7 +92,7 @@ export default function Account() {
               <span className="sr-only">Your profile</span>
               <img
                 alt=""
-                src="/assets/trollFace.png"
+                src={profilePicture}
                 className="h-8 w-8 rounded-full bg-gray-800"
               />
             </a>
