@@ -148,4 +148,54 @@ app.post("/create-payment-intent", async (req, res) => {
   }
 });
 
+app.post("/web-payment", async (req, res) => {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method Not Allowed" });
+  }
+
+  const { amount, customerEmail, name, firebaseId } = req.body;
+
+  try {
+    let customer;
+
+    // Check if the customer already exists
+    const existingCustomers = await stripe.customers.list({
+      email: customerEmail,
+    });
+
+    if (existingCustomers.data.length > 0) {
+      // Use the first existing customer found
+      customer = existingCustomers.data[0];
+    } else {
+      // Create a new customer if no existing customer is found
+      customer = await stripe.customers.create({
+        name: name,
+        email: customerEmail,
+        description: name,
+        metadata: {
+          firebaseId,
+        },
+      });
+    }
+
+    // Create Payment Intent
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amount,
+      currency: "usd",
+      customer: customer.id,
+      description: "Payment for your order",
+      receipt_email: customerEmail,
+      metadata: {
+        firebaseId,
+      },
+    });
+    res.status(200).json({ client_secret: paymentIntent.client_secret });
+  } catch (error) {
+    console.error("Error creating payment intent:", error);
+    res
+      .status(500)
+      .json({ error: "An error occurred while creating the payment intent." });
+  }
+});
+
 exports.stripePayment = functions.https.onRequest(app);

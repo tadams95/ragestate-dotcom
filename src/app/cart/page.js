@@ -83,31 +83,37 @@ export default function Cart() {
       "pk_test_51NFhuOHnXmOBmfaDAdOEefavmmfZzMX4F0uOpbvrK1P49isqVY6uBUDeXnCqNjiu6g89dh9CMZj7wDOAFLX5z93t007GOWlK8e";
 
     setStripePromise(loadStripe(publishableKey));
-    if (typeof window !== "undefined") {
-      const storedIdToken = localStorage.getItem("idToken");
-      const storedRefreshToken = localStorage.getItem("refreshToken");
-      // const storedUserName = localStorage.getItem("name");
-      // const storedEmail = localStorage.getItem("email");
-      // const storedUserId = localStorage.getItem("userId");
-      setIdToken(storedIdToken);
-      setRefreshToken(storedRefreshToken);
-      // setUserName(storedUserName);
-      // setUserEmail(storedEmail);
-      // setUserId(storedUserId);
-    }
   }, []);
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedIdToken = localStorage.getItem("idToken");
+      const storedRefreshToken = localStorage.getItem("refreshToken");
+      const storedUserName = localStorage.getItem("name");
+      const storedEmail = localStorage.getItem("email");
+      const storedUserId = localStorage.getItem("userId");
+      setIdToken(storedIdToken);
+      setRefreshToken(storedRefreshToken);
+      setUserName(storedUserName);
+      setUserEmail(storedEmail);
+      setUserId(storedUserId);
+    }
+
     const fetchClientSecret = async () => {
       try {
         const response = await fetch(
-          "https://us-central1-ragestate-app.cloudfunctions.net/stripePayment/create-payment-intent",
+          "https://us-central1-ragestate-app.cloudfunctions.net/stripePayment/web-payment",
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({}),
+            body: JSON.stringify({
+              amount: 1999, // Replace with your actual amount
+              customerEmail: userEmail, // Use user's email from state
+              name: userName, // Use user's name from state
+              firebaseId: userId, // Use user's Firebase ID from state
+            }),
           }
         );
 
@@ -117,14 +123,13 @@ export default function Cart() {
 
         const { client_secret } = await response.json();
         setClientSecret(client_secret);
-        // console.log("Client Secret: ", client_secret);
       } catch (error) {
         console.error("Error fetching payment intent:", error.message);
       }
     };
 
     fetchClientSecret();
-  }, []);
+  }, [userName, userEmail, userId]);
 
   const taxRate = 0.075;
   const taxTotal = (cartSubtotal * taxRate).toFixed(2);
