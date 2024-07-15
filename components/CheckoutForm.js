@@ -1,4 +1,4 @@
-import React, { use, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   PaymentElement,
   useStripe,
@@ -6,6 +6,9 @@ import {
 } from "@stripe/react-stripe-js";
 
 import SaveToFirestore from "../firebase/util/saveToFirestore";
+
+import { selectCartItems } from "../lib/features/todos/cartSlice";
+import { useSelector } from "react-redux";
 
 export default function CheckoutForm() {
   const stripe = useStripe();
@@ -16,9 +19,9 @@ export default function CheckoutForm() {
   const [userName, setUserName] = useState("");
   const [userEmail, setUserEmail] = useState("");
   const [firebaseId, setUserId] = useState("");
-  const [xyz, setCartItems] = useState();
+  const cartItems = useSelector(selectCartItems);
 
-  // console.log("Cart Items from CheckoutForm: ", cartItems);
+  console.log("Cart Items from CheckoutForm: ", cartItems);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -75,7 +78,7 @@ export default function CheckoutForm() {
 
     try {
       // Save purchase details to Firestore
-      await SaveToFirestore(userName, userEmail, firebaseId);
+      await SaveToFirestore(userName, userEmail, firebaseId, cartItems);
       const { error } = await stripe.confirmPayment({
         elements,
         confirmParams: {

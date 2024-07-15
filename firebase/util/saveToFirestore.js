@@ -1,6 +1,11 @@
 import { doc, getFirestore, setDoc } from "firebase/firestore";
 
-export default async function SaveToFirestore(userEmail, userName, firebaseId) {
+export default async function SaveToFirestore(
+  userEmail,
+  userName,
+  firebaseId,
+  cartItems
+) {
   try {
     const firestore = getFirestore();
 
@@ -25,7 +30,7 @@ export default async function SaveToFirestore(userEmail, userName, firebaseId) {
       email: userEmail,
       name: userName,
       addressDetails: addressDetails,
-      cartItems: "what the fuck",
+      cartItems: cartItems,
       dateTime: new Date(),
     };
 
