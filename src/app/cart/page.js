@@ -109,7 +109,7 @@ export default function Cart() {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              amount: 1999, // Replace with your actual amount
+              amount: stripeTotal, // Replace with your actual amount
               customerEmail: userEmail, // Use user's email from state
               name: userName, // Use user's name from state
               firebaseId: userId, // Use user's Firebase ID from state
