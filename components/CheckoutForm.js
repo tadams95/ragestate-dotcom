@@ -20,19 +20,31 @@ export default function CheckoutForm() {
   const [userEmail, setUserEmail] = useState("");
   const [firebaseId, setUserId] = useState("");
   const cartItems = useSelector(selectCartItems);
-
-  console.log("Cart Items from CheckoutForm: ", cartItems);
+  const [paymentIntent, setPaymentIntent] = useState("");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       const storedUserName = localStorage.getItem("name");
       const storedEmail = localStorage.getItem("email");
       const storedUserId = localStorage.getItem("userId");
+      const storedClientSecret = localStorage.getItem("clientSecret");
       setUserName(storedUserName);
       setUserEmail(storedEmail);
       setUserId(storedUserId);
+      setPaymentIntent(storedClientSecret);
     }
   }, []);
+
+  // Find the index of the second underscore
+  const firstUnderscoreIndex = paymentIntent.indexOf("_");
+  const secondUnderscoreIndex = paymentIntent.indexOf(
+    "_",
+    firstUnderscoreIndex + 1
+  );
+
+  // Extract the substring before the second underscore
+  const paymentIntentPrefix = paymentIntent.substring(0, secondUnderscoreIndex);
+  console.log("123456: ", paymentIntentPrefix);
 
   useEffect(() => {
     if (!stripe) {
@@ -78,7 +90,13 @@ export default function CheckoutForm() {
 
     try {
       // Save purchase details to Firestore
-      await SaveToFirestore(userName, userEmail, firebaseId, cartItems);
+      await SaveToFirestore(
+        userName,
+        userEmail,
+        firebaseId,
+        cartItems,
+        paymentIntentPrefix
+      );
       const { error } = await stripe.confirmPayment({
         elements,
         confirmParams: {

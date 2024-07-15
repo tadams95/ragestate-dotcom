@@ -12,20 +12,11 @@ import {
   selectCartItems,
   removeFromCart,
   setCheckoutPrice,
+  setPaymentIntent,
 } from "../../../lib/features/todos/cartSlice";
 
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
-
-import {
-  doc,
-  setDoc,
-  updateDoc,
-  getDoc,
-  collection,
-  addDoc,
-  getFirestore,
-} from "firebase/firestore";
 
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -38,7 +29,7 @@ import AddressForm from "../../../components/AddressForm";
 export default function Cart() {
   const dispatch = useDispatch();
   const cartItems = useSelector(selectCartItems);
-  const firestore = getFirestore();
+
   const [cartSubtotal, setCartSubtotal] = useState(0);
   const [totalPrice, setTotalPrice] = useState(0);
   const [stripePromise, setStripePromise] = useState(null);
@@ -122,7 +113,9 @@ export default function Cart() {
         }
 
         const { client_secret } = await response.json();
+
         setClientSecret(client_secret);
+        localStorage.setItem("clientSecret", client_secret);
       } catch (error) {
         console.error("Error fetching payment intent:", error.message);
       }

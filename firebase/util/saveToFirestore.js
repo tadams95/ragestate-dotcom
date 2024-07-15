@@ -4,7 +4,8 @@ export default async function SaveToFirestore(
   userEmail,
   userName,
   firebaseId,
-  cartItems
+  cartItems,
+  paymentIntentPrefix
 ) {
   try {
     const firestore = getFirestore();
@@ -12,7 +13,7 @@ export default async function SaveToFirestore(
     const purchaseDocumentRef = doc(
       firestore,
       `customers/${firebaseId}/purchases`,
-      "Another test 4" // Ensure paymentIntentPrefix is defined
+      paymentIntentPrefix // Ensure paymentIntentPrefix is defined
     );
 
     const addressDetails = {
