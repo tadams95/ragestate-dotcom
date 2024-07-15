@@ -60,7 +60,7 @@ export default function ProductDetails({ product }) {
     if (selectedSize && selectedColor) {
       const productToAdd = {
         productId: id,
-        images,
+        productImageSrc: images && images.length > 0 ? images[0].src : null,
         title,
         price: productPrice,
         selectedSize,

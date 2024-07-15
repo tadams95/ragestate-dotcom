@@ -38,7 +38,7 @@ export default function EventDetails({ event }) {
       const cartItem = {
         productId: selectedEvent.name,
         title: selectedEvent.name,
-        images: selectedEvent.imgURL,
+        productImageSrc: selectedEvent.imgURL,
         selectedQuantity: 1,
         price: selectedEvent.price,
         eventDetails: {
@@ -49,6 +49,8 @@ export default function EventDetails({ event }) {
 
       // Dispatch the addToCart action with the cart item
       dispatch(addToCart(cartItem));
+
+      console.log(cartItem)
 
       // Show browser alert
       window.alert("Added to Cart!");

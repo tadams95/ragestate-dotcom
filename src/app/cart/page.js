@@ -188,7 +188,7 @@ export default function Cart() {
                   >
                     <div className="flex-shrink-0">
                       <img
-                        src={item.images[0].src || item.images}
+                        src={item.productImageSrc[0].src || item.productImageSrc}
                         alt={item.title}
                         className="h-24 w-24 rounded-md object-cover object-center sm:h-48 sm:w-48"
                       />
