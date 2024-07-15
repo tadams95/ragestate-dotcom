@@ -37,7 +37,7 @@ export default function Cart() {
   const [userName, setUserName] = useState("");
   const [userEmail, setUserEmail] = useState("");
   const [userId, setUserId] = useState("");
-
+  const [addressDetails, setAddressDetails] = useState(null);
   const [idToken, setIdToken] = useState(null);
   const [refreshToken, setRefreshToken] = useState(null);
 
@@ -48,6 +48,10 @@ export default function Cart() {
 
   const handleRemoveFromCart = (productId, selectedColor, selectedSize) => {
     dispatch(removeFromCart({ productId, selectedColor, selectedSize }));
+  };
+
+  const handleAddressChange = (address) => {
+    setAddressDetails(address);
   };
 
   useEffect(() => {
@@ -188,7 +192,9 @@ export default function Cart() {
                   >
                     <div className="flex-shrink-0">
                       <img
-                        src={item.productImageSrc[0].src || item.productImageSrc}
+                        src={
+                          item.productImageSrc[0].src || item.productImageSrc
+                        }
                         alt={item.title}
                         className="h-24 w-24 rounded-md object-cover object-center sm:h-48 sm:w-48"
                       />
@@ -327,10 +333,10 @@ export default function Cart() {
                     <Elements stripe={stripePromise} options={options}>
                       {hasPhysicalItems && (
                         <div className="mt-4">
-                          <AddressForm />
+                          <AddressForm onAddressChange={handleAddressChange} />
                         </div>
                       )}
-                      <CheckoutForm />
+                      <CheckoutForm addressDetails={addressDetails} />
                     </Elements>
                   </>
                 ) : (

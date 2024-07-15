@@ -5,7 +5,8 @@ export default async function SaveToFirestore(
   userName,
   firebaseId,
   cartItems,
-  paymentIntentPrefix
+  paymentIntentPrefix,
+  addressDetails
 ) {
   try {
     const firestore = getFirestore();
@@ -16,16 +17,20 @@ export default async function SaveToFirestore(
       paymentIntentPrefix // Ensure paymentIntentPrefix is defined
     );
 
-    const addressDetails = {
-      address: {
-        city: "null",
-        country: "null",
-        line1: "null",
-        line2: "null",
-        postalCode: "null",
-        state: "null",
-      },
-    };
+    if (!addressDetails) {
+      addressDetails = {
+        address: {
+          city: "null",
+          country: "null",
+          line1: "null",
+          line2: "null",
+          postalCode: "null",
+          state: "null",
+        },
+        name: userName,
+        phone: "null",
+      };
+    }
 
     const purchaseData = {
       email: userEmail,

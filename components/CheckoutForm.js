@@ -10,7 +10,7 @@ import SaveToFirestore from "../firebase/util/saveToFirestore";
 import { selectCartItems } from "../lib/features/todos/cartSlice";
 import { useSelector } from "react-redux";
 
-export default function CheckoutForm() {
+export default function CheckoutForm({ addressDetails }) {
   const stripe = useStripe();
   const elements = useElements();
 
@@ -95,7 +95,8 @@ export default function CheckoutForm() {
         userEmail,
         firebaseId,
         cartItems,
-        paymentIntentPrefix
+        paymentIntentPrefix,
+        addressDetails
       );
       const { error } = await stripe.confirmPayment({
         elements,
