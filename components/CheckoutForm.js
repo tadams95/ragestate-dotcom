@@ -1,20 +1,37 @@
-import React from "react";
+import React, { use, useEffect, useState } from "react";
 import {
   PaymentElement,
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
 
+import SaveToFirestore from "../firebase/util/saveToFirestore";
+
 export default function CheckoutForm() {
   const stripe = useStripe();
   const elements = useElements();
 
-  const [message, setMessage] = React.useState(null);
-  const [isLoading, setIsLoading] = React.useState(false);
+  const [message, setMessage] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [userName, setUserName] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [firebaseId, setUserId] = useState("");
+  const [xyz, setCartItems] = useState();
 
-  let returnURL;
+  // console.log("Cart Items from CheckoutForm: ", cartItems);
 
-  React.useEffect(() => {
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedUserName = localStorage.getItem("name");
+      const storedEmail = localStorage.getItem("email");
+      const storedUserId = localStorage.getItem("userId");
+      setUserName(storedUserName);
+      setUserEmail(storedEmail);
+      setUserId(storedUserId);
+    }
+  }, []);
+
+  useEffect(() => {
     if (!stripe) {
       return;
     }
@@ -56,23 +73,30 @@ export default function CheckoutForm() {
 
     setIsLoading(true);
 
-    const { error } = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        // Make sure to change this to your payment completion page
-        return_url: "http://ragestate.vercel.app/completion",
-      },
-    });
+    try {
+      // Save purchase details to Firestore
+      await SaveToFirestore(userName, userEmail, firebaseId);
+      const { error } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          // Adjust this to your payment completion page or handle it within the component
+          return_url: "http://localhost:3000/completion",
+        },
+      });
 
-    // This point will only be reached if there is an immediate error when
-    // confirming the payment. Otherwise, your customer will be redirected to
-    // your `return_url`. For some payment methods like iDEAL, your customer will
-    // be redirected to an intermediate site first to authorize the payment, then
-    // redirected to the `return_url`.
-    if (error.type === "card_error" || error.type === "validation_error") {
-      setMessage(error.message);
-    } else {
-      setMessage("An unexpected error occurred.");
+      if (error) {
+        if (error.type === "card_error" || error.type === "validation_error") {
+          setMessage(error.message);
+        } else {
+          setMessage("An unexpected error occurred.");
+        }
+      } else {
+        // Payment succeeded, handle success message or redirect
+        setMessage("Payment succeeded!");
+      }
+    } catch (error) {
+      console.error("Error confirming payment:", error);
+      setMessage("An error occurred during payment confirmation.");
     }
 
     setIsLoading(false);
