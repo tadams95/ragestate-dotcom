@@ -12,7 +12,7 @@ const firebaseConfig = {
   authDomain: process.env.authDomain,
   databaseURL: process.env.databaseURL,
   projectId: "ragestate-app",
-  storageBucket: process.env.storageBucket,
+  storageBucket: "ragestate-app.appspot.com",
   messagingSenderId: process.env.messagingSenderId,
   appId: process.env.appId,
   measurementId: process.env.measurementId,

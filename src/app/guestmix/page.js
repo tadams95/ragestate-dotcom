@@ -11,6 +11,9 @@ import Footer from "../components/Footer";
 import RandomDetailStyling from "../components/styling/RandomDetailStyling";
 import Image from "next/image";
 
+import { getFirestore, doc, setDoc } from "firebase/firestore";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+
 const paymentOptions = [
   { value: "Venmo" },
   { value: "PayPal" },
@@ -25,63 +28,74 @@ export default function GuestMix() {
   const [mixDescription, setMixDescription] = useState("");
   const [coverPhoto, setCoverPhoto] = useState(null);
   const [mixUpload, setMixUpload] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const firestore = getFirestore();
+  const storage = getStorage();
 
   const handleCancel = () => {
     setName("");
-    setPaymentOption(null);
+    setPaymentOption("null");
     setPaymentHandle("");
     setMixDescription("");
     setCoverPhoto(null);
     setMixUpload(null);
   };
 
-  const handleSubmission = (event) => {
+  const handleSubmission = async (event) => {
     event.preventDefault();
 
-    // You can perform any validation here before submission
+    // Perform basic validation
     if (
       !name ||
       !paymentOption ||
       !paymentHandle ||
       !mixDescription ||
-      !coverPhoto ||
-      !mixUpload
+      !mixUpload ||
+      !coverPhoto
     ) {
       alert("Please fill in all required fields.");
       return;
     }
 
-    // Prepare data for submission or further processing
-    const formData = {
-      name,
-      paymentOption,
-      paymentHandle,
-      mixDescription,
-      coverPhoto,
-      mixUpload,
-    };
+    setIsLoading(true); // Set loading state to true during submission
 
-    // Example: Call a function to save data to Firestore or handle submission
-    saveToFirestore(formData);
+    try {
+      // Upload cover photo to Firebase Storage
+      const coverPhotoRef = ref(storage, `guest-mix-cover-photo/${name}`);
+      await uploadBytes(coverPhotoRef, coverPhoto);
+      const coverPhotoUrl = await getDownloadURL(coverPhotoRef);
 
-    // Reset form state after submission if needed
-    handleCancel();
+      // Upload mix file to Firebase Storage
+      const mixFileRef = ref(storage, `guest-mixes/${name}`);
+      await uploadBytes(mixFileRef, mixUpload);
+      const mixFileUrl = await getDownloadURL(mixFileRef);
+
+      // Save mix details to Firestore
+      const today = new Date(); // Create a new Date object for today
+
+      // Save mix details to Firestore
+      await setDoc(doc(firestore, "guest-mixes", name), {
+        name,
+        paymentOption,
+        paymentHandle,
+        mixDescription,
+        coverPhotoUrl,
+        mixFileUrl,
+        createdAt: today,
+      });
+
+      // Reset form state after successful submission
+      handleCancel();
+
+      alert("Guest mix submitted successfully!");
+    } catch (error) {
+      console.error("Error submitting guest mix:", error);
+      alert("Failed to submit guest mix. Please try again later.");
+    } finally {
+      setIsLoading(false); // Set loading state back to false after submission
+    }
   };
-
-  const saveToFirestore = (formData) => {
-    // Implement your Firestore saving logic here
-    console.log("Submitting to Firestore:", formData);
-    // Example:
-    // firestore.collection('guestMixes').doc().set({
-    //   name: formData.name,
-    //   paymentOption: formData.paymentOption,
-    //   paymentHandle: formData.paymentHandle,
-    //   mixDescription: formData.mixDescription,
-    //   coverPhoto: formData.coverPhoto,
-    //   // other fields as needed
-    // });
-  };
-
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
     setCoverPhoto(file);
@@ -91,8 +105,6 @@ export default function GuestMix() {
     const mix = event.target.files[0]; // Access the first file in the list
     setMixUpload(mix);
   };
-  //   console.log("Cover Photo: ", coverPhoto);
-  //   console.log("Mix: ", mixUpload);
 
   return (
     <>
@@ -233,7 +245,9 @@ export default function GuestMix() {
                           htmlFor="cover-photo-upload"
                           className="relative cursor-pointer rounded-md bg-white font-semibold text-black focus-within:outline-none focus-within:ring-2 focus-within:ring-red-600 focus-within:ring-offset-2 hover:text-red-600"
                         >
-                          <span className="mx-2">Upload an image</span>
+                          <span className="mx-2 text-center justify-center">
+                            Upload an image
+                          </span>
                           <input
                             id="cover-photo-upload"
                             name="cover-photo-upload"
@@ -295,20 +309,27 @@ export default function GuestMix() {
             </div>
 
             <div className="mt-6 flex items-center justify-center gap-x-6">
-              <button
-                type="button"
-                className="text-sm font-semibold leading-6 text-gray-100"
-                onClick={handleCancel}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-black shadow-sm hover:text-red-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                onClick={handleSubmission}
-              >
-                Submit
-              </button>
+              {isLoading ? (
+                <p className="text-l">UPLOADING BANGER...</p>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="text-sm font-semibold leading-6 text-gray-100"
+                    onClick={handleCancel}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-black shadow-sm hover:text-red-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 relative"
+                    onClick={handleSubmission}
+                    disabled={isLoading} // Disable submit button when loading
+                  >
+                    Submit
+                  </button>
+                </>
+              )}
             </div>
           </form>
         </div>
