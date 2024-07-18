@@ -184,7 +184,7 @@ export default function ProductDetails({ product }) {
                     <select
                       value={selectedColor}
                       onChange={(e) => setSelectedColor(e.target.value)}
-                      className="px-2 py-2 bordertext-base font-medium text-black  border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                      className="pr-8 py-2 bordertext-base font-medium text-black  border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                     >
                       <option value="">Select Color</option>
                       {getColorOptions().map((colorOption) => (
@@ -209,7 +209,7 @@ export default function ProductDetails({ product }) {
                     <select
                       value={selectedSize}
                       onChange={(e) => setSelectedSize(e.target.value)}
-                      className="px-2 py-2 bordertext-base font-medium text-black  border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                      className="pr-10 py-2 bordertext-base font-medium text-black  border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                     >
                       <option value="">Select Size</option>
                       {getSizeOptions().map((sizeOption) => (

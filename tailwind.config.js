@@ -21,5 +21,6 @@ module.exports = {
     plugin(function ({ addUtilities, addComponents, e, config }) {
       // Add your custom styles here
     }),
+    require("@tailwindcss/forms"),
   ],
 };
