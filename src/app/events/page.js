@@ -9,6 +9,7 @@ import { db } from "../../../firebase/firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import EventTile from "../../../components/EventTile";
+import NoEventTile from "../../../components/NoEventTile";
 
 export default function Events() {
   const [events, setEvents] = useState([]);
@@ -53,15 +54,19 @@ export default function Events() {
           RAGESTATE EVENTS
         </h2> */}
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex justify-center">
-       
           <div
             className={`transition-opacity pt-12 ${
               isLoading ? "opacity-0" : "opacity-100 duration-1000"
             } flex flex-wrap`}
           >
-            {events.map((event) => (
-              <EventTile key={event.id} event={event} />
-            ))}
+            {/* Conditionally render events or "No Events" message */}
+            {isLoading ? (
+              <p className="text-center text-gray-300">Loading Events...</p>
+            ) : events.length === 0 ? (
+              <NoEventTile />
+            ) : (
+              events.map((event) => <EventTile key={event.id} event={event} />)
+            )}
           </div>
           <EventStyling2 />
         </div>
