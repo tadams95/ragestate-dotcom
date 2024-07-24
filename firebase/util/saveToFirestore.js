@@ -1,4 +1,12 @@
-import { doc, getFirestore, setDoc } from "firebase/firestore";
+import {
+  doc,
+  getFirestore,
+  setDoc,
+  getDoc,
+  updateDoc,
+  collection,
+  addDoc,
+} from "firebase/firestore";
 
 export default async function SaveToFirestore(
   userEmail,
@@ -41,6 +49,36 @@ export default async function SaveToFirestore(
     };
 
     await setDoc(purchaseDocumentRef, purchaseData);
+
+    // Iterate through each cart item
+    for (const item of cartItems) {
+      // Find the event ID for the current item
+      const eventId = item.eventDetails ? item.productId : null;
+
+      // Proceed only if the event ID is valid
+      if (eventId) {
+        // Get the current quantity of the event
+        const eventDocRef = doc(firestore, "events", eventId);
+        const eventDocSnap = await getDoc(eventDocRef);
+        const currentQuantity = eventDocSnap.data().quantity;
+
+        // Update the quantity by decrementing
+        await updateDoc(eventDocRef, { quantity: currentQuantity - 1 });
+
+        // Create Firestore document for the user's ticket
+        const userData = {
+          active: true,
+          email: userEmail,
+          firebaseId: firebaseId,
+          owner: userName,
+        };
+
+        const eventRef = doc(firestore, "events", eventId);
+        const eventRagersRef = collection(eventRef, "ragers");
+
+        await addDoc(eventRagersRef, userData);
+      }
+    }
     console.log("Purchase saved to Firestore!");
   } catch (error) {
     console.error("Error saving purchase to Firestore:", error);
