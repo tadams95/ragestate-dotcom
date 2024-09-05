@@ -14,6 +14,12 @@ const nextConfig = {
         port: "",
         pathname: "/**", // Match all paths under the hostname
       },
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+        port: "",
+        pathname: "/**", // Match all paths under the hostname
+      },
     ],
   },
 };
