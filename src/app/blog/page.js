@@ -4,26 +4,7 @@ import Link from "next/link";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import BlogStyling from "../components/styling/BlogStyling";
-
-const posts = [
-  {
-    id: 1,
-    title: "RAGESTATE FOREVER",
-    href: "#",
-    description: "RAGESTATE FOREVER",
-    imageUrl:
-      "https://images.unsplash.com/photo-1496128858413-b36217c2ce36?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=3603&q=80",
-    date: "Sept 4, 2024",
-    datetime: "2024-09-04",
-    author: {
-      name: "Tyrelle Adams",
-      imageUrl:
-        "https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
-    },
-  },
-
-  // More posts...
-];
+import { posts } from "../../../blog-posts/blogPosts";
 
 export default function Blog() {
   const handleLinkClick = (post) => {
@@ -56,14 +37,14 @@ export default function Blog() {
                 key={post.id}
                 onClick={() => handleLinkClick(post)}
               >
-                <article className="relative isolate flex flex-col justify-end overflow-hidden rounded-2xl bg-gray-900 px-8 pb-8 pt-80 sm:pt-48 lg:pt-80">
+                <article className="relative isolate flex flex-col justify-end overflow-hidden rounded-2xl px-8 pb-8 pt-80 sm:pt-48 lg:pt-80">
                   <img
                     src={post.imageUrl}
                     alt=""
-                    className="absolute inset-0 -z-10 h-full w-full object-cover"
+                    className="absolute inset-0 -z-10 h-full w-full object-contain"
                   />
-                  <div className="absolute inset-0 -z-10 bg-gradient-to-t from-gray-900 via-gray-900/40" />
-                  <div className="absolute inset-0 -z-10 rounded-2xl ring-1 ring-inset ring-gray-900/10" />
+                  <div className="absolute inset-0 -z-10 bg-gradient-to-t from-gray-900 via-red-900/10" />
+                  <div className="absolute inset-0 -z-10 rounded-2xl ring-1 ring-inset ring-red-900/10" />
 
                   <div className="flex flex-wrap items-center gap-y-1 overflow-hidden text-sm leading-6 text-gray-300">
                     <time dateTime={post.datetime} className="mr-8">
@@ -80,7 +61,7 @@ export default function Blog() {
                         <img
                           src={post.author.imageUrl}
                           alt=""
-                          className="h-6 w-6 flex-none rounded-full bg-white/10"
+                          className="h-6 w-6 flex-none rounded-md bg-white/10"
                         />
                         {post.author.name}
                       </div>

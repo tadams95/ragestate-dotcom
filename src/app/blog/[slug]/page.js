@@ -21,44 +21,39 @@ export default function BlogPost() {
   console.log("Selected Blog: ", selectedBlog);
   return (
     <>
-      <div className="bg-black">
+      <div className="bg-black px-6 py-32 lg:px-8">
         <Header />
-      </div>
-      <div>
-        <BlogStyling />
+        <div className="mx-auto max-w-3xl text-base leading-7 text-gray-200 isolate">
+          <BlogStyling />
+          <p className="text-base font-semibold leading-7 text-red-600">
+            RAGESTATE BLOG
+          </p>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-gray-100 sm:text-4xl">
+            {selectedBlog ? selectedBlog.title : "Loading..."}
+          </h1>
+          <h2 className="mt-2 text-lg leading-8 text-gray-300">
+            {selectedBlog ? selectedBlog.author.name : "Loading..."}
+            {" | "}
+            {selectedBlog ? selectedBlog.date : "Loading..."}
+          </h2>
 
-        <div className="px-4 py-20 lg:px-8">
-          <div className="max-w-7xl mx-auto justify-center">
-            {selectedBlog ? (
-              <>
-                <h1 className="mt-8 text-3xl font-bold tracking-tight text-gray-100 sm:text-4xl text-center">
-                  {selectedBlog.title}
-                </h1>
-                <p className="mt-2 text-lg leading-8 text-gray-300 text-center">
-                  {selectedBlog.author.name}
-                </p>
-                <p className="mt-4 text-lg leading-8 text-gray-300 text-center">
-                  {selectedBlog.description}
-                </p>
-                <div className="mt-8 flex justify-center">
-                  <Image
-                    src={selectedBlog.imageUrl}
-                    alt={selectedBlog.title}
-                    width={450}
-                    height={450}
-                    objectFit="cover"
-                    className="rounded-lg"
-                    priority
-                  />
-                </div>
-              </>
-            ) : (
-              <p className="text-center text-gray-300">Loading...</p>
-            )}
+          <div className="mt-10 max-w-2xl">
+            <p>{selectedBlog ? selectedBlog.p1 : "Loading..."}</p>
+
+            <p className="mt-8">
+              {selectedBlog ? selectedBlog.p2 : "Loading..."}
+            </p>
+
+            <p className="mt-6">
+              {selectedBlog ? selectedBlog.p3 : "Loading..."}
+            </p>
           </div>
+          <figure className="mt-16 flex justify-center items-center">
+            <Image src="/assets/RSLogoW.png" alt="" width={200} height={200} />
+          </figure>
         </div>
-        <Footer />
       </div>
+      <Footer />
     </>
   );
 }
