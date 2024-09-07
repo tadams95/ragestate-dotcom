@@ -30,20 +30,13 @@ export default function ProductDetails({ product }) {
   const [selectedSize, setSelectedSize] = useState("");
   const [productPrice, setProductPrice] = useState(0);
 
-  const priceNumber = parseFloat(product.variants[0].price.amount);
-  const formattedPrice = priceNumber.toFixed(2);
-
-  // Update productPrice when formattedPrice changes
-  useEffect(() => {
-    setProductPrice(formattedPrice); // Update productPrice with the formatted price
-  }, [formattedPrice]);
-
+  const price = parseFloat(product?.variants[0]?.price?.amount).toFixed(2);
   // Ensure product is defined before accessing its properties
   if (!product) {
     return <div>Loading...</div>; // or handle differently while product is loading
   }
 
-  // console.log("Product: ", product.description);
+  console.log("Product: ", product?.variants[0]?.price?.amount);
 
   // Destructure necessary fields from product
   const {
@@ -147,9 +140,7 @@ export default function ProductDetails({ product }) {
                 <h1 className="text-xl font-medium text-gray-100">
                   {product.title}
                 </h1>
-                <p className="text-xl font-medium text-gray-100">
-                  ${formattedPrice}
-                </p>
+                <p className="text-xl font-medium text-gray-100">${price}</p>
               </div>
             </div>
 

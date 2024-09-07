@@ -7,23 +7,27 @@ import ProductDetails from "../../../../components/ProductDetail";
 
 export default function ProductDetail() {
   const [loading, setLoading] = useState(true);
-
-  // Retrieve product from localStorage
-  let selectedProduct = null;
-
-  if (typeof window !== "undefined") {
-    selectedProduct = JSON.parse(localStorage.getItem("selectedProduct"));
-  }
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const product = JSON.parse(localStorage.getItem("selectedProduct"));
+        setSelectedProduct(product);
+      } catch (error) {
+        console.error(
+          "Failed to parse selected product from localStorage:",
+          error
+        );
+      }
+    }
+
     const timer = setTimeout(() => {
-      setLoading(false); // Simulate loading completion after 2000ms (adjust as needed)
+      setLoading(false); // Simulate loading completion after 100ms (adjust as needed)
     }, 100); // Adjust the timeout duration as per your requirement
 
     return () => clearTimeout(timer); // Clean up timeout on component unmount
   }, []);
-
- 
 
   return (
     <>

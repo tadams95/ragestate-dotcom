@@ -14,10 +14,16 @@ export default function ProductTile({ product }) {
   };
 
   const handleLinkClick = () => {
-    // Save product to localStorage or sessionStorage
-    localStorage.setItem("selectedProduct", JSON.stringify(product));
+    try {
+      if (typeof window !== "undefined" && window.localStorage) {
+        localStorage.setItem("selectedProduct", JSON.stringify(product));
+      } else {
+        console.warn("localStorage is not available.");
+      }
+    } catch (error) {
+      console.error("Failed to save product to localStorage:", error);
+    }
   };
-
   return (
     <Link
       href={`/shop/${formatSlug(product.title)}`}
