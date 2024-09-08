@@ -7,7 +7,7 @@ import Header from "../components/Header";
 
 import { db } from "../../../firebase/firebase";
 import { collection, getDocs } from "firebase/firestore";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import EventTile from "../../../components/EventTile";
 import NoEventTile from "../../../components/NoEventTile";
 
@@ -15,33 +15,40 @@ export default function Events() {
   const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchEventData = async () => {
-      try {
-        const eventCollectionRef = collection(db, "events");
-        const eventSnapshot = await getDocs(eventCollectionRef);
+  const fetchEventData = useCallback(async () => {
+    try {
+      const eventCollectionRef = collection(db, "events");
+      const eventSnapshot = await getDocs(eventCollectionRef);
 
-        const currentDate = new Date();
+      const currentDate = new Date().getTime();
 
-        // Filter out past events
-        const eventData = eventSnapshot.docs
-          .map((doc) => doc.data())
-          .filter((event) => {
-            const eventDateTime = event.dateTime.toDate();
-            return eventDateTime >= currentDate;
-          });
+      // Filter out past events
+      const eventData = eventSnapshot.docs
+        .map((doc) => doc.data())
+        .filter((event) => {
+          const eventDateTime = event.dateTime.toDate().getTime();
+          return eventDateTime >= currentDate;
+        });
 
-        setEvents(eventData);
-        console.log("Event Data: ", eventData);
-      } catch (error) {
-        console.error("Error fetching event data:", error);
-      } finally {
-        setIsLoading(false); // Set isLoading to false regardless of success or error
-      }
-    };
-
-    fetchEventData();
+      setEvents(eventData);
+      console.log("Event Data: ", eventData);
+    } catch (error) {
+      console.error("Error fetching event data:", error);
+    } finally {
+      setIsLoading(false); // Set isLoading to false regardless of success or error
+    }
   }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetchEventData().finally(() => {
+      if (isMounted) setIsLoading(false);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchEventData]);
 
   return (
     <>
