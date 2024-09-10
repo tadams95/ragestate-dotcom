@@ -5,6 +5,8 @@ import { useState, useEffect } from "react";
 import Header from "@/app/components/Header";
 import ProductDetails from "../../../../components/ProductDetail";
 
+//work to incorporte getServerSideProps for direct URL navigation
+
 export default function ProductDetail() {
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState(null);
