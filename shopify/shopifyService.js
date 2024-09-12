@@ -5,6 +5,15 @@ const client = Client.buildClient({
   storefrontAccessToken: "e4803750ab24a8c8b98cc614e0f34d98",
 });
 
+// Function to format slug
+const formatSlug = (title) => {
+  return title
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^\w\-]+/g, "")
+    .replace(/\-\-+/g, "-");
+};
+
 export async function fetchShopifyProducts() {
   try {
     const products = await client.product.fetchAll();
@@ -15,17 +24,25 @@ export async function fetchShopifyProducts() {
   }
 }
 
-export async function fetchProduct() {
+export async function fetchShopifyProductBySlug(slug) {
   try {
-    // Fetch a single product by ID
-    const productId = "gid://shopify/Product/7857989384";
-
-    client.product.fetch(productId).then((product) => {
-      // Do something with the product
-      console.log(product);
-    });
+    const products = await client.product.fetchAll();
+    const product = products.find(
+      (product) => formatSlug(product.title) === slug
+    );
+    return product || null;
   } catch (error) {
-    console.error("Error fetching product:", error);
+    console.error("Error fetching product by slug:", error);
+    throw error;
+  }
+}
+
+export async function fetchAllProductSlugs() {
+  try {
+    const products = await client.product.fetchAll();
+    return products.map((product) => formatSlug(product.title));
+  } catch (error) {
+    console.error("Error fetching all product slugs:", error);
     throw error;
   }
 }

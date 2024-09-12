@@ -36,7 +36,7 @@ export default function ProductDetails({ product }) {
     return <div>Loading...</div>; // or handle differently while product is loading
   }
 
-  console.log("Product: ", product?.variants[0]?.price?.amount);
+  // console.log("Product: ", product?.variants[0]?.price?.amount);
 
   // Destructure necessary fields from product
   const {

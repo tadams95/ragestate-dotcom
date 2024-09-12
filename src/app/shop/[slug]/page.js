@@ -1,46 +1,67 @@
-"use client";
+import {
+  fetchShopifyProductBySlug,
+  fetchAllProductSlugs,
+} from "../../../../shopify/shopifyService";
+import ProductDetailClient from "./ProductDetailClient";
+// Function to format slug
+const formatSlug = (title) => {
+  return title
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^\w\-]+/g, "")
+    .replace(/\-\-+/g, "-");
+};
 
-import { useState, useEffect } from "react";
+export async function generateStaticParams() {
+  console.log("generateStaticParams: Start");
 
-import Header from "@/app/components/Header";
-import ProductDetails from "../../../../components/ProductDetail";
+  try {
+    const slugs = await fetchAllProductSlugs();
+    console.log("Product Slugs:", slugs);
 
-//work to incorporte getServerSideProps for direct URL navigation
+    return slugs.map((slug) => ({
+      slug,
+    }));
+  } catch (error) {
+    console.error("Error in generateStaticParams:", error);
+    throw error;
+  } finally {
+    console.log("generateStaticParams: End");
+  }
+}
 
-export default function ProductDetail() {
-  const [loading, setLoading] = useState(true);
-  const [selectedProduct, setSelectedProduct] = useState(null);
+export async function generateMetadata({ params }) {
+  const { slug } = params;
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const product = JSON.parse(localStorage.getItem("selectedProduct"));
-        setSelectedProduct(product);
-      } catch (error) {
-        console.error(
-          "Failed to parse selected product from localStorage:",
-          error
-        );
-      }
+  console.log("generateMetadata: Start", slug);
+
+  try {
+    const product = await fetchShopifyProductBySlug(slug);
+
+    if (!product) {
+      return {
+        notFound: true,
+      };
     }
 
-    const timer = setTimeout(() => {
-      setLoading(false); // Simulate loading completion after 100ms (adjust as needed)
-    }, 100); // Adjust the timeout duration as per your requirement
+    console.log("Product Data:", product);
 
-    return () => clearTimeout(timer); // Clean up timeout on component unmount
-  }, []);
+    return {
+      title: product.title,
+      description: product.description,
+      props: {
+        product,
+      },
+    };
+  } catch (error) {
+    console.error("Error in generateMetadata:", error);
+    throw error;
+  } finally {
+    console.log("generateMetadata: End");
+  }
+}
 
-  return (
-    <>
-      <Header />
-      <div
-        className={`transition-opacity ${
-          loading ? "opacity-0" : "opacity-100 duration-1000"
-        } bg-black px-4 py-20 lg:px-8`}
-      >
-        <ProductDetails product={selectedProduct} />
-      </div>
-    </>
-  );
+export default function ProductDetailPage({ product }) {
+  // console.log("Initial Product Data:", product);
+  return <ProductDetailClient product={product} />;
 }
