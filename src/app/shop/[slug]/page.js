@@ -5,11 +5,11 @@ import {
 import ProductDetailClient from "./ProductDetailClient";
 
 export async function generateStaticParams() {
-  console.log("generateStaticParams: Start");
+  // console.log("generateStaticParams: Start");
 
   try {
     const slugs = await fetchAllProductSlugs();
-    console.log("Product Slugs:", slugs);
+    // console.log("Product Slugs:", slugs);
 
     return slugs.map((slug) => ({
       slug,
@@ -18,14 +18,14 @@ export async function generateStaticParams() {
     console.error("Error in generateStaticParams:", error);
     throw error;
   } finally {
-    console.log("generateStaticParams: End");
+    // console.log("generateStaticParams: End");
   }
 }
 
 export async function generateMetadata({ params }) {
   const { slug } = params;
 
-  console.log("generateMetadata: Start", slug);
+  // console.log("generateMetadata: Start", slug);
 
   try {
     const product = await fetchShopifyProductBySlug(slug);
@@ -36,7 +36,7 @@ export async function generateMetadata({ params }) {
       };
     }
 
-    console.log("Product Data:", product);
+    // console.log("Product Data:", product);
 
     return {
       title: product.title,
@@ -54,7 +54,7 @@ export async function generateMetadata({ params }) {
 export default async function ProductDetailPage({ params }) {
   const { slug } = params;
 
-  console.log("ProductDetailPage: Start", slug);
+  // console.log("ProductDetailPage: Start", slug);
 
   try {
     const product = await fetchShopifyProductBySlug(slug);
@@ -65,7 +65,7 @@ export default async function ProductDetailPage({ params }) {
       };
     }
 
-    console.log("Product Data in ProductDetailPage:", product);
+    // console.log("Product Data in ProductDetailPage:", product);
 
     // Convert product to a plain object
     const plainProduct = JSON.parse(JSON.stringify(product));
@@ -75,6 +75,6 @@ export default async function ProductDetailPage({ params }) {
     console.error("Error in ProductDetailPage:", error);
     throw error;
   } finally {
-    console.log("ProductDetailPage: End");
+    // console.log("ProductDetailPage: End");
   }
 }
