@@ -3,14 +3,6 @@ import {
   fetchAllProductSlugs,
 } from "../../../../shopify/shopifyService";
 import ProductDetailClient from "./ProductDetailClient";
-// Function to format slug
-const formatSlug = (title) => {
-  return title
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^\w\-]+/g, "")
-    .replace(/\-\-+/g, "-");
-};
 
 export async function generateStaticParams() {
   console.log("generateStaticParams: Start");
@@ -49,9 +41,6 @@ export async function generateMetadata({ params }) {
     return {
       title: product.title,
       description: product.description,
-      props: {
-        product,
-      },
     };
   } catch (error) {
     console.error("Error in generateMetadata:", error);
@@ -61,7 +50,31 @@ export async function generateMetadata({ params }) {
   }
 }
 
-export default function ProductDetailPage({ product }) {
-  // console.log("Initial Product Data:", product);
-  return <ProductDetailClient product={product} />;
+
+export default async function ProductDetailPage({ params }) {
+  const { slug } = params;
+
+  console.log("ProductDetailPage: Start", slug);
+
+  try {
+    const product = await fetchShopifyProductBySlug(slug);
+
+    if (!product) {
+      return {
+        notFound: true,
+      };
+    }
+
+    console.log("Product Data in ProductDetailPage:", product);
+
+    // Convert product to a plain object
+    const plainProduct = JSON.parse(JSON.stringify(product));
+
+    return <ProductDetailClient product={plainProduct} />;
+  } catch (error) {
+    console.error("Error in ProductDetailPage:", error);
+    throw error;
+  } finally {
+    console.log("ProductDetailPage: End");
+  }
 }

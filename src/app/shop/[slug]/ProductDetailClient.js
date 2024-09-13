@@ -8,6 +8,8 @@ export default function ProductDetailClient({ product: initialProduct }) {
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState(initialProduct);
 
+  console.log("askdljfalksdfj:", initialProduct);
+
   useEffect(() => {
     if (!initialProduct && typeof window !== "undefined") {
       try {
