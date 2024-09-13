@@ -28,7 +28,7 @@ export default function ProductDetails({ product }) {
   const dispatch = useDispatch();
   const [selectedColor, setSelectedColor] = useState("");
   const [selectedSize, setSelectedSize] = useState("");
-  const [productPrice, setProductPrice] = useState(0);
+  // const [productPrice, setProductPrice] = useState(0);
 
   const price = parseFloat(product?.variants[0]?.price?.amount).toFixed(2);
   // Ensure product is defined before accessing its properties
@@ -36,7 +36,7 @@ export default function ProductDetails({ product }) {
     return <div>Loading...</div>; // or handle differently while product is loading
   }
 
-  // console.log("Product: ", product?.variants[0]?.price?.amount);
+  // console.log("Price Ya Heard: ", product?.variants[0]?.price?.amount);
 
   // Destructure necessary fields from product
   const {
@@ -55,7 +55,7 @@ export default function ProductDetails({ product }) {
         productId: id,
         productImageSrc: images && images.length > 0 ? images[0].src : null,
         title,
-        price: productPrice,
+        price: price, 
         selectedSize,
         selectedColor,
         isDigital: false,
