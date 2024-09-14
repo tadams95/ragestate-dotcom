@@ -44,7 +44,7 @@ export default function CheckoutForm({ addressDetails }) {
 
   // Extract the substring before the second underscore
   const paymentIntentPrefix = paymentIntent.substring(0, secondUnderscoreIndex);
-  console.log("123456: ", paymentIntentPrefix);
+  // console.log("123456: ", paymentIntentPrefix);
 
   useEffect(() => {
     if (!stripe) {

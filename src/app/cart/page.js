@@ -96,21 +96,18 @@ export default function Cart() {
 
     const fetchClientSecret = async () => {
       try {
-        const response = await fetch(
-          "https://us-central1-ragestate-app.cloudfunctions.net/stripePayment/web-payment",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              amount: stripeTotal, // Replace with your actual amount
-              customerEmail: userEmail, // Use user's email from state
-              name: userName, // Use user's name from state
-              firebaseId: userId, // Use user's Firebase ID from state
-            }),
-          }
-        );
+        const response = await fetch(`${API_URL}/web-payment`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            amount: stripeTotal, // Replace with your actual amount
+            customerEmail: userEmail, // Use user's email from state
+            name: userName, // Use user's name from state
+            firebaseId: userId, // Use user's Firebase ID from state
+          }),
+        });
 
         if (!response.ok) {
           throw new Error("Failed to fetch payment intent");
