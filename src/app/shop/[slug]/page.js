@@ -46,7 +46,7 @@ export async function generateMetadata({ params }) {
     console.error("Error in generateMetadata:", error);
     throw error;
   } finally {
-    console.log("generateMetadata: End");
+    // console.log("generateMetadata: End");
   }
 }
 

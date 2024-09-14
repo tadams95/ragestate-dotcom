@@ -19,7 +19,7 @@ const AddressForm = ({ onAddressChange }) => {
   };
   return (
     <form>
-      <h3 className="mt-4">Shipping</h3>
+      <h3 className="mt-4">Shipping Address</h3>
       <AddressElement
         className="mt-4"
         options={{
