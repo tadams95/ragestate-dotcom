@@ -34,21 +34,17 @@ export default function Cart() {
   const [totalPrice, setTotalPrice] = useState(0);
   const [stripePromise, setStripePromise] = useState(null);
   const [clientSecret, setClientSecret] = useState("");
-
-  const [userDetails, setUserDetails] = useState({
-    name: "",
-    email: "",
-    id: "",
-    address: null,
-    idToken: null,
-    refreshToken: null,
-  });
+  const [userName, setUserName] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [userId, setUserId] = useState("");
   const [addressDetails, setAddressDetails] = useState(null);
   const [idToken, setIdToken] = useState(null);
   const [refreshToken, setRefreshToken] = useState(null);
 
-  const API_URL = "https://us-central1-ragestate-app.cloudfunctions.net/stripePayment";
+  const API_URL =
+    "https://us-central1-ragestate-app.cloudfunctions.net/stripePayment";
 
+  // console.log("Cart Items: ", cartItems);
 
   const handleRemoveFromCart = (productId, selectedColor, selectedSize) => {
     dispatch(removeFromCart({ productId, selectedColor, selectedSize }));
@@ -59,40 +55,30 @@ export default function Cart() {
   };
 
   useEffect(() => {
+    // Calculate subtotal price
+    const newCartSubtotal = cartItems.reduce((accumulator, item) => {
+      const itemPrice = parseFloat(item.price);
+      return accumulator + itemPrice;
+    }, 0);
+
+    setCartSubtotal(newCartSubtotal);
+
+    // Calculate tax and total price
+    const taxRate = 0.075;
+    const taxTotal = newCartSubtotal * taxRate;
+
+    const newTotalPrice = newCartSubtotal + taxTotal + shipping;
+
+    setTotalPrice(newTotalPrice);
+    dispatch(setCheckoutPrice(newTotalPrice * 100)); // Convert to cents for Stripe
+  }, [cartItems, dispatch]);
+
+  useEffect(() => {
     const publishableKey =
       "pk_live_51NFhuOHnXmOBmfaDu16tJEuppfYKPUivMapB9XLXaBpiOLqiPRz2uoPAiifxqiLT49dyPCHOSKs74wjBspzJ8zo600yGYluqUe";
 
     setStripePromise(loadStripe(publishableKey));
   }, []);
-
-  const TAX_RATE = 0.075;
-  const SHIPPING_COST = 9.99;
-
-  useEffect(() => {
-    try {
-      // Calculate subtotal price
-      const newCartSubtotal = cartItems.reduce((accumulator, item) => {
-        const itemPrice = parseFloat(item.price);
-        return accumulator + itemPrice;
-      }, 0);
-
-      // Calculate tax and total price
-      const taxTotal = newCartSubtotal * TAX_RATE;
-      const shipping = cartItems.some((item) => !item.isDigital)
-        ? SHIPPING_COST
-        : 0.0;
-      const newTotalPrice = newCartSubtotal + taxTotal + shipping;
-
-      // Update state only if values have changed
-      if (newCartSubtotal !== cartSubtotal) setCartSubtotal(newCartSubtotal);
-      if (newTotalPrice !== totalPrice) setTotalPrice(newTotalPrice);
-
-      // Dispatch checkout price in cents for Stripe
-      dispatch(setCheckoutPrice(newTotalPrice * 100));
-    } catch (error) {
-      console.error("Error calculating cart totals:", error);
-    }
-  }, [cartItems, cartSubtotal, totalPrice, dispatch]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -101,38 +87,37 @@ export default function Cart() {
       const storedUserName = localStorage.getItem("name");
       const storedEmail = localStorage.getItem("email");
       const storedUserId = localStorage.getItem("userId");
-      setUserDetails({
-        idToken: storedIdToken,
-        refreshToken: storedRefreshToken,
-        name: storedUserName,
-        email: storedEmail,
-        id: storedUserId,
-        address: null,
-      });
+      setIdToken(storedIdToken);
+      setRefreshToken(storedRefreshToken);
+      setUserName(storedUserName);
+      setUserEmail(storedEmail);
+      setUserId(storedUserId);
     }
-  }, []);
 
-  useEffect(() => {
     const fetchClientSecret = async () => {
       try {
-        const response = await fetch(`${API_URL}/web-payment`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            amount: totalPrice * 100, // Convert to cents for Stripe
-            customerEmail: userDetails.email,
-            name: userDetails.name,
-            firebaseId: userDetails.id,
-          }),
-        });
+        const response = await fetch(
+          "https://us-central1-ragestate-app.cloudfunctions.net/stripePayment/web-payment",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              amount: stripeTotal, // Replace with your actual amount
+              customerEmail: userEmail, // Use user's email from state
+              name: userName, // Use user's name from state
+              firebaseId: userId, // Use user's Firebase ID from state
+            }),
+          }
+        );
 
         if (!response.ok) {
           throw new Error("Failed to fetch payment intent");
         }
 
         const { client_secret } = await response.json();
+
         setClientSecret(client_secret);
         localStorage.setItem("clientSecret", client_secret);
       } catch (error) {
@@ -140,20 +125,31 @@ export default function Cart() {
       }
     };
 
-    if (userDetails.name && userDetails.email && userDetails.id && totalPrice > 0) {
-      fetchClientSecret();
-    }
-  }, [userDetails, totalPrice])
+    fetchClientSecret();
+  }, [userName, userEmail, userId]);
 
-  const taxTotal = (cartSubtotal * TAX_RATE).toFixed(2);
-  const shipping = cartItems.some((item) => !item.isDigital)
-    ? SHIPPING_COST
-    : 0.0;
+  const taxRate = 0.075;
+  const taxTotal = (cartSubtotal * taxRate).toFixed(2);
+
+  // Initialize shipping cost
+  let shipping = 0.0;
+
+  // Check if there are any physical (non-digital) items in the cart
+  const hasPhysicalItems = cartItems.some((item) => !item.isDigital);
+
+  // Adjust shipping based on the presence of physical items
+  if (hasPhysicalItems) {
+    shipping = 9.99;
+  } else {
+    shipping = 0.0; // No shipping cost for digital items
+  }
+
   const total = (
     parseFloat(cartSubtotal) +
     parseFloat(taxTotal) +
     shipping
   ).toFixed(2);
+
   const stripeTotal = total * 100;
 
   const appearance = {
