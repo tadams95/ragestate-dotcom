@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
+import { useSelector, useDispatch } from "react-redux";
+
 import {
   TruckIcon,
   XMarkIcon,
   DevicePhoneMobileIcon,
 } from "@heroicons/react/20/solid";
-import { useSelector, useDispatch } from "react-redux";
 
 import {
   selectCartItems,
@@ -14,9 +17,6 @@ import {
   setCheckoutPrice,
   setPaymentIntent,
 } from "../../../lib/features/todos/cartSlice";
-
-import { loadStripe } from "@stripe/stripe-js";
-import { Elements } from "@stripe/react-stripe-js";
 
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -30,16 +30,18 @@ export default function Cart() {
   const dispatch = useDispatch();
   const cartItems = useSelector(selectCartItems);
 
-  const [cartSubtotal, setCartSubtotal] = useState(0);
-  const [totalPrice, setTotalPrice] = useState(0);
-  const [stripePromise, setStripePromise] = useState(null);
-  const [clientSecret, setClientSecret] = useState("");
-  const [userName, setUserName] = useState("");
-  const [userEmail, setUserEmail] = useState("");
-  const [userId, setUserId] = useState("");
-  const [addressDetails, setAddressDetails] = useState(null);
-  const [idToken, setIdToken] = useState(null);
-  const [refreshToken, setRefreshToken] = useState(null);
+  const [state, setState] = useState({
+    cartSubtotal: 0,
+    totalPrice: 0,
+    stripePromise: null,
+    clientSecret: "",
+    userName: "",
+    userEmail: "",
+    userId: "",
+    addressDetails: null,
+    idToken: null,
+    refreshToken: null,
+  });
 
   const API_URL =
     "https://us-central1-ragestate-app.cloudfunctions.net/stripePayment";
@@ -55,45 +57,53 @@ export default function Cart() {
   };
 
   useEffect(() => {
-    // Calculate subtotal price
     const newCartSubtotal = cartItems.reduce((accumulator, item) => {
-      const itemPrice = parseFloat(item.price);
-      return accumulator + itemPrice;
+      return accumulator + parseFloat(item.price);
     }, 0);
 
-    setCartSubtotal(newCartSubtotal);
-
-    // Calculate tax and total price
     const taxRate = 0.075;
     const taxTotal = newCartSubtotal * taxRate;
-
+    const shipping = cartItems.some((item) => !item.isDigital) ? 9.99 : 0.0;
     const newTotalPrice = newCartSubtotal + taxTotal + shipping;
 
-    setTotalPrice(newTotalPrice);
+    setState((prevState) => ({
+      ...prevState,
+      cartSubtotal: newCartSubtotal,
+      totalPrice: newTotalPrice,
+    }));
+
     dispatch(setCheckoutPrice(newTotalPrice * 100)); // Convert to cents for Stripe
   }, [cartItems, dispatch]);
 
   useEffect(() => {
     const publishableKey =
       "pk_live_51NFhuOHnXmOBmfaDu16tJEuppfYKPUivMapB9XLXaBpiOLqiPRz2uoPAiifxqiLT49dyPCHOSKs74wjBspzJ8zo600yGYluqUe";
-
-    setStripePromise(loadStripe(publishableKey));
+    setState((prevState) => ({
+      ...prevState,
+      stripePromise: loadStripe(publishableKey),
+    }));
   }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const storedIdToken = localStorage.getItem("idToken");
-      const storedRefreshToken = localStorage.getItem("refreshToken");
-      const storedUserName = localStorage.getItem("name");
-      const storedEmail = localStorage.getItem("email");
-      const storedUserId = localStorage.getItem("userId");
-      setIdToken(storedIdToken);
-      setRefreshToken(storedRefreshToken);
-      setUserName(storedUserName);
-      setUserEmail(storedEmail);
-      setUserId(storedUserId);
-    }
+      const idToken = localStorage.getItem("idToken");
+      const refreshToken = localStorage.getItem("refreshToken");
+      const userName = localStorage.getItem("name");
+      const userEmail = localStorage.getItem("email");
+      const userId = localStorage.getItem("userId");
 
+      setState((prevState) => ({
+        ...prevState,
+        idToken,
+        refreshToken,
+        userName,
+        userEmail,
+        userId,
+      }));
+    }
+  }, []);
+
+  useEffect(() => {
     const fetchClientSecret = async () => {
       try {
         const response = await fetch(`${API_URL}/web-payment`, {
@@ -103,9 +113,9 @@ export default function Cart() {
           },
           body: JSON.stringify({
             amount: stripeTotal, // Replace with your actual amount
-            customerEmail: userEmail, // Use user's email from state
-            name: userName, // Use user's name from state
-            firebaseId: userId, // Use user's Firebase ID from state
+            customerEmail: state.userEmail, // Use user's email from state
+            name: state.userName, // Use user's name from state
+            firebaseId: state.userId, // Use user's Firebase ID from state
           }),
         });
 
@@ -115,34 +125,28 @@ export default function Cart() {
 
         const { client_secret } = await response.json();
 
-        setClientSecret(client_secret);
+        setState((prevState) => ({
+          ...prevState,
+          clientSecret: client_secret,
+        }));
         localStorage.setItem("clientSecret", client_secret);
       } catch (error) {
         console.error("Error fetching payment intent:", error.message);
       }
     };
 
-    fetchClientSecret();
-  }, [userName, userEmail, userId]);
+    if (state.userName && state.userEmail && state.userId) {
+      fetchClientSecret();
+    }
+  }, [state.userName, state.userEmail, state.userId]);
 
   const taxRate = 0.075;
-  const taxTotal = (cartSubtotal * taxRate).toFixed(2);
+  const taxTotal = (state.cartSubtotal * taxRate).toFixed(2);
 
-  // Initialize shipping cost
-  let shipping = 0.0;
-
-  // Check if there are any physical (non-digital) items in the cart
-  const hasPhysicalItems = cartItems.some((item) => !item.isDigital);
-
-  // Adjust shipping based on the presence of physical items
-  if (hasPhysicalItems) {
-    shipping = 9.99;
-  } else {
-    shipping = 0.0; // No shipping cost for digital items
-  }
+  const shipping = cartItems.some((item) => !item.isDigital) ? 9.99 : 0.0;
 
   const total = (
-    parseFloat(cartSubtotal) +
+    parseFloat(state.cartSubtotal) +
     parseFloat(taxTotal) +
     shipping
   ).toFixed(2);
@@ -157,9 +161,11 @@ export default function Cart() {
     },
   };
   const options = {
-    clientSecret: clientSecret,
+    clientSecret: state.clientSecret,
     appearance: appearance,
   };
+
+  const hasPhysicalItems = cartItems.some((item) => !item.isDigital);
 
   return (
     <div className="bg-black isolate">
@@ -293,7 +299,7 @@ export default function Cart() {
                 <div className="flex items-center justify-between">
                   <dt className="text-sm text-gray-100">Subtotal</dt>
                   <dd className="text-sm font-medium text-gray-100">
-                    ${cartSubtotal.toFixed(2)}
+                    ${state.cartSubtotal.toFixed(2)}
                   </dd>
                 </div>
                 <div className="flex items-center justify-between border-t border-gray-200 pt-4">
@@ -324,16 +330,19 @@ export default function Cart() {
 
               <div className="mt-10">
                 {/* Conditionally render based on authentication and presence of physical items */}
-                {idToken && refreshToken && clientSecret && stripePromise ? (
+                {state.idToken &&
+                state.refreshToken &&
+                state.clientSecret &&
+                state.stripePromise ? (
                   <>
                     {/* Render Elements and CheckoutForm for authenticated users */}
-                    <Elements stripe={stripePromise} options={options}>
+                    <Elements stripe={state.stripePromise} options={options}>
                       {hasPhysicalItems && (
                         <div className="mt-4">
                           <AddressForm onAddressChange={handleAddressChange} />
                         </div>
                       )}
-                      <CheckoutForm addressDetails={addressDetails} />
+                      <CheckoutForm addressDetails={state.addressDetails} />
                     </Elements>
                   </>
                 ) : (
