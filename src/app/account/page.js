@@ -1,15 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Dialog, DialogPanel } from "@headlessui/react";
 import { useRouter } from "next/navigation";
 
-import { Bars3Icon, UserCircleIcon } from "@heroicons/react/20/solid";
+import { Bars3Icon } from "@heroicons/react/20/solid";
 
-import {
-  BellIcon,
-  XMarkIcon as XMarkIconOutline,
-} from "@heroicons/react/24/outline";
+import { XMarkIcon as XMarkIconOutline } from "@heroicons/react/24/outline";
 
 import QRCode from "qrcode.react";
 import Link from "next/link";
@@ -52,6 +49,20 @@ export default function Account() {
     router.push("/login");
   };
 
+  const profileImage = useMemo(
+    () => (
+      <Image
+        priority
+        alt="ProfilePicture"
+        src={profilePicture || "/assets/trollFace.png"}
+        className="h-8 w-8 rounded-full"
+        height={50}
+        width={50}
+      />
+    ),
+    [profilePicture]
+  );
+
   return (
     <>
       <RandomDetailStyling />
@@ -91,14 +102,7 @@ export default function Account() {
             </button> */}
             <Link href="/account" className="-m-1.5 p-1.5">
               <span className="sr-only">Your profile</span>
-              <Image
-                priority
-                alt="ProfilePicture"
-                src={profilePicture || "/assets/trollFace.png"}
-                className="h-8 w-8 rounded-full"
-                height={50}
-                width={50}
-              />
+              <div>{profileImage}</div>
             </Link>
           </div>
         </div>

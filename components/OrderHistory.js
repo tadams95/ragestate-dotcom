@@ -1,21 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { getFirestore, collection, getDocs } from "firebase/firestore";
 
 import Image from "next/image";
 
-const fetchUserPurchases = async (userId) => {
+const fetchUserPurchases = async (firestore, userId) => {
   try {
-    const firestore = getFirestore();
     const purchasesRef = collection(firestore, `customers/${userId}/purchases`);
     const querySnapshot = await getDocs(purchasesRef);
-    const userPurchases = [];
-    querySnapshot.forEach((doc) => {
-      const purchaseData = doc.data();
-      userPurchases.push(purchaseData);
-    });
-    return userPurchases;
+    return querySnapshot.docs.map((doc) => doc.data());
   } catch (error) {
     console.error("Error fetching user purchases: ", error);
     return [];
@@ -26,24 +20,26 @@ export default function OrderHistory() {
   const [userId, setUserId] = useState("");
   const [userPurchases, setUserPurchases] = useState([]);
 
+  const firestore = useMemo(() => getFirestore(), []);
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const userIdFromLocalStorage = localStorage.getItem("userId");
-      setUserId(userIdFromLocalStorage);
+      if (userIdFromLocalStorage) {
+        setUserId(userIdFromLocalStorage);
+      }
     }
   }, []);
 
   useEffect(() => {
     if (userId) {
-      fetchUserPurchases(userId)
-        .then((userPurchases) => {
-          setUserPurchases(userPurchases);
-        })
+      fetchUserPurchases(firestore, userId)
+        .then(setUserPurchases)
         .catch((error) => {
           console.error("Error: ", error);
         });
     }
-  }, [userId]);
+  }, [userId, firestore]);
 
   return (
     <div className="bg-transparent">
