@@ -1,7 +1,7 @@
 import "./globals.css";
 import { Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
-// import { SpeedInsights } from "@vercel/speed-insights/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import StoreProvider from "./StoreProvider";
 import AuthCheck from "./auth/AuthCheck";
 
@@ -13,13 +13,17 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
+  const isClient = typeof window !== "undefined";
+
   return (
     <StoreProvider>
       <AuthCheck />
       <html lang="en">
-        <body className={inter.className}>{children}</body>
-        <Analytics />
-        {/* <SpeedInsights /> */}
+        <body className={inter.className}>
+          {children}
+          <Analytics />
+          {isClient && <SpeedInsights />}
+        </body>
       </html>
     </StoreProvider>
   );
