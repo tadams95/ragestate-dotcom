@@ -13,16 +13,14 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
-  const isClient = typeof window !== "undefined";
-
   return (
     <StoreProvider>
       <AuthCheck />
       <html lang="en">
         <body className={inter.className}>
           {children}
+          <SpeedInsights />
           <Analytics />
-          {isClient && <SpeedInsights />}
         </body>
       </html>
     </StoreProvider>
