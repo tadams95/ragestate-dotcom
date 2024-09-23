@@ -37,7 +37,7 @@ export const posts = [
 
     p3: "I've realized that I have all the tools I need for a killer marketing campaign. It's just a matter of putting them together in the right order. \
       For example, I want more people to visit my website. But why? Right now, users can basically just shop, look at a dummy event, and create an account. \
-      That's not very exciting. I need to make account creation and checkout process smoother, both for users and on the backend.",
+      That's not very exciting. I feel like some animations and chat functionality between users would make the site more engaging.",
 
     p4: "One thing I want to do is drive more traffic to the products page so people can download the RAGESTATE app. \
     The app works, but I need to make it faster and them push the updated version to the app store. \
