@@ -39,6 +39,16 @@ export default function BlogPostClient({ blog }) {
         <p className="mt-8">{selectedBlog ? selectedBlog.p2 : "Loading..."}</p>
 
         <p className="mt-6">{selectedBlog ? selectedBlog.p3 : "Loading..."}</p>
+
+        {selectedBlog && selectedBlog.p4 && (
+          <p className="mt-6">{selectedBlog.p4}</p>
+        )}
+        {selectedBlog && selectedBlog.p5 && (
+          <p className="mt-6">{selectedBlog.p5}</p>
+        )}
+        {selectedBlog && selectedBlog.p6 && (
+          <p className="mt-6">{selectedBlog.p6}</p>
+        )}
       </div>
       <figure className="mt-16 flex justify-center items-center">
         <Image src="/assets/RSLogoW.png" alt="" width={200} height={200} />
