@@ -6,6 +6,8 @@ import { useDispatch } from "react-redux";
 import { addToCart } from "../lib/features/todos/cartSlice";
 
 import Footer from "@/app/components/Footer";
+import EventStyling1 from "@/app/components/styling/EventStyling1";
+import EventStyling2 from "@/app/components/styling/EventStyling2";
 
 const policies = [
   {
@@ -131,7 +133,9 @@ export default function ProductDetails({ product }) {
   };
 
   return (
-    <div className="bg-black">
+    <div className="bg-black isolate">
+    <EventStyling1 />
+    <EventStyling2 />
       <div className="pb-8 pt-6 sm:pb-12">
         <div className="mx-auto mt-8 max-w-2xl px-4 sm:px-6 lg:max-w-7xl lg:px-8">
           <div className="lg:grid lg:auto-rows-min lg:grid-cols-10 lg:gap-x-8">

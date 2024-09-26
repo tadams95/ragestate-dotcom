@@ -40,7 +40,7 @@ export default function ProductDetailClient({ product: initialProduct }) {
       <div
         className={`transition-opacity ${
           loading ? "opacity-0" : "opacity-100 duration-1000"
-        } bg-black px-4 py-20 lg:px-8`}
+        } bg-blue px-4 py-20 lg:px-8`}
       >
         <ProductDetails product={selectedProduct} />
       </div>
