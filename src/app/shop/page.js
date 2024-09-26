@@ -5,6 +5,7 @@ import { fetchShopifyProducts } from "../../../shopify/shopifyService";
 import Footer from "../components/Footer";
 import ProductTile from "../../../components/ProductTile";
 import Header from "../components/Header";
+import ShopStyling from "../components/styling/ShopStyling";
 
 export default function Shop() {
   const [productsWithHref, setProductsWithHref] = useState([]);
@@ -71,6 +72,7 @@ export default function Shop() {
       </div>
 
       <Footer />
+      <ShopStyling />
     </div>
   );
 }
