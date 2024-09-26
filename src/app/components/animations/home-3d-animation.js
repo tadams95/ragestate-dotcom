@@ -19,7 +19,7 @@ function FloatingCubes() {
       <Points ref={ref} positions={sphere} stride={3} frustumCulled={false}>
         <PointMaterial
           transparent
-          color="#ff3030"
+          color="#EF4E4E"
           size={0.005}
           sizeAttenuation={true}
           depthWrite={false}
