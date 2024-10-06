@@ -1,7 +1,7 @@
 "use client";
 
-import Header from "../components/Header";
 import React, { useState } from "react";
+import Header from "../components/Header";
 
 export default function Chat() {
   const [messages, setMessages] = useState([]);
@@ -15,10 +15,10 @@ export default function Chat() {
   };
 
   return (
-    <div className="py-24 px-24">
+    <div className="py-8 px-4 sm:py-16 sm:px-6  lg:py-24 lg:px-24">
       <Header />
-      <div className="flex">
-        <div className="w-1/4 p-6 bg-gray-900 rounded-lg shadow-lg">
+      <div className="flex flex-col lg:py-0 py-12 lg:flex-row">
+        <div className="w-full lg:w-1/4 p-6 bg-gray-900 rounded-lg shadow-lg mb-6 lg:mb-0">
           <h2 className="text-xl font-bold text-white mb-4">RAGESTATE</h2>
           <ul className="text-gray-400">
             <li className="mb-2">Profile</li>
@@ -26,7 +26,7 @@ export default function Chat() {
             <li className="mb-2">Settings</li>
           </ul>
         </div>
-        <div className="w-3/4 ml-6 chat p-6 bg-gray-800 rounded-lg shadow-lg">
+        <div className="w-full lg:w-3/4 lg:ml-6 chat p-6 bg-gray-800 rounded-lg shadow-lg">
           <h2 className="text-2xl font-bold text-white mb-4">Chat</h2>
           <div className="messages mb-4 h-64 overflow-y-scroll bg-gray-700 p-4 rounded-lg">
             {messages.map((msg, index) => (
