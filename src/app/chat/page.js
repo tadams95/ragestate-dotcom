@@ -26,11 +26,11 @@ export default function Chat() {
             <li className="mb-2">Settings</li>
           </ul>
         </div>
-        <div className="w-full lg:w-3/4 lg:ml-6 chat p-6 bg-gray-800 rounded-lg shadow-lg">
+        <div className="w-full lg:w-3/4 lg:ml-6 chat p-6 bg-gray-900 rounded-lg shadow-lg">
           <h2 className="text-2xl font-bold text-white mb-4">Chat</h2>
-          <div className="messages mb-4 h-64 overflow-y-scroll bg-gray-700 p-4 rounded-lg">
+          <div className="messages mb-4 h-64 overflow-y-scroll bg-gray-800 p-4 rounded-lg">
             {messages.map((msg, index) => (
-              <div key={index} className="text-white mb-2">
+              <div key={index} className="text-gray-300 mb-2">
                 {msg}
               </div>
             ))}
@@ -40,7 +40,7 @@ export default function Chat() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              className="flex-grow p-2 rounded-l-lg bg-gray-600 text-white"
+              className="flex-grow p-2 rounded-l-lg bg-gray-700 text-white"
               placeholder="Type your message..."
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
@@ -50,7 +50,7 @@ export default function Chat() {
             />
             <button
               onClick={handleSend}
-              className="p-2 bg-gray-900 text-white rounded-r-lg hover:bg-red-700"
+              className="p-2 bg-red-600 text-white rounded-r-lg hover:bg-red-700"
             >
               Send
             </button>
