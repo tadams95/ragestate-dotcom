@@ -13,7 +13,7 @@ export default function Home() {
           <HomeStyling1 />
           <div className="flex items-center justify-center min-h-[82vh]">
             <div className="text-center">
-              <h1 className="text-4xl font-bold tracking-tight text-gray-100 sm:text-5xl font-sans">
+              <h1 className="bg-clip-text font-bold text-transparent bg-gradient-to-r from-red-900 to-gray-100 text-4xl sm:text-5xl font-sans">
                 WELCOME TO RAGESTATE
               </h1>
             </div>
