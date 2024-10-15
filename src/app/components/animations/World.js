@@ -1,16 +1,17 @@
 "use client";
 
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useMemo } from "react";
 import { Canvas, useFrame, extend, useThree } from "@react-three/fiber";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import * as THREE from "three";
 
 extend({ OrbitControls });
 
+const texture = new THREE.TextureLoader().load("/assets/RAGESTATE.png");
+const sphere = new THREE.SphereGeometry(1.5, 32, 32);
+
 function RotatingSphere() {
   const ref = useRef();
-  const texture = new THREE.TextureLoader().load("/assets/RAGESTATE.png");
-  const sphere = new THREE.SphereGeometry(1.5, 32, 32);
 
   useFrame((state, delta) => {
     ref.current.rotation.y -= delta / 2.5;
