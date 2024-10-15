@@ -13,8 +13,7 @@ function RotatingSphere() {
   const sphere = new THREE.SphereGeometry(1.5, 32, 32);
 
   useFrame((state, delta) => {
-    ref.current.rotation.x -= delta / 10;
-    ref.current.rotation.y -= delta / 15;
+    ref.current.rotation.y -= delta / 2.5;
   });
 
   return (
