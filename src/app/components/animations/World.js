@@ -16,6 +16,8 @@ function RotatingSphere() {
     ref.current.rotation.y -= delta / 2.5;
   });
 
+  // The sphere is a group of two meshes: one with a texture and one wireframe
+
   return (
     <group ref={ref} position={[0, -0.05, 0]}>
       <mesh geometry={sphere}>
