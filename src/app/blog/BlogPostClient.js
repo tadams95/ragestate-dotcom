@@ -51,7 +51,7 @@ export default function BlogPostClient({ blog }) {
         )}
       </div>
       <figure className="mt-16 flex justify-center items-center">
-        <Image src="/assets/RSLogoW.png" alt="" width={200} height={200} />
+        <Image src="/assets/RSLogo2.png" alt="" width={200} height={200} />
       </figure>
 
       {/* Add more blog content here */}

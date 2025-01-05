@@ -15,7 +15,7 @@ export const posts = [
       We went ahead and donated the remaining inventory to a local charity. \
       If you follow us on Instagram, you'll see where the donation was made. \
       Thanks for reading and stay tuned for more updates.",
-    imageUrl: "/assets/RSLogoW.png",
+    imageUrl: "/assets/RSLogo2.png",
     date: "Sept 4, 2024",
     datetime: "2024-09-04",
     author: {
@@ -48,7 +48,7 @@ export const posts = [
     And data is pre-rendered now so users can input URLs directly into the browser and still see the content.",
     p6: "My plan for the rest of the year is to start running ads Q4 and keep them running while I improve the website and app. Stay tuned for more updates.",
 
-    imageUrl: "/assets/RSLogoW.png",
+    imageUrl: "/assets/RSLogo2.png",
     date: "Sept 22, 2024",
     datetime: "2024-09-22",
     author: {

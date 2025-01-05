@@ -72,7 +72,7 @@ export default function Account() {
             <Link href="/">
               <img
                 alt="RAGESTATE"
-                src="/assets/RSLogoW.png"
+                src="/assets/RSLogo2.png"
                 className="h-8 w-auto"
               />
             </Link>
@@ -118,7 +118,7 @@ export default function Account() {
                 <span className="sr-only">RAGESTATE</span>
                 <img
                   className="h-8 w-auto"
-                  src="/assets/RSLogoW.png"
+                  src="/assets/RSLogo2.png"
                   alt="RAGESTATE LOGO"
                 />
               </Link>
