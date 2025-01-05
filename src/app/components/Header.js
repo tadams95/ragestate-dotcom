@@ -109,7 +109,7 @@ export default function Header() {
                 <span className="sr-only">RAGESTATE</span>
                 <img
                   className="h-8 w-auto"
-                  src="https://firebasestorage.googleapis.com/v0/b/ragestate-app.appspot.com/o/RSLogo.png?alt=media&token=ca235ae9-35e5-4666-8ba2-3090a3e54b37"
+                  src="https://firebasestorage.googleapis.com/v0/b/ragestate-app.appspot.com/o/RSLogo2.png?alt=media&token=d13ebc08-9d8d-4367-99ec-ace3627132d2"
                   alt="RAGESTATE LOGO"
                 />
               </Link>
