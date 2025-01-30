@@ -10,6 +10,8 @@ export default function ProductDetailClient({ product: initialProduct }) {
 
   // console.log("askdljfalksdfj:", initialProduct);
 
+  //I should work on this more
+
   useEffect(() => {
     if (!initialProduct && typeof window !== "undefined") {
       try {
