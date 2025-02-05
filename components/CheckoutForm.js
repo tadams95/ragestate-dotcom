@@ -102,7 +102,7 @@ export default function CheckoutForm({ addressDetails }) {
         elements,
         confirmParams: {
           // Adjust this to your payment completion page or handle it within the component
-          return_url: "https://ragestate.vercel.app/account",
+          return_url: "https://www.ragestate.com/account",
         },
       });
 
