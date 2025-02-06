@@ -301,13 +301,25 @@ export default function Cart() {
                                 <span className="text-gray-200 flex items-center">
                                   <button
                                     className={`mt-2 sm:mt-0 ml-0 sm:ml-6 px-2 py-2 rounded ${
-                                      code === "COLON"
+                                      [
+                                        "COLON",
+                                        "BELLA",
+                                        "GARDNER",
+                                        "NATE",
+                                      ].includes(code) &&
+                                      localStorage.getItem("ticketClaimed") ===
+                                        "true"
                                         ? "bg-red-500 text-white"
                                         : "bg-gray-300 text-gray-900 cursor-not-allowed"
                                     }`}
                                     onClick={async () => {
                                       if (
-                                        code === "COLON" &&
+                                        [
+                                          "COLON",
+                                          "BELLA",
+                                          "GARDNER",
+                                          "NATE",
+                                        ].includes(code) &&
                                         !isClaiming &&
                                         !hasClaimed
                                       ) {
@@ -381,7 +393,12 @@ export default function Cart() {
                                       }
                                     }}
                                     disabled={
-                                      code !== "COLON" ||
+                                      ![
+                                        "COLON",
+                                        "BELLA",
+                                        "GARDNER",
+                                        "NATE",
+                                      ].includes(code) ||
                                       localStorage.getItem("ticketClaimed") ===
                                         "true"
                                     }
