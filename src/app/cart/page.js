@@ -5,6 +5,17 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import { useSelector, useDispatch } from "react-redux";
 
+//REMOVE AFTER MOJO PIN
+import {
+  doc,
+  getFirestore,
+  setDoc,
+  getDoc,
+  updateDoc,
+  collection,
+  addDoc,
+} from "firebase/firestore";
+
 import {
   TruckIcon,
   XMarkIcon,
@@ -29,6 +40,10 @@ import AddressForm from "../../../components/AddressForm";
 export default function Cart() {
   const dispatch = useDispatch();
   const cartItems = useSelector(selectCartItems);
+  const firestore = getFirestore();
+  const [code, setCode] = useState("");
+  const [isClaiming, setIsClaiming] = useState(false);
+  const [hasClaimed, setHasClaimed] = useState(false);
 
   const [state, setState] = useState({
     cartSubtotal: 0,
@@ -42,6 +57,8 @@ export default function Cart() {
     idToken: null,
     refreshToken: null,
   });
+
+  // console.log("aldkfjal", state);
 
   const API_URL =
     "https://us-central1-ragestate-app.cloudfunctions.net/stripePayment";
@@ -63,7 +80,7 @@ export default function Cart() {
 
     const taxRate = 0.075;
     const taxTotal = newCartSubtotal * taxRate;
-    const shipping = cartItems.some((item) => !item.isDigital) ? 9.99 : 0.0;
+    const shipping = cartItems.some((item) => !item.isDigital) ? 4.99 : 0.0;
     const newTotalPrice = newCartSubtotal + taxTotal + shipping;
 
     setState((prevState) => ({
@@ -91,6 +108,7 @@ export default function Cart() {
       const userName = localStorage.getItem("name");
       const userEmail = localStorage.getItem("email");
       const userId = localStorage.getItem("userId");
+      const claimed = localStorage.getItem("ticketClaimed");
 
       setState((prevState) => ({
         ...prevState,
@@ -143,7 +161,7 @@ export default function Cart() {
   const taxRate = 0.075;
   const taxTotal = (state.cartSubtotal * taxRate).toFixed(2);
 
-  const shipping = cartItems.some((item) => !item.isDigital) ? 9.99 : 0.0;
+  const shipping = cartItems.some((item) => !item.isDigital) ? 4.99 : 0.0;
 
   const total = (
     parseFloat(state.cartSubtotal) +
@@ -166,6 +184,8 @@ export default function Cart() {
   };
 
   const hasPhysicalItems = cartItems.some((item) => !item.isDigital);
+
+  // console.log("cartItems", cartItems);
 
   return (
     <div className="bg-black isolate">
@@ -199,7 +219,7 @@ export default function Cart() {
                           item.productImageSrc[0].src || item.productImageSrc
                         }
                         alt={item.title}
-                        className="h-24 w-24 rounded-md object-cover object-center sm:h-48 sm:w-48"
+                        className="h-64 w-48 rounded-md object-cover object-center sm:h-80 sm:w-64"
                       />
                     </div>
 
@@ -254,26 +274,140 @@ export default function Cart() {
                         </div>
                       </div>
 
-                      <div className="mt-4 flex space-x-2 text-sm text-gray-500">
+                      <div className="mt-4 flex flex-col sm:flex-row sm:space-x-2 text-sm text-gray-500">
                         {item.isDigital ? (
                           <>
-                            <span className="text-gray-100">
+                            <span className="text-gray-100 flex items-center">
                               <DevicePhoneMobileIcon
                                 className="h-5 w-5 flex-shrink-0"
                                 aria-hidden="true"
                               />
                             </span>
-                            <span className="text-gray-200">{`Delivered digitally`}</span>
+                            <span className="text-gray-200 flex items-center">{`Delivered digitally`}</span>
+                            {state.idToken &&
+                            state.refreshToken &&
+                            state.clientSecret &&
+                            state.stripePromise ? (
+                              <>
+                                <span className="text-gray-900 flex items-center">
+                                  <input
+                                    type="text"
+                                    placeholder="Enter code"
+                                    value={code}
+                                    onChange={(e) => setCode(e.target.value)}
+                                    className="mt-2 sm:mt-0 ml-0 sm:ml-2 px-2 py-1 border rounded"
+                                  />
+                                </span>
+                                <span className="text-gray-200 flex items-center">
+                                  <button
+                                    className={`mt-2 sm:mt-0 ml-0 sm:ml-6 px-2 py-2 rounded ${
+                                      code === "COLON"
+                                        ? "bg-red-500 text-white"
+                                        : "bg-gray-300 text-gray-900 cursor-not-allowed"
+                                    }`}
+                                    onClick={async () => {
+                                      if (
+                                        code === "COLON" &&
+                                        !isClaiming &&
+                                        !hasClaimed
+                                      ) {
+                                        setIsClaiming(true);
+                                        try {
+                                          const eventId = item.eventDetails
+                                            ? item.productId
+                                            : null; // Replace with actual event ID
+                                          const userEmail = state.userEmail; // Replace with actual user email
+                                          const firebaseId = state.userId; // Replace with actual Firebase ID
+                                          const userName = state.userName; // Replace with actual user name
+
+                                          // Get the current quantity of the event
+                                          const eventDocRef = doc(
+                                            firestore,
+                                            "events",
+                                            eventId
+                                          );
+                                          const eventDocSnap = await getDoc(
+                                            eventDocRef
+                                          );
+                                          const currentQuantity =
+                                            eventDocSnap.data().quantity;
+
+                                          // Update the quantity by decrementing
+                                          await updateDoc(eventDocRef, {
+                                            quantity: currentQuantity - 1,
+                                          });
+
+                                          // Create Firestore document for the user's ticket
+                                          const userData = {
+                                            active: true,
+                                            email: userEmail,
+                                            firebaseId: firebaseId,
+                                            owner: userName,
+                                          };
+
+                                          const eventRef = doc(
+                                            firestore,
+                                            "events",
+                                            eventId
+                                          );
+                                          const eventRagersRef = collection(
+                                            eventRef,
+                                            "ragers"
+                                          );
+
+                                          await addDoc(
+                                            eventRagersRef,
+                                            userData
+                                          );
+
+                                          localStorage.setItem(
+                                            "ticketClaimed",
+                                            "true"
+                                          );
+                                          setHasClaimed(true);
+
+                                          alert("Promoter ticket claimed!");
+                                        } catch (error) {
+                                          console.error(
+                                            "Error claiming ticket:",
+                                            error
+                                          );
+                                          alert(
+                                            "Failed to claim ticket. Please try again."
+                                          );
+                                        } finally {
+                                          setIsClaiming(false);
+                                        }
+                                      }
+                                    }}
+                                    disabled={
+                                      code !== "COLON" ||
+                                      localStorage.getItem("ticketClaimed") ===
+                                        "true"
+                                    }
+                                  >
+                                    Claim Ticket
+                                  </button>
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-gray-200 flex items-center mt-16 sm:mt-0">
+                                  Please log in or create an account to claim
+                                  promoter ticket
+                                </span>
+                              </>
+                            )}
                           </>
                         ) : (
                           <>
-                            <span className="text-gray-100">
+                            <span className="text-gray-100 flex items-center">
                               <TruckIcon
                                 className="h-5 w-5 flex-shrink-0"
                                 aria-hidden="true"
                               />
                             </span>
-                            <span className="text-gray-200">{`Ships in 1-2 weeks`}</span>
+                            <span className="text-gray-200 flex items-center">{`Ships in 1-2 weeks`}</span>
                           </>
                         )}
                       </div>

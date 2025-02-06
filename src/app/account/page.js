@@ -54,7 +54,7 @@ export default function Account() {
       <Image
         priority
         alt="ProfilePicture"
-        src={profilePicture || "/assets/trollFace.png"}
+        src={profilePicture || "/assets/user.png"}
         className="h-8 w-8 rounded-full"
         height={50}
         width={50}
