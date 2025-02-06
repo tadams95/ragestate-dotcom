@@ -58,6 +58,8 @@ export default function Cart() {
     refreshToken: null,
   });
 
+  const promoterCodes = ["COLON", "BELLA", "GARDNER", "NATE"];
+
   // console.log("aldkfjal", state);
 
   const API_URL =
@@ -301,25 +303,15 @@ export default function Cart() {
                                 <span className="text-gray-200 flex items-center">
                                   <button
                                     className={`mt-2 sm:mt-0 ml-0 sm:ml-6 px-2 py-2 rounded ${
-                                      [
-                                        "COLON",
-                                        "BELLA",
-                                        "GARDNER",
-                                        "NATE",
-                                      ].includes(code) &&
-                                      localStorage.getItem("ticketClaimed") ===
+                                      promoterCodes.includes(code) &&
+                                      localStorage.getItem("ticketClaimed") !==
                                         "true"
                                         ? "bg-red-500 text-white"
                                         : "bg-gray-300 text-gray-900 cursor-not-allowed"
                                     }`}
                                     onClick={async () => {
                                       if (
-                                        [
-                                          "COLON",
-                                          "BELLA",
-                                          "GARDNER",
-                                          "NATE",
-                                        ].includes(code) &&
+                                        promoterCodes.includes(code) &&
                                         !isClaiming &&
                                         !hasClaimed
                                       ) {
@@ -393,12 +385,7 @@ export default function Cart() {
                                       }
                                     }}
                                     disabled={
-                                      ![
-                                        "COLON",
-                                        "BELLA",
-                                        "GARDNER",
-                                        "NATE",
-                                      ].includes(code) ||
+                                      !promoterCodes.includes(code) ||
                                       localStorage.getItem("ticketClaimed") ===
                                         "true"
                                     }
