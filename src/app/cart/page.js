@@ -58,7 +58,7 @@ export default function Cart() {
     refreshToken: null,
   });
 
-  const promoterCodes = ["COLON", "BELLA", "GARDNER", "NATE"];
+  const promoterCodes = ["COLON", "BELLA", "GARDNER", "NATE", "WILSON"];
 
   // console.log("aldkfjal", state);
 
