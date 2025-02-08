@@ -14,8 +14,7 @@ export default function NoEventTile() {
               className="object-center group-hover:opacity-75"
               height={600}
               width={600}
-              autoPlay
-              loop
+              controls
             />
           </div>
 
