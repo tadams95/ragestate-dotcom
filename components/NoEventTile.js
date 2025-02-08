@@ -7,14 +7,14 @@ export default function NoEventTile() {
         <h2 className="sr-only">Events</h2>
 
         <div>
-          <div className="aspect-h-1 aspect-w-1 w-full overflow-hidden rounded-lg">
+          <div className="aspect-h-1 aspect-w-1 w-full overflow-hidden rounded-lg mt-24">
             <Image
               priority
-              src={"/assets/BlurHero_1.png"}
+              src={"/assets/EventHero.png"}
               alt={"RAGESTATE"}
               className="object-center group-hover:opacity-75"
-              height={500}
-              width={500}
+              height={600}
+              width={600}
             />
           </div>
 
