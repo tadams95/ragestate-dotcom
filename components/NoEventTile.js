@@ -9,7 +9,7 @@ export default function NoEventTile() {
         <div>
           <div className="aspect-h-1 aspect-w-1 w-full overflow-hidden rounded-lg mt-10">
             <video
-              src={"/assets/SDSURAGE.mov"}
+              src={"/assets/SDSURAGE.mp4"}
               alt={"RAGESTATE"}
               className="object-center group-hover:opacity-75"
               height={600}
