@@ -7,19 +7,20 @@ export default function NoEventTile() {
         <h2 className="sr-only">Events</h2>
 
         <div>
-          <div className="aspect-h-1 aspect-w-1 w-full overflow-hidden rounded-lg mt-24">
-            <Image
-              priority
-              src={"/assets/EventHero.png"}
+          <div className="aspect-h-1 aspect-w-1 w-full overflow-hidden rounded-lg mt-10">
+            <video
+              src={"/assets/SDSURAGE.mov"}
               alt={"RAGESTATE"}
               className="object-center group-hover:opacity-75"
               height={600}
               width={600}
+              autoPlay
+              loop
             />
           </div>
 
-          <p className="mt-8 text-xl font-medium text-gray-300 text-center">
-            NO EVENTS AT THIS TIME, BUT THERE WILL BE
+          <p className="mt-20 text-xl font-medium text-gray-300 text-center">
+            STAY TUNED FOR UPCOMING EVENTS
           </p>
         </div>
       </div>
