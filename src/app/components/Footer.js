@@ -116,7 +116,7 @@ export default function Footer() {
           ))}
         </div>
         <p className="mt-10 text-center text-xs leading-5 text-gray-300">
-          &copy; 2024 RAGESTATE, LLC. All rights reserved.
+          &copy; {new Date().getFullYear()} RAGESTATE, LLC. All rights reserved.
         </p>
       </div>
     </footer>

@@ -19,7 +19,7 @@ export default function Home() {
         </div>
       </div>
       <p className="absolute bottom-0 w-full text-center text-xs leading-5 text-gray-100 z-10">
-        &copy; 2024 RAGESTATE, LLC. All rights reserved.
+        &copy; {new Date().getFullYear()} RAGESTATE, LLC. All rights reserved.
       </p>
     </div>
   );

@@ -31,7 +31,7 @@ export default function Events() {
         });
 
       setEvents(eventData);
-      console.log("Event Data: ", eventData);
+      // console.log("Event Data: ", eventData);
     } catch (error) {
       console.error("Error fetching event data:", error);
     } finally {
