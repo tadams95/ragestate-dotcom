@@ -44,6 +44,8 @@ export default function Cart() {
   const [code, setCode] = useState("");
   const [isClaiming, setIsClaiming] = useState(false);
   const [hasClaimed, setHasClaimed] = useState(false);
+  const [validCode, setValidCode] = useState(false);
+  const [codeError, setCodeError] = useState("");
 
   const [state, setState] = useState({
     cartSubtotal: 0,
@@ -58,9 +60,31 @@ export default function Cart() {
     refreshToken: null,
   });
 
-  const promoterCodes = ["COLON", "BELLA", "GARDNER", "NATE", "WILSON"];
+  // Remove the static promoterCodes array since we're using Firestore now
+  // const promoterCodes = ["COLON", "BELLA", "GARDNER", "NATE", "WILSON"];
 
-  // console.log("aldkfjal", state);
+  // Add function to validate code against Firestore
+  const validatePromoCode = async (inputCode) => {
+    try {
+      const codeRef = doc(firestore, 'promoterCodes', inputCode.toUpperCase());
+      const codeSnap = await getDoc(codeRef);
+      
+      if (codeSnap.exists()) {
+        setValidCode(true);
+        setCodeError("");
+        return true;
+      } else {
+        setValidCode(false);
+        setCodeError("Invalid promo code");
+        return false;
+      }
+    } catch (error) {
+      console.error("Error validating code:", error);
+      setCodeError("Error validating code");
+      setValidCode(false);
+      return false;
+    }
+  };
 
   const API_URL =
     "https://us-central1-ragestate-app.cloudfunctions.net/stripePayment";
@@ -189,6 +213,60 @@ export default function Cart() {
 
   // console.log("cartItems", cartItems);
 
+  const renderPromoSection = (item) => (
+    <div className="flex flex-col space-y-2">
+      <div className="flex space-x-2">
+        <input
+          type="text"
+          placeholder="Enter promo code"
+          value={code}
+          onChange={async (e) => {
+            const newCode = e.target.value.toUpperCase();
+            setCode(newCode);
+            if (newCode.length > 3) { // Only validate if code is long enough
+              await validatePromoCode(newCode);
+            } else {
+              setValidCode(false);
+            }
+          }}
+          className="mt-2 sm:mt-0 ml-0 sm:ml-2 px-2 py-1 border rounded"
+        />
+        <button
+          className={`mt-2 sm:mt-0 ml-0 sm:ml-6 px-2 py-2 rounded ${
+            validCode && !hasClaimed
+              ? "bg-red-500 text-white hover:bg-red-600"
+              : "bg-gray-300 text-gray-900 cursor-not-allowed"
+          }`}
+          onClick={async () => {
+            if (validCode && !isClaiming && !hasClaimed) {
+              setIsClaiming(true);
+              try {
+                // Your existing claiming logic here
+                const eventId = item.eventDetails ? item.productId : null;
+                // ... rest of your claiming logic ...
+                
+                localStorage.setItem("ticketClaimed", "true");
+                setHasClaimed(true);
+                alert("Promoter ticket claimed!");
+              } catch (error) {
+                console.error("Error claiming ticket:", error);
+                alert("Failed to claim ticket. Please try again.");
+              } finally {
+                setIsClaiming(false);
+              }
+            }
+          }}
+          disabled={!validCode || isClaiming || hasClaimed}
+        >
+          {isClaiming ? "Claiming..." : "Claim Ticket"}
+        </button>
+      </div>
+      {codeError && (
+        <p className="text-red-500 text-sm">{codeError}</p>
+      )}
+    </div>
+  );
+
   return (
     <div className="bg-black isolate">
       <Header />
@@ -290,110 +368,7 @@ export default function Cart() {
                             state.refreshToken &&
                             state.clientSecret &&
                             state.stripePromise ? (
-                              <>
-                                <span className="text-gray-900 flex items-center">
-                                  <input
-                                    type="text"
-                                    placeholder="Enter code"
-                                    value={code}
-                                    onChange={(e) => setCode(e.target.value)}
-                                    className="mt-2 sm:mt-0 ml-0 sm:ml-2 px-2 py-1 border rounded"
-                                  />
-                                </span>
-                                <span className="text-gray-200 flex items-center">
-                                  <button
-                                    className={`mt-2 sm:mt-0 ml-0 sm:ml-6 px-2 py-2 rounded ${
-                                      promoterCodes.includes(code) &&
-                                      localStorage.getItem("ticketClaimed") !==
-                                        "true"
-                                        ? "bg-red-500 text-white"
-                                        : "bg-gray-300 text-gray-900 cursor-not-allowed"
-                                    }`}
-                                    onClick={async () => {
-                                      if (
-                                        promoterCodes.includes(code) &&
-                                        !isClaiming &&
-                                        !hasClaimed
-                                      ) {
-                                        setIsClaiming(true);
-                                        try {
-                                          const eventId = item.eventDetails
-                                            ? item.productId
-                                            : null; // Replace with actual event ID
-                                          const userEmail = state.userEmail; // Replace with actual user email
-                                          const firebaseId = state.userId; // Replace with actual Firebase ID
-                                          const userName = state.userName; // Replace with actual user name
-
-                                          // Get the current quantity of the event
-                                          const eventDocRef = doc(
-                                            firestore,
-                                            "events",
-                                            eventId
-                                          );
-                                          const eventDocSnap = await getDoc(
-                                            eventDocRef
-                                          );
-                                          const currentQuantity =
-                                            eventDocSnap.data().quantity;
-
-                                          // Update the quantity by decrementing
-                                          await updateDoc(eventDocRef, {
-                                            quantity: currentQuantity - 1,
-                                          });
-
-                                          // Create Firestore document for the user's ticket
-                                          const userData = {
-                                            active: true,
-                                            email: userEmail,
-                                            firebaseId: firebaseId,
-                                            owner: userName,
-                                          };
-
-                                          const eventRef = doc(
-                                            firestore,
-                                            "events",
-                                            eventId
-                                          );
-                                          const eventRagersRef = collection(
-                                            eventRef,
-                                            "ragers"
-                                          );
-
-                                          await addDoc(
-                                            eventRagersRef,
-                                            userData
-                                          );
-
-                                          localStorage.setItem(
-                                            "ticketClaimed",
-                                            "true"
-                                          );
-                                          setHasClaimed(true);
-
-                                          alert("Promoter ticket claimed!");
-                                        } catch (error) {
-                                          console.error(
-                                            "Error claiming ticket:",
-                                            error
-                                          );
-                                          alert(
-                                            "Failed to claim ticket. Please try again."
-                                          );
-                                        } finally {
-                                          setIsClaiming(false);
-                                        }
-                                      }
-                                    }}
-                                    disabled={
-                                      !promoterCodes.includes(code) ||
-                                      localStorage.getItem("ticketClaimed") ===
-                                        "true"
-                                    }
-                                  >
-                                    Claim Ticket
-                                  </button>
-                                </span>
-                              </>
+                              renderPromoSection(item)
                             ) : (
                               <>
                                 <span className="text-gray-200 flex items-center mt-16 sm:mt-0">
