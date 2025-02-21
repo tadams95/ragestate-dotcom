@@ -145,7 +145,7 @@ export default function EventDetails({ event }) {
               <p className="mt-4 text-sm text-gray-300">{event.age}+</p>
             </div>
 
-            <div className="mt-10 border-t border-gray-100 pt-10">
+            {/* <div className="mt-10 border-t border-gray-100 pt-10">
               <h3 className="text-sm font-medium text-gray-100">Share</h3>
               <ul role="list" className="mt-4 flex items-center space-x-6">
                 <li>
@@ -205,7 +205,7 @@ export default function EventDetails({ event }) {
                   </a>
                 </li>
               </ul>
-            </div>
+            </div> */}
           </div>
 
           {/* Would love to add a chat feature here */}
