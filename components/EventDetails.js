@@ -2,6 +2,7 @@
 
 import { useDispatch } from "react-redux";
 import { addToCart } from "../lib/features/todos/cartSlice";
+import toast, { Toaster } from 'react-hot-toast';
 
 import Image from "next/image";
 import RandomDetailStyling from "@/app/components/styling/RandomDetailStyling";
@@ -50,16 +51,32 @@ export default function EventDetails({ event }) {
       // Dispatch the addToCart action with the cart item
       dispatch(addToCart(cartItem));
 
-      console.log(cartItem)
-
-      // Show browser alert
-      window.alert("Added to Cart!");
+      toast.success('Event added to cart!', {
+        duration: 3000,
+        position: 'bottom-center',
+        style: {
+          background: '#333',
+          color: '#fff',
+          border: '1px solid #444',
+        },
+      });
+    } else {
+      toast.error('Unable to add event to cart', {
+        duration: 3000,
+        position: 'bottom-center',
+        style: {
+          background: '#333',
+          color: '#fff',
+          border: '1px solid #444',
+        },
+      });
     }
   };
 
   return (
     <>
       <div className="mx-auto px-4 py-16 sm:px-6 sm:py-24 lg:max-w-7xl lg:px-8 isolate">
+        <Toaster />
         <RandomDetailStyling />
         {/* Product */}
         <div className="lg:grid lg:grid-cols-7 lg:grid-rows-1 lg:gap-x-8 lg:gap-y-10 xl:gap-x-16">

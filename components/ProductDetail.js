@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { TruckIcon, UserGroupIcon } from "@heroicons/react/24/outline";
+import toast, { Toaster } from 'react-hot-toast';
 
 import { useDispatch } from "react-redux";
 import { addToCart } from "../lib/features/todos/cartSlice";
@@ -68,15 +69,38 @@ export default function ProductDetails({ product }) {
       dispatch(addToCart(productToAdd));
       setSelectedSize(""); // Reset selectedSize
       setSelectedColor(""); // Reset selectedColor
-      // Show browser alert
-      window.alert("Added to Cart!");
+      toast.success('Added to cart!', {
+        duration: 3000,
+        position: 'bottom-center',
+        style: {
+          background: '#333',
+          color: '#fff',
+          border: '1px solid #444',
+        },
+      });
     } else {
       // Handle the case where not all required selections are made
       if (!selectedSize) {
-        window.alert("Please select a size.");
+        toast.error('Please select a size', {
+          duration: 3000,
+          position: 'bottom-center',
+          style: {
+            background: '#333',
+            color: '#fff',
+            border: '1px solid #444',
+          },
+        });
       }
       if (!selectedColor) {
-        window.alert("Please select a color.");
+        toast.error('Please select a color', {
+          duration: 3000,
+          position: 'bottom-center',
+          style: {
+            background: '#333',
+            color: '#fff',
+            border: '1px solid #444',
+          },
+        });
       }
     }
   };
@@ -134,6 +158,7 @@ export default function ProductDetails({ product }) {
 
   return (
     <div className="bg-black isolate">
+      <Toaster />
       <EventStyling1 />
       <EventStyling2 />
       <div className="pb-8 pt-6 sm:pb-12">
