@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useInView } from "react-intersection-observer";
-// import Header from "./components/Header";
+import Header from "./components/Header";  // Uncommented this line
 import Home3DAnimation from "./components/animations/home-3d-animation";
 
 import Link from "next/link";
@@ -35,7 +35,7 @@ export default function Home() {
     if (ref.current) {
       const rect = ref.current.getBoundingClientRect();
       // Increase offset to decrease the scroll a bit
-      const offset = 50;
+      const offset = 82;
       const scrollPosition = window.pageYOffset + rect.top - offset;
 
       window.scrollTo({
@@ -80,9 +80,10 @@ export default function Home() {
           scrolled ? "bg-black/80 backdrop-blur-md" : ""
         }`}
       >
-        {/* <Header /> */}
+        <Header /> {/* Added Header component here */}
 
-        <div className="container mx-auto px-4 py-4 flex justify-center">
+        {/* Added pt-20 to create space below the header */}
+        <div className="container mx-auto px-4 py-4 pt-20 flex justify-center">
           <div className="flex items-center space-x-2 sm:space-x-6">
             <button
               onClick={() => scrollToSection(yourWorldRef, "your")} // Updated to use the new function
@@ -113,8 +114,8 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Main content */}
-      <main className="relative z-10">
+      {/* Update the main content top padding to account for both header and split slogan */}
+      <main className="relative z-10 ">
         {/* Hero Section - Your World */}
         <section
           ref={(node) => {
