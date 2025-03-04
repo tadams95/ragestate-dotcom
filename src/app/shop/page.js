@@ -6,11 +6,14 @@ import Footer from "../components/Footer";
 import ProductTile from "../../../components/ProductTile";
 import Header from "../components/Header";
 import ShopStyling from "../components/styling/ShopStyling";
+import { motion, AnimatePresence } from "framer-motion";
+import { Squares2X2Icon as GridIcon, ListBulletIcon } from "@heroicons/react/24/outline";
 
 export default function Shop() {
   const [productsWithHref, setProductsWithHref] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [viewMode, setViewMode] = useState('grid'); // Keep the view mode state
 
   useEffect(() => {
     let isMounted = true;
@@ -29,12 +32,14 @@ export default function Shop() {
           }));
 
           setProductsWithHref(products);
-          setLoading(false);
         }
       } catch (error) {
         if (isMounted) {
           console.error("Error fetching products:", error);
           setError("Failed to fetch products. Please try again later.");
+        }
+      } finally {
+        if (isMounted) {
           setLoading(false);
         }
       }
@@ -48,25 +53,75 @@ export default function Shop() {
   }, []);
 
   return (
-    <div className="bg-black isolate">
+    <div className="bg-black isolate min-h-screen">
       <Header />
 
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-        {loading && <p>Loading...</p>}
-        {error && <p>{error}</p>}
+        {/* View Toggle */}
+        <div className="flex justify-end mb-8">
+          <div className="flex gap-2 bg-black p-1 rounded-md">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-2 rounded ${viewMode === 'grid' ? 'bg-gray-700' : ''}`}
+            >
+              <GridIcon className="h-5 w-5 text-white" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 rounded ${viewMode === 'list' ? 'bg-gray-700' : ''}`}
+            >
+              <ListBulletIcon className="h-5 w-5 text-white" />
+            </button>
+          </div>
+        </div>
+
+        {/* Loading and Error States */}
+        {loading && (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+          </div>
+        )}
+        
+        {error && (
+          <div className="text-red-500 text-center py-8">
+            {error}
+          </div>
+        )}
+
+        {/* Products Grid/List */}
         {!loading && !error && (
-          <div
-            className={`mt-6 grid gap-y-10 lg:grid-cols-3 sm:grid-cols-2 sm:gap-x-6 sm:gap-y-0 lg:gap-x-8 ${
-              loading
-                ? "opacity-0"
-                : "opacity-100 transition-opacity duration-1000"
-            }`}
-          >
-            {productsWithHref.map((product) => (
-              <div key={product.id}>
-                <ProductTile product={product} />
-              </div>
-            ))}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={viewMode}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className={`
+                ${viewMode === 'grid' 
+                  ? 'grid gap-y-10 lg:grid-cols-3 sm:grid-cols-2 sm:gap-x-6 lg:gap-x-8'
+                  : 'flex flex-col gap-y-4'
+                }
+              `}
+            >
+              {productsWithHref.map((product) => (
+                <motion.div
+                  key={product.id}
+                  layout
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <ProductTile product={product} viewMode={viewMode} />
+                </motion.div>
+              ))}
+            </motion.div>
+          </AnimatePresence>
+        )}
+
+        {/* No Products Message */}
+        {!loading && !error && productsWithHref.length === 0 && (
+          <div className="text-center py-8 text-gray-400">
+            No products available
           </div>
         )}
       </div>

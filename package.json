@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@headlessui/react": "^2.1.1",
-    "@heroicons/react": "^2.1.3",
+    "@heroicons/react": "^2.2.0",
     "@react-three/drei": "^9.114.0",
     "@react-three/fiber": "^8.17.8",
     "@reduxjs/toolkit": "^2.2.5",
@@ -55,13 +55,20 @@
   },
   "jest": {
     "testEnvironment": "jsdom",
-    "setupFilesAfterEnv": ["<rootDir>/jest.setup.js"],
+    "setupFilesAfterEnv": [
+      "<rootDir>/jest.setup.js"
+    ],
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/src/$1",
       "\\.(css|less|sass|scss)$": "identity-obj-proxy"
     },
     "transform": {
-      "^.+\\.(js|jsx|ts|tsx)$": ["babel-jest", { "configFile": "./babel.config.js" }]
+      "^.+\\.(js|jsx|ts|tsx)$": [
+        "babel-jest",
+        {
+          "configFile": "./babel.config.js"
+        }
+      ]
     }
   }
 }
