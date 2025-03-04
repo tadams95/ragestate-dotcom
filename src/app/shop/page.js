@@ -62,13 +62,14 @@ export default function Shop() {
           <div className="flex gap-2 bg-black p-1 rounded-md">
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-2 rounded ${viewMode === 'grid' ? 'bg-gray-700' : ''}`}
+              className={`p-2 rounded ${viewMode === 'grid' ? 'bg-red-700' : ''}`}
             >
               <GridIcon className="h-5 w-5 text-white" />
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`p-2 rounded ${viewMode === 'list' ? 'bg-gray-700' : ''}`}
+              data-testid="list-view-button"
+              className={`p-2 rounded ${viewMode === 'list' ? 'bg-red-700' : ''}`}
             >
               <ListBulletIcon className="h-5 w-5 text-white" />
             </button>

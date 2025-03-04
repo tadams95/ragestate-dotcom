@@ -80,8 +80,9 @@ describe('Home Page', () => {
   it('renders main content sections', () => {
     render(<Home />);
     expect(screen.getByText('RAGESTATE Unfiltered')).toBeInTheDocument();
-    expect(screen.getByText('EVENTS')).toBeInTheDocument();
-    expect(screen.getByText('APPAREL')).toBeInTheDocument();
+    // Use test-id to find the main events section
+    expect(screen.getByTestId('events-section')).toBeInTheDocument();
+    expect(screen.getByTestId('apparel-section')).toBeInTheDocument();
   });
 
   it('animates content based on intersection observer', () => {

@@ -227,6 +227,7 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-16">
               <Link href="/events">
                 <motion.div
+                  data-testid="events-section"
                   className="bg-black/60 backdrop-blur-sm p-8 rounded-lg border border-red-900/50 hover:border-red-600 transition-all group relative overflow-hidden"
                   whileHover={{ y: -5 }}
                 >
@@ -260,6 +261,7 @@ export default function Home() {
 
               <Link href="/shop">
                 <motion.div
+                  data-testid="apparel-section"
                   className="bg-black/60 backdrop-blur-sm p-8 rounded-lg border border-red-900/50 hover:border-red-600 transition-all group relative overflow-hidden"
                   whileHover={{ y: -5 }}
                 >
