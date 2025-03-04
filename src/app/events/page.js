@@ -31,7 +31,10 @@ export default function Events() {
           return eventDateTime >= currentDate;
         })
         // Sort events by date (closest first)
-        .sort((a, b) => a.dateTime.toDate().getTime() - b.dateTime.toDate().getTime());
+        .sort(
+          (a, b) =>
+            a.dateTime.toDate().getTime() - b.dateTime.toDate().getTime()
+        );
 
       setEvents(eventData);
     } catch (error) {
@@ -64,7 +67,7 @@ export default function Events() {
           <h2 className="text-3xl font-bold tracking-tight text-gray-100 text-center mt-10 pt-8 mb-6">
             UPCOMING EVENTS
           </h2>
-          
+
           {/* Loading state or content */}
           <div className="transition-all duration-500 ease-in-out">
             {isLoading ? (
@@ -74,7 +77,11 @@ export default function Events() {
                 ))}
               </div>
             ) : (
-              <div className={`transition-opacity duration-700 ${events.length > 0 ? "opacity-100" : "opacity-100"}`}>
+              <div
+                className={`transition-opacity duration-700 ${
+                  events.length > 0 ? "opacity-100" : "opacity-100"
+                }`}
+              >
                 {events.length === 0 ? (
                   <NoEventTile />
                 ) : (
@@ -89,8 +96,8 @@ export default function Events() {
           </div>
           <EventStyling2 />
         </div>
-        <Footer />
       </div>
+      <Footer />
     </>
   );
 }
