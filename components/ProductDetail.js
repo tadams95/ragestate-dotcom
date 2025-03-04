@@ -140,85 +140,78 @@ export default function ProductDetails({ product }) {
         <div className="mx-auto mt-8 max-w-2xl px-4 sm:px-6 lg:max-w-7xl lg:px-8">
           <div className="lg:grid lg:auto-rows-min lg:grid-cols-10 lg:gap-x-8">
             <div className="lg:col-span-5 lg:col-start-8">
-              <div className="flex justify-between">
-                <h1 className="text-xl font-medium text-gray-100">
+              <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-bold text-gray-100 tracking-tight">
                   {product.title}
                 </h1>
-                <p className="text-xl font-medium text-gray-100">${price}</p>
+                <p className="text-2xl font-bold text-white">${price}</p>
               </div>
             </div>
 
             {/* Image gallery */}
             <div className="mt-8 lg:col-span-7 col-start-1 lg:row-span-3 lg:row-start-1 lg:mt-0">
               <h2 className="sr-only">Images</h2>
-
-              <div className="grid grid-cols-2 grid-rows-3 gap-8">
+              <div className="grid grid-cols-2 gap-4">
                 {product.images.map((image, index) => (
-                  <img
-                    key={image.id}
-                    src={image.src}
-                    alt={image.altText}
+                  <div 
+                    key={image.id} 
                     className={classNames(
-                      index === 0
-                        ? "lg:col-span-2 lg:row-span-2 "
-                        : " lg:block lg:col-span-1 lg:row-span-1", // Apply different classes based on index
-                      "rounded-lg overflow-hidden"
+                      index === 0 ? "col-span-2 row-span-2" : "col-span-1",
+                      "relative group"
                     )}
-                  />
+                  >
+                    <img
+                      src={image.src}
+                      alt={image.altText}
+                      className="rounded-lg w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 rounded-lg  bg-opacity-0 group-hover:bg-opacity-10 transition-opacity duration-300" />
+                  </div>
                 ))}
               </div>
             </div>
 
             <div className="mt-8 lg:col-span-5">
-              <form onSubmit={handleAddToCart}>
+              <form onSubmit={handleAddToCart} className="space-y-6">
                 {/* Color picker */}
                 <div>
-                  <h2 className="text-sm font-medium text-gray-100">Color</h2>
-
-                  <fieldset aria-label="Choose a color" className="mt-2">
-                    <select
-                      value={selectedColor}
-                      onChange={(e) => setSelectedColor(e.target.value)}
-                      className="pr-8 py-2 bordertext-base font-medium text-black  border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                    >
-                      <option value="">Select Color</option>
-                      {getColorOptions().map((colorOption) => (
-                        <option
-                          key={colorOption.value}
-                          value={colorOption.value}
-                        >
-                          {colorOption.value}
-                        </option>
-                      ))}
-                    </select>
-                  </fieldset>
+                  <h2 className="text-sm font-medium text-gray-100 mb-3">Color</h2>
+                  <select
+                    value={selectedColor}
+                    onChange={(e) => setSelectedColor(e.target.value)}
+                    className="w-full max-w-xs py-2 pl-3 pr-10 text-base border border-white rounded-md bg-transparent text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  >
+                    <option value="">Select Color</option>
+                    {getColorOptions().map((colorOption) => (
+                      <option key={colorOption.value} value={colorOption.value}>
+                        {colorOption.value}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Size picker */}
-                <div className="mt-8">
-                  <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
                     <h2 className="text-sm font-medium text-gray-100">Size</h2>
                   </div>
-
-                  <fieldset aria-label="Choose a color" className="mt-2">
-                    <select
-                      value={selectedSize}
-                      onChange={(e) => setSelectedSize(e.target.value)}
-                      className="pr-10 py-2 bordertext-base font-medium text-black  border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                    >
-                      <option value="">Select Size</option>
-                      {getSizeOptions().map((sizeOption) => (
-                        <option key={sizeOption.value} value={sizeOption.value}>
-                          {sizeOption.value}
-                        </option>
-                      ))}
-                    </select>
-                  </fieldset>
+                  <select
+                    value={selectedSize}
+                    onChange={(e) => setSelectedSize(e.target.value)}
+                    className="w-full max-w-xs py-2 pl-3 pr-10 text-base border border-white rounded-md bg-transparent text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  >
+                    <option value="">Select Size</option>
+                    {getSizeOptions().map((sizeOption) => (
+                      <option key={sizeOption.value} value={sizeOption.value}>
+                        {sizeOption.value}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <button
                   type="submit"
-                  className="mt-8 flex  items-center justify-center rounded-md border border-gray-100 px-8 py-2 text-base font-medium text-white hover:bg-red-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                  className="w-full max-w-xs flex items-center justify-center rounded-md bg-red-600 px-8 py-3 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-900 transition-colors duration-200"
                 >
                   Add to cart
                 </button>
@@ -226,40 +219,36 @@ export default function ProductDetails({ product }) {
 
               {/* Product details */}
               <div className="mt-10">
-                <h2 className="text-sm font-medium text-gray-300">
+                <h2 className="text-lg font-medium text-gray-100 mb-4">
                   Description
                 </h2>
-
                 <div
-                  className="prose prose-sm mt-4 text-gray-100"
+                  className="prose prose-sm prose-invert mt-4 text-gray-300"
                   dangerouslySetInnerHTML={{ __html: product.description }}
                 />
               </div>
 
-              <div className="mt-8 border-t border-gray-200 pt-8" />
+              <div className="mt-8 border-t border-gray-800 pt-8" />
 
               {/* Policies */}
               <section aria-labelledby="policies-heading" className="mt-0">
-                <h2 id="policies-heading" className="sr-only">
-                  Our Policies
-                </h2>
-
+                <h2 id="policies-heading" className="sr-only">Our Policies</h2>
                 <dl className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                   {policies.map((policy) => (
                     <div
                       key={policy.name}
-                      className="rounded-lg border border-gray-100  p-6 text-center"
+                      className="rounded-lg border border-white bg-transparent bg-opacity-50 p-6 text-center hover:border-gray-700 transition-colors duration-200"
                     >
                       <dt>
                         <policy.icon
-                          className="mx-auto h-6 w-6 flex-shrink-0 text-gray-100"
+                          className="mx-auto h-6 w-6 flex-shrink-0 text-red-500"
                           aria-hidden="true"
                         />
                         <span className="mt-4 text-sm font-medium text-gray-100">
                           {policy.name}
                         </span>
                       </dt>
-                      <dd className="mt-1 text-sm text-gray-300">
+                      <dd className="mt-1 text-sm text-gray-400">
                         {policy.description}
                       </dd>
                     </div>
