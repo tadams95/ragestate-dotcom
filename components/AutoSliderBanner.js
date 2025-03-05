@@ -49,15 +49,15 @@ export function AutoSliderBanner() {
       
       {/* Overlay with text and button */}
       <div className="absolute inset-0 bg-black bg-opacity-50 flex flex-col items-center justify-center">
-        <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl text-gray-100 text-center mb-4">
-            SHOP RAGESTATE
+        <h1 className="text-4xl md:text-7xl font-extrabold tracking-tighter text-white text-center mb-4">
+          SHOP RAGESTATE
         </h1>
-        <p className="text-xl text-gray-300 text-center mb-8">
+        <p className="text-lg md:text-xl text-gray-300 text-center mb-8">
           Elevate Your Style
         </p>
         <button
           onClick={handleShopClick}
-          className="px-6 py-3 text-white rounded-md bg-transparent border border-white hover:bg-white hover:text-black transition-colors duration-300"
+          className="px-8 py-4 text-white rounded-md bg-transparent border border-white hover:bg-red-700 hover:text-white transition-colors duration-300 text-lg font-medium"
         >
           SHOP
         </button>
