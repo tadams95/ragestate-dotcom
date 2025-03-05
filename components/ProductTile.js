@@ -6,7 +6,7 @@ export default function ProductTile({ product, viewMode = 'grid' }) {
   const priceNumber = parseFloat(product.variants[0]?.price?.amount || 0);
   const formattedPrice = priceNumber.toFixed(2);
 
-  console.log("product:", product);
+  // console.log("product:", product);
 
   // Function to format slug
   const formatSlug = (title) => {

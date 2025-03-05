@@ -8,6 +8,7 @@ import Header from "../components/Header";
 import ShopStyling from "../components/styling/ShopStyling";
 import { motion, AnimatePresence } from "framer-motion";
 import { Squares2X2Icon as GridIcon, ListBulletIcon } from "@heroicons/react/24/outline";
+import AutoSliderBanner from "../../../components/AutoSliderBanner";
 
 export default function Shop() {
   const [productsWithHref, setProductsWithHref] = useState([]);
@@ -55,8 +56,11 @@ export default function Shop() {
   return (
     <div className="bg-black isolate min-h-screen">
       <Header />
+      
+      {/* Add the AutoSliderBanner */}
+      <AutoSliderBanner />
 
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
+      <div id="product-section" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
         {/* View Toggle */}
         <div className="flex justify-end mb-8">
           <div className="flex gap-2 bg-black p-1 rounded-md">

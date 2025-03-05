@@ -28,6 +28,20 @@ const nextConfig = {
         port: "",
         pathname: "/**", // Match all paths under the hostname
       },
+      // Add Tumblr domain
+      {
+        protocol: "https",
+        hostname: "64.media.tumblr.com",
+        port: "",
+        pathname: "/**",
+      },
+      // Add Pinterest domain
+      {
+        protocol: "https",
+        hostname: "i.pinimg.com",
+        port: "",
+        pathname: "/**",
+      },
     ],
   },
 };
