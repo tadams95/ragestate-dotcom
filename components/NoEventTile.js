@@ -9,11 +9,6 @@ export default function NoEventTile() {
           controls
         />
       </div>
-      <div className="absolute inset-0 flex items-center justify-center mt-52">
-        <p className="text-xl font-medium text-white">
-          STAY TUNED FOR WHAT'S UPCOMING
-        </p>
-      </div>
     </>
   );
 }
