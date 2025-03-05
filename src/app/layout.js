@@ -16,11 +16,15 @@ export default function RootLayout({ children }) {
   return (
     <StoreProvider>
       <AuthCheck />
-      <html lang="en">
-        <body className={inter.className}>
-          {children}
-          <SpeedInsights />
-          <Analytics />
+      <html lang="en" className="h-full">
+        <body className="h-full">
+          <div className="flex flex-col min-h-screen">
+            <div className="flex-grow">
+              {children}
+            </div>
+            <SpeedInsights />
+            <Analytics />
+          </div>
         </body>
       </html>
     </StoreProvider>

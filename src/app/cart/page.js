@@ -274,7 +274,7 @@ export default function Cart() {
         <EmptyCart />
       ) : (
         <div className="mx-auto max-w-2xl px-4 pb-24 pt-32 sm:px-6 lg:max-w-7xl lg:px-8">
-          <RandomDetailStyling />
+          {/* <RandomDetailStyling /> */}
           <h1 className="text-3xl font-bold tracking-tight text-gray-100 sm:text-4xl">
             Shopping Cart
           </h1>

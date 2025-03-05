@@ -132,7 +132,7 @@ export default function Shop() {
       </div>
 
       <Footer />
-      <ShopStyling />
+      {/* <ShopStyling /> */}
     </div>
   );
 }
