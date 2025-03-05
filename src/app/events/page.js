@@ -65,7 +65,7 @@ export default function Events() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 items-center">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold tracking-tight text-gray-100 text-center mt-10 pt-8 mb-6">
-            UPCOMING EVENTS
+            {events.length > 0 ? "UPCOMING EVENTS" : "NO EVENTS AT THIS TIME"}
           </h2>
 
           {/* Loading state or content */}
@@ -94,7 +94,7 @@ export default function Events() {
               </div>
             )}
           </div>
-          <EventStyling2 />
+          {/* <EventStyling2 /> */}
         </div>
       </div>
       <Footer />
