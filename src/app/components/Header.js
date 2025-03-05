@@ -9,6 +9,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 const navigation = [
   { name: "SHOP", href: "/shop" },
@@ -22,16 +23,21 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [idToken, setIdToken] = useState(null);
   const [refreshToken, setRefreshToken] = useState(null);
+  const [profilePicture, setProfilePicture] = useState(""); 
 
   useEffect(() => {
     // Check if window object is defined (ensures we are in the browser)
     if (typeof window !== "undefined") {
       const storedIdToken = localStorage.getItem("idToken");
       const storedRefreshToken = localStorage.getItem("refreshToken");
+      const storedProfilePicture = localStorage.getItem("profilePicture");
+      
       setIdToken(storedIdToken);
       setRefreshToken(storedRefreshToken);
+      setProfilePicture(storedProfilePicture || "");
     }
   }, []);
+  
   return (
     <div className="bg-black">
       <header className="absolute inset-x-0 top-0 z-50">
@@ -83,8 +89,17 @@ export default function Header() {
                 href="/account"
                 className="text-sm font-semibold leading-6 text-gray-100"
               >
-                <UserIcon className="h-6 w-6" aria-hidden="true" />
-                <span aria-hidden="true"></span>
+                {profilePicture ? (
+                  <Image
+                    src={profilePicture}
+                    alt="Profile"
+                    width={60}
+                    height={24}
+                    className="h-6 w-6 rounded-md"
+                  />
+                ) : (
+                  <UserIcon className="h-6 w-6" aria-hidden="true" />
+                )}
               </Link>
             ) : (
               <Link

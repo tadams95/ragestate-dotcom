@@ -1,35 +1,22 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { Dialog, DialogPanel } from "@headlessui/react";
 import { useRouter } from "next/navigation";
 import {
-  Bars3Icon,
   UserCircleIcon,
   ShoppingBagIcon,
   Cog6ToothIcon,
   QrCodeIcon,
 } from "@heroicons/react/24/outline";
-import { XMarkIcon as XMarkIconOutline } from "@heroicons/react/24/outline";
 
 import QRCode from "qrcode.react";
 import Link from "next/link";
 import OrderHistory from "../../../components/OrderHistory";
-import RandomDetailStyling from "../components/styling/RandomDetailStyling"; 
 import Footer from "../components/Footer";
+import Header from "../components/Header";
 import Image from "next/image";
 
-
-const navigation = [
-  { name: "SHOP", href: "/shop" },
-  { name: "EVENTS", href: "/events" },
-  { name: "ABOUT", href: "/about" },
-  { name: "PRODUCTS", href: "/products" },
-  { name: "BLOG", href: "/blog" },
-];
-
 export default function Account() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
   const [userId, setUserId] = useState("");
   const [profilePicture, setProfilePicture] = useState("");
@@ -280,93 +267,9 @@ export default function Account() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* <RandomDetailStyling /> */}
-      <header className="absolute inset-x-0 top-0 z-50 flex h-16 border-b border-gray-900/10">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-1 items-center gap-x-6">
-            <Link href="/">
-              <img
-                alt="RAGESTATE"
-                src="/assets/RSLogo2.png"
-                className="h-8 w-auto"
-              />
-            </Link>
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen(true)}
-              className="-m-3 p-3 md:hidden"
-            >
-              <span className="sr-only">Open main menu</span>
-              <Bars3Icon aria-hidden="true" className="h-5 w-5 text-gray-100" />
-            </button>
-          </div>
-          <nav className="hidden md:flex md:gap-x-11 md:text-sm md:font-semibold md:leading-6 text-gray-100">
-            {navigation.map((item, itemIdx) => (
-              <a key={itemIdx} href={item.href}>
-                {item.name}
-              </a>
-            ))}
-          </nav>
-          <div className="flex flex-1 items-center justify-end gap-x-8">
-            <Link href="/account" className="-m-1.5 p-1.5">
-              <span className="sr-only">Your profile</span>
-              <div>{profileImage}</div>
-            </Link>
-          </div>
-        </div>
-        <Dialog
-          open={mobileMenuOpen}
-          onClose={setMobileMenuOpen}
-          className="lg:hidden"
-        >
-          <div className="fixed inset-0 z-50" />
-          <DialogPanel className="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto bg-black px-6 py-6 sm:max-w-sm sm:ring-1 sm:ring-gray-900/10">
-            <div className="flex items-center justify-between">
-              <Link href="#" className="-m-1.5 p-1.5">
-                <span className="sr-only">RAGESTATE</span>
-                <img
-                  className="h-8 w-auto"
-                  src="/assets/RSLogo2.png"
-                  alt="RAGESTATE LOGO"
-                />
-              </Link>
-              <button
-                type="button"
-                className="-m-2.5 rounded-md p-2.5 text-gray-700"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <span className="sr-only">Close menu</span>
-                <XMarkIconOutline className="h-6 w-6" aria-hidden="true" />
-              </button>
-            </div>
-            <div className="mt-6 flow-root">
-              <div className="-my-6 divide-y divide-gray-500/10">
-                <div className="space-y-2 py-6">
-                  {navigation.map((item) => (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-100 hover:bg-zinc-900"
-                    >
-                      {item.name}
-                    </Link>
-                  ))}
-                </div>
-                <div className="py-6">
-                  <Link
-                    href="/cart"
-                    className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-100 hover:bg-zinc-900"
-                  >
-                    CART
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </DialogPanel>
-        </Dialog>
-      </header>
+      <Header />
 
-      <main className="flex-grow pt-8">
+      <main className="flex-grow pt-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-16 pb-24">
           <div className="border-b border-zinc-700 pb-5">
             <h1 className="text-3xl font-bold leading-tight text-white">
