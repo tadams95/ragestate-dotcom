@@ -1,12 +1,14 @@
 .tabScroll {
   overflow-x: auto;
   overflow-y: hidden;
-  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
   scrollbar-color: #52525b transparent;
   -ms-overflow-style: none;
 }
 
 .tabScroll::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
   height: 8px;
 }
 
