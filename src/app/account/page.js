@@ -281,57 +281,79 @@ export default function Account() {
           </div>
 
           {/* Account Navigation Tabs */}
-          <div className="mt-6 mb-8">
+          <div className="mt-4 mb-6">
             <div className="border-b border-zinc-700">
-              <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-                <button
-                  onClick={() => setActiveTab("profile")}
-                  className={`${
-                    activeTab === "profile"
-                      ? "border-red-700 text-red-500"
-                      : "border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300"
-                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
-                >
-                  <UserCircleIcon className="h-5 w-5 mr-2" aria-hidden="true" />
-                  Profile
-                </button>
-                <button
-                  onClick={() => setActiveTab("orders")}
-                  className={`${
-                    activeTab === "orders"
-                      ? "border-red-700 text-red-500"
-                      : "border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300"
-                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
-                >
-                  <ShoppingBagIcon
-                    className="h-5 w-5 mr-2"
-                    aria-hidden="true"
-                  />
-                  Order History
-                </button>
-                <button
-                  onClick={() => setActiveTab("qrcode")}
-                  className={`${
-                    activeTab === "qrcode"
-                      ? "border-red-700 text-red-500"
-                      : "border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300"
-                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
-                >
-                  <QrCodeIcon className="h-5 w-5 mr-2" aria-hidden="true" />
-                  QR Code
-                </button>
-                <button
-                  onClick={() => setActiveTab("settings")}
-                  className={`${
-                    activeTab === "settings"
-                      ? "border-red-700 text-red-500"
-                      : "border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300"
-                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
-                >
-                  <Cog6ToothIcon className="h-5 w-5 mr-2" aria-hidden="true" />
-                  Settings
-                </button>
-              </nav>
+              <div 
+                className="overflow-x-auto overflow-y-hidden"
+                style={{
+                  scrollbarWidth: 'thin',
+                  scrollbarHeight: '8px',
+                  scrollbarColor: '#52525b transparent',
+                  msOverflowStyle: 'none',
+                  '&::-webkit-scrollbar': {
+                    height: '8px',
+                  },
+                  '&::-webkit-scrollbar-track': {
+                    background: 'transparent',
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    background: '#52525b',
+                    borderRadius: '4px',
+                  }
+                }}
+              >
+                <nav className="-mb-px flex space-x-8 min-w-max px-1" aria-label="Tabs">
+                  <div className="flex space-x-8">
+                    <button
+                      onClick={() => setActiveTab("profile")}
+                      className={`${
+                        activeTab === "profile"
+                          ? "border-red-700 text-red-500"
+                          : "border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300"
+                      } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm flex items-center flex-shrink-0`}
+                    >
+                      <UserCircleIcon className="h-5 w-5 mr-2" aria-hidden="true" />
+                      Profile
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("orders")}
+                      className={`${
+                        activeTab === "orders"
+                          ? "border-red-700 text-red-500"
+                          : "border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300"
+                      } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm flex items-center flex-shrink-0`}
+                    >
+                      <ShoppingBagIcon
+                        className="h-5 w-5 mr-2"
+                        aria-hidden="true"
+                      />
+                      Order History
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("qrcode")}
+                      className={`${
+                        activeTab === "qrcode"
+                          ? "border-red-700 text-red-500"
+                          : "border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300"
+                      } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm flex items-center flex-shrink-0`}
+                    >
+                      <QrCodeIcon className="h-5 w-5 mr-2" aria-hidden="true" />
+                      QR Code
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("settings")}
+                      className={`${
+                        activeTab === "settings"
+                          ? "border-red-700 text-red-500"
+                          : "border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300"
+                      } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm flex items-center flex-shrink-0`}
+                    >
+                      <Cog6ToothIcon className="h-5 w-5 mr-2" aria-hidden="true" />
+                      Settings
+                    </button>
+                  </div>
+                </nav>
+              </div>
             </div>
           </div>
 
