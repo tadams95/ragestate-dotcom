@@ -43,6 +43,7 @@ export function AutoSliderBanner() {
             style={{ objectFit: "cover" }}
             priority
             sizes="100vw"
+            unoptimized={true} // Add the unoptimized prop for GIFs
           />
         </div>
       ))}
