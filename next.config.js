@@ -8,6 +8,8 @@ const nextConfig = {
     forceSwcTransforms: true,
   },
 
+  reactStrictMode: true,
+
   images: {
     remotePatterns: [
       {
@@ -43,6 +45,15 @@ const nextConfig = {
         pathname: "/**",
       },
     ],
+    domains: [
+      // Add any image domains you're using
+      'images.unsplash.com',
+      'example.com',
+    ],
+  },
+
+  env: {
+    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || 'https://ragestate.com',
   },
 };
 

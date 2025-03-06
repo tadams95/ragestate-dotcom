@@ -18,6 +18,7 @@ module.exports = {
     },
   },
   plugins: [
+    require('@tailwindcss/typography'),
     plugin(function ({ addUtilities, addComponents, e, config }) {
       // Add your custom styles here
     }),
