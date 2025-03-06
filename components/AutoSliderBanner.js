@@ -58,7 +58,7 @@ export function AutoSliderBanner() {
         </p>
         <button
           onClick={handleShopClick}
-          className="px-8 py-4 text-white rounded-md bg-transparent border border-white hover:bg-red-700 hover:text-white transition-colors duration-300 text-lg font-medium"
+          className="px-8 py-2 text-white rounded-md bg-transparent border border-white hover:bg-red-700 hover:text-white transition-colors duration-300 text-lg font-medium"
         >
           SHOP
         </button>
