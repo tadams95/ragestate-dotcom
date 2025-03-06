@@ -145,140 +145,125 @@ export default function Login() {
   };
 
   return (
-    <>
-      <RandomDetailStyling />
+    <div className="min-h-screen bg-black">
       <Header />
+      
+      <div className="flex min-h-[calc(100vh-80px)] flex-col justify-center items-center px-6 py-12 lg:px-8 relative isolate overflow-hidden">
+        {/* Background gradient effect */}
+        <div className="absolute inset-0 bg-gradient-to-b from-red-500/10 via-transparent to-transparent -z-10" />
+        
+        {/* Login container */}
+        <div className="w-full max-w-md space-y-8 relative">
+          {/* Header section */}
+          <div className="text-center space-y-6">
+            <h2 className="text-3xl font-bold tracking-tight text-gray-100 sm:text-4xl">
+              Welcome Back
+            </h2>
+            <p className="text-gray-400 text-sm">
+              Enter your credentials to access your account
+            </p>
+          </div>
 
-      <div className="flex min-h-full flex-1 flex-col justify-center py-12 sm:px-6 lg:px-8 isolate">
-        <div className="sm:mx-auto sm:w-1/2">
-          <h2 className="mt-20 text-center text-2xl font-bold leading-9 tracking-tight text-gray-100">
-            WELCOME BACK, LOGIN BELOW
-          </h2>
-        </div>
-
-        <div className="mt-10 sm:mx-auto sm:w-full md:w-full sm:max-w-[480px]">
-          <div className="bg-transparent border border-white py-12 shadow rounded-lg px-12">
+          {/* Form container with glass effect */}
+          <div className="mt-10 backdrop-blur-lg bg-white/5 p-8 rounded-2xl border border-white/10 shadow-2xl">
             <form className="space-y-6" onSubmit={handleSignIn}>
-              {/* Email input */}
-              <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium leading-6 text-gray-100"
-                >
+              {/* Email field */}
+              <div className="space-y-2">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-300">
                   Email address
                 </label>
-                <div className="mt-2">
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    value={email}
-                    onChange={handleEmailChange}
-                    className="block w-full rounded-md bg-transparent border-0 py-1.5 pl-3 text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                    style={{ paddingLeft: "10px" }} // Adjust the padding-left here
-                  />
-                </div>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={handleEmailChange}
+                  className="w-full rounded-lg bg-black/30 border border-gray-500 px-4 py-3 text-gray-100 
+                           placeholder:text-gray-500 focus:border-red-500 focus:ring-1 focus:ring-red-500
+                           transition duration-200"
+                  placeholder="Enter your email"
+                />
               </div>
 
-              {/* Password input */}
-              <div>
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium leading-6 text-gray-100"
-                >
+              {/* Password field */}
+              <div className="space-y-2">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-300">
                   Password
                 </label>
-                <div className="mt-2">
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    autoComplete="current-password"
-                    required
-                    value={password}
-                    onChange={handlePasswordChange}
-                    className="block w-full rounded-md bg-transparent border-0 py-1.5 text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                    style={{ paddingLeft: "10px" }} // Adjust the padding-left here
-                  />
-                </div>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={handlePasswordChange}
+                  className="w-full rounded-lg bg-black/30 border border-gray-500 px-4 py-3 text-gray-100 
+                           placeholder:text-gray-500 focus:border-red-500 focus:ring-1 focus:ring-red-500
+                           transition duration-200"
+                  placeholder="Enter your password"
+                />
               </div>
 
               {/* Remember me and Forgot password */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center">
+                <div className="flex items-center gap-2">
                   <input
                     id="remember-me"
                     name="remember-me"
                     type="checkbox"
-                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                    className="h-4 w-4 rounded border-gray-500 bg-black/30 text-red-500 focus:ring-red-500"
                   />
-                  <label
-                    htmlFor="remember-me"
-                    className="ml-3 block text-sm leading-6 text-gray-100"
-                  >
+                  <label htmlFor="remember-me" className="text-sm text-gray-300">
                     Remember me
                   </label>
                 </div>
-                <div className="text-sm leading-6">
-                  <Link
-                    href="/forgot-password"
-                    className="font-semibold text-gray-300 hover:text-red-700"
-                    // onClick={(e) => {
-                    //   e.preventDefault();
-                    // }}
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
+                <Link
+                  href="/forgot-password"
+                  className="text-sm font-semibold text-red-500 hover:text-red-400 transition-colors"
+                >
+                  Forgot password?
+                </Link>
               </div>
 
               {/* Sign in button */}
-              <div>
-                <button
-                  type="submit"
-                  className="flex w-full justify-center rounded-md border border-white bg-transparent px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                  disabled={isAuthenticating}
-                >
-                  {isAuthenticating ? "Signing in..." : "Sign in"}
-                </button>
-              </div>
-            </form>
-
-            {/* Social Logins */}
-            {/* <div>
-              <div className="relative mt-10">
-                <div
-                  className="absolute inset-0 flex items-center"
-                  aria-hidden="true"
-                >
-                  <div className="w-full border-t border-gray-200" />
-                </div>
-                <div className="relative flex justify-center text-sm font-medium leading-6">
-                  <span className="bg-white px-6 text-gray-900">
-                    Or continue with
+              <button
+                type="submit"
+                disabled={isAuthenticating}
+                className="w-full rounded-lg bg-gradient-to-r from-red-600 to-red-500 px-4 py-3 text-sm 
+                         font-semibold text-white shadow-sm hover:from-red-500 hover:to-red-400 
+                         focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 
+                         disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              >
+                {isAuthenticating ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Signing in...
                   </span>
-                </div>
-              </div>
-              <SocialLogins />
-            </div> */}
+                ) : (
+                  "Sign in"
+                )}
+              </button>
+            </form>
           </div>
 
-          {/* Create Account link */}
-          <p className="mt-10 text-center text-sm text-gray-100">
+          {/* Create account link */}
+          <p className="mt-10 text-center text-sm text-gray-400">
             Not a member?{" "}
             <Link
               href="/create-account"
-              className="font-semibold leading-6 text-sky-700 hover:text-red-700"
+              className="font-semibold text-red-500 hover:text-red-400 transition-colors"
             >
-              Create Account
+              Create an account
             </Link>
           </p>
         </div>
       </div>
 
       <Footer />
-    </>
+    </div>
   );
 }
