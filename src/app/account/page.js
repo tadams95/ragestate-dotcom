@@ -54,9 +54,9 @@ export default function Account() {
         priority
         alt="ProfilePicture"
         src={profilePicture || "/assets/user.png"}
-        className="h-8 w-8 rounded-md"
-        height={50}
-        width={50}
+        className="h-8 w-8 rounded-md object-cover"
+        width={32}
+        height={32}
       />
     ),
     [profilePicture]
@@ -77,7 +77,7 @@ export default function Account() {
                 alt="Profile"
                 width={120}
                 height={120}
-                className="rounded-md border-2 border-gray-300"
+                className="rounded-md border-2 border-gray-300 object-cover w-[120px] h-[120px]"
               />
               <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
                 <span className="text-white text-sm">Change Photo</span>

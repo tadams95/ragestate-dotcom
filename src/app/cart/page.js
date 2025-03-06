@@ -147,19 +147,34 @@ export default function Cart() {
     }
   }, []);
 
+  const taxRate = 0.075;
+  const taxTotal = (state.cartSubtotal * taxRate).toFixed(2);
+  const shipping = cartItems.some((item) => !item.isDigital) ? 4.99 : 0.0;
+  const total = (
+    parseFloat(state.cartSubtotal) +
+    parseFloat(taxTotal) +
+    shipping
+  ).toFixed(2);
+  const stripeTotal = total * 100;
+
   useEffect(() => {
     const fetchClientSecret = async () => {
       try {
+        // Don't fetch if cart is empty or total is 0
+        if (!cartItems.length || stripeTotal <= 0) {
+          return;
+        }
+
         const response = await fetch(`${API_URL}/web-payment`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            amount: stripeTotal, // Replace with your actual amount
-            customerEmail: state.userEmail, // Use user's email from state
-            name: state.userName, // Use user's name from state
-            firebaseId: state.userId, // Use user's Firebase ID from state
+            amount: stripeTotal,
+            customerEmail: state.userEmail,
+            name: state.userName,
+            firebaseId: state.userId,
           }),
         });
 
@@ -182,20 +197,7 @@ export default function Cart() {
     if (state.userName && state.userEmail && state.userId) {
       fetchClientSecret();
     }
-  }, [state.userName, state.userEmail, state.userId]);
-
-  const taxRate = 0.075;
-  const taxTotal = (state.cartSubtotal * taxRate).toFixed(2);
-
-  const shipping = cartItems.some((item) => !item.isDigital) ? 4.99 : 0.0;
-
-  const total = (
-    parseFloat(state.cartSubtotal) +
-    parseFloat(taxTotal) +
-    shipping
-  ).toFixed(2);
-
-  const stripeTotal = total * 100;
+  }, [state.userName, state.userEmail, state.userId, cartItems, stripeTotal]);
 
   const appearance = {
     theme: "stripe",
