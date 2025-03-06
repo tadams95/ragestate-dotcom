@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useInView } from "react-intersection-observer";
-import Header from "./components/Header";  // Uncommented this line
+import Header from "./components/Header"; // Uncommented this line
 import Home3DAnimation from "./components/animations/home-3d-animation";
 
 import Link from "next/link";
@@ -81,7 +81,6 @@ export default function Home() {
         }`}
       >
         <Header /> {/* Added Header component here */}
-
         {/* Added pt-20 to create space below the header */}
         <div className="container mx-auto px-4 py-4 pt-20 flex justify-center">
           <div className="flex items-center space-x-2 sm:space-x-6">
@@ -147,7 +146,7 @@ export default function Home() {
 
             <motion.button
               onClick={() => scrollToSection(ourWorldRef, "ours")} // Updated to use the new function
-              className="px-8 py-4 bg-red-600 text-white rounded-md text-lg font-medium transition-all hover:bg-red-700 group"
+              className="px-8 py-2 bg-red-700 text-white rounded-md text-lg font-medium transition-all hover:bg-red-900 group"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -294,31 +293,28 @@ export default function Home() {
               </Link>
             </div>
 
-            {/* Community/Join */}
+            {/* Replace subscription form with create account CTA */}
             <div className="mt-32">
               <h3 className="text-2xl font-bold text-white mb-4">
-                JOIN RAGESTATE
+                JOIN THE MOVEMENT
               </h3>
-              <p className="text-gray-300 mb-8">
-                Be the first to know about events, drops, and community
-                happenings
+              <p className="text-gray-300 mb-8 max-w-2xl mx-auto">
+                Create an account to unlock exclusive benefits, early access to
+                events, special promoter opportunities, and be the first to know
+                about new merch drops.
               </p>
 
-              <form className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-                <input
-                  type="email"
-                  placeholder="Your email"
-                  className="px-4 py-3 bg-gray-800/70 text-white rounded-md flex-grow focus:outline-none focus:ring-2 focus:ring-red-600"
-                />
-                <motion.button
-                  type="submit"
-                  className="px-6 py-3 bg-red-600 text-white rounded-md font-medium"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  SUBSCRIBE
-                </motion.button>
-              </form>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Link href="/create-account">
+                  <motion.button
+                    className="px-8 py-2 bg-red-700 text-white rounded-md text-lg font-medium transition-all hover:bg-red-700 w-full sm:w-auto"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    CREATE ACCOUNT
+                  </motion.button>
+                </Link>
+              </div>
             </div>
           </motion.div>
         </section>
