@@ -15,6 +15,7 @@ import OrderHistory from "../../../components/OrderHistory";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import Image from "next/image";
+import styles from './account.module.css';
 
 export default function Account() {
   const router = useRouter();
@@ -37,6 +38,9 @@ export default function Account() {
       setUserEmail(storedUserEmail || "");
     }
   }, []);
+
+  // console.log("username", userName);
+  // console.log("useremail", userEmail);
 
   const handleLogout = (event) => {
     event.preventDefault();
@@ -283,25 +287,7 @@ export default function Account() {
           {/* Account Navigation Tabs */}
           <div className="mt-4 mb-6">
             <div className="border-b border-zinc-700">
-              <div 
-                className="overflow-x-auto overflow-y-hidden"
-                style={{
-                  scrollbarWidth: 'thin',
-                  scrollbarHeight: '8px',
-                  scrollbarColor: '#52525b transparent',
-                  msOverflowStyle: 'none',
-                  '&::-webkit-scrollbar': {
-                    height: '8px',
-                  },
-                  '&::-webkit-scrollbar-track': {
-                    background: 'transparent',
-                  },
-                  '&::-webkit-scrollbar-thumb': {
-                    background: '#52525b',
-                    borderRadius: '4px',
-                  }
-                }}
-              >
+              <div className={styles.tabScroll}>
                 <nav className="-mb-px flex space-x-8 min-w-max px-1" aria-label="Tabs">
                   <div className="flex space-x-8">
                     <button

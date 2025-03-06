@@ -1,0 +1,20 @@
+.tabScroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #52525b transparent;
+  -ms-overflow-style: none;
+}
+
+.tabScroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.tabScroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tabScroll::-webkit-scrollbar-thumb {
+  background: #52525b;
+  border-radius: 4px;
+}
