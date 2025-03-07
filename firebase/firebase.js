@@ -3,6 +3,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getDatabase } from "firebase/database";
 import { getStorage } from "firebase/storage";
 
 import { api, key } from "../lib/features/todos/userSlice";
@@ -26,8 +27,11 @@ const auth = getAuth(app);
 // Initialize Firebase Firestore
 const db = getFirestore(app);
 
+// Initialize Firebase Realtime Database
+const rtdb = getDatabase(app);
+
 // Initialize Firebase Storage
 const storage = getStorage(app);
 
-// Export the initialized app, auth, db, and storage
-export { app, db, storage, auth };
+// Export the initialized app, auth, db, rtdb, and storage
+export { app, db, rtdb, storage, auth };

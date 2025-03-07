@@ -4,6 +4,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import StoreProvider from "./StoreProvider";
 import AuthCheck from "./auth/AuthCheck";
+import { FirebaseProvider } from '../../firebase/context/FirebaseContext';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,7 +21,9 @@ export default function RootLayout({ children }) {
         <body className="h-full">
           <div className="flex flex-col min-h-screen">
             <div className="flex-grow">
-              {children}
+              <FirebaseProvider>
+                {children}
+              </FirebaseProvider>
             </div>
             <SpeedInsights />
             <Analytics />
