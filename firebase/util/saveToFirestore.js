@@ -7,6 +7,9 @@ import {
   collection,
   addDoc,
   serverTimestamp,
+  query,
+  where,
+  getDocs,
 } from "firebase/firestore";
 
 export default async function SaveToFirestore(
@@ -28,6 +31,13 @@ export default async function SaveToFirestore(
   if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
     throw new Error("Cart items are required and must be a non-empty array");
   }
+
+  // Generate a human-readable order ID
+  const orderPrefix = "ORDER";
+  const timestamp = new Date();
+  const formattedDate = timestamp.toISOString().slice(0, 10).replace(/-/g, "");
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000); // 4-digit random number
+  const orderNumber = `${orderPrefix}-${formattedDate}-${randomSuffix}`;
 
   // Normalize address details to prevent null values in Firestore
   const normalizedAddressDetails = addressDetails || {
@@ -58,29 +68,57 @@ export default async function SaveToFirestore(
     }
   }
 
+  // Calculate order totals
+  const orderTotal = cartItems.reduce((total, item) => total + (item.price || 0), 0);
+  const itemCount = cartItems.length;
+  
   try {
-    // Step 1: Save the purchase details
-    const purchaseDocumentRef = doc(
-      firestore,
-      `customers/${firebaseId}/purchases`,
-      paymentIntentPrefix
-    );
-
+    // STEP 1: Save to centralized purchases collection with human-readable fields
+    const purchasesCollectionRef = collection(firestore, "purchases");
+    
+    // Create purchaseData with human-readable and queryable fields
     const purchaseData = {
-      email: userEmail,
-      name: userName,
-      addressDetails: normalizedAddressDetails,
-      cartItems: cartItems,
-      dateTime: serverTimestamp(),
-      status: "pending", // Track the purchase status
+      orderNumber: orderNumber,
+      customerName: userName || "Anonymous",
+      customerEmail: userEmail || "Unknown",
+      customerId: firebaseId,
       paymentIntentId: paymentIntentPrefix,
+      orderDate: serverTimestamp(),
       lastUpdated: serverTimestamp(),
+      status: "pending",
+      addressDetails: normalizedAddressDetails,
+      totalAmount: orderTotal,
+      itemCount: itemCount,
+      searchKeywords: generateSearchKeywords(userName, userEmail, orderNumber),
+      // The full cart items data is still included
+      items: cartItems.map(item => ({
+        ...item,
+        itemType: item.eventDetails ? "event" : (item.isDigital ? "digital" : "physical")
+      })),
     };
 
-    await tryOperation(() => setDoc(purchaseDocumentRef, purchaseData));
-    console.log("Purchase details saved to Firestore");
+    // Save the purchase document with the order number as the ID for easy retrieval
+    const purchaseDocRef = doc(purchasesCollectionRef, orderNumber);
+    await tryOperation(() => setDoc(purchaseDocRef, purchaseData));
+    
+    // STEP 2: ALSO save to user's purchases subcollection for individual user lookup
+    const userPurchaseDocRef = doc(
+      firestore,
+      `customers/${firebaseId}/purchases`,
+      orderNumber
+    );
+    
+    // Just store the reference to the main purchase in the user's subcollection
+    await tryOperation(() => setDoc(userPurchaseDocRef, {
+      purchaseRef: purchaseDocRef.path,
+      orderNumber: orderNumber,
+      orderDate: serverTimestamp(),
+      status: "pending",
+      totalAmount: orderTotal,
+      itemCount: itemCount,
+    }));
 
-    // Step 2: Process each cart item
+    // STEP 3: Process each cart item
     const itemsProcessed = [];
     const errors = [];
 
@@ -124,7 +162,9 @@ export default async function SaveToFirestore(
             owner: userName,
             createdAt: serverTimestamp(),
             ticketType: item.title || "General Admission",
-            purchaseId: paymentIntentPrefix,
+            purchaseId: orderNumber, // Using our human-readable order number
+            eventName: eventData.name || "Event",
+            eventDate: eventData.date,
           };
 
           const eventRef = doc(firestore, "events", eventId);
@@ -132,9 +172,18 @@ export default async function SaveToFirestore(
 
           const ragerDocRef = await tryOperation(() => addDoc(eventRagersRef, userData));
           
+          // STEP 4: Also add the ticket to a subcollection of the purchase for easy lookup
+          const purchaseTicketsRef = collection(purchaseDocRef, "tickets");
+          await tryOperation(() => setDoc(doc(purchaseTicketsRef, ragerDocRef.id), {
+            ...userData,
+            eventId: eventId,
+            ragerDocId: ragerDocRef.id,
+          }));
+          
           // Add reference to the successful operation
           itemsProcessed.push({
             id: item.productId,
+            eventName: eventData.name || "Event",
             type: "event",
             status: "success",
             ragerId: ragerDocRef.id
@@ -142,17 +191,34 @@ export default async function SaveToFirestore(
         } 
         // Handle physical products (non-event items)
         else if (!item.isDigital) {
-          // Add logic here for physical product inventory if needed
+          // Add to a physical products subcollection for the purchase
+          const physicalItemsRef = collection(purchaseDocRef, "physicalItems");
+          await tryOperation(() => addDoc(physicalItemsRef, {
+            ...item,
+            status: "pending_shipment",
+            createdAt: serverTimestamp(),
+          }));
+          
           itemsProcessed.push({
             id: item.productId,
+            name: item.title || "Product",
             type: "physical",
             status: "success"
           });
         }
         // Handle digital products
         else {
+          // Add to a digital products subcollection for the purchase
+          const digitalItemsRef = collection(purchaseDocRef, "digitalItems");
+          await tryOperation(() => addDoc(digitalItemsRef, {
+            ...item,
+            deliveryStatus: "ready",
+            createdAt: serverTimestamp(),
+          }));
+          
           itemsProcessed.push({
             id: item.productId,
+            name: item.title || "Digital Item",
             type: "digital",
             status: "success"
           });
@@ -161,6 +227,7 @@ export default async function SaveToFirestore(
         console.error(`Error processing item ${item.productId}:`, itemError);
         errors.push({
           itemId: item.productId,
+          itemName: item.title || "Unknown Item",
           error: itemError.message
         });
       }
@@ -168,13 +235,21 @@ export default async function SaveToFirestore(
 
     // Update the purchase document with processing results
     await tryOperation(() => 
-      updateDoc(purchaseDocumentRef, {
+      updateDoc(purchaseDocRef, {
         status: errors.length === 0 ? "completed" : "partial",
         processingDetails: {
           itemsProcessed,
           errors,
           completedAt: serverTimestamp()
         }
+      })
+    );
+
+    // Update the user's purchase record as well
+    await tryOperation(() => 
+      updateDoc(userPurchaseDocRef, {
+        status: errors.length === 0 ? "completed" : "partial",
+        lastUpdated: serverTimestamp()
       })
     );
 
@@ -185,12 +260,16 @@ export default async function SaveToFirestore(
       return {
         success: true,
         partial: true,
+        orderNumber: orderNumber,
         errors
       };
     }
 
-    console.log("Purchase completely processed in Firestore!");
-    return { success: true };
+    console.log(`Purchase ${orderNumber} completely processed in Firestore!`);
+    return { 
+      success: true,
+      orderNumber: orderNumber
+    };
   } catch (error) {
     console.error("Critical error saving purchase to Firestore:", error);
     
@@ -200,6 +279,9 @@ export default async function SaveToFirestore(
       await addDoc(errorLogRef, {
         type: "purchase_error",
         userId: firebaseId,
+        userName: userName,
+        userEmail: userEmail,
+        orderNumber: orderNumber,
         paymentIntent: paymentIntentPrefix,
         error: error.message,
         stack: error.stack,
@@ -211,4 +293,37 @@ export default async function SaveToFirestore(
     
     throw error;
   }
+}
+
+// Helper function to generate searchable keywords
+function generateSearchKeywords(name, email, orderNumber) {
+  const keywords = [];
+  
+  // Add name parts
+  if (name) {
+    const nameParts = name.toLowerCase().split(' ');
+    keywords.push(...nameParts);
+  }
+  
+  // Add email parts
+  if (email) {
+    const emailLower = email.toLowerCase();
+    keywords.push(emailLower);
+    
+    // Add username part of email
+    const atIndex = emailLower.indexOf('@');
+    if (atIndex > 0) {
+      keywords.push(emailLower.substring(0, atIndex));
+    }
+  }
+  
+  // Add order number and its parts
+  if (orderNumber) {
+    keywords.push(orderNumber.toLowerCase());
+    const orderParts = orderNumber.split('-');
+    keywords.push(...orderParts);
+  }
+  
+  // Remove duplicates and empty strings
+  return [...new Set(keywords)].filter(keyword => keyword.trim() !== '');
 }
