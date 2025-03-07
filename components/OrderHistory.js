@@ -96,7 +96,7 @@ export default function OrderHistory() {
 
   if (loading) {
     return (
-      <div className="bg-gray-900/30 rounded-lg p-6 min-h-[500px] flex items-center justify-center">
+      <div className="bg-gray-900/30 border border-gray-800 rounded-lg p-6 min-h-[500px] flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-700 mx-auto"></div>
           <p className="mt-4 text-gray-300">Loading your order history...</p>
@@ -107,7 +107,7 @@ export default function OrderHistory() {
 
   if (orders.length === 0) {
     return (
-      <div className="bg-gray-900/30 rounded-lg p-8 min-h-[500px] flex flex-col items-center justify-center">
+      <div className="bg-gray-900/30 border border-gray-800 rounded-lg p-8 min-h-[500px] flex flex-col items-center justify-center">
         <div className="h-24 w-24 text-gray-400 mb-4">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -131,7 +131,7 @@ export default function OrderHistory() {
   }
 
   return (
-    <div className="bg-gray-900/30 rounded-lg p-6 min-h-[500px]">
+    <div className="bg-gray-900/30 border  border-gray-800   rounded-lg p-6 min-h-[500px]">
       <h2 className="text-2xl font-bold text-white mb-6">Order History</h2>
       <p className="mt-2 mb-6 text-sm text-gray-300">
         View your order history below, with most recent orders shown first. If you have any questions or concerns, email 
@@ -141,7 +141,7 @@ export default function OrderHistory() {
       {/* Grid layout for orders */}
       <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
         {orders.map((order) => (
-          <div key={order.id} className="border border-zinc-700 rounded-lg overflow-hidden bg-black/30 shadow-lg hover:shadow-xl transition-shadow">
+          <div key={order.id} className="border  border-gray-800 rounded-lg overflow-hidden bg-black/30 shadow-lg hover:shadow-xl transition-shadow">
             {/* Order header */}
             <div className="bg-zinc-800/ px-4 py-3 border-b border-zinc-700">
               <div className="flex justify-between items-center">

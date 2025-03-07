@@ -403,7 +403,7 @@ export default function Account() {
     <div className="bg-black min-h-screen">
       <Header />
 
-      <main className="flex-grow pt-16">
+      <main className="flex-grow ">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-16 pb-24">
           <div className="max-w-4xl mx-auto">
             {/* Profile Header with User Info */}
