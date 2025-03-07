@@ -1,25 +1,22 @@
 import React, { useEffect, useState } from "react";
-import {
-  PaymentElement,
-  useStripe,
-  useElements,
-} from "@stripe/react-stripe-js";
-
-import SaveToFirestore from "../firebase/util/saveToFirestore";
-
-import { selectCartItems } from "../lib/features/todos/cartSlice";
+import { PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { useSelector } from "react-redux";
+import { useFirebase } from "../firebase/context/FirebaseContext"; // Add this import
+import SaveToFirestore from "../firebase/util/saveToFirestore";
+import { selectCartItems } from "../lib/features/todos/cartSlice";
 
 export default function CheckoutForm({ addressDetails }) {
   const stripe = useStripe();
   const elements = useElements();
+  const { user } = useFirebase(); // Add this line to get the authenticated user
 
   const [message, setMessage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [userName, setUserName] = useState("");
   const [userEmail, setUserEmail] = useState("");
   const [firebaseId, setUserId] = useState("");
-  const [errorType, setErrorType] = useState(null); // New state for error classification
+  const [errorType, setErrorType] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(""); // Add this line
   const cartItems = useSelector(selectCartItems);
   const [paymentIntent, setPaymentIntent] = useState("");
 
@@ -131,25 +128,42 @@ export default function CheckoutForm({ addressDetails }) {
     return true;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!stripe || !elements) {
-      setMessage("Stripe is still loading. Please wait a moment.");
-      setErrorType("stripe_loading");
-      return;
-    }
-
-    if (!validateInputs()) {
-      return;
-    }
-
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setIsLoading(true);
-    setErrorType(null);
-    setMessage(null);
+    setErrorMessage(""); // Now this will work
+    setMessage(""); // Clear any existing messages
 
     try {
-      // First save purchase details to Firestore
+      // Input validation
+      if (!validateInputs()) {
+        setIsLoading(false);
+        return;
+      }
+
+      // Verify user is authenticated
+      if (!user) {
+        throw new Error("Please log in to complete your purchase");
+      }
+
+      // Verify stripe is loaded
+      if (!stripe || !elements) {
+        throw new Error("Stripe has not been initialized");
+      }
+
+      // Confirm payment
+      const { error: paymentError } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: `${window.location.origin}/account`,
+        },
+      });
+
+      if (paymentError) {
+        throw new Error(paymentError.message);
+      }
+
+      // Save to Firestore
       try {
         await SaveToFirestore(
           userName,
@@ -159,41 +173,18 @@ export default function CheckoutForm({ addressDetails }) {
           paymentIntentPrefix,
           addressDetails
         );
-        console.log("Purchase data saved to Firestore successfully");
       } catch (firestoreError) {
-        console.error("Firestore save failed:", firestoreError);
-        // We still want to attempt payment even if Firestore fails
-        // We'll just log it but continue with payment
-      }
-      
-      // Process payment with Stripe
-      const { error } = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: "https://www.ragestate.com/account",
-        },
-      });
-
-      if (error) {
-        if (error.type === "card_error" || error.type === "validation_error") {
-          setMessage(error.message);
-          setErrorType(error.type);
-        } else {
-          setMessage(`An unexpected error occurred: ${error.message}`);
-          setErrorType("unexpected");
-        }
-      } else {
-        // Payment succeeded, handle success message or redirect
-        setMessage("Payment succeeded!");
-        setErrorType("success");
+        console.error("Firestore save error:", firestoreError);
+        setErrorMessage("Purchase completed but there was an error saving your order. Please contact support.");
+        setErrorType("firestore_error");
       }
     } catch (error) {
-      console.error("Error confirming payment:", error);
-      setMessage(`Payment processing error: ${error.message}`);
-      setErrorType("processing_error");
+      console.error("Checkout error:", error);
+      setErrorMessage(error.message);
+      setErrorType("payment_error");
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   const paymentElementOptions = {
@@ -223,6 +214,11 @@ export default function CheckoutForm({ addressDetails }) {
       {message && (
         <div id="payment-message" className={getMessageClass()}>
           {message}
+        </div>
+      )}
+      {errorMessage && (
+        <div className="mt-4 text-red-500 font-medium">
+          {errorMessage}
         </div>
       )}
       <button

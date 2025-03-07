@@ -95,6 +95,12 @@ export default function AdminPage() {
         }
     };
 
+    // Helper function to safely format currency
+    const formatCurrency = (amount) => {
+        if (typeof amount !== 'number' || isNaN(amount)) return '$0.00';
+        return `$${amount.toFixed(2)}`;
+    };
+
     // Loading state component
     const loadingState = (
         <div className="flex justify-center items-center h-64">
@@ -215,7 +221,7 @@ export default function AdminPage() {
                             <div className="bg-gray-800/30 p-4 rounded-lg">
                                 <div className="flex justify-between py-1">
                                     <span className="text-gray-300">Subtotal</span>
-                                    <span className="text-white">${selectedOrder.totalAmount?.toFixed(2) || "0.00"}</span>
+                                    <span className="text-white">{formatCurrency(selectedOrder.totalAmount)}</span>
                                 </div>
                                 <div className="flex justify-between py-1">
                                     <span className="text-gray-300">Shipping</span>
@@ -227,7 +233,7 @@ export default function AdminPage() {
                                 </div>
                                 <div className="border-t border-gray-700 mt-2 pt-2 flex justify-between">
                                     <span className="text-white font-medium">Total</span>
-                                    <span className="text-white font-medium">${selectedOrder.totalAmount?.toFixed(2) || "0.00"}</span>
+                                    <span className="text-white font-medium">{formatCurrency(selectedOrder.totalAmount)}</span>
                                 </div>
                             </div>
                         </div>
@@ -261,7 +267,15 @@ export default function AdminPage() {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                         {[
                             { title: "Total Orders", value: orders.length, icon: "📦", color: "bg-blue-500/20 border-blue-500/40" },
-                            { title: "Total Revenue", value: `$${orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0).toFixed(2)}`, icon: "💰", color: "bg-green-500/20 border-green-500/40" },
+                            { 
+                                title: "Total Revenue", 
+                                value: `$${orders.reduce((sum, order) => {
+                                    const amount = typeof order.totalAmount === 'number' ? order.totalAmount : 0;
+                                    return sum + amount;
+                                }, 0).toFixed(2)}`, 
+                                icon: "💰", 
+                                color: "bg-green-500/20 border-green-500/40" 
+                            },
                             { title: "Active Users", value: users.length, icon: "👥", color: "bg-purple-500/20 border-purple-500/40" },
                             { title: "Pending Orders", value: orders.filter(order => order.status === "pending" || order.status === "processing").length, icon: "⏱️", color: "bg-yellow-500/20 border-yellow-500/40" }
                         ].map((stat, idx) => (
@@ -295,7 +309,7 @@ export default function AdminPage() {
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{order.customerName || "Anonymous"}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{formatDate(order.orderDate)}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                                                ${order.totalAmount ? order.totalAmount.toFixed(2) : "0.00"}
+                                                {formatCurrency(order.totalAmount)}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(order.status)}`}>
@@ -374,7 +388,7 @@ export default function AdminPage() {
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{order.customerName || order.name || "Anonymous"}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{formatDate(order.orderDate)}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                                                    ${order.totalAmount ? order.totalAmount.toFixed(2) : "0.00"}
+                                                    {formatCurrency(order.totalAmount)}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(order.status)}`}>

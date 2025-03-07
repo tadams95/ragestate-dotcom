@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, getDocs, query, where, orderBy, limit, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, limit, doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { getDatabase, ref as dbRef, get as dbGet } from "firebase/database";
 
 // Create context
@@ -378,6 +378,30 @@ export function FirebaseProvider({ children }) {
       return false;
     }
   };
+
+  const saveUserPurchase = async (purchaseData) => {
+    try {
+      if (!user) {
+        throw new Error("User must be authenticated to save purchase");
+      }
+
+      // Verify the purchase belongs to the current user
+      if (purchaseData.customerId !== user.uid) {
+        throw new Error("Cannot save purchase for another user");
+      }
+
+      const purchaseRef = doc(collection(db, "purchases"));
+      await setDoc(purchaseRef, {
+        ...purchaseData,
+        createdAt: serverTimestamp(),
+      });
+
+      return { success: true, id: purchaseRef.id };
+    } catch (error) {
+      console.error("Error saving purchase:", error);
+      throw error;
+    }
+  };
   
   // Value to be provided by the context
   const value = {
@@ -391,7 +415,8 @@ export function FirebaseProvider({ children }) {
     checkIsAdmin,
     fetchAllPurchases, // Add new functions
     fetchUserPurchases,
-    fetchPurchaseDetails
+    fetchPurchaseDetails,
+    saveUserPurchase
   };
   
   return (

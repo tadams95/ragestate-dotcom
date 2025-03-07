@@ -48,6 +48,7 @@ export default function Cart() {
   const [codeError, setCodeError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [addressDetails, setAddressDetails] = useState(null); // Add this line
 
   const [state, setState] = useState({
     cartSubtotal: 0,
@@ -57,7 +58,6 @@ export default function Cart() {
     userName: "",
     userEmail: "",
     userId: "",
-    addressDetails: null,
     idToken: null,
     refreshToken: null,
   });
@@ -106,6 +106,10 @@ export default function Cart() {
 
   const handleAddressChange = (address) => {
     setAddressDetails(address);
+    setState(prevState => ({
+      ...prevState,
+      addressDetails: address
+    }));
   };
 
   useEffect(() => {
@@ -115,7 +119,7 @@ export default function Cart() {
 
     const taxRate = 0.075;
     const taxTotal = newCartSubtotal * taxRate;
-    const shipping = cartItems.some((item) => !item.isDigital) ? 4.99 : 0.0;
+    const shipping = cartItems.some((item) => !item.isDigital) ? 0.0 : 0.0;
     const newTotalPrice = newCartSubtotal + taxTotal + shipping;
 
     setState((prevState) => ({
@@ -158,7 +162,7 @@ export default function Cart() {
 
   const taxRate = 0.075;
   const taxTotal = (state.cartSubtotal * taxRate).toFixed(2);
-  const shipping = cartItems.some((item) => !item.isDigital) ? 4.99 : 0.0;
+  const shipping = cartItems.some((item) => !item.isDigital) ? 0.0 : 0.0;
   const total = (
     parseFloat(state.cartSubtotal) +
     parseFloat(taxTotal) +
@@ -497,7 +501,7 @@ export default function Cart() {
                           <AddressForm onAddressChange={handleAddressChange} />
                         </div>
                       )}
-                      <CheckoutForm addressDetails={state.addressDetails} />
+                      <CheckoutForm addressDetails={addressDetails} /> {/* Update this line */}
                     </Elements>
                   </>
                 ) : (
