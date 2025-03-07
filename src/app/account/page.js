@@ -27,6 +27,7 @@ export default function Account() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [isQrBlurred, setIsQrBlurred] = useState(true);
 
   const inputStyling = "block w-full bg-black pl-2 rounded-md border-2 py-1.5 px-1 text-gray-100 shadow-sm ring-1 ring-inset ring-gray-700 placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-red-500 sm:text-sm sm:leading-6";
   const buttonStyling = "flex justify-center rounded-md bg-transparent px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 border-2 border-gray-100 transition-all duration-200";
@@ -203,17 +204,21 @@ export default function Account() {
         
         <div className="grid grid-cols-1 md:grid-cols-5 gap-8 items-center">
           <div className="md:col-span-3 flex flex-col items-center">
-            <div className="p-4 bg-white rounded-lg shadow-xl">
-              <QRCode value={userId || "ragestate-user"} size={260} />
+            <div className="p-4 bg-white rounded-lg shadow-xl relative">
+              <div className={`transition-all duration-300 ${isQrBlurred ? 'blur-md' : ''}`}>
+                <QRCode value={userId || "ragestate-user"} size={260} />
+              </div>
+              {isQrBlurred && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-gray-800 font-medium bg-white/40 px-3 py-1 rounded">Tap to reveal</span>
+                </div>
+              )}
             </div>
             <button
               className={`${buttonStyling} mt-6 px-8`}
-              onClick={() => {
-                // In a real app, you would implement a download function
-                alert("QR Code download feature would be implemented here");
-              }}
+              onClick={() => setIsQrBlurred(!isQrBlurred)}
             >
-              Download QR Code
+              {isQrBlurred ? "Reveal QR Code" : "Hide QR Code"}
             </button>
           </div>
           
@@ -241,7 +246,7 @@ export default function Account() {
             <div className="bg-gray-900/50 p-5 rounded-lg border border-gray-800 shadow-md">
               <h3 className="text-lg font-medium text-gray-100 mb-3">Security Notice</h3>
               <p className="text-sm text-gray-300">
-                Your QR code contains a unique identifier linked to your account. Don't share 
+                Your QR code contains a unique identifier linked to your account. Keep it hidden when not in use and don't share 
                 screenshots of your code with others to prevent unauthorized access to your account benefits.
               </p>
             </div>

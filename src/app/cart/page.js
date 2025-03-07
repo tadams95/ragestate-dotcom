@@ -46,6 +46,8 @@ export default function Cart() {
   const [hasClaimed, setHasClaimed] = useState(false);
   const [validCode, setValidCode] = useState(false);
   const [codeError, setCodeError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const [state, setState] = useState({
     cartSubtotal: 0,
@@ -60,12 +62,17 @@ export default function Cart() {
     refreshToken: null,
   });
 
-  // Remove the static promoterCodes array since we're using Firestore now
-  // const promoterCodes = ["COLON", "BELLA", "GARDNER", "NATE", "WILSON"];
-
-  // Add function to validate code against Firestore
+  // Improved error handling for validatePromoCode
   const validatePromoCode = async (inputCode) => {
+    if (!inputCode || inputCode.trim() === "") {
+      setValidCode(false);
+      setCodeError("Please enter a promo code");
+      return false;
+    }
+    
     try {
+      setIsLoading(true);
+      setErrorMessage("");
       const codeRef = doc(firestore, 'promoterCodes', inputCode.toUpperCase());
       const codeSnap = await getDoc(codeRef);
       
@@ -80,9 +87,11 @@ export default function Cart() {
       }
     } catch (error) {
       console.error("Error validating code:", error);
-      setCodeError("Error validating code");
+      setCodeError(`Error validating code: ${error.message}`);
       setValidCode(false);
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -165,6 +174,9 @@ export default function Cart() {
           return;
         }
 
+        setIsLoading(true);
+        setErrorMessage("");
+        
         const response = await fetch(`${API_URL}/web-payment`, {
           method: "POST",
           headers: {
@@ -179,7 +191,8 @@ export default function Cart() {
         });
 
         if (!response.ok) {
-          throw new Error("Failed to fetch payment intent");
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || `Error: HTTP status ${response.status}`);
         }
 
         const { client_secret } = await response.json();
@@ -191,6 +204,9 @@ export default function Cart() {
         localStorage.setItem("clientSecret", client_secret);
       } catch (error) {
         console.error("Error fetching payment intent:", error.message);
+        setErrorMessage(`Payment setup failed: ${error.message}. Please refresh the page or try again later.`);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -225,6 +241,7 @@ export default function Cart() {
           onChange={async (e) => {
             const newCode = e.target.value.toUpperCase();
             setCode(newCode);
+            setCodeError("");
             if (newCode.length > 3) { // Only validate if code is long enough
               await validatePromoCode(newCode);
             } else {
@@ -232,35 +249,41 @@ export default function Cart() {
             }
           }}
           className="mt-2 sm:mt-0 ml-0 sm:ml-2 px-2 py-1 border rounded"
+          disabled={isLoading || hasClaimed}
         />
         <button
           className={`mt-2 sm:mt-0 ml-0 sm:ml-6 px-2 py-2 rounded ${
-            validCode && !hasClaimed
+            validCode && !hasClaimed && !isLoading
               ? "bg-red-500 text-white hover:bg-red-600"
               : "bg-gray-300 text-gray-900 cursor-not-allowed"
           }`}
           onClick={async () => {
             if (validCode && !isClaiming && !hasClaimed) {
               setIsClaiming(true);
+              setErrorMessage("");
               try {
                 // Your existing claiming logic here
                 const eventId = item.eventDetails ? item.productId : null;
+                if (!eventId) {
+                  throw new Error("No valid event found for this ticket");
+                }
                 // ... rest of your claiming logic ...
                 
                 localStorage.setItem("ticketClaimed", "true");
                 setHasClaimed(true);
-                alert("Promoter ticket claimed!");
+                alert("Promoter ticket claimed successfully!");
               } catch (error) {
                 console.error("Error claiming ticket:", error);
-                alert("Failed to claim ticket. Please try again.");
+                setErrorMessage(`Failed to claim ticket: ${error.message}`);
+                alert(`Failed to claim ticket: ${error.message}`);
               } finally {
                 setIsClaiming(false);
               }
             }
           }}
-          disabled={!validCode || isClaiming || hasClaimed}
+          disabled={!validCode || isClaiming || hasClaimed || isLoading}
         >
-          {isClaiming ? "Claiming..." : "Claim Ticket"}
+          {isClaiming ? "Claiming..." : hasClaimed ? "Claimed" : "Claim Ticket"}
         </button>
       </div>
       {codeError && (
@@ -272,6 +295,23 @@ export default function Cart() {
   return (
     <div className="bg-black isolate">
       <Header />
+      {errorMessage && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mt-16 mx-auto max-w-7xl" role="alert">
+          <span className="block sm:inline">{errorMessage}</span>
+          <button 
+            className="absolute top-0 bottom-0 right-0 px-4 py-3"
+            onClick={() => setErrorMessage("")}
+          >
+            <XMarkIcon className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
+      )}
+      {isLoading && cartItems.length > 0 && (
+        <div className="flex justify-center items-center py-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-red-500"></div>
+          <span className="ml-2 text-white">Loading...</span>
+        </div>
+      )}
       {cartItems.length === 0 ? (
         <EmptyCart />
       ) : (
@@ -470,14 +510,14 @@ export default function Cart() {
                     <div className="mt-10 flex items-center justify-center gap-x-6">
                       <Link
                         href="/login"
-                        className="flex  items-center justify-center rounded-md border border-gray-100 px-8 py-2 text-base font-medium text-white hover:bg-red-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                        className="flex items-center justify-center rounded-md border border-gray-100 px-8 py-2 text-base font-medium text-white hover:bg-red-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
                       >
                         Login
                       </Link>
 
                       <Link
                         href="/create-account"
-                        className="flex  items-center justify-center rounded-md border border-gray-100 px-8 py-2 text-base font-medium text-white hover:bg-red-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                        className="flex items-center justify-center rounded-md border border-gray-100 px-8 py-2 text-base font-medium text-white hover:bg-red-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
                       >
                         Create Account
                       </Link>
