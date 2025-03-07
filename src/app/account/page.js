@@ -297,7 +297,8 @@ export default function Account() {
               </form>
             </div>
             
-            <div className="bg-gray-900/50 p-5 rounded-lg border border-gray-800 shadow-md">
+            {/* To implement this in the future */}
+            {/* <div className="bg-gray-900/50 p-5 rounded-lg border border-gray-800 shadow-md">
               <h3 className="text-xl font-medium text-white mb-4">Notification Preferences</h3>
               <div className="space-y-4">
                 {[
@@ -322,7 +323,7 @@ export default function Account() {
                   </div>
                 ))}
               </div>
-            </div>
+            </div> */}
           </div>
           
           {/* Account Management and Details */}
