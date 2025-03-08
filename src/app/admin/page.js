@@ -13,44 +13,6 @@ import { useFirebase } from "../../../firebase/context/FirebaseContext";
 import { format } from "date-fns";
 import AdminProtected from "../components/AdminProtected";
 
-// Mock data - replace with actual API fetch in real implementation
-const mockOrders = [
-  {
-    id: "ORD001",
-    customer: "John Doe",
-    date: "2023-10-15",
-    total: 79.99,
-    status: "Delivered",
-  },
-  {
-    id: "ORD002",
-    customer: "Jane Smith",
-    date: "2023-10-16",
-    total: 129.5,
-    status: "Processing",
-  },
-  {
-    id: "ORD003",
-    customer: "Bob Johnson",
-    date: "2023-10-17",
-    total: 56.25,
-    status: "Pending",
-  },
-  {
-    id: "ORD004",
-    customer: "Alice Brown",
-    date: "2023-10-18",
-    total: 210.0,
-    status: "Shipped",
-  },
-  {
-    id: "ORD005",
-    customer: "Chris Evans",
-    date: "2023-10-19",
-    total: 89.99,
-    status: "Canceled",
-  },
-];
 
 const mockUsers = [
   {
@@ -92,6 +54,7 @@ export default function AdminPage() {
   const [error, setError] = useState({});
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [orderDetailsOpen, setOrderDetailsOpen] = useState(false);
+  const [userCount, setUserCount] = useState(0);
 
   // Get Firebase context
   const firebase = useFirebase();
@@ -105,6 +68,7 @@ export default function AdminPage() {
           firebase.fetchAllPurchases(100),
           firebase.fetchUsers(100),
           firebase.fetchEvents(50),
+          firebase.getUserCount()
         ]);
 
         // Process results even if some failed
@@ -127,6 +91,10 @@ export default function AdminPage() {
         } else {
           console.error("Error loading events:", results[2].reason);
           setError((prev) => ({ ...prev, events: results[2].reason.message }));
+        }
+
+        if (results[3].status === "fulfilled") {
+          setUserCount(results[3].value);
         }
       } catch (err) {
         console.error("General error loading admin data:", err);
@@ -413,8 +381,8 @@ export default function AdminPage() {
                 color: "bg-green-500/20 border-green-500/40",
               },
               {
-                title: "Active Users",
-                value: users.length,
+                title: "Total Users",
+                value: userCount,
                 icon: "👥",
                 color: "bg-purple-500/20 border-purple-500/40",
               },

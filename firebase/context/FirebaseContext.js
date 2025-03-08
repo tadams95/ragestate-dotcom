@@ -94,50 +94,29 @@ export function FirebaseProvider({ children }) {
         return [];
       }
       
-      // Due to RTDB rules, we can't query the whole users collection directly
-      // Instead, we'll use the Firestore 'customers' collection which has better rules for admins
-      // If that fails, we'll fall back to just getting the current user's data from RTDB
+      // Use RTDB for user data since that's where the actual data is stored
+      console.log("Fetching users from Realtime Database");
+      const database = getDatabase();
+      const usersRef = dbRef(database, 'users');
+      const snapshot = await dbGet(usersRef);
       
-      try {
-        console.log("Attempting to fetch users from Firestore customers collection");
-        const customersQuery = query(
-          collection(db, "customers"),
-          limit(limitCount)
-        );
-        
-        const snapshot = await getDocs(customersQuery);
-        console.log(`Found ${snapshot.docs.length} users in Firestore customers collection`);
-        
-        return snapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            ...data,
-            email: data.email || "No email",
-            name: data.name || data.displayName || "Unknown",
-            joinDate: data.createdAt?.toDate() || new Date()
-          };
-        });
-      } catch (firestoreError) {
-        console.error("Error fetching users from Firestore:", firestoreError);
-        
-        // Fallback: If we can't read from Firestore, just get the current admin's user data
-        console.log("Falling back to fetching only current user's data from RTDB");
-        const database = getDatabase();
-        const currentUserRef = dbRef(database, `users/${user.uid}`);
-        const snapshot = await dbGet(currentUserRef);
-        
-        if (snapshot.exists()) {
-          const userData = snapshot.val();
-          return [{
-            id: user.uid,
-            ...userData,
-            joinDate: new Date()
-          }];
-        }
-        
+      if (!snapshot.exists()) {
+        console.warn("No users found in RTDB");
         return [];
       }
+      
+      // Convert the object to an array of users with IDs
+      const userData = snapshot.val();
+      const userArray = Object.entries(userData).map(([id, data]) => ({
+        id,
+        ...data,
+        email: data.email || "No email",
+        name: data.name || data.displayName || "Unknown",
+        joinDate: data.createdAt || new Date().toISOString() // Use ISO string for consistency
+      }));
+      
+      // Limit the results if needed
+      return userArray.slice(0, limitCount);
     } catch (error) {
       console.error("Error fetching users:", error);
       throw error;
@@ -402,6 +381,37 @@ export function FirebaseProvider({ children }) {
       throw error;
     }
   };
+
+  // New function to get the total user count
+  const getUserCount = async () => {
+    try {
+      if (!user) {
+        throw new Error("Authentication required to get user count");
+      }
+      
+      // Check admin status before proceeding
+      const isAdmin = await checkIsAdmin(user.uid);
+      if (!isAdmin) {
+        console.warn("Non-admin user attempting to access user count");
+        return 0;
+      }
+      
+      // Use RTDB to get the total count
+      const database = getDatabase();
+      const usersRef = dbRef(database, 'users');
+      const snapshot = await dbGet(usersRef);
+      
+      if (!snapshot.exists()) {
+        return 0;
+      }
+      
+      // Count the number of user objects
+      return Object.keys(snapshot.val()).length;
+    } catch (error) {
+      console.error("Error getting user count:", error);
+      return 0; // Return 0 instead of throwing to avoid breaking the UI
+    }
+  };
   
   // Value to be provided by the context
   const value = {
@@ -416,7 +426,8 @@ export function FirebaseProvider({ children }) {
     fetchAllPurchases, // Add new functions
     fetchUserPurchases,
     fetchPurchaseDetails,
-    saveUserPurchase
+    saveUserPurchase,
+    getUserCount // Add the new function
   };
   
   return (
