@@ -9,41 +9,12 @@ import {
 } from "@heroicons/react/24/outline";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { useFirebase, useAuth } from "../../../firebase/context/FirebaseContext";
+import {
+  useFirebase,
+  useAuth,
+} from "../../../firebase/context/FirebaseContext";
 import { format } from "date-fns";
 import AdminProtected from "../components/AdminProtected";
-
-
-const mockUsers = [
-  {
-    id: "USR001",
-    name: "John Doe",
-    email: "john@example.com",
-    joinDate: "2023-09-10",
-    orders: 3,
-  },
-  {
-    id: "USR002",
-    name: "Jane Smith",
-    email: "jane@example.com",
-    joinDate: "2023-09-12",
-    orders: 5,
-  },
-  {
-    id: "USR003",
-    name: "Bob Johnson",
-    email: "bob@example.com",
-    joinDate: "2023-09-15",
-    orders: 1,
-  },
-  {
-    id: "USR004",
-    name: "Alice Brown",
-    email: "alice@example.com",
-    joinDate: "2023-09-20",
-    orders: 2,
-  },
-];
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -63,7 +34,7 @@ export default function AdminPage() {
   useEffect(() => {
     // Only attempt to load data when authentication is complete
     if (authLoading) return;
-    
+
     // Make sure we have a user before trying to load admin data
     if (!currentUser) {
       console.log("No authenticated user found, cannot load admin data");
@@ -73,14 +44,14 @@ export default function AdminPage() {
     async function loadData() {
       setLoading(true);
       setError({});
-      
+
       try {
         // Fetch data, but don't let one error stop everything
         const results = await Promise.allSettled([
           firebase.fetchAllPurchases(100),
           firebase.fetchUsers(100),
           firebase.fetchEvents(50),
-          firebase.getUserCount()
+          firebase.getUserCount(),
         ]);
 
         // Process results even if some failed
@@ -636,87 +607,132 @@ export default function AdminPage() {
         </div>
       </div>
 
-      <div className="bg-gray-900/50 rounded-lg border border-gray-800 shadow-md overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-700">
-            <thead>
-              <tr className="bg-gray-800/50">
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                  User ID
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                  Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                  Email
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                  Join Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                  Orders
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-700">
-              {mockUsers.map((user) => (
-                <tr
-                  key={user.id}
-                  className="hover:bg-gray-800/30 transition-colors"
-                >
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                    {user.id}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                    {user.name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                    {user.email}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                    {user.joinDate}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                    {user.orders}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <button
-                      onClick={() => alert(`View user ${user.id}`)}
-                      className="text-red-500 hover:text-red-400 mr-3"
-                    >
-                      View
-                    </button>
-                    <button
-                      onClick={() => alert(`Edit user ${user.id}`)}
-                      className="text-blue-500 hover:text-blue-400"
-                    >
-                      Edit
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {loading ? (
+        loadingState
+      ) : error.users ? (
+        <div className="bg-red-500/20 border border-red-500 p-4 rounded-md text-white">
+          <h3 className="text-lg font-medium">Error loading users</h3>
+          <p>{error.users}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+          >
+            Retry
+          </button>
         </div>
-        <div className="px-6 py-3 flex items-center justify-between border-t border-gray-700">
-          <div className="text-sm text-gray-400">
-            Showing <span className="font-medium">1</span> to{" "}
-            <span className="font-medium">4</span> of{" "}
-            <span className="font-medium">24</span> results
-          </div>
-          <div className="flex space-x-2">
-            <button className="px-3 py-1 border border-gray-600 rounded-md text-gray-300 hover:bg-gray-700">
-              Previous
-            </button>
-            <button className="px-3 py-1 border border-gray-600 rounded-md text-gray-300 hover:bg-gray-700">
-              Next
-            </button>
-          </div>
+      ) : (
+        <div className="bg-gray-900/50 rounded-lg border border-gray-800 shadow-md overflow-hidden">
+          {users.length === 0 ? (
+            <div className="p-8 text-center text-gray-400">
+              No users found. Start by creating user accounts.
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-700">
+                  <thead>
+                    <tr className="bg-gray-800/50">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        User ID
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        Name
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        Email
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        Join Date
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-700">
+                    {users.map((user) => (
+                      <tr
+                        key={user.id}
+                        className="hover:bg-gray-800/30 transition-colors"
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-300">
+                          {user.id.substring(0, 12)}...
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                            {user.firstName && user.lastName
+                              ? `${user.firstName} ${user.lastName}`
+                              : user.displayName || "Unknown Name"}
+                          </td>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                          {user.email || "No Email"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                          {formatDate(
+                            new Date(user.joinDate || user.createdAt || "")
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              user.isAdmin
+                                ? "bg-purple-500/20 text-purple-500"
+                                : user.disabled
+                                ? "bg-red-500/20 text-red-500"
+                                : "bg-green-500/20 text-green-500"
+                            }`}
+                          >
+                            {user.isAdmin
+                              ? "Admin"
+                              : user.disabled
+                              ? "Disabled"
+                              : "Active"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <button
+                            onClick={() => alert(`View user ${user.id}`)}
+                            className="text-red-500 hover:text-red-400 mr-3"
+                          >
+                            View
+                          </button>
+                          <button
+                            onClick={() => alert(`Edit user ${user.id}`)}
+                            className="text-blue-500 hover:text-blue-400"
+                          >
+                            Edit
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="px-6 py-3 flex items-center justify-between border-t border-gray-700">
+                <div className="text-sm text-gray-400">
+                  Showing <span className="font-medium">1</span> to{" "}
+                  <span className="font-medium">
+                    {Math.min(users.length, 10)}
+                  </span>{" "}
+                  of <span className="font-medium">{userCount}</span> users
+                </div>
+                <div className="flex space-x-2">
+                  <button className="px-3 py-1 border border-gray-600 rounded-md text-gray-300 hover:bg-gray-700">
+                    Previous
+                  </button>
+                  <button className="px-3 py-1 border border-gray-600 rounded-md text-gray-300 hover:bg-gray-700">
+                    Next
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
-      </div>
+      )}
     </div>
   );
 
