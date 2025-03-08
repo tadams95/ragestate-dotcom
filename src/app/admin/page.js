@@ -49,7 +49,7 @@ export default function AdminPage() {
         // Fetch data, but don't let one error stop everything
         const results = await Promise.allSettled([
           firebase.fetchAllPurchases(100),
-          firebase.fetchUsers(100),
+          firebase.fetchUsers(1000),
           firebase.fetchEvents(50),
           firebase.getUserCount(),
         ]);
