@@ -9,7 +9,7 @@ import {
 } from "@heroicons/react/24/outline";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { useFirebase } from "../../../firebase/context/FirebaseContext";
+import { useFirebase, useAuth } from "../../../firebase/context/FirebaseContext";
 import { format } from "date-fns";
 import AdminProtected from "../components/AdminProtected";
 
@@ -58,10 +58,22 @@ export default function AdminPage() {
 
   // Get Firebase context
   const firebase = useFirebase();
+  const { currentUser, loading: authLoading } = useAuth();
 
   useEffect(() => {
+    // Only attempt to load data when authentication is complete
+    if (authLoading) return;
+    
+    // Make sure we have a user before trying to load admin data
+    if (!currentUser) {
+      console.log("No authenticated user found, cannot load admin data");
+      return;
+    }
+
     async function loadData() {
       setLoading(true);
+      setError({});
+      
       try {
         // Fetch data, but don't let one error stop everything
         const results = await Promise.allSettled([
@@ -105,7 +117,7 @@ export default function AdminPage() {
     }
 
     loadData();
-  }, [firebase]);
+  }, [firebase, currentUser, authLoading]);
 
   // Format date helper
   const formatDate = (date) => {

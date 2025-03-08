@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { collection, getDocs, query, where, orderBy, limit, doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { getDatabase, ref as dbRef, get as dbGet } from "firebase/database";
 
@@ -15,16 +15,24 @@ export function FirebaseProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
+  // Set persistence to LOCAL when the component mounts
+  useEffect(() => {
+    // Set persistence once on initialization
+    setPersistence(auth, browserLocalPersistence)
+      .catch((error) => {
+        console.error("Error setting auth persistence:", error);
+      });
+  }, []);
+
   // Listen for auth state changes
   useEffect(() => {
+    console.log("Setting up auth state listener");
     const unsubscribe = onAuthStateChanged(auth, (authUser) => {
-      if (authUser) {
-        setUser(authUser);
-      } else {
-        setUser(null);
-      }
+      console.log("Auth state changed:", authUser ? "User logged in" : "No user");
+      setUser(authUser);
       setLoading(false);
     }, (error) => {
+      console.error("Auth state error:", error);
       setError(error.message);
       setLoading(false);
     });
@@ -83,12 +91,17 @@ export function FirebaseProvider({ children }) {
   
   const fetchUsers = async (limitCount = 100) => {
     try {
+      // Add debugging logs
+      console.log("Fetching users, auth state:", { user, loading });
+      
       if (!user) {
         throw new Error("Authentication required to fetch users");
       }
       
       // Check admin status before proceeding
       const isAdmin = await checkIsAdmin(user.uid);
+      console.log("Admin status check result:", isAdmin);
+      
       if (!isAdmin) {
         console.warn("Non-admin user attempting to access all users");
         return [];
@@ -114,6 +127,8 @@ export function FirebaseProvider({ children }) {
         name: data.name || data.displayName || "Unknown",
         joinDate: data.createdAt || new Date().toISOString() // Use ISO string for consistency
       }));
+      
+      console.log(`Found ${userArray.length} users`);
       
       // Limit the results if needed
       return userArray.slice(0, limitCount);
@@ -323,19 +338,37 @@ export function FirebaseProvider({ children }) {
     }
   };
 
-  // Improved admin check function
+  // Improved admin check function with more debugging
   const checkIsAdmin = async (userId) => {
     try {
-      if (!userId) return false;
+      if (!userId) {
+        console.log("No userId provided for admin check");
+        return false;
+      }
+      
+      console.log(`Checking admin status for user: ${userId}`);
       
       // First check RTDB for isAdmin flag
       const database = getDatabase();
       const rtdbAdminRef = dbRef(database, `users/${userId}`);
       const rtdbSnapshot = await dbGet(rtdbAdminRef);
       
-      if (rtdbSnapshot.exists() && rtdbSnapshot.val().isAdmin === true) {
-        console.log("Admin confirmed via RTDB");
-        return true;
+      if (rtdbSnapshot.exists()) {
+        const userData = rtdbSnapshot.val();
+        console.log("User data from RTDB:", userData);
+        
+        if (userData.isAdmin === true) {
+          console.log("Admin confirmed via RTDB isAdmin flag");
+          return true;
+        }
+        
+        // Additional checks for admin role or permission
+        if (userData.role === 'admin' || userData.permissions?.admin === true) {
+          console.log("Admin confirmed via RTDB role/permissions");
+          return true;
+        }
+      } else {
+        console.log("User not found in RTDB");
       }
       
       // Then check Firestore adminUsers collection
@@ -344,13 +377,28 @@ export function FirebaseProvider({ children }) {
         const adminDocSnap = await getDoc(adminDocRef);
         
         if (adminDocSnap.exists()) {
-          console.log("Admin confirmed via Firestore");
+          console.log("Admin confirmed via Firestore adminUsers collection");
           return true;
+        } else {
+          console.log("User not found in Firestore adminUsers collection");
+        }
+        
+        // Try alternative admin collections
+        const altCollections = ['admins', 'administrators', 'admin'];
+        for (const collection of altCollections) {
+          const altAdminDocRef = doc(db, collection, userId);
+          const altAdminDocSnap = await getDoc(altAdminDocRef);
+          
+          if (altAdminDocSnap.exists()) {
+            console.log(`Admin confirmed via Firestore ${collection} collection`);
+            return true;
+          }
         }
       } catch (firestoreError) {
         console.warn("Error checking admin status in Firestore:", firestoreError);
       }
       
+      console.log("User is not an admin");
       return false;
     } catch (error) {
       console.error("Error checking admin status:", error);
@@ -440,4 +488,16 @@ export function FirebaseProvider({ children }) {
 // Custom hook to use the Firebase context
 export function useFirebase() {
   return useContext(FirebaseContext);
+}
+
+// Add a new useAuth hook to easily access authentication state
+export function useAuth() {
+  const context = useContext(FirebaseContext);
+  if (!context) {
+    throw new Error('useAuth must be used within a FirebaseProvider');
+  }
+  return {
+    currentUser: context.user,
+    loading: context.loading
+  };
 }
