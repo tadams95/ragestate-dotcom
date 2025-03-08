@@ -10,7 +10,7 @@ const fetchUserPurchases = async (firestore, userId) => {
     const querySnapshot = await getDocs(purchasesRef);
     return querySnapshot.docs.map((doc) => ({
       id: doc.id,
-      ...doc.data()
+      ...doc.data(),
     }));
   } catch (error) {
     console.error("Error fetching user purchases: ", error);
@@ -44,10 +44,11 @@ export default function OrderHistory() {
             let dateObj;
             try {
               // Try to use dateTime (legacy) or orderDate/createdAt (new format)
-              const dateField = purchase.dateTime || purchase.orderDate || purchase.createdAt;
-              
+              const dateField =
+                purchase.dateTime || purchase.orderDate || purchase.createdAt;
+
               // Handle Firestore timestamp objects
-              if (dateField && typeof dateField.toDate === 'function') {
+              if (dateField && typeof dateField.toDate === "function") {
                 dateObj = dateField.toDate();
               } else if (dateField) {
                 // Handle if it's already a Date or can be parsed as one
@@ -56,7 +57,7 @@ export default function OrderHistory() {
                 console.warn("No valid date found for purchase:", purchase);
                 dateObj = new Date(); // Use current date as fallback
               }
-              
+
               // Verify it's a valid date object
               if (isNaN(dateObj.getTime())) {
                 console.warn("Invalid date from purchase:", purchase);
@@ -69,27 +70,38 @@ export default function OrderHistory() {
 
             // Handle both cartItems (legacy) and items (new format)
             const itemsArray = purchase.cartItems || purchase.items || [];
-            
+
             // Use order number if available, otherwise fallback to legacy ID format
-            const orderId = purchase.orderNumber || purchase.id || `ORDER-${index + 1}`;
-            
+            const orderId =
+              purchase.orderNumber || purchase.id || `ORDER-${index + 1}`;
+
             return {
               id: orderId,
               date: dateObj.toLocaleDateString(),
               dateObj: dateObj,
               timestamp: dateObj.getTime(),
-              total: purchase.total || purchase.totalAmount ? 
-                    `$${typeof purchase.total === 'string' ? purchase.total : 
-                      typeof purchase.totalAmount === 'string' ? purchase.totalAmount : 
-                      (parseFloat(purchase.total || purchase.totalAmount || 0).toFixed(2))}` : 
-                    "N/A",
+              total:
+                purchase.total || purchase.totalAmount
+                  ? `$${
+                      typeof purchase.total === "string"
+                        ? purchase.total
+                        : typeof purchase.totalAmount === "string"
+                        ? purchase.totalAmount
+                        : parseFloat(
+                            purchase.total || purchase.totalAmount || 0
+                          ).toFixed(2)
+                    }`
+                  : "N/A",
               status: purchase.status || "Completed",
               items: itemsArray.map((item, itemIdx) => ({
                 id: `ITEM-${orderId}-${itemIdx}`,
                 name: item.title,
                 price: `$${parseFloat(item.price || 0).toFixed(2)}`,
                 quantity: item.quantity || 1,
-                image: item.productImageSrc || item.image || "/assets/placeholder-product.jpg",
+                image:
+                  item.productImageSrc ||
+                  item.image ||
+                  "/assets/placeholder-product.jpg",
                 color: item.color,
                 size: item.size,
               })),
@@ -186,15 +198,7 @@ export default function OrderHistory() {
                   </p>
                 </div>
                 <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    order.status === "Delivered"
-                      ? "bg-green-100 text-green-800"
-                      : order.status === "Processing"
-                      ? "bg-gray-100 text-gray-800"
-                      : order.status === "Completed"
-                      ? "bg-green-100 text-green-800"
-                      : "bg-red-100 text-red-800"
-                  }`}
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium `}
                 >
                   {order.status}
                 </span>

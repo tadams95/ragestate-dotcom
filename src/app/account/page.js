@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   UserCircleIcon,
@@ -16,6 +16,7 @@ import Footer from "../components/Footer";
 import Header from "../components/Header";
 import Image from "next/image";
 import styles from './account.module.css';
+import uploadImage from "../../../firebase/util/uploadImage";
 
 export default function Account() {
   const router = useRouter();
@@ -28,6 +29,10 @@ export default function Account() {
   const [lastName, setLastName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [isQrBlurred, setIsQrBlurred] = useState(true);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const fileInputRef = useRef(null);
 
   const inputStyling = "block w-full bg-black pl-2 rounded-md border-2 py-1.5 px-1 text-gray-100 shadow-sm ring-1 ring-inset ring-gray-700 placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-red-500 sm:text-sm sm:leading-6";
   const buttonStyling = "flex justify-center rounded-md bg-transparent px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 border-2 border-gray-100 transition-all duration-200";
@@ -73,6 +78,36 @@ export default function Account() {
     ),
     [profilePicture]
   );
+
+  const handleImageUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadProgress(0);
+    setUploadError("");
+
+    try {
+      const imageUrl = await uploadImage(
+        file, 
+        userId, 
+        (progress) => setUploadProgress(progress),
+        (error) => setUploadError(error.message)
+      );
+      
+      setProfilePicture(imageUrl);
+      setIsUploading(false);
+      setUploadProgress(0);
+    } catch (error) {
+      console.error("Image upload failed:", error);
+      setUploadError(error.message || "Upload failed");
+      setIsUploading(false);
+    }
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
 
   // Define tab components
   const tabComponents = {
@@ -166,13 +201,45 @@ export default function Account() {
                     height={120}
                     className="rounded-md border-2 border-gray-300 object-cover w-[120px] h-[120px]"
                   />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-white text-sm">Change Photo</span>
-                  </div>
+                  {isUploading && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-70 rounded-md">
+                      <div className="w-16 h-16 relative mb-2">
+                        <svg className="animate-spin h-full w-full text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span className="absolute inset-0 flex items-center justify-center text-white font-bold text-sm">
+                          {uploadProgress}%
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  {!isUploading && (
+                    <div 
+                      className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-md opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                      onClick={triggerFileInput}
+                    >
+                      <span className="text-white text-sm">Change Photo</span>
+                    </div>
+                  )}
                 </div>
-                <button className="mt-3 text-sm text-red-500 hover:text-red-400 font-medium">
-                  Upload Image
+                <input 
+                  type="file" 
+                  ref={fileInputRef}
+                  accept="image/*" 
+                  onChange={handleImageUpload} 
+                  className="hidden" 
+                />
+                <button 
+                  onClick={triggerFileInput}
+                  disabled={isUploading}
+                  className={`mt-3 text-sm ${isUploading ? 'text-gray-500' : 'text-red-500 hover:text-red-400'} font-medium`}
+                >
+                  {isUploading ? 'Uploading...' : 'Upload Image'}
                 </button>
+                {uploadError && (
+                  <p className="text-sm text-red-500 mt-1">{uploadError}</p>
+                )}
               </div>
             </div>
             

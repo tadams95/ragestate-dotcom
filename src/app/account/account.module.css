@@ -2,21 +2,26 @@
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none; /* Firefox */
-  scrollbar-color: #52525b transparent;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 0, 0, 0.3) rgba(0, 0, 0, 0.1);
   -ms-overflow-style: none;
 }
 
 .tabScroll::-webkit-scrollbar {
+  height: 6px;
   display: none; /* Chrome, Safari, Edge */
-  height: 8px;
 }
 
 .tabScroll::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
 }
 
 .tabScroll::-webkit-scrollbar-thumb {
-  background: #52525b;
-  border-radius: 4px;
+  background-color: rgba(255, 0, 0, 0.3);
+  border-radius: 3px;
+}
+
+.tabScroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 0, 0, 0.5);
 }

@@ -1,7 +1,11 @@
 // firebase.js
 
 import { initializeApp } from "firebase/app";
-import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
+import {
+  getAuth,
+  setPersistence,
+  browserLocalPersistence,
+} from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getDatabase } from "firebase/database";
 import { getStorage } from "firebase/storage";
@@ -13,7 +17,7 @@ const firebaseConfig = {
   authDomain: process.env.authDomain,
   databaseURL: process.env.databaseURL,
   projectId: "ragestate-app",
-  storageBucket: process.env.storageBucket,
+  storageBucket: "ragestate-app.appspot.com",
   messagingSenderId: process.env.messagingSenderId,
   appId: process.env.appId,
   measurementId: process.env.measurementId,
@@ -25,10 +29,9 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
 // Set persistence to local (survives browser refresh)
-setPersistence(auth, browserLocalPersistence)
-  .catch((error) => {
-    console.error("Auth persistence error:", error);
-  });
+setPersistence(auth, browserLocalPersistence).catch((error) => {
+  console.error("Auth persistence error:", error);
+});
 
 // Initialize Firebase Firestore
 const db = getFirestore(app);
