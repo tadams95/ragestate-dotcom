@@ -130,6 +130,18 @@ export default function AdminPage() {
     </div>
   );
 
+  const [currentUserPage, setCurrentUserPage] = useState(1);
+  const usersPerPage = 10; // Show 10 users per page
+
+  // Inside the AdminPage component - add this function
+  const handleUserPageChange = (direction) => {
+    if (direction === "next" && currentUserPage * usersPerPage < userCount) {
+      setCurrentUserPage(currentUserPage + 1);
+    } else if (direction === "prev" && currentUserPage > 1) {
+      setCurrentUserPage(currentUserPage - 1);
+    }
+  };
+
   // Common styling
   const buttonStyling =
     "flex justify-center rounded-md bg-transparent px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 border-2 border-gray-100 transition-all duration-200";
@@ -653,78 +665,101 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-700">
-                    {users.map((user) => (
-                      <tr
-                        key={user.id}
-                        className="hover:bg-gray-800/30 transition-colors"
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-300">
-                          {user.id.substring(0, 12)}...
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                    {users
+                      .slice(
+                        (currentUserPage - 1) * usersPerPage,
+                        currentUserPage * usersPerPage
+                      )
+                      .map((user) => (
+                        <tr
+                          key={user.id}
+                          className="hover:bg-gray-800/30 transition-colors"
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-300">
+                            {user.id.substring(0, 12)}...
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                             {user.firstName && user.lastName
                               ? `${user.firstName} ${user.lastName}`
                               : user.displayName || "Unknown Name"}
                           </td>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                          {user.email || "No Email"}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                          {formatDate(
-                            new Date(user.joinDate || user.createdAt || "")
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                              user.isAdmin
-                                ? "bg-purple-500/20 text-purple-500"
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                            {user.email || "No Email"}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                            {formatDate(
+                              new Date(user.joinDate || user.createdAt || "")
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span
+                              className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                user.isAdmin
+                                  ? "bg-purple-500/20 text-purple-500"
+                                  : user.disabled
+                                  ? "bg-red-500/20 text-red-500"
+                                  : "bg-green-500/20 text-green-500"
+                              }`}
+                            >
+                              {user.isAdmin
+                                ? "Admin"
                                 : user.disabled
-                                ? "bg-red-500/20 text-red-500"
-                                : "bg-green-500/20 text-green-500"
-                            }`}
-                          >
-                            {user.isAdmin
-                              ? "Admin"
-                              : user.disabled
-                              ? "Disabled"
-                              : "Active"}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <button
-                            onClick={() => alert(`View user ${user.id}`)}
-                            className="text-red-500 hover:text-red-400 mr-3"
-                          >
-                            View
-                          </button>
-                          <button
-                            onClick={() => alert(`Edit user ${user.id}`)}
-                            className="text-blue-500 hover:text-blue-400"
-                          >
-                            Edit
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                                ? "Disabled"
+                                : "Active"}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <button
+                              onClick={() => alert(`View user ${user.id}`)}
+                              className="text-red-500 hover:text-red-400 mr-3"
+                            >
+                              View
+                            </button>
+                            <button
+                              onClick={() => alert(`Edit user ${user.id}`)}
+                              className="text-blue-500 hover:text-blue-400"
+                            >
+                              Edit
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               </div>
               <div className="px-6 py-3 flex items-center justify-between border-t border-gray-700">
                 <div className="text-sm text-gray-400">
-                  Showing <span className="font-medium">1</span> to{" "}
+                  Showing{" "}
                   <span className="font-medium">
-                    {Math.min(users.length, 10)}
+                    {(currentUserPage - 1) * usersPerPage + 1}
+                  </span>{" "}
+                  to{" "}
+                  <span className="font-medium">
+                    {Math.min(currentUserPage * usersPerPage, userCount)}
                   </span>{" "}
                   of <span className="font-medium">{userCount}</span> users
                 </div>
                 <div className="flex space-x-2">
-                  <button className="px-3 py-1 border border-gray-600 rounded-md text-gray-300 hover:bg-gray-700">
+                  <button
+                    onClick={() => handleUserPageChange("prev")}
+                    disabled={currentUserPage === 1}
+                    className={`px-3 py-1 border border-gray-600 rounded-md text-gray-300 hover:bg-gray-700 ${
+                      currentUserPage === 1
+                        ? "opacity-50 cursor-not-allowed"
+                        : ""
+                    }`}
+                  >
                     Previous
                   </button>
-                  <button className="px-3 py-1 border border-gray-600 rounded-md text-gray-300 hover:bg-gray-700">
+                  <button
+                    onClick={() => handleUserPageChange("next")}
+                    disabled={currentUserPage * usersPerPage >= userCount}
+                    className={`px-3 py-1 border border-gray-600 rounded-md text-gray-300 hover:bg-gray-700 ${
+                      currentUserPage * usersPerPage >= userCount
+                        ? "opacity-50 cursor-not-allowed"
+                        : ""
+                    }`}
+                  >
                     Next
                   </button>
                 </div>
