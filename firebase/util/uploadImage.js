@@ -1,8 +1,10 @@
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { getFirestore, doc, updateDoc } from "firebase/firestore";
+import { getDatabase, ref as dbRef, update } from "firebase/database";
 
 /**
  * Uploads an image file to Firebase Storage and updates the user's profile
+ * in both Firestore and Realtime Database
  * 
  * @param {File} file - The image file to upload
  * @param {string} userId - The user's Firebase ID
@@ -39,10 +41,15 @@ export default async function uploadImage(file, userId, onProgress, onError) {
 
       const storage = getStorage();
       const firestore = getFirestore();
+      const database = getDatabase();
       
-      // Create a storage reference
+      // Create a storage reference with timestamp to avoid cache issues
       const timestamp = new Date().getTime();
-      const storageRef = ref(storage, `profilePictures/${userId}/${timestamp}_${file.name}`);
+      const fileExtension = file.name.split('.').pop();
+      const fileName = `profile_${timestamp}.${fileExtension}`;
+      const storageRef = ref(storage, `profilePictures/${userId}/${fileName}`);
+      
+      console.log("Starting upload to:", storageRef.fullPath);
       
       // Upload the file
       const uploadTask = uploadBytesResumable(storageRef, file);
@@ -52,6 +59,7 @@ export default async function uploadImage(file, userId, onProgress, onError) {
         // Progress handler
         (snapshot) => {
           const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+          console.log(`Upload progress: ${progress}%`);
           if (onProgress) onProgress(progress);
         },
         // Error handler
@@ -65,20 +73,69 @@ export default async function uploadImage(file, userId, onProgress, onError) {
           try {
             // Get download URL
             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            console.log('File available at', downloadURL);
+            console.log('File uploaded successfully. Available at:', downloadURL);
             
-            // Update user's document in Firestore
-            const userRef = doc(firestore, "customers", userId);
-            await updateDoc(userRef, {
-              profilePicture: downloadURL
-            });
+            // Batch updates to both databases
+            const updates = [];
             
-            // Update local storage
-            localStorage.setItem("profilePicture", downloadURL);
+            // 1. Update Firestore - Also update firstName, lastName if available
+            try {
+              const userRef = doc(firestore, "customers", userId);
+              const updateData = {
+                profilePicture: downloadURL,
+                lastUpdated: new Date().toISOString()
+              };
+              
+              // If we have first and last name in localStorage, also update those
+              // This ensures Firestore has complete user data
+              const firstName = localStorage.getItem("firstName");
+              const lastName = localStorage.getItem("lastName");
+              
+              if (firstName) updateData.firstName = firstName;
+              if (lastName) updateData.lastName = lastName;
+              
+              await updateDoc(userRef, updateData);
+              console.log("Firestore updated with new profile picture");
+              updates.push("Firestore");
+            } catch (err) {
+              console.error("Error updating Firestore:", err);
+              // Continue with other updates even if this fails
+            }
             
+            // 2. Update Realtime Database
+            try {
+              const userRtDbRef = dbRef(database, `${userId}`);
+              await update(userRtDbRef, {
+                profilePicture: downloadURL,
+                lastUpdated: new Date().toISOString()
+              });
+              console.log("Realtime Database updated with new profile picture");
+              updates.push("Realtime Database");
+            } catch (err) {
+              console.error("Error updating Realtime Database:", err);
+              // Continue with localStorage even if this fails
+            }
+            
+            // 3. Update localStorage
+            try {
+              localStorage.setItem("profilePicture", downloadURL);
+              console.log("localStorage updated with new profile picture");
+              updates.push("localStorage");
+            } catch (err) {
+              console.error("Error updating localStorage:", err);
+            }
+            
+            if (updates.length === 0) {
+              const error = new Error("Failed to update profile picture in any database");
+              if (onError) onError(error);
+              reject(error);
+              return;
+            }
+            
+            console.log(`Profile picture successfully updated in: ${updates.join(", ")}`);
             resolve(downloadURL);
           } catch (error) {
-            console.error("Error getting download URL:", error);
+            console.error("Error in final upload processing:", error);
             if (onError) onError(error);
             reject(error);
           }

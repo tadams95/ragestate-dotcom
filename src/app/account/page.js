@@ -17,6 +17,7 @@ import Header from "../components/Header";
 import Image from "next/image";
 import styles from './account.module.css';
 import uploadImage from "../../../firebase/util/uploadImage";
+import { getUserFromFirestore } from "../../../firebase/util/getUserData";
 
 export default function Account() {
   const router = useRouter();
@@ -33,16 +34,80 @@ export default function Account() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const fileInputRef = useRef(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const inputStyling = "block w-full bg-black pl-2 rounded-md border-2 py-1.5 px-1 text-gray-100 shadow-sm ring-1 ring-inset ring-gray-700 placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-red-500 sm:text-sm sm:leading-6";
   const buttonStyling = "flex justify-center rounded-md bg-transparent px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 border-2 border-gray-100 transition-all duration-200";
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const storedUserId = localStorage.getItem("userId");
+    async function fetchUserData() {
+      if (typeof window !== "undefined") {
+        const storedUserId = localStorage.getItem("userId");
+        
+        if (storedUserId) {
+          setUserId(storedUserId);
+          
+          // Try to get user data from Firestore first
+          try {
+            setIsLoading(true);
+            const userData = await getUserFromFirestore(storedUserId);
+            
+            if (userData) {
+              console.log("Fetched user data from Firestore:", userData);
+              
+              // Update state with Firestore data
+              if (userData.profilePicture) {
+                setProfilePicture(userData.profilePicture);
+                localStorage.setItem("profilePicture", userData.profilePicture);
+              }
+              
+              const fullName = [userData.firstName || '', userData.lastName || ''].filter(Boolean).join(' ');
+              if (fullName) {
+                setUserName(fullName);
+                localStorage.setItem("userName", fullName);
+              }
+              
+              if (userData.firstName) setFirstName(userData.firstName);
+              if (userData.lastName) setLastName(userData.lastName);
+              
+              if (userData.email) {
+                setUserEmail(userData.email);
+                localStorage.setItem("userEmail", userData.email);
+              }
+              
+              if (userData.phoneNumber) {
+                setPhoneNumber(userData.phoneNumber);
+                localStorage.setItem("phoneNumber", userData.phoneNumber);
+              }
+            } else {
+              // Fall back to localStorage if no Firestore data
+              fallbackToLocalStorage();
+            }
+          } catch (error) {
+            console.error("Error fetching user data from Firestore:", error);
+            // Fall back to localStorage on error
+            fallbackToLocalStorage();
+          } finally {
+            setIsLoading(false);
+          }
+        } else {
+          fallbackToLocalStorage();
+          setIsLoading(false);
+        }
+      }
+    }
+    
+    function fallbackToLocalStorage() {
+      console.log("Using localStorage data as fallback");
       const storedProfilePicture = localStorage.getItem("profilePicture");
       const storedUserName = localStorage.getItem("userName") || localStorage.getItem("name");
       const storedUserEmail = localStorage.getItem("userEmail") || localStorage.getItem("email");
+      const storedPhoneNumber = localStorage.getItem("phoneNumber");
+      
+      setProfilePicture(storedProfilePicture || "");
+      setUserName(storedUserName || "User");
+      setUserEmail(storedUserEmail || "");
+      setPhoneNumber(storedPhoneNumber || "");
       
       // Split name into first and last if available
       if (storedUserName) {
@@ -50,13 +115,9 @@ export default function Account() {
         setFirstName(nameParts[0] || "");
         setLastName(nameParts.length > 1 ? nameParts.slice(1).join(' ') : "");
       }
-
-      setUserId(storedUserId || "");
-      setProfilePicture(storedProfilePicture || "");
-      setUserName(storedUserName || "User");
-      setUserEmail(storedUserEmail || "");
-      setPhoneNumber(localStorage.getItem("phoneNumber") || "");
     }
+    
+    fetchUserData();
   }, []);
 
   const handleLogout = (event) => {
@@ -95,12 +156,17 @@ export default function Account() {
         (error) => setUploadError(error.message)
       );
       
+      // Update local state with the new profile picture URL
       setProfilePicture(imageUrl);
+      
+      // Success message/toast could be added here
+      console.log("Profile picture updated successfully");
+      
       setIsUploading(false);
       setUploadProgress(0);
     } catch (error) {
       console.error("Image upload failed:", error);
-      setUploadError(error.message || "Upload failed");
+      setUploadError(error.message || "Upload failed. Please try again.");
       setIsUploading(false);
     }
   };
@@ -475,87 +541,94 @@ export default function Account() {
     <div className="bg-black min-h-screen">
       <Header />
 
-      <main className="flex-grow ">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-16 pb-24">
-          <div className="max-w-4xl mx-auto">
-            {/* Profile Header with User Info */}
-            <div className="flex flex-col items-center mb-8">
-              <div className="flex justify-center mt-6 mb-4">
-                <img 
-                  src="/assets/RSLogo2.png" 
-                  alt="RAGESTATE" 
-                  className="h-14 w-auto" 
-                />
+      <main className="flex-grow">
+        {isLoading ? (
+          <div className="flex justify-center items-center h-[70vh]">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-500"></div>
+          </div>
+        ) : (
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-16 pb-24">
+            {/* Rest of the component remains the same */}
+            <div className="max-w-4xl mx-auto">
+              {/* Profile Header with User Info */}
+              <div className="flex flex-col items-center mb-8">
+                <div className="flex justify-center mt-6 mb-4">
+                  <img 
+                    src="/assets/RSLogo2.png" 
+                    alt="RAGESTATE" 
+                    className="h-14 w-auto" 
+                  />
+                </div>
+                <h1 className="text-3xl font-bold leading-tight text-white text-center">
+                  {userName}'s Account
+                </h1>
+                <p className="mt-2 text-gray-400 text-center max-w-2xl">
+                  Manage your profile, view your QR code, and update your account settings.
+                </p>
               </div>
-              <h1 className="text-3xl font-bold leading-tight text-white text-center">
-                {userName}'s Account
-              </h1>
-              <p className="mt-2 text-gray-400 text-center max-w-2xl">
-                Manage your profile, view your QR code, and update your account settings.
-              </p>
-            </div>
 
-            {/* Account Navigation Tabs */}
-            <div className="mt-6 mb-8">
-              <div className="border-b border-zinc-700">
-                <div className={styles.tabScroll}>
-                  <nav className="-mb-px flex space-x-8 min-w-max px-1 justify-center" aria-label="Tabs">
-                    <button
-                      onClick={() => setActiveTab("profile")}
-                      className={`${
-                        activeTab === "profile"
-                          ? "border-red-700 text-red-500"
-                          : "border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300"
-                      } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm flex items-center flex-shrink-0`}
-                    >
-                      <UserCircleIcon className="h-5 w-5 mr-2" aria-hidden="true" />
-                      Profile
-                    </button>
-                    <button
-                      onClick={() => setActiveTab("orders")}
-                      className={`${
-                        activeTab === "orders"
-                          ? "border-red-700 text-red-500"
-                          : "border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300"
-                      } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm flex items-center flex-shrink-0`}
-                    >
-                      <ShoppingBagIcon
-                        className="h-5 w-5 mr-2"
-                        aria-hidden="true"
-                      />
-                      Order History
-                    </button>
-                    <button
-                      onClick={() => setActiveTab("qrcode")}
-                      className={`${
-                        activeTab === "qrcode"
-                          ? "border-red-700 text-red-500"
-                          : "border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300"
-                      } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm flex items-center flex-shrink-0`}
-                    >
-                      <QrCodeIcon className="h-5 w-5 mr-2" aria-hidden="true" />
-                      QR Code
-                    </button>
-                    <button
-                      onClick={() => setActiveTab("settings")}
-                      className={`${
-                        activeTab === "settings"
-                          ? "border-red-700 text-red-500"
-                          : "border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300"
-                      } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm flex items-center flex-shrink-0`}
-                    >
-                      <Cog6ToothIcon className="h-5 w-5 mr-2" aria-hidden="true" />
-                      Settings
-                    </button>
-                  </nav>
+              {/* Account Navigation Tabs */}
+              <div className="mt-6 mb-8">
+                <div className="border-b border-zinc-700">
+                  <div className={styles.tabScroll}>
+                    <nav className="-mb-px flex space-x-8 min-w-max px-1 justify-center" aria-label="Tabs">
+                      <button
+                        onClick={() => setActiveTab("profile")}
+                        className={`${
+                          activeTab === "profile"
+                            ? "border-red-700 text-red-500"
+                            : "border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300"
+                        } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm flex items-center flex-shrink-0`}
+                      >
+                        <UserCircleIcon className="h-5 w-5 mr-2" aria-hidden="true" />
+                        Profile
+                      </button>
+                      <button
+                        onClick={() => setActiveTab("orders")}
+                        className={`${
+                          activeTab === "orders"
+                            ? "border-red-700 text-red-500"
+                            : "border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300"
+                        } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm flex items-center flex-shrink-0`}
+                      >
+                        <ShoppingBagIcon
+                          className="h-5 w-5 mr-2"
+                          aria-hidden="true"
+                        />
+                        Order History
+                      </button>
+                      <button
+                        onClick={() => setActiveTab("qrcode")}
+                        className={`${
+                          activeTab === "qrcode"
+                            ? "border-red-700 text-red-500"
+                            : "border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300"
+                        } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm flex items-center flex-shrink-0`}
+                      >
+                        <QrCodeIcon className="h-5 w-5 mr-2" aria-hidden="true" />
+                        QR Code
+                      </button>
+                      <button
+                        onClick={() => setActiveTab("settings")}
+                        className={`${
+                          activeTab === "settings"
+                            ? "border-red-700 text-red-500"
+                            : "border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300"
+                        } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm flex items-center flex-shrink-0`}
+                      >
+                        <Cog6ToothIcon className="h-5 w-5 mr-2" aria-hidden="true" />
+                        Settings
+                      </button>
+                    </nav>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Tab Content */}
-            <div className="mb-16">{tabComponents[activeTab]}</div>
+              {/* Tab Content */}
+              <div className="mb-16">{tabComponents[activeTab]}</div>
+            </div>
           </div>
-        </div>
+        )}
       </main>
 
       <Footer />
