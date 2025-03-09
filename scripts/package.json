@@ -1,0 +1,13 @@
+{
+  "name": "ragestate-db-migration",
+  "version": "1.0.0",
+  "description": "Migration scripts for RAGESTATE database",
+  "type": "module",
+  "scripts": {
+    "migrate:dry": "node migrateUsersToFirestore.js",
+    "migrate:live": "node migrateUsersToFirestore.js --live"
+  },
+  "dependencies": {
+    "firebase-admin": "^11.10.1"
+  }
+}
