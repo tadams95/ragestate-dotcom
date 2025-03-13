@@ -1,28 +1,14 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
-import { auth } from "../../../firebase/firebase";
 import { loginSuccess } from "../../../lib/features/todos/authSlice";
-import { setAuthenticated } from "../../../lib/features/todos/userSlice";
-import { signInWithEmailAndPassword } from "firebase/auth";
-
-import {
-  setLocalId,
-  setUserName,
-  setUserEmail,
-  selectUserName,
-  setStripeCustomerId,
-} from "../../../lib/features/todos/userSlice";
-
-import { getDatabase, ref as databaseRef, get } from "firebase/database";
-
+import { setAuthenticated, setUserName } from "../../../lib/features/todos/userSlice";
 import { useRouter } from "next/navigation";
-import { useDispatch, useSelector } from "react-redux";
-
+import { useDispatch } from "react-redux";
 import Link from "next/link";
 import Header from "../components/Header";
-import RandomDetailStyling from "../components/styling/RandomDetailStyling";
 import Footer from "../components/Footer";
+import { loginUser } from "../../../lib/utils/auth";
 
 const API_URL =
   "https://us-central1-ragestate-app.cloudfunctions.net/stripePayment";
@@ -30,7 +16,6 @@ const API_URL =
 export default function Login() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const userName = useSelector(selectUserName);
   const [error, setError] = useState(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -49,98 +34,65 @@ export default function Login() {
     event.preventDefault();
     setIsAuthenticating(true);
 
-    const db = getDatabase();
-
     try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      const { user, userData } = await loginUser(email, password, dispatch);
 
-      // // Extract necessary data from userCredential
-      const idToken = userCredential._tokenResponse.idToken; // Access idToken from _tokenResponse
-      const refreshToken = userCredential._tokenResponse.refreshToken; // Access refreshToken directly
-      const userEmail = userCredential.user.email;
-      const userId = userCredential.user.uid;
-
-      // Dispatch loginSuccess action with user information and tokens
+      // Handle authentication state
       dispatch(
         loginSuccess({
-          userId: userCredential.user.uid,
-          email: userCredential.user.email,
-          idToken: userCredential._tokenResponse.idToken,
-          refreshToken: userCredential._tokenResponse.refreshToken,
+          userId: user.uid,
+          email: user.email,
+          idToken: user.stsTokenManager.accessToken,
+          refreshToken: user.stsTokenManager.refreshToken,
         })
       );
 
-      // Save tokens to local storage
-      localStorage.setItem("idToken", idToken);
-      localStorage.setItem("refreshToken", refreshToken);
-      localStorage.setItem("email", userEmail);
-      localStorage.setItem("userId", userId);
+      // Save auth data to local storage
+      localStorage.setItem("idToken", user.stsTokenManager.accessToken);
+      localStorage.setItem("refreshToken", user.stsTokenManager.refreshToken);
+      localStorage.setItem("email", user.email);
+      localStorage.setItem("userId", user.uid);
 
-      const userRef = databaseRef(db, `users/${userId}`);
-      get(userRef)
-        .then((snapshot) => {
-          if (snapshot.exists()) {
-            // Extract the user's name and profile picture URL from the snapshot data
-            const userData = snapshot.val();
-            const name = userData.firstName + " " + userData.lastName;
+      // Set user name if available
+      if (userData) {
+        const name = `${userData.firstName} ${userData.lastName}`;
+        dispatch(setUserName(name));
+        localStorage.setItem("name", name);
+        localStorage.setItem("profilePicture", userData.profilePicture || "/assets/trollface.png");
+      }
 
-            // Dispatch the setUserName action with the fetched user name
-            dispatch(setUserName(name));
-            localStorage.setItem("name", name);
-            if (userData.profilePicture) {
-              localStorage.setItem("profilePicture", userData.profilePicture);
-            } else {
-              localStorage.setItem("profilePicture", "/assets/trollface.png");
-            }
-          } else {
-            // console.log("No data available");
-          }
-        })
-        .catch((error) => {
-          console.error("Error fetching user data:", error);
-          setError(error);
-        });
-
+      // Create or get Stripe customer
       const stripeCustomerResponse = await fetch(`${API_URL}/create-customer`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: email,
-          name: userName,
-          firebaseId: userId,
+          email: user.email,
+          name: userData?.displayName || "",
+          firebaseId: user.uid,
         }),
       });
 
       if (!stripeCustomerResponse.ok) {
-        // Log response status and error message if available
-        console.error(
-          "Failed to create Stripe customer. Status:",
-          stripeCustomerResponse.status
-        );
+        console.error("Failed to create Stripe customer. Status:", stripeCustomerResponse.status);
         const errorMessage = await stripeCustomerResponse.text();
         console.error("Error Message:", errorMessage);
-        throw new Error("Failed to create Stripe customer");
+      } else {
+        const stripeCustomerData = await stripeCustomerResponse.json();
+        localStorage.setItem("stripeCustomerData", stripeCustomerData);
       }
 
-      const stripeCustomerData = await stripeCustomerResponse.json();
-
-      localStorage.setItem("stripeCustomerData", stripeCustomerData);
-
-      // console.log(stripeCustomerData);
       setEmail("");
       setPassword("");
       dispatch(setAuthenticated(true));
       setIsAuthenticating(false);
-      router.back(); // Navigate back after successful login
+      router.back();
+      
     } catch (error) {
       console.error("Error signing in:", error.message);
-      // Handle login failure
+      setError(error.message);
+      setIsAuthenticating(false);
     }
   };
 

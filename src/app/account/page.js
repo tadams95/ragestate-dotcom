@@ -18,6 +18,7 @@ import Image from "next/image";
 import styles from './account.module.css';
 import uploadImage from "../../../firebase/util/uploadImage";
 import { getUserFromFirestore } from "../../../firebase/util/getUserData";
+import { logoutUser, updateUserData } from "../../../lib/utils/auth";
 
 export default function Account() {
   const router = useRouter();
@@ -120,10 +121,33 @@ export default function Account() {
     fetchUserData();
   }, []);
 
-  const handleLogout = (event) => {
+  const handleLogout = async (event) => {
     event.preventDefault();
-    localStorage.clear();
-    router.push("/login");
+    const result = await logoutUser();
+    if (result.success) {
+      router.push("/login");
+    } else {
+      console.error("Logout failed:", result.message);
+    }
+  };
+
+  const handleProfileUpdate = async (event) => {
+    event.preventDefault();
+    const updatedData = {
+      firstName,
+      lastName,
+      phoneNumber,
+      email: userEmail
+    };
+    
+    const result = await updateUserData(userId, updatedData);
+    if (result.success) {
+      // Show success message
+      alert("Profile updated successfully!");
+    } else {
+      // Show error message
+      alert(result.message || "Failed to update profile");
+    }
   };
 
   const profileImage = useMemo(
@@ -185,7 +209,7 @@ export default function Account() {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-8 items-start">
           {/* Profile Info Form */}
           <div className="md:col-span-3">
-            <form className="space-y-6">
+            <form className="space-y-6" onSubmit={handleProfileUpdate}>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
                   <label htmlFor="firstName" className="block text-sm font-medium text-gray-300">
@@ -245,9 +269,8 @@ export default function Account() {
 
               <div className="pt-4">
                 <button
-                  type="button"
+                  type="submit"
                   className={buttonStyling}
-                  onClick={() => alert("Profile updated!")}
                 >
                   Save Changes
                 </button>
