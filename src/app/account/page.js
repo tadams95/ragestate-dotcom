@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   UserCircleIcon,
   ShoppingBagIcon,
   Cog6ToothIcon,
   QrCodeIcon,
+  TicketIcon,
 } from "@heroicons/react/24/outline";
 
 import QRCode from "qrcode.react";
@@ -19,6 +20,13 @@ import styles from "./account.module.css";
 import uploadImage from "../../../firebase/util/uploadImage";
 import { getUserFromFirestore } from "../../../firebase/util/getUserData";
 import { logoutUser, updateUserData } from "../../../lib/utils/auth";
+import {
+  collection,
+  getDocs,
+  getFirestore,
+  query,
+  where,
+} from "firebase/firestore";
 
 export default function Account() {
   const router = useRouter();
@@ -36,6 +44,8 @@ export default function Account() {
   const [uploadError, setUploadError] = useState("");
   const fileInputRef = useRef(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [tickets, setTickets] = useState([]);
+  const [loadingTickets, setLoadingTickets] = useState(false);
 
   const inputStyling =
     "block w-full bg-black pl-2 rounded-md border py-1.5 px-1 text-gray-100 shadow-sm placeholder:text-gray-500 appearance-none focus:outline-none focus:ring-2 focus:ring-red-700 sm:text-sm sm:leading-6";
@@ -45,11 +55,14 @@ export default function Account() {
 
   // Common card styling with hover effects matching about page and event details
   const cardStyling =
-    "bg-gray-900/50 p-5 rounded-lg border border-gray-800 shadow-md hover:border-red-500/30 transition-all duration-300";
+    "bg-tranparent p-5 rounded-lg border border-gray-800 shadow-md hover:border-red-500/30 transition-all duration-300";
 
   // Main container styling with hover effects
   const containerStyling =
     "bg-gray-900/30 p-6 rounded-lg border border-gray-800 hover:border-red-500/30 transition-all duration-300 shadow-xl";
+
+  const eventCardStyling =
+    "bg-transparent p-2  rounded-lg  shadow-md hover:border-red-500/30 transition-all duration-300";
 
   useEffect(() => {
     async function fetchUserData() {
@@ -168,20 +181,6 @@ export default function Account() {
     }
   };
 
-  const profileImage = useMemo(
-    () => (
-      <Image
-        priority
-        alt="ProfilePicture"
-        src={profilePicture || "/assets/user.png"}
-        className="h-8 w-8 rounded-md object-cover"
-        width={32}
-        height={32}
-      />
-    ),
-    [profilePicture]
-  );
-
   const handleImageUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -216,6 +215,166 @@ export default function Account() {
   const triggerFileInput = () => {
     fileInputRef.current?.click();
   };
+
+  // Fetch user tickets function
+  const fetchUserTickets = useCallback(async () => {
+    if (!userId) return;
+
+    setLoadingTickets(true);
+    try {
+      const firestore = getFirestore();
+
+      // First, get all events
+      const eventsCollectionRef = collection(firestore, "events");
+      const eventsSnapshot = await getDocs(eventsCollectionRef);
+
+      const ticketsPromises = eventsSnapshot.docs.map(async (doc) => {
+        const eventData = doc.data();
+        const ragersCollectionRef = collection(
+          firestore,
+          "events",
+          doc.id,
+          "ragers"
+        );
+
+        // Query tickets where the user is the owner and ticket is active
+        const ragersQuerySnapshot = await getDocs(
+          query(
+            ragersCollectionRef,
+            where("firebaseId", "==", userId),
+            where("active", "==", true)
+          )
+        );
+
+        // Map through ragers (tickets) and include event data
+        return ragersQuerySnapshot.docs.map((ragerDoc) => {
+          const ticketData = ragerDoc.data();
+          return {
+            id: ragerDoc.id,
+            eventId: doc.id,
+            eventName: eventData.name || "Unnamed Event",
+            eventDate: eventData.date || new Date().toISOString(),
+            eventTime: eventData.time || "TBA",
+            location: eventData.location || "TBA",
+            ticketType: ticketData.ticketType || "General Admission",
+            status: ticketData.active ? "active" : "inactive",
+            imageUrl: eventData.imgURL || null,
+            purchaseDate: ticketData.purchaseTimestamp
+              ? new Date(ticketData.purchaseTimestamp).toISOString()
+              : new Date().toISOString(),
+            price: ticketData.price ? `$${ticketData.price.toFixed(2)}` : "N/A",
+            ...ticketData,
+          };
+        });
+      });
+
+      // Flatten the array of arrays into a single array of tickets
+      const allTicketsArrays = await Promise.all(ticketsPromises);
+      const allTickets = allTicketsArrays.flat();
+
+      console.log("Fetched user tickets:", allTickets);
+      setTickets(allTickets);
+    } catch (error) {
+      console.error("Error fetching user tickets:", error);
+    } finally {
+      setLoadingTickets(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    async function fetchUserData() {
+      if (typeof window !== "undefined") {
+        const storedUserId = localStorage.getItem("userId");
+
+        if (storedUserId) {
+          setUserId(storedUserId);
+
+          // Try to get user data from Firestore first
+          try {
+            setIsLoading(true);
+            const userData = await getUserFromFirestore(storedUserId);
+
+            if (userData) {
+              console.log("Fetched user data from Firestore:", userData);
+
+              // Update state with Firestore data
+              if (userData.profilePicture) {
+                setProfilePicture(userData.profilePicture);
+                localStorage.setItem("profilePicture", userData.profilePicture);
+              }
+
+              const fullName = [
+                userData.firstName || "",
+                userData.lastName || "",
+              ]
+                .filter(Boolean)
+                .join(" ");
+              if (fullName) {
+                setUserName(fullName);
+                localStorage.setItem("userName", fullName);
+              }
+
+              if (userData.firstName) setFirstName(userData.firstName);
+              if (userData.lastName) setLastName(userData.lastName);
+
+              if (userData.email) {
+                setUserEmail(userData.email);
+                localStorage.setItem("userEmail", userData.email);
+              }
+
+              if (userData.phoneNumber) {
+                setPhoneNumber(userData.phoneNumber);
+                localStorage.setItem("phoneNumber", userData.phoneNumber);
+              }
+            } else {
+              // Fall back to localStorage if no Firestore data
+              fallbackToLocalStorage();
+            }
+          } catch (error) {
+            console.error("Error fetching user data from Firestore:", error);
+            // Fall back to localStorage on error
+            fallbackToLocalStorage();
+          } finally {
+            setIsLoading(false);
+          }
+        } else {
+          fallbackToLocalStorage();
+          setIsLoading(false);
+        }
+      }
+    }
+
+    function fallbackToLocalStorage() {
+      console.log("Using localStorage data as fallback");
+      const storedProfilePicture = localStorage.getItem("profilePicture");
+      const storedUserName =
+        localStorage.getItem("userName") || localStorage.getItem("name");
+      const storedUserEmail =
+        localStorage.getItem("userEmail") || localStorage.getItem("email");
+      const storedPhoneNumber = localStorage.getItem("phoneNumber");
+
+      setProfilePicture(storedProfilePicture || "");
+      setUserName(storedUserName || "User");
+      setUserEmail(storedUserEmail || "");
+      setPhoneNumber(storedPhoneNumber || "");
+
+      // Split name into first and last if available
+      if (storedUserName) {
+        const nameParts = storedUserName.split(" ");
+        setFirstName(nameParts[0] || "");
+        setLastName(nameParts.length > 1 ? nameParts.slice(1).join(" ") : "");
+      }
+    }
+
+    fetchUserData();
+  }, []);
+
+  // New useEffect to fetch tickets when userId is available
+  useEffect(() => {
+    if (userId) {
+      fetchUserTickets();
+    }
+  }, [userId, fetchUserTickets]);
 
   // Define tab components
   const tabComponents = {
@@ -401,6 +560,111 @@ export default function Account() {
       </div>
     ),
     orders: <OrderHistory />,
+    tickets: (
+      <div className={containerStyling}>
+        <h2 className="text-2xl font-bold text-white mb-6">My Tickets</h2>
+
+        {loadingTickets ? (
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-500"></div>
+          </div>
+        ) : tickets.length === 0 ? (
+          <div className="text-center py-10">
+            <div className="mx-auto h-12 w-12 text-gray-400">
+              <TicketIcon className="h-full w-full" aria-hidden="true" />
+            </div>
+            <h3 className="mt-2 text-sm font-medium text-gray-200">
+              No tickets yet
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Get started by purchasing tickets to an upcoming event.
+            </p>
+            <div className="mt-6">
+              <Link
+                href="/events"
+                className="inline-flex items-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500"
+              >
+                Browse Events
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {tickets.map((ticket) => (
+              <div key={ticket.id} className={`${cardStyling} overflow-hidden`}>
+                <div
+                  key={ticket.id}
+                  className={`${eventCardStyling} overflow-hidden`}
+                >
+                  {/* Two-column grid: left for the image, right for event details */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 h-full">
+                    {/* Left Column: Image */}
+                    <div className="relative">
+                      {ticket.imageUrl ? (
+                        <Image
+                          src={ticket.imageUrl}
+                          alt={ticket.eventName}
+                          fill
+                          style={{ objectFit: "cover" }}
+                          className="object-cover rounded-md"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <TicketIcon className="h-16 w-16 text-gray-500" />
+                        </div>
+                      )}
+                      <div className="absolute top-0 right-0 mt-2 mr-2">
+                        <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                          {ticket.status}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Right Column: Event Details */}
+                    <div className="p-4 flex flex-col gap-4 ml-6">
+                      <h3 className="text-lg font-medium text-white">
+                        {ticket.eventName}
+                      </h3>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <p className="text-sm text-gray-400 col-span-2">
+                          {new Date(ticket.eventDate).toLocaleDateString(
+                            "en-US",
+                            {
+                              weekday: "long",
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            }
+                          )}
+                          {ticket.eventTime && ticket.eventTime !== "TBA"
+                            ? ` at ${ticket.eventTime}`
+                            : ""}
+                        </p>
+                        <p className="text-sm text-gray-400 col-span-2">
+                          {ticket.location}
+                        </p>
+                      </div>
+
+                      <div className="mt-auto border-t border-gray-700 pt-3">
+                        <div>
+                          <span className="block text-xs text-gray-500">
+                            Ticket Type
+                          </span>
+                          <span className="text-sm text-white">
+                            {ticket.ticketType}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    ),
     qrcode: (
       <div className={containerStyling}>
         <h2 className="text-2xl font-bold text-white mb-6">Your QR Code</h2>
@@ -629,6 +893,20 @@ export default function Account() {
                           aria-hidden="true"
                         />
                         Order History
+                      </button>
+                      <button
+                        onClick={() => setActiveTab("tickets")}
+                        className={`${
+                          activeTab === "tickets"
+                            ? "border-red-700 text-red-500"
+                            : "border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300"
+                        } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm flex items-center flex-shrink-0`}
+                      >
+                        <TicketIcon
+                          className="h-5 w-5 mr-2"
+                          aria-hidden="true"
+                        />
+                        My Tickets
                       </button>
                       <button
                         onClick={() => setActiveTab("qrcode")}
