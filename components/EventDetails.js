@@ -86,7 +86,11 @@ export default function EventDetails({ event }) {
   };
 
   // Consistent button styling with account page
-  const buttonStyling = "flex w-full justify-center rounded-md bg-red-700 px-8 py-3 text-base font-medium text-white hover:bg-red-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 transition-colors";
+  const buttonStyling =
+    "flex w-full justify-center rounded-md bg-red-700 px-8 py-3 text-base font-medium text-white hover:bg-red-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 transition-colors";
+
+  // Common card styling with hover effects matching about page
+  const cardStyling = "bg-gray-900/50 p-5 rounded-lg border border-gray-800 shadow-md hover:border-red-500/30 transition-all duration-300";
 
   return (
     <>
@@ -97,7 +101,7 @@ export default function EventDetails({ event }) {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-8 items-start">
           {/* Product image - takes up more space on larger screens */}
           <div className="md:col-span-3">
-            <div className="overflow-hidden rounded-xl border border-gray-800 shadow-2xl">
+            <div className="overflow-hidden rounded-xl border border-gray-800 hover:border-red-500/30 transition-all duration-300 shadow-2xl">
               <Image
                 priority
                 src={event.imgURL}
@@ -108,10 +112,12 @@ export default function EventDetails({ event }) {
                 style={{ width: "100%", height: "auto" }}
               />
             </div>
-            
+
             {/* Event description section - add border consistent with account page */}
-            <div className="mt-8 bg-gray-900/50 p-5 rounded-lg border border-gray-800 shadow-md">
-              <h3 className="text-xl font-medium text-white mb-4">About This Event</h3>
+            <div className={`mt-8 ${cardStyling}`}>
+              <h3 className="text-xl font-medium text-white mb-4">
+                About This Event
+              </h3>
               <p className="text-gray-300">{event.description}</p>
             </div>
           </div>
@@ -119,7 +125,7 @@ export default function EventDetails({ event }) {
           {/* Product details */}
           <div className="md:col-span-2 space-y-6">
             {/* Event header in card - matches account page card styling */}
-            <div className="bg-gray-900/50 p-5 rounded-lg border border-gray-800 shadow-md">
+            <div className={cardStyling}>
               {event.category && (
                 <div className="mb-4">
                   <span className="inline-flex items-center rounded-full bg-red-500/10 px-3 py-1 text-xs font-medium text-red-400 ring-1 ring-inset ring-red-500/20">
@@ -174,8 +180,10 @@ export default function EventDetails({ event }) {
             </div>
 
             {/* Location information - separate card like in account page */}
-            <div className="bg-gray-900/50 p-5 rounded-lg border border-gray-800 shadow-md">
-              <h3 className="text-lg font-medium text-gray-100 mb-3">Location</h3>
+            <div className={cardStyling}>
+              <h3 className="text-lg font-medium text-gray-100 mb-3">
+                Location
+              </h3>
               <p className="text-gray-300">{location}</p>
               <div className="mt-4 flex flex-wrap gap-3">
                 <a
@@ -213,7 +221,7 @@ export default function EventDetails({ event }) {
 
             {/* Age restriction - separate card like in account page */}
             {event.age && (
-              <div className="bg-gray-900/50 p-5 rounded-lg border border-gray-800 shadow-md">
+              <div className={cardStyling}>
                 <h3 className="text-lg font-medium text-gray-100 mb-3">
                   Age Restriction
                 </h3>

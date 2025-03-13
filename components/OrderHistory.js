@@ -173,7 +173,7 @@ export default function OrderHistory() {
   }
 
   return (
-    <div className="bg-gray-900/30 border  border-gray-800   rounded-lg p-6 min-h-[500px]">
+    <div className="bg-gray-900/30 ring-1 ring-white/10 hover:ring-red-500/30 transition-all duration-300 rounded-lg p-6 min-h-[500px] ">
       <h2 className="text-2xl font-bold text-white mb-6">Order History</h2>
       <p className="mt-2 mb-6 text-sm text-gray-300">
         View your order history below, with most recent orders shown first. If
@@ -186,10 +186,13 @@ export default function OrderHistory() {
         {orders.map((order) => (
           <div
             key={order.id}
-            className="border  border-gray-800 rounded-lg overflow-hidden bg-black/30 shadow-lg hover:shadow-xl transition-shadow"
+            className="relative rounded-xl overflow-hidden bg-gray-900/20 shadow-lg hover:shadow-xl ring-1 ring-white/10 hover:ring-red-500/30 transition-all duration-300 backdrop-blur-sm"
           >
+            {/* Add gradient effect from About page */}
+            <div className="absolute -inset-px bg-gradient-to-r from-red-500/0 to-purple-500/0 rounded-2xl [mask-image:linear-gradient(black,transparent)] group-hover:from-red-500/10 group-hover:to-purple-500/10" />
+            
             {/* Order header */}
-            <div className="bg-zinc-800/ px-4 py-3 border-b border-zinc-700">
+            <div className="relative bg-gray-900/20 px-4 py-3 border-b border-gray-700">
               <div className="flex justify-between items-center">
                 <div>
                   <p className="text-sm font-medium text-white">
@@ -206,12 +209,12 @@ export default function OrderHistory() {
             </div>
 
             {/* Order items */}
-            <div className="p-4">
+            <div className="relative p-4">
               <div className="space-y-3">
                 {order.items.map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center bg-zinc-800/30 p-3 rounded-lg"
+                    className="flex items-center bg-gray-900/20 p-3 rounded-lg ring-1 ring-white/10 "
                   >
                     <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-700">
                       <Image

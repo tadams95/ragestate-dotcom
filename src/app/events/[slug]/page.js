@@ -89,7 +89,7 @@ export default function EventDetail() {
               </div>
               
               {/* Main content area with consistent border/shadow styling */}
-              <div className="bg-gray-900/30 p-6 rounded-lg border border-gray-800 shadow-xl">
+              <div className="bg-gray-900/30 p-6 rounded-lg border border-gray-800 hover:border-red-500/30 transition-all duration-300 shadow-xl">
                 <EventDetails event={selectedEvent || event} />
               </div>
             </div>

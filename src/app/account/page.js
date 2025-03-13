@@ -15,7 +15,7 @@ import OrderHistory from "../../../components/OrderHistory";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import Image from "next/image";
-import styles from './account.module.css';
+import styles from "./account.module.css";
 import uploadImage from "../../../firebase/util/uploadImage";
 import { getUserFromFirestore } from "../../../firebase/util/getUserData";
 import { logoutUser, updateUserData } from "../../../lib/utils/auth";
@@ -37,45 +37,61 @@ export default function Account() {
   const fileInputRef = useRef(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const inputStyling = "block w-full bg-black pl-2 rounded-md border-2 py-1.5 px-1 text-gray-100 shadow-sm ring-1 ring-inset ring-gray-700 placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-red-500 sm:text-sm sm:leading-6";
-  const buttonStyling = "flex justify-center rounded-md bg-transparent px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 border-2 border-gray-100 transition-all duration-200";
+  const inputStyling =
+    "block w-full bg-black pl-2 rounded-md border py-1.5 px-1 text-gray-100 shadow-sm placeholder:text-gray-500 appearance-none focus:outline-none focus:ring-2 focus:ring-red-700 sm:text-sm sm:leading-6";
+
+  const buttonStyling =
+    "flex justify-center rounded-md bg-transparent px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 border border-gray-700 transition-all duration-300";
+
+  // Common card styling with hover effects matching about page and event details
+  const cardStyling =
+    "bg-gray-900/50 p-5 rounded-lg border border-gray-800 shadow-md hover:border-red-500/30 transition-all duration-300";
+
+  // Main container styling with hover effects
+  const containerStyling =
+    "bg-gray-900/30 p-6 rounded-lg border border-gray-800 hover:border-red-500/30 transition-all duration-300 shadow-xl";
 
   useEffect(() => {
     async function fetchUserData() {
       if (typeof window !== "undefined") {
         const storedUserId = localStorage.getItem("userId");
-        
+
         if (storedUserId) {
           setUserId(storedUserId);
-          
+
           // Try to get user data from Firestore first
           try {
             setIsLoading(true);
             const userData = await getUserFromFirestore(storedUserId);
-            
+
             if (userData) {
               console.log("Fetched user data from Firestore:", userData);
-              
+
               // Update state with Firestore data
               if (userData.profilePicture) {
                 setProfilePicture(userData.profilePicture);
                 localStorage.setItem("profilePicture", userData.profilePicture);
               }
-              
-              const fullName = [userData.firstName || '', userData.lastName || ''].filter(Boolean).join(' ');
+
+              const fullName = [
+                userData.firstName || "",
+                userData.lastName || "",
+              ]
+                .filter(Boolean)
+                .join(" ");
               if (fullName) {
                 setUserName(fullName);
                 localStorage.setItem("userName", fullName);
               }
-              
+
               if (userData.firstName) setFirstName(userData.firstName);
               if (userData.lastName) setLastName(userData.lastName);
-              
+
               if (userData.email) {
                 setUserEmail(userData.email);
                 localStorage.setItem("userEmail", userData.email);
               }
-              
+
               if (userData.phoneNumber) {
                 setPhoneNumber(userData.phoneNumber);
                 localStorage.setItem("phoneNumber", userData.phoneNumber);
@@ -97,27 +113,29 @@ export default function Account() {
         }
       }
     }
-    
+
     function fallbackToLocalStorage() {
       console.log("Using localStorage data as fallback");
       const storedProfilePicture = localStorage.getItem("profilePicture");
-      const storedUserName = localStorage.getItem("userName") || localStorage.getItem("name");
-      const storedUserEmail = localStorage.getItem("userEmail") || localStorage.getItem("email");
+      const storedUserName =
+        localStorage.getItem("userName") || localStorage.getItem("name");
+      const storedUserEmail =
+        localStorage.getItem("userEmail") || localStorage.getItem("email");
       const storedPhoneNumber = localStorage.getItem("phoneNumber");
-      
+
       setProfilePicture(storedProfilePicture || "");
       setUserName(storedUserName || "User");
       setUserEmail(storedUserEmail || "");
       setPhoneNumber(storedPhoneNumber || "");
-      
+
       // Split name into first and last if available
       if (storedUserName) {
-        const nameParts = storedUserName.split(' ');
+        const nameParts = storedUserName.split(" ");
         setFirstName(nameParts[0] || "");
-        setLastName(nameParts.length > 1 ? nameParts.slice(1).join(' ') : "");
+        setLastName(nameParts.length > 1 ? nameParts.slice(1).join(" ") : "");
       }
     }
-    
+
     fetchUserData();
   }, []);
 
@@ -137,9 +155,9 @@ export default function Account() {
       firstName,
       lastName,
       phoneNumber,
-      email: userEmail
+      email: userEmail,
     };
-    
+
     const result = await updateUserData(userId, updatedData);
     if (result.success) {
       // Show success message
@@ -174,18 +192,18 @@ export default function Account() {
 
     try {
       const imageUrl = await uploadImage(
-        file, 
-        userId, 
+        file,
+        userId,
         (progress) => setUploadProgress(progress),
         (error) => setUploadError(error.message)
       );
-      
+
       // Update local state with the new profile picture URL
       setProfilePicture(imageUrl);
-      
+
       // Success message/toast could be added here
       console.log("Profile picture updated successfully");
-      
+
       setIsUploading(false);
       setUploadProgress(0);
     } catch (error) {
@@ -202,7 +220,7 @@ export default function Account() {
   // Define tab components
   const tabComponents = {
     profile: (
-      <div className="bg-gray-900/30 p-6 rounded-lg border border-gray-800 shadow-xl">
+      <div className={containerStyling}>
         <h2 className="text-2xl font-bold text-white mb-6">
           Profile Information
         </h2>
@@ -212,7 +230,10 @@ export default function Account() {
             <form className="space-y-6" onSubmit={handleProfileUpdate}>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-300">
+                  <label
+                    htmlFor="firstName"
+                    className="block text-sm font-medium text-gray-300"
+                  >
                     First Name
                   </label>
                   <input
@@ -225,7 +246,10 @@ export default function Account() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-300">
+                  <label
+                    htmlFor="lastName"
+                    className="block text-sm font-medium text-gray-300"
+                  >
                     Last Name
                   </label>
                   <input
@@ -238,9 +262,12 @@ export default function Account() {
                   />
                 </div>
               </div>
-              
+
               <div>
-                <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-300">
+                <label
+                  htmlFor="phoneNumber"
+                  className="block text-sm font-medium text-gray-300"
+                >
                   Phone Number
                 </label>
                 <input
@@ -252,9 +279,12 @@ export default function Account() {
                   className={`${inputStyling} mt-1`}
                 />
               </div>
-              
+
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-300">
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-gray-300"
+                >
                   Email Address
                 </label>
                 <input
@@ -268,19 +298,16 @@ export default function Account() {
               </div>
 
               <div className="pt-4">
-                <button
-                  type="submit"
-                  className={buttonStyling}
-                >
+                <button type="submit" className={buttonStyling}>
                   Save Changes
                 </button>
               </div>
             </form>
           </div>
-          
+
           {/* Profile Picture and Account Details */}
           <div className="md:col-span-2 space-y-6">
-            <div className="bg-gray-900/50 p-5 rounded-lg border border-gray-800 shadow-md">
+            <div className={cardStyling}>
               <div className="flex flex-col items-center mb-4">
                 <div className="relative group">
                   <Image
@@ -288,14 +315,30 @@ export default function Account() {
                     alt="Profile"
                     width={120}
                     height={120}
-                    className="rounded-md border-2 border-gray-300 object-cover w-[120px] h-[120px]"
+                    className="rounded-md border-2 border-gray-300 hover:border-red-500 transition-all duration-300 object-cover w-[120px] h-[120px]"
                   />
                   {isUploading && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-70 rounded-md">
                       <div className="w-16 h-16 relative mb-2">
-                        <svg className="animate-spin h-full w-full text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        <svg
+                          className="animate-spin h-full w-full text-red-500"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
                         </svg>
                         <span className="absolute inset-0 flex items-center justify-center text-white font-bold text-sm">
                           {uploadProgress}%
@@ -304,7 +347,7 @@ export default function Account() {
                     </div>
                   )}
                   {!isUploading && (
-                    <div 
+                    <div
                       className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-md opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                       onClick={triggerFileInput}
                     >
@@ -312,26 +355,30 @@ export default function Account() {
                     </div>
                   )}
                 </div>
-                <input 
-                  type="file" 
+                <input
+                  type="file"
                   ref={fileInputRef}
-                  accept="image/*" 
-                  onChange={handleImageUpload} 
-                  className="hidden" 
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
                 />
-                <button 
+                <button
                   onClick={triggerFileInput}
                   disabled={isUploading}
-                  className={`mt-3 text-sm ${isUploading ? 'text-gray-500' : 'text-red-500 hover:text-red-400'} font-medium`}
+                  className={`mt-3 text-sm ${
+                    isUploading
+                      ? "text-gray-500"
+                      : "text-red-500 hover:text-red-400"
+                  } font-medium`}
                 >
-                  {isUploading ? 'Uploading...' : 'Upload Image'}
+                  {isUploading ? "Uploading..." : "Upload Image"}
                 </button>
                 {uploadError && (
                   <p className="text-sm text-red-500 mt-1">{uploadError}</p>
                 )}
               </div>
             </div>
-            
+
             {/* <div className="bg-gray-900/50 p-5 rounded-lg border border-gray-800 shadow-md">
               <h3 className="text-lg font-medium text-gray-100 mb-3">Account Status</h3>
               <div className="space-y-2">
@@ -355,18 +402,24 @@ export default function Account() {
     ),
     orders: <OrderHistory />,
     qrcode: (
-      <div className="bg-gray-900/30 p-6 rounded-lg border border-gray-800 shadow-xl">
+      <div className={containerStyling}>
         <h2 className="text-2xl font-bold text-white mb-6">Your QR Code</h2>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-5 gap-8 items-center">
           <div className="md:col-span-3 flex flex-col items-center">
-            <div className="p-4 bg-white rounded-lg shadow-xl relative">
-              <div className={`transition-all duration-300 ${isQrBlurred ? 'blur-md' : ''}`}>
+            <div className="p-4 bg-white rounded-lg shadow-xl relative hover:shadow-red-500/10 transition-all duration-300">
+              <div
+                className={`transition-all duration-300 ${
+                  isQrBlurred ? "blur-md" : ""
+                }`}
+              >
                 <QRCode value={userId || "ragestate-user"} size={260} />
               </div>
               {isQrBlurred && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-gray-800 font-medium bg-white/40 px-3 py-1 rounded">Tap to reveal</span>
+                  <span className="text-gray-800 font-medium bg-white/40 px-3 py-1 rounded">
+                    Tap to reveal
+                  </span>
                 </div>
               )}
             </div>
@@ -377,33 +430,49 @@ export default function Account() {
               {isQrBlurred ? "Reveal QR Code" : "Hide QR Code"}
             </button>
           </div>
-          
+
           <div className="md:col-span-2 space-y-6">
-            <div className="bg-gray-900/50 p-5 rounded-lg border border-gray-800 shadow-md">
-              <h3 className="text-lg font-medium text-gray-100 mb-4">How To Use Your QR Code</h3>
+            <div className={cardStyling}>
+              <h3 className="text-lg font-medium text-gray-100 mb-4">
+                How To Use Your QR Code
+              </h3>
               <ul className="space-y-3">
                 {[
                   "Present this QR code at RAGESTATE events for quick check-in",
                   "Access exclusive areas and VIP experiences",
                   "Redeem special offers and promotions",
                   "Link your digital ticket purchases to your account",
-                  "Share your attendance with friends"
+                  "Share your attendance with friends",
                 ].map((item, i) => (
                   <li key={i} className="flex items-center">
-                    <svg className="h-5 w-5 text-red-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg
+                      className="h-5 w-5 text-red-500 mr-2"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                     <span className="text-sm text-gray-300">{item}</span>
                   </li>
                 ))}
               </ul>
             </div>
-            
-            <div className="bg-gray-900/50 p-5 rounded-lg border border-gray-800 shadow-md">
-              <h3 className="text-lg font-medium text-gray-100 mb-3">Security Notice</h3>
+
+            <div className={cardStyling}>
+              <h3 className="text-lg font-medium text-gray-100 mb-3">
+                Security Notice
+              </h3>
               <p className="text-sm text-gray-300">
-                Your QR code contains a unique identifier linked to your account. Keep it hidden when not in use and don't share 
-                screenshots of your code with others to prevent unauthorized access to your account benefits.
+                Your QR code contains a unique identifier linked to your
+                account. Keep it hidden when not in use and don't share
+                screenshots of your code with others to prevent unauthorized
+                access to your account benefits.
               </p>
             </div>
           </div>
@@ -411,17 +480,22 @@ export default function Account() {
       </div>
     ),
     settings: (
-      <div className="bg-gray-900/30 p-6 rounded-lg border border-gray-800 shadow-xl">
+      <div className={containerStyling}>
         <h2 className="text-2xl font-bold text-white mb-6">Account Settings</h2>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-5 gap-8 items-start">
           {/* Password Change Form */}
           <div className="md:col-span-3">
-            <div className="bg-gray-900/50 p-5 rounded-lg border border-gray-800 shadow-md mb-6">
-              <h3 className="text-xl font-medium text-white mb-4">Change Password</h3>
+            <div className={`${cardStyling} mb-6`}>
+              <h3 className="text-xl font-medium text-white mb-4">
+                Change Password
+              </h3>
               <form className="space-y-4">
                 <div>
-                  <label htmlFor="current-password" className="block text-sm font-medium text-gray-300">
+                  <label
+                    htmlFor="current-password"
+                    className="block text-sm font-medium text-gray-300"
+                  >
                     Current Password
                   </label>
                   <input
@@ -431,7 +505,10 @@ export default function Account() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="new-password" className="block text-sm font-medium text-gray-300">
+                  <label
+                    htmlFor="new-password"
+                    className="block text-sm font-medium text-gray-300"
+                  >
                     New Password
                   </label>
                   <input
@@ -441,7 +518,10 @@ export default function Account() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-300">
+                  <label
+                    htmlFor="confirm-password"
+                    className="block text-sm font-medium text-gray-300"
+                  >
                     Confirm New Password
                   </label>
                   <input
@@ -457,40 +537,14 @@ export default function Account() {
                 </div>
               </form>
             </div>
-            
-            {/* To implement this in the future */}
-            {/* <div className="bg-gray-900/50 p-5 rounded-lg border border-gray-800 shadow-md">
-              <h3 className="text-xl font-medium text-white mb-4">Notification Preferences</h3>
-              <div className="space-y-4">
-                {[
-                  { id: "email-promo", label: "Email promotions and upcoming events" },
-                  { id: "email-updates", label: "Product updates and announcements" },
-                  { id: "email-orders", label: "Order confirmations and shipping updates" },
-                  { id: "sms-alerts", label: "SMS notifications for urgent alerts" },
-                  { id: "push-notif", label: "Mobile push notifications" }
-                ].map((item) => (
-                  <div key={item.id} className="flex items-center justify-between py-2 border-b border-gray-700">
-                    <label htmlFor={item.id} className="text-sm text-gray-300">
-                      {item.label}
-                    </label>
-                    <div className="relative flex items-center">
-                      <input
-                        id={item.id}
-                        type="checkbox"
-                        className="h-4 w-4 text-red-700 focus:ring-red-700 border-zinc-600 rounded bg-zinc-700"
-                        defaultChecked
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div> */}
           </div>
-          
+
           {/* Account Management and Details */}
           <div className="md:col-span-2 space-y-6">
-            <div className="bg-gray-900/50 p-5 rounded-lg border border-gray-800 shadow-md">
-              <h3 className="text-lg font-medium text-gray-100 mb-4">Account Management</h3>
+            <div className={cardStyling}>
+              <h3 className="text-lg font-medium text-gray-100 mb-4">
+                Account Management
+              </h3>
               <div className="space-y-4">
                 <button
                   onClick={handleLogout}
@@ -498,62 +552,12 @@ export default function Account() {
                 >
                   Sign Out
                 </button>
-                
-                {/* <button className="w-full flex justify-center items-center text-yellow-500 border border-yellow-500 hover:bg-yellow-500/10 font-medium py-2 px-4 rounded-md transition-colors">
-                  Export Account Data
-                </button> */}
-                
+
                 <button className="w-full flex justify-center items-center text-red-500 border border-red-500 hover:bg-red-500/10 font-medium py-2 px-4 rounded-md transition-colors">
                   Delete Account
                 </button>
               </div>
             </div>
-            
-            {/* <div className="bg-gray-900/50 p-5 rounded-lg border border-gray-800 shadow-md">
-              <h3 className="text-lg font-medium text-gray-100 mb-3">Connected Services</h3>
-              <div className="space-y-3">
-                {[
-                  { name: "Spotify", connected: true },
-                  { name: "Instagram", connected: false },
-                  { name: "Twitter", connected: true }
-                ].map((service, i) => (
-                  <div key={i} className="flex items-center justify-between">
-                    <span className="text-sm text-gray-300">{service.name}</span>
-                    <span className={`px-2 py-0.5 rounded-full text-xs ${
-                      service.connected 
-                        ? "text-green-500 bg-green-500/10" 
-                        : "text-gray-400 bg-gray-500/10"
-                    }`}>
-                      {service.connected ? "Connected" : "Disconnected"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <button className="mt-4 w-full flex justify-center items-center bg-transparent text-gray-300 border border-gray-700 hover:border-gray-500 font-medium py-1.5 px-4 rounded-md text-sm transition-colors">
-                Manage Connections
-              </button>
-            </div> */}
-            
-            {/* Privacy Settings */}
-            {/* <div className="bg-gray-900/50 p-5 rounded-lg border border-gray-800 shadow-md">
-              <h3 className="text-lg font-medium text-gray-100 mb-3">Privacy Settings</h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between py-1">
-                  <span className="text-sm text-gray-300">Public Profile</span>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" defaultChecked />
-                    <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-red-700 after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
-                  </label>
-                </div>
-                <div className="flex items-center justify-between py-1">
-                  <span className="text-sm text-gray-300">Show Activity Status</span>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" />
-                    <div className="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-red-700 after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
-                  </label>
-                </div>
-              </div>
-            </div> */}
           </div>
         </div>
       </div>
@@ -571,22 +575,22 @@ export default function Account() {
           </div>
         ) : (
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-16 pb-24">
-            {/* Rest of the component remains the same */}
             <div className="max-w-4xl mx-auto">
               {/* Profile Header with User Info */}
               <div className="flex flex-col items-center mb-8">
                 <div className="flex justify-center mt-6 mb-4">
-                  <img 
-                    src="/assets/RSLogo2.png" 
-                    alt="RAGESTATE" 
-                    className="h-14 w-auto" 
+                  <img
+                    src="/assets/RSLogo2.png"
+                    alt="RAGESTATE"
+                    className="h-14 w-auto"
                   />
                 </div>
                 <h1 className="text-3xl font-bold leading-tight text-white text-center">
                   {userName}'s Account
                 </h1>
                 <p className="mt-2 text-gray-400 text-center max-w-2xl">
-                  Manage your profile, view your QR code, and update your account settings.
+                  Manage your profile, view your QR code, and update your
+                  account settings.
                 </p>
               </div>
 
@@ -594,7 +598,10 @@ export default function Account() {
               <div className="mt-6 mb-8">
                 <div className="border-b border-zinc-700">
                   <div className={styles.tabScroll}>
-                    <nav className="-mb-px flex space-x-8 min-w-max px-1 justify-center" aria-label="Tabs">
+                    <nav
+                      className="-mb-px flex space-x-8 min-w-max px-1 justify-center"
+                      aria-label="Tabs"
+                    >
                       <button
                         onClick={() => setActiveTab("profile")}
                         className={`${
@@ -603,7 +610,10 @@ export default function Account() {
                             : "border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300"
                         } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm flex items-center flex-shrink-0`}
                       >
-                        <UserCircleIcon className="h-5 w-5 mr-2" aria-hidden="true" />
+                        <UserCircleIcon
+                          className="h-5 w-5 mr-2"
+                          aria-hidden="true"
+                        />
                         Profile
                       </button>
                       <button
@@ -628,7 +638,10 @@ export default function Account() {
                             : "border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300"
                         } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm flex items-center flex-shrink-0`}
                       >
-                        <QrCodeIcon className="h-5 w-5 mr-2" aria-hidden="true" />
+                        <QrCodeIcon
+                          className="h-5 w-5 mr-2"
+                          aria-hidden="true"
+                        />
                         QR Code
                       </button>
                       <button
@@ -639,7 +652,10 @@ export default function Account() {
                             : "border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300"
                         } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm flex items-center flex-shrink-0`}
                       >
-                        <Cog6ToothIcon className="h-5 w-5 mr-2" aria-hidden="true" />
+                        <Cog6ToothIcon
+                          className="h-5 w-5 mr-2"
+                          aria-hidden="true"
+                        />
                         Settings
                       </button>
                     </nav>
