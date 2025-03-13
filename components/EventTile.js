@@ -52,11 +52,11 @@ export default function EventTile({ event }) {
               width={500}
               style={{ height: "400px", objectFit: "cover", width: "100%" }}
             />
-            {event.category && (
+            {/* {event.category && (
               <span className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium">
                 {event.category}
               </span>
-            )}
+            )} */}
           </div>
           <div className="p-6">
             <h3 className="text-2xl font-bold text-gray-100 group-hover:text-red-500 transition-colors">
@@ -108,7 +108,7 @@ export default function EventTile({ event }) {
 
             <div className="mt-4 flex items-center justify-between">
               {event.price && (
-                <p className="text-lg font-bold text-red-500">${event.price}</p>
+                <p className="text-lg font-bold text-red-700">${event.price}</p>
               )}
               {event.capacity && (
                 <div className="text-sm text-gray-400">

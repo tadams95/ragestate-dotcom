@@ -86,7 +86,7 @@ export default function EventDetails({ event }) {
   };
 
   // Consistent button styling with account page
-  const buttonStyling = "flex w-full justify-center rounded-md bg-red-500 px-8 py-3 text-base font-medium text-white hover:bg-red-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 transition-colors";
+  const buttonStyling = "flex w-full justify-center rounded-md bg-red-700 px-8 py-3 text-base font-medium text-white hover:bg-red-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 transition-colors";
 
   return (
     <>
@@ -217,7 +217,7 @@ export default function EventDetails({ event }) {
                 <h3 className="text-lg font-medium text-gray-100 mb-3">
                   Age Restriction
                 </h3>
-                <p className="text-gray-300">{event.age}+ years</p>
+                <p className="text-gray-300">{event.age}+ </p>
               </div>
             )}
           </div>
