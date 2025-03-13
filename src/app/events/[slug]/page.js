@@ -59,16 +59,44 @@ export default function EventDetail() {
   }, [pathname, searchParams]);
 
   return (
-    <div className="bg-transparent">
+    <div className="bg-black min-h-screen">
       <Header />
       <EventStyling1 />
-      <div
-        className={`transition-opacity ${
-          loading ? "opacity-0" : "opacity-100 duration-1000"
-        } bg-black px-4 py-20 lg:px-8`}
-      >
-        {!loading && <EventDetails event={selectedEvent || event} />}
-      </div>
+      
+      <main className="flex-grow">
+        {loading ? (
+          <div className="flex justify-center items-center h-[70vh]">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-500"></div>
+          </div>
+        ) : (
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-16 pb-24">
+            <div className="max-w-6xl mx-auto">
+              {/* Event header with logo - matches account page */}
+              <div className="flex flex-col items-center mb-8">
+                <div className="flex justify-center mt-6 mb-4">
+                  <img 
+                    src="/assets/RSLogo2.png" 
+                    alt="RAGESTATE" 
+                    className="h-14 w-auto" 
+                  />
+                </div>
+                <h1 className="text-3xl font-bold leading-tight text-white text-center">
+                  Event Details
+                </h1>
+                <p className="mt-2 text-gray-400 text-center max-w-2xl">
+                  View event information and secure your tickets.
+                </p>
+              </div>
+              
+              {/* Main content area with consistent border/shadow styling */}
+              <div className="bg-gray-900/30 p-6 rounded-lg border border-gray-800 shadow-xl">
+                <EventDetails event={selectedEvent || event} />
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+      
       <Footer />
     </div>
   );
