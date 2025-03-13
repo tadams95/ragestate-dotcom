@@ -6,6 +6,7 @@ import { getFirestore, doc, getDoc } from "firebase/firestore";
 import { usePathname, useSearchParams } from "next/navigation";
 import EventDetails from "../../../../components/EventDetails";
 import EventStyling1 from "@/app/components/styling/EventStyling1";
+import Footer from "@/app/components/Footer";
 
 // Function to format the slug to match the document ID in Firestore
 const formatSlug = (slug) => {
@@ -68,6 +69,7 @@ export default function EventDetail() {
       >
         {!loading && <EventDetails event={selectedEvent || event} />}
       </div>
+      <Footer />
     </div>
   );
 }

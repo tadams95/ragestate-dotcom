@@ -1,7 +1,5 @@
 "use client";
 
-import EventStyling1 from "../components/styling/EventStyling1";
-import EventStyling2 from "../components/styling/EventStyling2";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 
@@ -11,6 +9,8 @@ import { useEffect, useState, useCallback } from "react";
 import EventTile from "../../../components/EventTile";
 import NoEventTile from "../../../components/NoEventTile";
 import EventSkeleton from "../../../components/EventSkeleton";
+import EventStyling1 from "../components/styling/EventStyling1";
+import EventStyling2 from "../components/styling/EventStyling2";
 
 export default function Events() {
   const [events, setEvents] = useState([]);
@@ -57,15 +57,18 @@ export default function Events() {
   }, [fetchEventData]);
 
   return (
-    <>
+    <div className="flex flex-col min-h-screen">
       <div className="bg-black isolate">
         <Header />
       </div>
-      {/* <EventStyling1 /> */}
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 items-center">
+      <EventStyling1 />
+
+      <div className="flex-grow">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold tracking-tight text-gray-100 text-center mt-10 pt-8 mb-6">
-            {events.length > 0 ? "UPCOMING EVENTS" : "NO EVENTS AT THIS TIME, PLEASE STAY TUNED!"}
+            {events.length > 0
+              ? "UPCOMING EVENTS"
+              : "NO EVENTS AT THIS TIME, PLEASE STAY TUNED!"}
           </h2>
 
           {/* Loading state or content */}
@@ -77,15 +80,11 @@ export default function Events() {
                 ))}
               </div>
             ) : (
-              <div
-                className={`transition-opacity duration-700 ${
-                  events.length > 0 ? "opacity-100" : "opacity-100"
-                }`}
-              >
+              <div className="transition-opacity duration-700 opacity-100">
                 {events.length === 0 ? (
                   <NoEventTile />
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
                     {events.map((event) => (
                       <EventTile key={event.id} event={event} />
                     ))}
@@ -94,10 +93,9 @@ export default function Events() {
               </div>
             )}
           </div>
-          {/* <EventStyling2 /> */}
         </div>
       </div>
       <Footer />
-    </>
+    </div>
   );
 }
