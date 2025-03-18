@@ -1,0 +1,17 @@
+[
+  {
+    "key": "alt+]",
+    "command": "editor.action.inlineSuggest.showNext",
+    "when": "inlineSuggestionVisible && !editorReadonly"
+  },
+  {
+    "key": "alt+[",
+    "command": "editor.action.inlineSuggest.showPrevious",
+    "when": "inlineSuggestionVisible && !editorReadonly"
+  },
+  {
+    "key": "alt+\\",
+    "command": "github.copilot.generate",
+    "when": "editorTextFocus && github.copilot.activated"
+  }
+]

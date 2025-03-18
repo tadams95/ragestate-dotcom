@@ -1,0 +1,23 @@
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+    "formulahendry.auto-rename-tag",
+    "dsznajder.es7-react-js-snippets",
+    "yoavbls.pretty-ts-errors",
+    "firefox-devtools.vscode-firefox-debug",
+    "ms-vscode.vscode-typescript-next",
+    "ms-vscode.js-debug",
+    "christian-kohler.path-intellisense",
+    "tht13.html-preview-vscode",
+    "naumovs.color-highlight",
+    "mgmcdermott.vscode-language-babel",
+    "mariusschulz.vscode-three-js-snippets",
+    "tinkertrain.theme-panda",
+    "redhat.vscode-yaml",
+    "fireship-io.firebase-snippets",
+    "stripe.vscode-stripe",
+    "firsttris.vscode-jest-runner"
+  ]
+}

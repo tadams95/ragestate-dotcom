@@ -1,0 +1,90 @@
+{
+  // GitHub Copilot Settings
+  "github.copilot.enable": {
+    "*": true,
+    "plaintext": false,
+    "markdown": true,
+    "yaml": true
+  },
+  "github.copilot.editor.enableAutoCompletions": true,
+  "github.copilot.editor.enableCodeActions": true,
+
+  // Increase the amount of context Copilot uses
+  "github.copilot.advanced.length": 1000,
+  "github.copilot.advanced.indentationMode": "keep",
+
+  // Chat settings
+  "github.copilot.chat.localeOverride": "en",
+  "github.copilot.chat.welcomeMessage": "enabled",
+
+  // Enable Copilot for specific languages (customize as needed)
+  "[javascript]": {
+    "github.copilot.editor.enableAutoCompletions": true
+  },
+  "[typescript]": {
+    "github.copilot.editor.enableAutoCompletions": true
+  },
+  "[python]": {
+    "github.copilot.editor.enableAutoCompletions": true
+  },
+
+  // Format settings that help Copilot understand your code better
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": false,
+  "editor.tabSize": 2,
+
+  // Enable docstring/comment completion
+  "editor.inlineSuggest.enabled": true,
+  "editor.inlineSuggest.showToolbar": "always",
+
+  // Telemetry settings (optional)
+  "github.copilot.advanced.telemetry": false,
+  "github.copilot.advanced.lengthThreshold": 500,
+
+  // Add file headers to improve context (optional)
+  "workbench.editor.untitled.hint": "text",
+
+  // Customize how suggestions appear
+  "editor.suggest.preview": true,
+  "editor.snippetSuggestions": "top",
+  "editor.wordBasedSuggestions": "matchingDocuments",
+  "editor.acceptSuggestionOnEnter": "on",
+
+  // Next.js and React specific settings
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "javascript.validate.enable": false,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+
+  // Three.js / WebGL specific settings
+  "glsl.validator.enabled": true,
+
+  // Tailwind CSS settings
+  "tailwindCSS.includeLanguages": {
+    "javascript": "javascript",
+    "typescript": "typescript",
+    "javascriptreact": "javascriptreact",
+    "typescriptreact": "typescriptreact"
+  },
+  "tailwindCSS.emmetCompletions": true,
+  "tailwindCSS.classAttributes": ["class", "className", "ngClass", "tw"],
+
+  // Project structure improvements
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.patterns": {
+    "*.tsx": "${capture}.test.tsx, ${capture}.test.ts, ${capture}.module.css",
+    "*.jsx": "${capture}.test.jsx, ${capture}.test.js, ${capture}.module.css",
+    "tsconfig.json": "tsconfig.*.json"
+  },
+
+  // Path intellisense for imports
+  "path-intellisense.mappings": {
+    "@": "${workspaceRoot}/src"
+  },
+
+  // Firebase settings
+  "firebase.features.deployemulator": true,
+
+  // Redux DevTools integration
+  "reduxDevTools.enableTimeTravel": true
+}

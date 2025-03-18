@@ -1,0 +1,26 @@
+{
+  "extends": [
+    "next/core-web-vitals",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:react-hooks/recommended"
+  ],
+  "plugins": ["@typescript-eslint", "react-hooks", "tailwindcss"],
+  "rules": {
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
+    "@typescript-eslint/no-unused-vars": [
+      "warn",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ],
+    "tailwindcss/no-custom-classname": "warn"
+  },
+  "settings": {
+    "tailwindcss": {
+      "callees": ["classnames", "clsx", "cn"],
+      "config": "tailwind.config.js"
+    }
+  }
+}
