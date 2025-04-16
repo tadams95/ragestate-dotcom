@@ -1,0 +1,174 @@
+
+# Performance and Security Recommendations
+
+## Security Recommendations
+
+### 1. Implement Content Security Policy (CSP)
+- Add a CSP header to restrict which resources can be loaded and executed
+- This helps prevent XSS attacks and other code injection vulnerabilities
+- Example implementation in Next.js:
+  ```javascript
+  // In next.config.js
+  const securityHeaders = [
+    {
+      key: 'Content-Security-Policy',
+      value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.stripe.com; connect-src 'self' https://api.stripe.com https://firebaseapi.com;"
+    }
+  ];
+  
+  module.exports = {
+    async headers() {
+      return [
+        {
+          source: '/:path*',
+          headers: securityHeaders,
+        },
+      ];
+    },
+  };
+  ```
+
+### 2. Secure Firebase Configuration
+- Ensure Firebase security rules are properly configured
+- Restrict access to only authenticated users where needed
+- Implement proper role-based access control
+- Consider using Firebase App Check to prevent API abuse
+
+### 3. Implement Proper Authentication Controls
+- Use proper session timeouts
+- Implement rate limiting for authentication attempts
+- Consider adding two-factor authentication for sensitive operations
+- Use HTTP-only cookies for session management
+
+### 4. Add CSRF Protection
+- Implement CSRF tokens for forms and state-changing operations
+- Next.js has built-in CSRF protection, ensure it's properly configured
+
+### 5. Regular Dependency Updates
+- Set up automated dependency scanning with tools like Dependabot
+- Regularly update dependencies to patch known security vulnerabilities
+- Consider using `npm audit` as part of CI/CD pipeline
+
+## Performance Recommendations
+
+### 1. Code Splitting and Lazy Loading
+- Implement dynamic imports for larger components
+- Use Next.js's built-in code splitting features
+- Example:
+  ```javascript
+  // Instead of direct import
+  import HeavyComponent from '../components/HeavyComponent';
+  
+  // Use dynamic import
+  import dynamic from 'next/dynamic';
+  const HeavyComponent = dynamic(() => import('../components/HeavyComponent'), {
+    loading: () => <p>Loading...</p>,
+  });
+  ```
+
+### 2. Optimize Three.js Performance
+- Implement level-of-detail (LOD) for complex 3D models
+- Use instancedMesh for repeated geometries
+- Implement proper disposal of Three.js objects to prevent memory leaks
+- Consider using WebGPU when available through Three.js
+- Use compressed textures where possible (KTX2 format with Basis compression)
+
+### 3. Image Optimization
+- Use Next.js Image component for automatic optimization
+- Consider implementing responsive images based on viewport size
+- Use modern image formats like WebP or AVIF
+- Lazy load images below the fold
+
+### 4. Implement Proper Caching Strategy
+- Configure Cache-Control headers for static assets
+- Use SWR or React Query for data fetching with caching
+- Implement service worker for offline capabilities and resource caching
+
+### 5. Reduce JavaScript Bundle Size
+- Analyze bundle with tools like Webpack Bundle Analyzer
+- Tree-shake unused code
+- Consider using lighter alternatives for heavy libraries
+- Example config:
+  ```javascript
+  // next.config.js
+  const withBundleAnalyzer = require('@next/bundle-analyzer')({
+    enabled: process.env.ANALYZE === 'true',
+  });
+  
+  module.exports = withBundleAnalyzer({
+    // other config
+  });
+  ```
+
+### 6. Optimize Stripe Integration
+- Load Stripe.js only on pages where payment is needed
+- Use Stripe Elements for better performance over custom forms
+- Consider implementing Stripe's payment optimization best practices
+
+### 7. Firebase Performance Optimization
+- Use Firebase SDK modular imports instead of full packages
+- Implement data pagination for Firestore queries
+- Use Firebase Performance Monitoring to identify bottlenecks
+
+## DevOps Recommendations
+
+### 1. Implement CI/CD Pipeline
+- Automate testing and deployment
+- Include security scanning in the pipeline
+- Implement staging environments for pre-production testing
+
+### 2. Monitoring and Logging
+- Set up error tracking with services like Sentry
+- Implement application performance monitoring
+- Set up alerts for critical errors or performance degradation
+
+### 3. Implement Infrastructure as Code
+- Use tools like Terraform or AWS CloudFormation to manage infrastructure
+- Version control your infrastructure configuration
+- Implement environment parity between development and production
+
+## Development Workflow Improvements
+
+### 1. Use TypeScript More Extensively
+- Your project appears to use TypeScript, but consider extending its usage
+- Implement stricter TypeScript configurations
+- Use interface definitions for all API responses and state management
+
+### 2. Standardize Code Quality
+- Implement ESLint and Prettier with stricter rules
+- Set up pre-commit hooks for code formatting and linting
+- Consider adding unit and integration tests
+
+### 3. Documentation
+- Document component APIs
+- Create architectural diagrams
+- Maintain up-to-date README files for different parts of the application
+
+## Specific Package Recommendations
+
+### 1. Consider Replacing or Updating Libraries
+- Update Three.js to the latest version for performance improvements and bug fixes
+- Consider upgrading to React 19 when it becomes stable for better performance
+- Evaluate if all current dependencies are necessary; remove unused ones
+
+### 2. Add Performance-Enhancing Packages
+- Consider adding `react-virtualized` or `react-window` for rendering large lists
+- Implement `workbox-webpack-plugin` for advanced service worker capabilities
+- Add `compression-webpack-plugin` to compress static assets
+
+## Implementation Priority
+1. Security measures (CSP, auth controls)
+2. Critical performance optimizations (code splitting, Three.js optimizations)
+3. Development workflow improvements
+4. DevOps enhancements
+5. Nice-to-have optimizations
+
+By implementing these recommendations incrementally, you can significantly improve both the security posture and performance characteristics of your application.
+
+##Other To-Dos
+- Order Status aligned w/ processes
+- Order view/edit (Admin)
+- User and order search (Admin)
+- User view/ edit (Order History)
+- Ticket sell functionality
+- Fix Join Date (Feb 6/7)

@@ -654,7 +654,7 @@ export default function AdminPage() {
                         Email
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                        Join Date
+                        Phone Number
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                         Status
@@ -687,9 +687,7 @@ export default function AdminPage() {
                             {user.email || "No Email"}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                            {formatDate(
-                              new Date(user.joinDate || user.createdAt || "")
-                            )}
+                            {user.phoneNumber || "No Phone"}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span
