@@ -27,6 +27,9 @@ import {
   removeFromCart,
   setCheckoutPrice,
   setPaymentIntent,
+  // Assume these actions are added to cartSlice.js
+  incrementQuantity,
+  decrementQuantity,
 } from "../../../lib/features/todos/cartSlice";
 
 import Header from "../components/Header";
@@ -104,8 +107,20 @@ export default function Cart() {
 
   // console.log("Cart Items: ", cartItems);
 
+  // NOTE: Assumes removeFromCart in cartSlice now removes the entire item line.
   const handleRemoveFromCart = (productId, selectedColor, selectedSize) => {
     dispatch(removeFromCart({ productId, selectedColor, selectedSize }));
+  };
+
+  // NOTE: Assumes incrementQuantity action exists in cartSlice.js
+  const handleIncrement = (productId, selectedColor, selectedSize) => {
+    dispatch(incrementQuantity({ productId, selectedColor, selectedSize }));
+  };
+
+  // NOTE: Assumes decrementQuantity action exists in cartSlice.js
+  // This action should handle decrementing and removing if quantity reaches 0.
+  const handleDecrement = (productId, selectedColor, selectedSize) => {
+    dispatch(decrementQuantity({ productId, selectedColor, selectedSize }));
   };
 
   const handleAddressChange = (address) => {
@@ -117,8 +132,14 @@ export default function Cart() {
   };
 
   useEffect(() => {
+    // Update calculation to include quantity
     const newCartSubtotal = cartItems.reduce((accumulator, item) => {
-      return accumulator + parseFloat(item.price);
+      // Ensure item.quantity exists and is a number, default to 1 if not
+      const quantity =
+        typeof item.quantity === "number" && item.quantity > 0
+          ? item.quantity
+          : 1;
+      return accumulator + parseFloat(item.price) * quantity;
     }, 0);
 
     const taxRate = 0.075;
@@ -178,7 +199,7 @@ export default function Cart() {
   ).toFixed(2);
   // Ensure total is not negative
   const finalTotal = Math.max(0, parseFloat(total)).toFixed(2);
-  // Ensure stripeTotal reflects discount and is not negative
+  // Ensure stripeTotal calculation uses the quantity-aware finalTotal
   const stripeTotal = Math.max(0, parseFloat(finalTotal) * 100);
 
   useEffect(() => {
@@ -258,7 +279,8 @@ export default function Cart() {
 
   const renderPromoSection = (item) => (
     <div className="flex flex-col space-y-2">
-      <div className="flex space-x-2">
+      {/* Use flex-wrap and items-center for better alignment on smaller screens */}
+      <div className="flex flex-wrap items-center space-x-2">
         <input
           type="text"
           placeholder="Enter promo code"
@@ -270,14 +292,18 @@ export default function Cart() {
             setCodeError(""); // Clear error on type
             setValidCode(false); // Reset validation status on type
           }}
-          className="mt-2 sm:mt-0 ml-0 sm:ml-2 px-2 py-1 border rounded text-black"
+          // Add consistent padding, height, and potentially width/min-width
+          // Use disabled:bg-gray-200 for explicit disabled styling
+          className="mt-2 sm:mt-0 ml-0 sm:ml-2 px-3 py-2 h-10 border border-gray-300 rounded text-black w-40 disabled:bg-gray-200 disabled:cursor-not-allowed" // Example: Added h-10, px-3, py-2, w-40, disabled styles
           disabled={promoApplied || isLoading} // Only disable if applied or during button click process
         />
         <button
-          className={`mt-2 sm:mt-0 ml-0 sm:ml-6 px-2 py-2 rounded ${
-            // Enable if code is entered, not applied, and not loading
+          // Add consistent padding, height, and potentially width/min-width
+          // Ensure hover/focus states are consistent
+          className={`mt-2 sm:mt-0 ml-0 sm:ml-2 px-3 py-2 h-10 rounded text-sm font-medium transition-colors ${
+            // Example: Added h-10, px-3, py-2, text-sm, font-medium
             code && !promoApplied && !isLoading
-              ? "bg-red-500 text-white hover:bg-red-600"
+              ? "bg-red-500 text-white hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
               : "bg-gray-300 text-gray-900 cursor-not-allowed"
           }`}
           onClick={async () => {
@@ -325,10 +351,13 @@ export default function Cart() {
             : "Apply Discount"}
         </button>
       </div>
-      {codeError && <p className="text-red-500 text-sm">{codeError}</p>}
+      {codeError && (
+        <p className="text-red-500 text-sm mt-1 ml-2">{codeError}</p>
+      )}{" "}
+      {/* Added margin for spacing */}
       {/* Display success message if promo applied */}
       {promoApplied && (
-        <p className="text-green-500 text-sm">Discount applied!</p>
+        <p className="text-green-500 text-sm mt-1 ml-2">Discount applied!</p> // Added margin for spacing
       )}
     </div>
   );
@@ -374,54 +403,46 @@ export default function Cart() {
                 role="list"
                 className="divide-y divide-gray-200 border-b border-t border-gray-100"
               >
-                {cartItems.map((item, index) => (
-                  <li
-                    key={`${item.productId}-${item.selectedColor}-${item.selectedSize}-${index}`}
-                    className="flex py-6 sm:py-10"
-                  >
-                    <div className="flex-shrink-0">
-                      <img
-                        src={
-                          item.productImageSrc[0].src || item.productImageSrc
-                        }
-                        alt={item.title}
-                        className="h-64 w-48 rounded-md object-cover object-center sm:h-80 sm:w-64"
-                      />
-                    </div>
+                {cartItems.map((item, index) => {
+                  // Assume item has quantity, default to 1 if not for display safety
+                  const quantity =
+                    typeof item.quantity === "number" && item.quantity > 0
+                      ? item.quantity
+                      : 1;
+                  const lineItemTotal = (
+                    parseFloat(item.price) * quantity
+                  ).toFixed(2);
 
-                    <div className="ml-4 flex flex-1 flex-col justify-between sm:ml-6">
-                      <div className="relative pr-9 sm:grid sm:grid-cols-2 sm:gap-x-6 sm:pr-0">
+                  return (
+                    <li
+                      key={`${item.productId}-${item.selectedColor}-${item.selectedSize}-${index}`}
+                      className="flex py-6 sm:py-10"
+                    >
+                      {/* Image */}
+                      <div className="flex-shrink-0">
+                        <img
+                          src={
+                            item.productImageSrc[0].src || item.productImageSrc
+                          }
+                          alt={item.title}
+                          className="h-32 w-32 rounded-md object-cover object-center sm:h-48 sm:w-48" // Adjusted size
+                        />
+                      </div>
+
+                      {/* Details Section */}
+                      <div className="ml-4 flex flex-1 flex-col justify-between sm:ml-6">
+                        {/* Top part: Title, Attributes, Price per item */}
                         <div>
-                          <div className="flex justify-between">
-                            <h3 className="text-sm">
-                              <Link
-                                href="/shop"
-                                className="font-medium text-gray-100 hover:text-gray-500"
-                              >
-                                {item.title}
-                              </Link>
+                          <div className="flex justify-between items-start">
+                            <h3 className="text-base font-medium text-gray-100">
+                              {" "}
+                              {/* Increased text size */}
+                              {item.title}
                             </h3>
-                          </div>
-                          <div className="mt-1 flex text-sm">
-                            <p className="text-gray-100">
-                              {item.selectedColor}
-                            </p>
-                            {item.selectedSize ? (
-                              <p className="ml-4 border-l border-gray-200 pl-4 text-gray-100">
-                                {item.selectedSize}
-                              </p>
-                            ) : null}
-                          </div>
-                          <p className="mt-1 text-sm font-medium text-gray-100">
-                            ${item.price}
-                          </p>
-                        </div>
-
-                        <div className="mt-4 sm:mt-0 sm:pr-9">
-                          <div className="absolute right-0 top-0">
+                            {/* Moved Remove button here for better top-right alignment */}
                             <button
                               type="button"
-                              className="-m-2 inline-flex p-2 text-gray-100 hover:text-red-500"
+                              className="-m-2 inline-flex p-2 text-gray-400 hover:text-red-500" // Adjusted color
                               onClick={() =>
                                 handleRemoveFromCart(
                                   item.productId,
@@ -437,51 +458,114 @@ export default function Cart() {
                               />
                             </button>
                           </div>
+                          <div className="mt-1 flex text-sm text-gray-400">
+                            {" "}
+                            {/* Adjusted color */}
+                            <p>{item.selectedColor}</p>
+                            {item.selectedSize ? (
+                              <p className="ml-4 border-l border-gray-500 pl-4">
+                                {" "}
+                                {/* Adjusted color */}
+                                {item.selectedSize}
+                              </p>
+                            ) : null}
+                          </div>
+                          <p className="mt-1 text-sm text-gray-300">
+                            {" "}
+                            {/* Adjusted color */}${item.price} each
+                          </p>
                         </div>
-                      </div>
 
-                      <div className="mt-4 flex flex-col sm:flex-row sm:space-x-2 text-sm text-gray-500">
-                        {item.isDigital ? (
-                          <>
-                            <span className="text-gray-100 flex items-center">
-                              <DevicePhoneMobileIcon
-                                className="h-5 w-5 flex-shrink-0"
-                                aria-hidden="true"
-                              />
-                            </span>
-                            <span className="text-gray-200 flex items-center">{`Delivered digitally`}</span>
-                            {state.idToken &&
-                            state.refreshToken &&
-                            state.clientSecret &&
-                            state.stripePromise ? (
-                              renderPromoSection(item)
-                            ) : (
-                              <>
-                                {/* Keep login prompt if not logged in */}
-                                {!state.idToken && !state.refreshToken && (
-                                  <span className="text-gray-200 flex items-center mt-16 sm:mt-0">
-                                    Please log in or create an account to use
-                                    promo codes.
-                                  </span>
-                                )}
-                              </>
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            <span className="text-gray-100 flex items-center">
-                              <TruckIcon
-                                className="h-5 w-5 flex-shrink-0"
-                                aria-hidden="true"
-                              />
-                            </span>
-                            <span className="text-gray-200 flex items-center">{`Ships in 1-2 weeks`}</span>
-                          </>
-                        )}
+                        {/* Bottom part: Quantity, Line Total, Digital/Physical Info */}
+                        <div className="mt-4 flex flex-1 items-end justify-between text-sm">
+                          {/* Quantity Controls */}
+                          <div className="flex items-center space-x-2 text-gray-100">
+                            <button
+                              onClick={() =>
+                                handleDecrement(
+                                  item.productId,
+                                  item.selectedColor,
+                                  item.selectedSize
+                                )
+                              }
+                              className="px-2 py-1 border border-gray-500 rounded text-sm hover:bg-gray-700 disabled:opacity-50" // Adjusted border color, text size
+                              disabled={quantity <= 1}
+                            >
+                              -
+                            </button>
+                            <span className="w-8 text-center">{quantity}</span>{" "}
+                            {/* Added width for alignment */}
+                            <button
+                              onClick={() =>
+                                handleIncrement(
+                                  item.productId,
+                                  item.selectedColor,
+                                  item.selectedSize
+                                )
+                              }
+                              className="px-2 py-1 border border-gray-500 rounded text-sm hover:bg-gray-700" // Adjusted border color, text size
+                            >
+                              +
+                            </button>
+                          </div>
+
+                          {/* Line Item Total */}
+                          <div className="flex flex-col items-end">
+                            <p className="font-medium text-gray-100">
+                              Total: ${lineItemTotal}
+                            </p>
+                            {/* Digital/Physical Info - Moved here for better grouping */}
+                            <div className="mt-2 flex items-center space-x-2 text-xs text-gray-400">
+                              {" "}
+                              {/* Adjusted size/color */}
+                              {item.isDigital ? (
+                                <>
+                                  <DevicePhoneMobileIcon
+                                    className="h-4 w-4 flex-shrink-0"
+                                    aria-hidden="true"
+                                  />
+                                  <span>Delivered digitally</span>
+                                </>
+                              ) : (
+                                <>
+                                  <TruckIcon
+                                    className="h-4 w-4 flex-shrink-0"
+                                    aria-hidden="true"
+                                  />
+                                  <span>Ships in 1-2 weeks</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Promo Section (Only for Digital Items) - Placed below main details */}
+                        {item.isDigital &&
+                          state.idToken &&
+                          state.refreshToken &&
+                          state.clientSecret &&
+                          state.stripePromise && (
+                            <div className="mt-4 pt-4 border-t border-gray-700">
+                              {" "}
+                              {/* Added separator */}
+                              {renderPromoSection(item)}
+                            </div>
+                          )}
+                        {item.isDigital &&
+                          !state.idToken &&
+                          !state.refreshToken && (
+                            <div className="mt-4 pt-4 border-t border-gray-700">
+                              <span className="text-gray-400 text-xs">
+                                {" "}
+                                {/* Adjusted size/color */}
+                                Log in to use promo codes.
+                              </span>
+                            </div>
+                          )}
                       </div>
-                    </div>
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
             </section>
 
