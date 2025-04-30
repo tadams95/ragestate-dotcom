@@ -14,16 +14,16 @@ import Image from "next/image";
 const navigation = [
   { name: "SHOP", href: "/shop" },
   { name: "EVENTS", href: "/events" },
-  { name: "ABOUT", href: "/about" },
+  // { name: "ABOUT", href: "/about" },
   { name: "PRODUCTS", href: "/products" },
-  { name: "BLOG", href: "/blog" },
+  // { name: "BLOG", href: "/blog" },
 ];
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [idToken, setIdToken] = useState(null);
   const [refreshToken, setRefreshToken] = useState(null);
-  const [profilePicture, setProfilePicture] = useState(""); 
+  const [profilePicture, setProfilePicture] = useState("");
 
   useEffect(() => {
     // Check if window object is defined (ensures we are in the browser)
@@ -31,13 +31,13 @@ export default function Header() {
       const storedIdToken = localStorage.getItem("idToken");
       const storedRefreshToken = localStorage.getItem("refreshToken");
       const storedProfilePicture = localStorage.getItem("profilePicture");
-      
+
       setIdToken(storedIdToken);
       setRefreshToken(storedRefreshToken);
       setProfilePicture(storedProfilePicture || "");
     }
   }, []);
-  
+
   return (
     <div className="bg-black">
       <header className="absolute inset-x-0 top-0 z-50">
