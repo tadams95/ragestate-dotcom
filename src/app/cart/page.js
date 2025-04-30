@@ -42,13 +42,13 @@ export default function Cart() {
   const cartItems = useSelector(selectCartItems);
   const firestore = getFirestore();
   const [code, setCode] = useState("");
-  const [isClaiming, setIsClaiming] = useState(false);
-  const [hasClaimed, setHasClaimed] = useState(false);
   const [validCode, setValidCode] = useState(false);
   const [codeError, setCodeError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // Keep for validation loading state
   const [errorMessage, setErrorMessage] = useState("");
   const [addressDetails, setAddressDetails] = useState(null); // Add this line
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [promoApplied, setPromoApplied] = useState(false);
 
   const [state, setState] = useState({
     cartSubtotal: 0,
@@ -69,13 +69,17 @@ export default function Cart() {
       setCodeError("Please enter a promo code");
       return false;
     }
-    
+    // Don't validate if already applied
+    if (promoApplied) {
+      return false;
+    }
+
     try {
-      setIsLoading(true);
+      setIsLoading(true); // Use isLoading for validation feedback
       setErrorMessage("");
-      const codeRef = doc(firestore, 'promoterCodes', inputCode.toUpperCase());
+      const codeRef = doc(firestore, "promoterCodes", inputCode.toUpperCase());
       const codeSnap = await getDoc(codeRef);
-      
+
       if (codeSnap.exists()) {
         setValidCode(true);
         setCodeError("");
@@ -106,9 +110,9 @@ export default function Cart() {
 
   const handleAddressChange = (address) => {
     setAddressDetails(address);
-    setState(prevState => ({
+    setState((prevState) => ({
       ...prevState,
-      addressDetails: address
+      addressDetails: address,
     }));
   };
 
@@ -120,16 +124,20 @@ export default function Cart() {
     const taxRate = 0.075;
     const taxTotal = newCartSubtotal * taxRate;
     const shipping = cartItems.some((item) => !item.isDigital) ? 0.0 : 0.0;
-    const newTotalPrice = newCartSubtotal + taxTotal + shipping;
+    // Apply discount here
+    const newTotalPrice =
+      newCartSubtotal + taxTotal + shipping - discountAmount;
 
     setState((prevState) => ({
       ...prevState,
       cartSubtotal: newCartSubtotal,
-      totalPrice: newTotalPrice,
+      // Ensure total price doesn't go below zero
+      totalPrice: Math.max(0, newTotalPrice),
     }));
 
-    dispatch(setCheckoutPrice(newTotalPrice * 100)); // Convert to cents for Stripe
-  }, [cartItems, dispatch]);
+    // Update checkout price in Redux store, ensuring it's not negative
+    dispatch(setCheckoutPrice(Math.max(0, newTotalPrice * 100))); // Convert to cents for Stripe
+  }, [cartItems, dispatch, discountAmount]); // Add discountAmount dependency
 
   useEffect(() => {
     const publishableKey =
@@ -147,7 +155,6 @@ export default function Cart() {
       const userName = localStorage.getItem("name");
       const userEmail = localStorage.getItem("email");
       const userId = localStorage.getItem("userId");
-      const claimed = localStorage.getItem("ticketClaimed");
 
       setState((prevState) => ({
         ...prevState,
@@ -166,28 +173,37 @@ export default function Cart() {
   const total = (
     parseFloat(state.cartSubtotal) +
     parseFloat(taxTotal) +
-    shipping
+    shipping - // Subtract discount for display
+    discountAmount
   ).toFixed(2);
-  const stripeTotal = total * 100;
+  // Ensure total is not negative
+  const finalTotal = Math.max(0, parseFloat(total)).toFixed(2);
+  // Ensure stripeTotal reflects discount and is not negative
+  const stripeTotal = Math.max(0, parseFloat(finalTotal) * 100);
 
   useEffect(() => {
     const fetchClientSecret = async () => {
       try {
-        // Don't fetch if cart is empty or total is 0
+        // Don't fetch if cart is empty or total is 0 or less
         if (!cartItems.length || stripeTotal <= 0) {
+          // Clear existing client secret if total becomes 0 or less after discount
+          if (state.clientSecret) {
+            setState((prevState) => ({ ...prevState, clientSecret: "" }));
+            localStorage.removeItem("clientSecret");
+          }
           return;
         }
 
         setIsLoading(true);
         setErrorMessage("");
-        
+
         const response = await fetch(`${API_URL}/web-payment`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            amount: stripeTotal,
+            amount: stripeTotal, // Use the potentially discounted stripeTotal
             customerEmail: state.userEmail,
             name: state.userName,
             firebaseId: state.userId,
@@ -196,7 +212,9 @@ export default function Cart() {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.message || `Error: HTTP status ${response.status}`);
+          throw new Error(
+            errorData.message || `Error: HTTP status ${response.status}`
+          );
         }
 
         const { client_secret } = await response.json();
@@ -208,7 +226,9 @@ export default function Cart() {
         localStorage.setItem("clientSecret", client_secret);
       } catch (error) {
         console.error("Error fetching payment intent:", error.message);
-        setErrorMessage(`Payment setup failed: ${error.message}. Please refresh the page or try again later.`);
+        setErrorMessage(
+          `Payment setup failed: ${error.message}. Please refresh the page or try again later.`
+        );
       } finally {
         setIsLoading(false);
       }
@@ -217,6 +237,7 @@ export default function Cart() {
     if (state.userName && state.userEmail && state.userId) {
       fetchClientSecret();
     }
+    // Add stripeTotal to dependencies to refetch when discount changes the total
   }, [state.userName, state.userEmail, state.userId, cartItems, stripeTotal]);
 
   const appearance = {
@@ -242,56 +263,72 @@ export default function Cart() {
           type="text"
           placeholder="Enter promo code"
           value={code}
-          onChange={async (e) => {
+          onChange={(e) => {
+            // Simplified onChange
             const newCode = e.target.value.toUpperCase();
             setCode(newCode);
-            setCodeError("");
-            if (newCode.length > 3) { // Only validate if code is long enough
-              await validatePromoCode(newCode);
-            } else {
-              setValidCode(false);
-            }
+            setCodeError(""); // Clear error on type
+            setValidCode(false); // Reset validation status on type
           }}
-          className="mt-2 sm:mt-0 ml-0 sm:ml-2 px-2 py-1 border rounded"
-          disabled={isLoading || hasClaimed}
+          className="mt-2 sm:mt-0 ml-0 sm:ml-2 px-2 py-1 border rounded text-black"
+          disabled={promoApplied || isLoading} // Only disable if applied or during button click process
         />
         <button
           className={`mt-2 sm:mt-0 ml-0 sm:ml-6 px-2 py-2 rounded ${
-            validCode && !hasClaimed && !isLoading
+            // Enable if code is entered, not applied, and not loading
+            code && !promoApplied && !isLoading
               ? "bg-red-500 text-white hover:bg-red-600"
               : "bg-gray-300 text-gray-900 cursor-not-allowed"
           }`}
           onClick={async () => {
-            if (validCode && !isClaiming && !hasClaimed) {
-              setIsClaiming(true);
-              setErrorMessage("");
-              try {
-                // Your existing claiming logic here
-                const eventId = item.eventDetails ? item.productId : null;
-                if (!eventId) {
-                  throw new Error("No valid event found for this ticket");
-                }
-                // ... rest of your claiming logic ...
-                
-                localStorage.setItem("ticketClaimed", "true");
-                setHasClaimed(true);
-                alert("Promoter ticket claimed successfully!");
-              } catch (error) {
-                console.error("Error claiming ticket:", error);
-                setErrorMessage(`Failed to claim ticket: ${error.message}`);
-                alert(`Failed to claim ticket: ${error.message}`);
-              } finally {
-                setIsClaiming(false);
-              }
+            // Validate first when button is clicked
+            if (!code || promoApplied || isLoading) return; // Guard clause
+
+            setIsLoading(true); // Start loading indicator
+            const isValid = await validatePromoCode(code);
+            setIsLoading(false); // Stop loading indicator after validation
+
+            if (isValid) {
+              // Apply discount logic only if code is valid
+              const discountValue = 5;
+              setDiscountAmount(discountValue);
+              setPromoApplied(true);
+              setCodeError(""); // Clear any previous errors
+
+              // Recalculate total price in state immediately
+              setState((prevState) => {
+                const taxRate = 0.075; // Ensure taxRate is accessible here or passed
+                const shipping = cartItems.some((item) => !item.isDigital)
+                  ? 0.0
+                  : 0.0; // Ensure shipping is accessible
+                const newTotalPrice =
+                  prevState.cartSubtotal +
+                  prevState.cartSubtotal * taxRate +
+                  shipping -
+                  discountValue;
+                return {
+                  ...prevState,
+                  totalPrice: Math.max(0, newTotalPrice), // Ensure not negative
+                };
+              });
             }
+            // If !isValid, validatePromoCode already set the error message
           }}
-          disabled={!validCode || isClaiming || hasClaimed || isLoading}
+          // Disable button if code is empty, already applied, or loading
+          disabled={!code || promoApplied || isLoading}
         >
-          {isClaiming ? "Claiming..." : hasClaimed ? "Claimed" : "Claim Ticket"}
+          {/* Update button text */}
+          {isLoading
+            ? "Applying..." // Changed loading text
+            : promoApplied
+            ? "Applied"
+            : "Apply Discount"}
         </button>
       </div>
-      {codeError && (
-        <p className="text-red-500 text-sm">{codeError}</p>
+      {codeError && <p className="text-red-500 text-sm">{codeError}</p>}
+      {/* Display success message if promo applied */}
+      {promoApplied && (
+        <p className="text-green-500 text-sm">Discount applied!</p>
       )}
     </div>
   );
@@ -300,9 +337,12 @@ export default function Cart() {
     <div className="bg-black isolate">
       <Header />
       {errorMessage && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mt-16 mx-auto max-w-7xl" role="alert">
+        <div
+          className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mt-16 mx-auto max-w-7xl"
+          role="alert"
+        >
           <span className="block sm:inline">{errorMessage}</span>
-          <button 
+          <button
             className="absolute top-0 bottom-0 right-0 px-4 py-3"
             onClick={() => setErrorMessage("")}
           >
@@ -417,10 +457,13 @@ export default function Cart() {
                               renderPromoSection(item)
                             ) : (
                               <>
-                                <span className="text-gray-200 flex items-center mt-16 sm:mt-0">
-                                  Please log in or create an account to claim
-                                  promoter ticket
-                                </span>
+                                {/* Keep login prompt if not logged in */}
+                                {!state.idToken && !state.refreshToken && (
+                                  <span className="text-gray-200 flex items-center mt-16 sm:mt-0">
+                                    Please log in or create an account to use
+                                    promo codes.
+                                  </span>
+                                )}
                               </>
                             )}
                           </>
@@ -477,21 +520,33 @@ export default function Cart() {
                     ${taxTotal}
                   </dd>
                 </div>
+                {/* Add Discount Row */}
+                {discountAmount > 0 && (
+                  <div className="flex items-center justify-between border-t border-gray-200 pt-4">
+                    <dt className="flex text-sm text-gray-100">
+                      <span>Discount</span>
+                    </dt>
+                    <dd className="text-sm font-medium text-green-500">
+                      -${discountAmount.toFixed(2)}
+                    </dd>
+                  </div>
+                )}
                 <div className="flex items-center justify-between border-t border-gray-200 pt-4">
                   <dt className="text-base font-medium text-gray-100">
                     Order total
                   </dt>
                   <dd className="text-base font-medium text-gray-100">
-                    ${total}
+                    {/* Use finalTotal which accounts for discount */}$
+                    {finalTotal}
                   </dd>
                 </div>
               </dl>
 
               <div className="mt-10">
-                {/* Conditionally render based on authentication and presence of physical items */}
+                {/* Conditionally render based on authentication and client secret */}
                 {state.idToken &&
                 state.refreshToken &&
-                state.clientSecret &&
+                state.clientSecret && // Check if clientSecret exists
                 state.stripePromise ? (
                   <>
                     {/* Render Elements and CheckoutForm for authenticated users */}
@@ -501,7 +556,8 @@ export default function Cart() {
                           <AddressForm onAddressChange={handleAddressChange} />
                         </div>
                       )}
-                      <CheckoutForm addressDetails={addressDetails} /> {/* Update this line */}
+                      <CheckoutForm addressDetails={addressDetails} />{" "}
+                      {/* Update this line */}
                     </Elements>
                   </>
                 ) : (
