@@ -67,7 +67,9 @@ export default function Cart() {
 
   // Improved error handling for validatePromoCode
   const validatePromoCode = async (inputCode) => {
-    if (!inputCode || inputCode.trim() === "") {
+    const upperCaseCode = inputCode.toUpperCase(); // Standardize code case
+
+    if (!upperCaseCode || upperCaseCode.trim() === "") {
       setValidCode(false);
       setCodeError("Please enter a promo code");
       return false;
@@ -80,7 +82,9 @@ export default function Cart() {
     try {
       setIsLoading(true); // Use isLoading for validation feedback
       setErrorMessage("");
-      const codeRef = doc(firestore, "promoterCodes", inputCode.toUpperCase());
+
+      // Check Firestore for the promoter code
+      const codeRef = doc(firestore, "promoterCodes", upperCaseCode);
       const codeSnap = await getDoc(codeRef);
 
       if (codeSnap.exists()) {
@@ -309,14 +313,16 @@ export default function Cart() {
           onClick={async () => {
             // Validate first when button is clicked
             if (!code || promoApplied || isLoading) return; // Guard clause
+            const upperCaseCode = code.toUpperCase(); // Use standardized code
 
             setIsLoading(true); // Start loading indicator
-            const isValid = await validatePromoCode(code);
+            const isValid = await validatePromoCode(upperCaseCode); // Validate standardized code
             setIsLoading(false); // Stop loading indicator after validation
 
             if (isValid) {
               // Apply discount logic only if code is valid
-              const discountValue = 5;
+              // Determine discount based on the code
+              const discountValue = upperCaseCode === "RS20" ? 20 : 5;
               setDiscountAmount(discountValue);
               setPromoApplied(true);
               setCodeError(""); // Clear any previous errors
@@ -331,7 +337,7 @@ export default function Cart() {
                   prevState.cartSubtotal +
                   prevState.cartSubtotal * taxRate +
                   shipping -
-                  discountValue;
+                  discountValue; // Use the determined discountValue
                 return {
                   ...prevState,
                   totalPrice: Math.max(0, newTotalPrice), // Ensure not negative
