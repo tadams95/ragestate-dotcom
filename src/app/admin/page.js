@@ -109,6 +109,18 @@ export default function AdminPage() {
     return `$${amount.toFixed(2)}`;
   };
 
+  // Function to handle viewing order details
+  const viewOrderDetails = (orderId) => {
+    const orderToView = orders.find((order) => order.id === orderId);
+    if (orderToView) {
+      setSelectedOrder(orderToView);
+      setOrderDetailsOpen(true);
+    } else {
+      console.error("Could not find order with ID:", orderId);
+      // Optionally, you could show an error message to the user here
+    }
+  };
+
   // Loading state component
   const loadingState = (
     <div className="flex justify-center items-center h-64">
@@ -223,35 +235,38 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-700">
-                  {selectedOrder.cartItems?.map((item, index) => (
-                    <tr key={index}>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm">
-                        <div className="flex items-center">
-                          {item.productImageSrc && (
-                            <img
-                              src={item.productImageSrc}
-                              alt={item.title}
-                              className="h-10 w-10 object-cover rounded mr-3"
-                            />
-                          )}
-                          <div>
-                            <p className="text-white font-medium">
-                              {item.title}
-                            </p>
-                            <p className="text-gray-400 text-xs">
-                              {item.color} - {item.size}
-                            </p>
+                  {selectedOrder.items?.map((item, index) => {
+                    const itemPrice = parseFloat(item.price) || 0;
+                    return (
+                      <tr key={index}>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm">
+                          <div className="flex items-center">
+                            {item.productImageSrc && (
+                              <img
+                                src={item.productImageSrc}
+                                alt={item.title}
+                                className="h-10 w-10 object-cover rounded mr-3"
+                              />
+                            )}
+                            <div>
+                              <p className="text-white font-medium">
+                                {item.title}
+                              </p>
+                              <p className="text-gray-400 text-xs">
+                                {item.selectedColor} - {item.selectedSize}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
-                        {item.quantity || 1}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
-                        ${item.price.toFixed(2)}
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
+                          {item.quantity || 1}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
+                          ${itemPrice.toFixed(2)}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
