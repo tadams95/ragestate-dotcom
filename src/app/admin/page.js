@@ -13,13 +13,17 @@ import {
   useFirebase,
   useAuth,
 } from "../../../firebase/context/FirebaseContext";
-import { format } from "date-fns";
 import AdminProtected from "../components/AdminProtected";
 import DashboardTab from "../components/admin/DashboardTab";
 import OrdersTab from "../components/admin/OrdersTab";
 import UsersTab from "../components/admin/UsersTab";
 import SettingsTab from "../components/admin/SettingsTab";
 import OrderDetailsModal from "../components/admin/OrderDetailsModal";
+import {
+  formatDate,
+  formatCurrency,
+  getStatusColor,
+} from "../../utils/formatters";
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -91,23 +95,6 @@ export default function AdminPage() {
 
     loadData();
   }, [firebase, currentUser, authLoading]);
-
-  const formatDate = (date) => {
-    if (!date) return "N/A";
-    try {
-      return format(new Date(date), "MMM d, yyyy h:mm a");
-    } catch (err) {
-      return "Invalid Date";
-    }
-  };
-
-  const formatCurrency = (amount) => {
-    if (typeof amount === "string") {
-      amount = parseFloat(amount);
-    }
-    if (typeof amount !== "number" || isNaN(amount)) return "$0.00";
-    return `$${amount.toFixed(2)}`;
-  };
 
   const viewOrderDetails = (orderId) => {
     const orderToView = orders.find((order) => order.id === orderId);
@@ -301,24 +288,4 @@ export default function AdminPage() {
       </div>
     </AdminProtected>
   );
-}
-
-function getStatusColor(status) {
-  if (!status) return "bg-gray-500/20 text-gray-500";
-  const statusLower = status.toLowerCase();
-  if (statusLower.includes("completed")) {
-    return "bg-green-500/20 text-green-500";
-  } else if (statusLower.includes("processing")) {
-    return "bg-blue-500/20 text-blue-500";
-  } else if (statusLower.includes("pending")) {
-    return "bg-yellow-500/20 text-yellow-500";
-  } else if (statusLower.includes("shipped")) {
-    return "bg-indigo-500/20 text-indigo-500";
-  } else if (statusLower.includes("cancel")) {
-    return "bg-red-500/20 text-red-500";
-  } else if (statusLower.includes("partial")) {
-    return "bg-orange-500/20 text-orange-500";
-  } else {
-    return "bg-gray-500/20 text-gray-500";
-  }
 }

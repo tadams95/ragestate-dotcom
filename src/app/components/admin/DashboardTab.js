@@ -1,13 +1,15 @@
 import React from "react";
+// Import helper functions if they are directly used here (already passed as props, so not strictly needed unless called directly)
+// import { formatDate, formatCurrency, getStatusColor } from "../../../utils/formatters";
 
 const DashboardTab = ({
   loading,
   error,
   orders,
   userCount,
-  formatDate,
-  formatCurrency,
-  getStatusColor,
+  formatDate, // Prop received from AdminPage
+  formatCurrency, // Prop received from AdminPage
+  getStatusColor, // Prop received from AdminPage
   setActiveTab,
   loadingState,
   errorState,

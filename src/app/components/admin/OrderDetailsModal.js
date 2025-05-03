@@ -1,12 +1,14 @@
 import React from "react";
+// Import helper functions if they are directly used here (already passed as props, so not strictly needed unless called directly)
+// import { formatDate, formatCurrency, getStatusColor } from "../../../utils/formatters";
 
 const OrderDetailsModal = ({
   selectedOrder,
   isOpen,
   onClose,
-  formatDate,
-  formatCurrency,
-  getStatusColor,
+  formatDate, // Prop received from AdminPage
+  formatCurrency, // Prop received from AdminPage
+  getStatusColor, // Prop received from AdminPage
 }) => {
   if (!isOpen || !selectedOrder) return null;
 
