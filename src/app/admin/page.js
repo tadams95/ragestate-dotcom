@@ -15,6 +15,10 @@ import {
 } from "../../../firebase/context/FirebaseContext";
 import { format } from "date-fns";
 import AdminProtected from "../components/AdminProtected";
+import DashboardTab from "../components/admin/DashboardTab";
+import OrdersTab from "../components/admin/OrdersTab";
+import UsersTab from "../components/admin/UsersTab";
+import SettingsTab from "../components/admin/SettingsTab";
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -26,16 +30,15 @@ export default function AdminPage() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [orderDetailsOpen, setOrderDetailsOpen] = useState(false);
   const [userCount, setUserCount] = useState(0);
+  const [currentUserPage, setCurrentUserPage] = useState(1);
+  const usersPerPage = 10;
 
-  // Get Firebase context
   const firebase = useFirebase();
   const { currentUser, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    // Only attempt to load data when authentication is complete
     if (authLoading) return;
 
-    // Make sure we have a user before trying to load admin data
     if (!currentUser) {
       console.log("No authenticated user found, cannot load admin data");
       return;
@@ -46,7 +49,6 @@ export default function AdminPage() {
       setError({});
 
       try {
-        // Fetch data, but don't let one error stop everything
         const results = await Promise.allSettled([
           firebase.fetchAllPurchases(100),
           firebase.fetchUsers(1000),
@@ -54,7 +56,6 @@ export default function AdminPage() {
           firebase.getUserCount(),
         ]);
 
-        // Process results even if some failed
         if (results[0].status === "fulfilled") {
           setOrders(results[0].value);
         } else {
@@ -90,7 +91,6 @@ export default function AdminPage() {
     loadData();
   }, [firebase, currentUser, authLoading]);
 
-  // Format date helper
   const formatDate = (date) => {
     if (!date) return "N/A";
     try {
@@ -100,7 +100,6 @@ export default function AdminPage() {
     }
   };
 
-  // Helper function to safely format currency
   const formatCurrency = (amount) => {
     if (typeof amount === "string") {
       amount = parseFloat(amount);
@@ -109,7 +108,6 @@ export default function AdminPage() {
     return `$${amount.toFixed(2)}`;
   };
 
-  // Function to handle viewing order details
   const viewOrderDetails = (orderId) => {
     const orderToView = orders.find((order) => order.id === orderId);
     if (orderToView) {
@@ -117,18 +115,15 @@ export default function AdminPage() {
       setOrderDetailsOpen(true);
     } else {
       console.error("Could not find order with ID:", orderId);
-      // Optionally, you could show an error message to the user here
     }
   };
 
-  // Loading state component
   const loadingState = (
     <div className="flex justify-center items-center h-64">
       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-500"></div>
     </div>
   );
 
-  // Error state component
   const errorState = (
     <div className="bg-red-500/20 border border-red-500 p-4 rounded-md text-white">
       <h3 className="text-lg font-medium">Error loading data</h3>
@@ -142,10 +137,6 @@ export default function AdminPage() {
     </div>
   );
 
-  const [currentUserPage, setCurrentUserPage] = useState(1);
-  const usersPerPage = 10; // Show 10 users per page
-
-  // Inside the AdminPage component - add this function
   const handleUserPageChange = (direction) => {
     if (direction === "next" && currentUserPage * usersPerPage < userCount) {
       setCurrentUserPage(currentUserPage + 1);
@@ -154,13 +145,11 @@ export default function AdminPage() {
     }
   };
 
-  // Common styling
   const buttonStyling =
     "flex justify-center rounded-md bg-transparent px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 border-2 border-gray-100 transition-all duration-200";
   const inputStyling =
     "block w-full bg-black pl-2 rounded-md border-2 py-1.5 px-1 text-gray-100 shadow-sm ring-1 ring-inset ring-gray-700 placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-red-500 sm:text-sm sm:leading-6";
 
-  // Order details modal
   const orderDetailsModal = selectedOrder && (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-900 rounded-lg border border-gray-800 shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
@@ -355,572 +344,54 @@ export default function AdminPage() {
     </div>
   );
 
-  // Dashboard tab content
-  const dashboardTab = (
-    <div className="bg-gray-900/30 p-6 rounded-lg border border-gray-800 shadow-xl">
-      <h2 className="text-2xl font-bold text-white mb-6">Dashboard Overview</h2>
-
-      {loading ? (
-        loadingState
-      ) : error.general ? (
-        errorState
-      ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            {[
-              {
-                title: "Total Orders",
-                value: orders.length,
-                icon: "📦",
-                color: "bg-blue-500/20 border-blue-500/40",
-              },
-              {
-                title: "Total Revenue",
-                value: `$${orders
-                  .reduce((sum, order) => {
-                    const amount =
-                      typeof order.totalAmount === "number"
-                        ? order.totalAmount
-                        : typeof order.totalAmount === "string"
-                        ? parseFloat(order.totalAmount) || 0
-                        : 0;
-                    return sum + amount;
-                  }, 0)
-                  .toFixed(2)}`,
-                icon: "💰",
-                color: "bg-green-500/20 border-green-500/40",
-              },
-              {
-                title: "Total Users",
-                value: userCount,
-                icon: "👥",
-                color: "bg-purple-500/20 border-purple-500/40",
-              },
-              {
-                title: "Pending Orders",
-                value: orders.filter(
-                  (order) =>
-                    order.status === "pending" || order.status === "processing"
-                ).length,
-                icon: "⏱️",
-                color: "bg-yellow-500/20 border-yellow-500/40",
-              },
-            ].map((stat, idx) => (
-              <div
-                key={idx}
-                className={`${stat.color} p-6 rounded-lg border shadow-md flex items-center justify-between`}
-              >
-                <div>
-                  <p className="text-gray-400 text-sm font-medium">
-                    {stat.title}
-                  </p>
-                  <h3 className="text-white text-2xl font-bold mt-1">
-                    {stat.value}
-                  </h3>
-                </div>
-                <div className="text-3xl">{stat.icon}</div>
-              </div>
-            ))}
-          </div>
-
-          <div className="bg-gray-900/50 p-5 rounded-lg border border-gray-800 shadow-md mb-8">
-            <h3 className="text-xl font-medium text-white mb-4">
-              Recent Orders
-            </h3>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-700">
-                <thead>
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                      Order ID
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                      Customer
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                      Total
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-700">
-                  {orders.slice(0, 3).map((order) => (
-                    <tr key={order.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                        {order.orderNumber || order.id}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                        {order.customerName || "Anonymous"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                        {formatDate(order.orderDate)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                        {formatCurrency(order.totalAmount)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
-                            order.status
-                          )}`}
-                        >
-                          {order.status || "N/A"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="mt-4 text-right">
-              <button
-                onClick={() => setActiveTab("orders")}
-                className="text-red-500 hover:text-red-400 text-sm font-medium"
-              >
-                View all orders →
-              </button>
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
-
-  // Orders tab content
-  const ordersTab = (
-    <div className="bg-gray-900/30 p-6 rounded-lg border border-gray-800 shadow-xl">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-white">Order Management</h2>
-        <div className="flex space-x-2">
-          <input
-            type="text"
-            placeholder="Search orders..."
-            className={inputStyling}
-          />
-          <button className={buttonStyling}>Search</button>
-        </div>
-      </div>
-
-      {loading ? (
-        loadingState
-      ) : error.orders ? (
-        <div className="bg-red-500/20 border border-red-500 p-4 rounded-md text-white">
-          <h3 className="text-lg font-medium">Error loading orders</h3>
-          <p>{error.orders}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
-          >
-            Retry
-          </button>
-        </div>
-      ) : (
-        <div className="bg-gray-900/50 rounded-lg border border-gray-800 shadow-md overflow-hidden">
-          {orders.length === 0 ? (
-            <div className="p-8 text-center text-gray-400">
-              No orders found. Your customers haven't placed any orders yet.
-            </div>
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-700">
-                  <thead>
-                    <tr className="bg-gray-800/50">
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                        Order ID
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                        Customer
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                        Date
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                        Total
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-700">
-                    {orders.map((order) => (
-                      <tr
-                        key={order.id}
-                        className="hover:bg-gray-800/30 transition-colors"
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                          {order.orderNumber || order.id.substring(0, 8)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                          {order.customerName || order.name || "Anonymous"}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                          {formatDate(order.orderDate)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                          {formatCurrency(order.totalAmount)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
-                              order.status
-                            )}`}
-                          >
-                            {order.status || "N/A"}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <button
-                            onClick={() => viewOrderDetails(order.id)}
-                            className="text-red-500 hover:text-red-400 mr-3"
-                          >
-                            View
-                          </button>
-                          <button
-                            onClick={() => alert(`Edit order ${order.id}`)}
-                            className="text-blue-500 hover:text-blue-400"
-                          >
-                            Edit
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="px-6 py-3 flex items-center justify-between border-t border-gray-700">
-                <div className="text-sm text-gray-400">
-                  Showing <span className="font-medium">1</span> to{" "}
-                  <span className="font-medium">{orders.length}</span> of{" "}
-                  <span className="font-medium">{orders.length}</span> results
-                </div>
-                <div className="flex space-x-2">
-                  <button className="px-3 py-1 border border-gray-600 rounded-md text-gray-300 hover:bg-gray-700">
-                    Previous
-                  </button>
-                  <button className="px-3 py-1 border border-gray-600 rounded-md text-gray-300 hover:bg-gray-700">
-                    Next
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-    </div>
-  );
-
-  // Users tab content
-  const usersTab = (
-    <div className="bg-gray-900/30 p-6 rounded-lg border border-gray-800 shadow-xl">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-white">User Management</h2>
-        <div className="flex space-x-2">
-          <input
-            type="text"
-            placeholder="Search users..."
-            className={inputStyling}
-          />
-          <button className={buttonStyling}>Search</button>
-        </div>
-      </div>
-
-      {loading ? (
-        loadingState
-      ) : error.users ? (
-        <div className="bg-red-500/20 border border-red-500 p-4 rounded-md text-white">
-          <h3 className="text-lg font-medium">Error loading users</h3>
-          <p>{error.users}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
-          >
-            Retry
-          </button>
-        </div>
-      ) : (
-        <div className="bg-gray-900/50 rounded-lg border border-gray-800 shadow-md overflow-hidden">
-          {users.length === 0 ? (
-            <div className="p-8 text-center text-gray-400">
-              No users found. Start by creating user accounts.
-            </div>
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-700">
-                  <thead>
-                    <tr className="bg-gray-800/50">
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                        User ID
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                        Name
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                        Email
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                        Phone Number
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-700">
-                    {users
-                      .slice(
-                        (currentUserPage - 1) * usersPerPage,
-                        currentUserPage * usersPerPage
-                      )
-                      .map((user) => (
-                        <tr
-                          key={user.id}
-                          className="hover:bg-gray-800/30 transition-colors"
-                        >
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-300">
-                            {user.id.substring(0, 12)}...
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                            {user.firstName && user.lastName
-                              ? `${user.firstName} ${user.lastName}`
-                              : user.displayName || "Unknown Name"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                            {user.email || "No Email"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                            {user.phoneNumber || "No Phone"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span
-                              className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                user.isAdmin
-                                  ? "bg-purple-500/20 text-purple-500"
-                                  : user.disabled
-                                  ? "bg-red-500/20 text-red-500"
-                                  : "bg-green-500/20 text-green-500"
-                              }`}
-                            >
-                              {user.isAdmin
-                                ? "Admin"
-                                : user.disabled
-                                ? "Disabled"
-                                : "Active"}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <button
-                              onClick={() => alert(`View user ${user.id}`)}
-                              className="text-red-500 hover:text-red-400 mr-3"
-                            >
-                              View
-                            </button>
-                            <button
-                              onClick={() => alert(`Edit user ${user.id}`)}
-                              className="text-blue-500 hover:text-blue-400"
-                            >
-                              Edit
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="px-6 py-3 flex items-center justify-between border-t border-gray-700">
-                <div className="text-sm text-gray-400">
-                  Showing{" "}
-                  <span className="font-medium">
-                    {(currentUserPage - 1) * usersPerPage + 1}
-                  </span>{" "}
-                  to{" "}
-                  <span className="font-medium">
-                    {Math.min(currentUserPage * usersPerPage, userCount)}
-                  </span>{" "}
-                  of <span className="font-medium">{userCount}</span> users
-                </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => handleUserPageChange("prev")}
-                    disabled={currentUserPage === 1}
-                    className={`px-3 py-1 border border-gray-600 rounded-md text-gray-300 hover:bg-gray-700 ${
-                      currentUserPage === 1
-                        ? "opacity-50 cursor-not-allowed"
-                        : ""
-                    }`}
-                  >
-                    Previous
-                  </button>
-                  <button
-                    onClick={() => handleUserPageChange("next")}
-                    disabled={currentUserPage * usersPerPage >= userCount}
-                    className={`px-3 py-1 border border-gray-600 rounded-md text-gray-300 hover:bg-gray-700 ${
-                      currentUserPage * usersPerPage >= userCount
-                        ? "opacity-50 cursor-not-allowed"
-                        : ""
-                    }`}
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-    </div>
-  );
-
-  // Settings tab content
-  const settingsTab = (
-    <div className="bg-gray-900/30 p-6 rounded-lg border border-gray-800 shadow-xl">
-      <h2 className="text-2xl font-bold text-white mb-6">Admin Settings</h2>
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-8 items-start">
-        <div className="md:col-span-3">
-          <div className="bg-gray-900/50 p-5 rounded-lg border border-gray-800 shadow-md mb-6">
-            <h3 className="text-xl font-medium text-white mb-4">
-              Site Configuration
-            </h3>
-            <form className="space-y-4">
-              <div>
-                <label
-                  htmlFor="site-title"
-                  className="block text-sm font-medium text-gray-300 mb-1"
-                >
-                  Site Title
-                </label>
-                <input
-                  type="text"
-                  id="site-title"
-                  defaultValue="RAGESTATE"
-                  className={inputStyling}
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="site-description"
-                  className="block text-sm font-medium text-gray-300 mb-1"
-                >
-                  Site Description
-                </label>
-                <textarea
-                  id="site-description"
-                  rows={3}
-                  defaultValue="Official RAGESTATE website"
-                  className={inputStyling}
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="contact-email"
-                  className="block text-sm font-medium text-gray-300 mb-1"
-                >
-                  Contact Email
-                </label>
-                <input
-                  type="email"
-                  id="contact-email"
-                  defaultValue="contact@ragestate.com"
-                  className={inputStyling}
-                />
-              </div>
-              <div className="pt-2">
-                <button type="button" className={buttonStyling}>
-                  Save Settings
-                </button>
-              </div>
-            </form>
-          </div>
-          <div className="bg-gray-900/50 p-5 rounded-lg border border-gray-800 shadow-md">
-            <h3 className="text-lg font-medium text-gray-100 mb-4">
-              Admin Users
-            </h3>
-            <ul className="space-y-3">
-              <li className="flex items-center justify-between p-2 border-b border-gray-700">
-                <div className="flex items-center">
-                  <div className="h-8 w-8 rounded-full bg-red-600 flex items-center justify-center text-white font-bold mr-3">
-                    A
-                  </div>
-                  <div>
-                    <p className="text-gray-200 font-medium">Admin User</p>
-                    <p className="text-gray-400 text-sm">admin@ragestate.com</p>
-                  </div>
-                </div>
-                <span className="text-green-500 text-sm font-medium">
-                  Super Admin
-                </span>
-              </li>
-              <li className="flex items-center justify-between p-2 border-b border-gray-700">
-                <div className="flex items-center">
-                  <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold mr-3">
-                    M
-                  </div>
-                  <div>
-                    <p className="text-gray-200 font-medium">Moderator</p>
-                    <p className="text-gray-400 text-sm">mod@ragestate.com</p>
-                  </div>
-                </div>
-                <span className="text-blue-500 text-sm font-medium">
-                  Moderator
-                </span>
-              </li>
-            </ul>
-            <button className="mt-4 w-full flex justify-center items-center bg-transparent text-gray-300 border border-gray-700 hover:border-gray-500 font-medium py-1.5 px-4 rounded-md text-sm transition-colors">
-              Manage Admin Users
-            </button>
-          </div>
-        </div>
-        <div className="md:col-span-2 space-y-6">
-          <div className="bg-gray-900/50 p-5 rounded-lg border border-gray-800 shadow-md">
-            <h3 className="text-lg font-medium text-gray-100 mb-3">
-              System Status
-            </h3>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-300">Server Status</span>
-                <span className="px-2 py-0.5 rounded-full text-xs bg-green-500/20 text-green-500">
-                  Online
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-300">Database</span>
-                <span className="px-2 py-0.5 rounded-full text-xs bg-green-500/20 text-green-500">
-                  Connected
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-300">Last Backup</span>
-                <span className="text-sm text-gray-400">2 hours ago</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-300">Storage Usage</span>
-                <span className="text-sm text-gray-400">45% (45GB/100GB)</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
   const tabComponents = {
-    dashboard: dashboardTab,
-    orders: ordersTab,
-    users: usersTab,
-    settings: settingsTab,
+    dashboard: (
+      <DashboardTab
+        loading={loading}
+        error={error}
+        orders={orders}
+        userCount={userCount}
+        formatDate={formatDate}
+        formatCurrency={formatCurrency}
+        getStatusColor={getStatusColor}
+        setActiveTab={setActiveTab}
+        loadingState={loadingState}
+        errorState={errorState}
+      />
+    ),
+    orders: (
+      <OrdersTab
+        loading={loading}
+        error={error}
+        orders={orders}
+        formatDate={formatDate}
+        formatCurrency={formatCurrency}
+        getStatusColor={getStatusColor}
+        viewOrderDetails={viewOrderDetails}
+        inputStyling={inputStyling}
+        buttonStyling={buttonStyling}
+        loadingState={loadingState}
+        errorState={errorState}
+      />
+    ),
+    users: (
+      <UsersTab
+        loading={loading}
+        error={error}
+        users={users}
+        userCount={userCount}
+        currentUserPage={currentUserPage}
+        usersPerPage={usersPerPage}
+        handleUserPageChange={handleUserPageChange}
+        inputStyling={inputStyling}
+        buttonStyling={buttonStyling}
+        loadingState={loadingState}
+        errorState={errorState}
+      />
+    ),
+    settings: (
+      <SettingsTab inputStyling={inputStyling} buttonStyling={buttonStyling} />
+    ),
   };
 
   return (
@@ -930,7 +401,6 @@ export default function AdminPage() {
         <main className="flex-grow">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-16 pb-24">
             <div className="max-w-6xl mx-auto">
-              {/* Admin Header */}
               <div className="flex flex-col items-center mb-8">
                 <div className="flex justify-center mt-6 mb-4">
                   <img
@@ -946,7 +416,6 @@ export default function AdminPage() {
                   Manage orders, users, and site settings in one place.
                 </p>
               </div>
-              {/* Admin Navigation Tabs */}
               <div className="mt-6 mb-8">
                 <div className="border-b border-zinc-700">
                   <nav
@@ -1009,7 +478,6 @@ export default function AdminPage() {
                   </nav>
                 </div>
               </div>
-              {/* Tab Content */}
               <div className="mb-16">{tabComponents[activeTab]}</div>
             </div>
           </div>
