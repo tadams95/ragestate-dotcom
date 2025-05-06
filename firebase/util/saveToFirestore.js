@@ -93,6 +93,7 @@ export default async function SaveToFirestore(
         productImageSrc: item.productImageSrc || item.imageSrc || null,
         color: item.color || item.selectedColor || null,
         size: item.size || item.selectedSize || null,
+        eventDetails: item.eventDetails || null,
       }));
 
       const purchaseData = preparePurchaseData(
@@ -106,6 +107,62 @@ export default async function SaveToFirestore(
       );
 
       console.log("Purchase data prepared for", orderNumber);
+
+      // Process event tickets and update inventory
+      console.log("Checking for event tickets in cart...");
+      try {
+        for (const item of sanitizedCartItems) {
+          // Find the event ID for the current item
+          const eventId = item.eventDetails ? item.productId : null;
+
+          // Proceed only if the event ID is valid
+          if (eventId) {
+            console.log(`Processing event ticket for event ID: ${eventId}`);
+
+            // Get the current quantity of the event
+            const eventDocRef = doc(firestore, "events", eventId);
+            const eventDocSnap = await getDoc(eventDocRef);
+
+            if (eventDocSnap.exists()) {
+              const currentQuantity = eventDocSnap.data().quantity;
+              console.log(`Current event quantity: ${currentQuantity}`);
+
+              // Update the quantity by decrementing
+              await updateDoc(eventDocRef, {
+                quantity: Math.max(0, currentQuantity - item.quantity),
+              });
+              console.log(
+                `Updated event quantity to: ${Math.max(
+                  0,
+                  currentQuantity - item.quantity
+                )}`
+              );
+
+              // Create Firestore document for the user's ticket
+              const userData = {
+                active: true,
+                email: userEmail || "no-email@provided.com",
+                firebaseId: firebaseId,
+                owner: userName || "Guest",
+                purchaseDate: serverTimestamp(),
+                orderNumber: orderNumber,
+                ticketQuantity: item.quantity || 1,
+              };
+
+              const eventRef = doc(firestore, "events", eventId);
+              const eventRagersRef = collection(eventRef, "ragers");
+
+              await addDoc(eventRagersRef, userData);
+              console.log(`✓ Added user to event's ragers collection`);
+            } else {
+              console.warn(`Event with ID ${eventId} not found in Firestore`);
+            }
+          }
+        }
+      } catch (eventError) {
+        console.error("Error processing event tickets:", eventError);
+        // Continue with the purchase process even if event processing fails
+      }
 
       // Add transaction metadata
       const metadata = {
