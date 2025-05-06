@@ -2,7 +2,10 @@
 
 import React, { useState, useCallback } from "react";
 import { loginSuccess } from "../../../lib/features/todos/authSlice";
-import { setAuthenticated, setUserName } from "../../../lib/features/todos/userSlice";
+import {
+  setAuthenticated,
+  setUserName,
+} from "../../../lib/features/todos/userSlice";
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import Link from "next/link";
@@ -58,7 +61,10 @@ export default function Login() {
         const name = `${userData.firstName} ${userData.lastName}`;
         dispatch(setUserName(name));
         localStorage.setItem("name", name);
-        localStorage.setItem("profilePicture", userData.profilePicture || "/assets/trollface.png");
+        localStorage.setItem(
+          "profilePicture",
+          userData.profilePicture || "/assets/user.png"
+        );
       }
 
       // Create or get Stripe customer
@@ -75,7 +81,10 @@ export default function Login() {
       });
 
       if (!stripeCustomerResponse.ok) {
-        console.error("Failed to create Stripe customer. Status:", stripeCustomerResponse.status);
+        console.error(
+          "Failed to create Stripe customer. Status:",
+          stripeCustomerResponse.status
+        );
         const errorMessage = await stripeCustomerResponse.text();
         console.error("Error Message:", errorMessage);
       } else {
@@ -88,7 +97,6 @@ export default function Login() {
       dispatch(setAuthenticated(true));
       setIsAuthenticating(false);
       router.back();
-      
     } catch (error) {
       console.error("Error signing in:", error.message);
       setError(error.message);
@@ -99,11 +107,11 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-black">
       <Header />
-      
+
       <div className="flex min-h-[calc(100vh-80px)] flex-col justify-center items-center px-6 py-12 lg:px-8 relative isolate overflow-hidden">
         {/* Background gradient effect */}
         <div className="absolute inset-0 bg-gradient-to-b from-red-500/10 via-transparent to-transparent -z-10" />
-        
+
         {/* Login container */}
         <div className="w-full max-w-md space-y-8 relative">
           {/* Header section */}
@@ -121,7 +129,10 @@ export default function Login() {
             <form className="space-y-6" onSubmit={handleSignIn}>
               {/* Email field */}
               <div className="space-y-2">
-                <label htmlFor="email" className="block text-sm font-medium text-gray-300">
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-gray-300"
+                >
                   Email address
                 </label>
                 <input
@@ -140,7 +151,10 @@ export default function Login() {
 
               {/* Password field */}
               <div className="space-y-2">
-                <label htmlFor="password" className="block text-sm font-medium text-gray-300">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-gray-300"
+                >
                   Password
                 </label>
                 <input
@@ -166,7 +180,10 @@ export default function Login() {
                     type="checkbox"
                     className="h-4 w-4 rounded border-gray-500 bg-black/30 text-red-500 focus:ring-red-500"
                   />
-                  <label htmlFor="remember-me" className="text-sm text-gray-300">
+                  <label
+                    htmlFor="remember-me"
+                    className="text-sm text-gray-300"
+                  >
                     Remember me
                   </label>
                 </div>
@@ -190,8 +207,20 @@ export default function Login() {
                 {isAuthenticating ? (
                   <span className="flex items-center justify-center gap-2">
                     <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                      />
                     </svg>
                     Signing in...
                   </span>
