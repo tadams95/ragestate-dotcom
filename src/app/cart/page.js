@@ -392,6 +392,9 @@ export default function Cart() {
               handleAddressChange={handleAddressChange}
               addressDetails={addressDetails}
               isLoading={isLoading}
+              userId={state.userId}
+              userName={state.userName}
+              userEmail={state.userEmail}
             />
           </div>
         </div>

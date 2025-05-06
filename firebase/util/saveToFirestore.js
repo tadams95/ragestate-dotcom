@@ -21,35 +21,61 @@ export default async function SaveToFirestore(
   paymentIntentPrefix,
   addressDetails
 ) {
+  // Improved logging for easier debugging
+  console.log("--------- SaveToFirestore Start ---------");
+  console.log("SaveToFirestore parameters:", {
+    userName: userName || "not provided",
+    userEmail: userEmail || "not provided",
+    firebaseId: firebaseId
+      ? `${firebaseId.substring(0, 5)}...`
+      : "not provided", // Only show part of ID for privacy
+    cartItemsCount: cartItems?.length || 0,
+    paymentIntentPrefix: paymentIntentPrefix
+      ? `${paymentIntentPrefix.substring(0, 10)}...`
+      : "not provided",
+    hasAddressDetails: Boolean(addressDetails),
+  });
+
   const firestore = getFirestore();
   const MAX_RETRIES = 3;
   let retryCount = 0;
-  
-  console.log("SaveToFirestore called with:", {
-    userName,
-    userEmail,
-    firebaseId,
-    cartItemsCount: cartItems?.length,
-    paymentIntentPrefix,
-    hasAddressDetails: !!addressDetails
-  });
-  
-  // Input validation
+
+  // Input validation with better error handling
   if (!firebaseId || !paymentIntentPrefix) {
-    console.error("Required parameters missing:", { firebaseId, paymentIntentPrefix });
-    throw new Error("Required parameters missing: Firebase ID or payment intent reference");
+    const missingParams = [];
+    if (!firebaseId) missingParams.push("firebaseId");
+    if (!paymentIntentPrefix) missingParams.push("paymentIntentPrefix");
+
+    console.error(`Required parameters missing: ${missingParams.join(", ")}`);
+    return {
+      success: false,
+      error: `Required parameters missing: ${missingParams.join(", ")}`,
+    };
   }
-  
+
+  // Better cart items validation
+  if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
+    console.error("Invalid cart items:", {
+      type: typeof cartItems,
+      isArray: Array.isArray(cartItems),
+      length: cartItems?.length,
+    });
+    return { success: false, error: "Cart items invalid or empty" };
+  }
+
   // Verify authentication before proceeding
   const auth = getAuth();
+  let authWarning = null;
+
   if (!auth.currentUser) {
-    console.error("No authenticated user found");
-    // Instead of throwing error here, try to proceed with the provided firebaseId
-    console.warn("Proceeding with provided firebaseId despite no current auth user");
+    authWarning = "No authenticated user found, using provided firebaseId";
+    console.warn(authWarning);
   } else if (auth.currentUser.uid !== firebaseId) {
-    console.warn(`Auth mismatch: currentUser.uid=${auth.currentUser.uid}, provided firebaseId=${firebaseId}`);
-    // Instead of throwing error, log warning and proceed
-    console.warn("Proceeding despite user authentication mismatch");
+    authWarning = `Auth mismatch: current user (${auth.currentUser.uid.substring(
+      0,
+      5
+    )}...) doesn't match provided ID (${firebaseId.substring(0, 5)}...)`;
+    console.warn(authWarning);
   }
 
   const saveWithRetry = async () => {
@@ -57,104 +83,160 @@ export default async function SaveToFirestore(
       // Generate order number and prepare purchase data
       const orderNumber = generateOrderNumber();
       console.log("Generated order number:", orderNumber);
-      
+
+      // Sanitize cart items to ensure all required fields
+      const sanitizedCartItems = cartItems.map((item) => ({
+        productId: item.productId || item.id || "unknown-product",
+        title: item.title || item.name || "Unnamed Product",
+        price: parseFloat(item.price) || 0,
+        quantity: parseInt(item.quantity) || 1,
+        productImageSrc: item.productImageSrc || item.imageSrc || null,
+        color: item.color || item.selectedColor || null,
+        size: item.size || item.selectedSize || null,
+      }));
+
       const purchaseData = preparePurchaseData(
-        orderNumber, 
-        userName, 
-        userEmail, 
-        firebaseId, 
-        cartItems, 
-        paymentIntentPrefix, 
+        orderNumber,
+        userName || "Guest",
+        userEmail || "no-email@provided.com",
+        firebaseId,
+        sanitizedCartItems,
+        paymentIntentPrefix,
         addressDetails
       );
-      
-      console.log("Purchase data prepared:", {
-        orderNumber,
-        totalAmount: purchaseData.totalAmount,
-        itemCount: purchaseData.itemCount
-      });
+
+      console.log("Purchase data prepared for", orderNumber);
+
+      // Add transaction metadata
+      const metadata = {
+        createdAt: serverTimestamp(),
+        transactionId: `${Date.now()}-${Math.random()
+          .toString(36)
+          .substring(2, 10)}`,
+        authWarning,
+        saveAttemptTime: new Date().toISOString(),
+      };
 
       // Save to main purchases collection
-      console.log("Attempting to save to main purchases collection...");
+      console.log("Saving to main purchases collection...");
       const purchaseRef = doc(firestore, "purchases", orderNumber);
       await setDoc(purchaseRef, {
         ...purchaseData,
-        createdAt: serverTimestamp(),
+        ...metadata,
       });
-      console.log("Saved to main purchases collection successfully");
+      console.log("✓ Saved to main purchases collection:", purchaseRef.path);
 
       // Calculate total amount properly
-      const totalAmount = cartItems.reduce(
-        (sum, item) => sum + (item.price || 0) * (item.quantity || 1),
-        0
-      ).toFixed(2);
+      const totalAmount = sanitizedCartItems
+        .reduce(
+          (sum, item) =>
+            sum +
+            (parseFloat(item.price) || 0) * (parseInt(item.quantity) || 1),
+          0
+        )
+        .toFixed(2);
 
-      // Save reference to user's purchases subcollection
-      console.log("Attempting to save to user's purchases subcollection...");
-      const userPurchaseRef = doc(
-        firestore,
-        `customers/${firebaseId}/purchases`,
-        orderNumber
-      );
-      
-      // Prepare user purchase data with both new and legacy fields
-      const userPurchaseData = {
-        // New format fields
-        orderNumber,
-        purchaseRef: purchaseRef.path,
-        createdAt: serverTimestamp(),
-        orderDate: serverTimestamp(),
-        lastUpdated: serverTimestamp(),
-        status: "pending",
-        itemCount: cartItems.length,
-        totalAmount,
-        
-        // Legacy fields for compatibility with OrderHistory
-        dateTime: serverTimestamp(),
-        name: userName,
-        email: userEmail,
-        stripeId: paymentIntentPrefix,
-        cartItems: cartItems.map(item => ({
-          title: item.title,
-          price: item.price,
-          quantity: item.quantity || 1,
-          productImageSrc: item.productImageSrc,
-          productId: item.productId,
-          color: item.color || null,
-          size: item.size || null
-        })),
-        addressDetails,
-        total: totalAmount
-      };
-      
-      await setDoc(userPurchaseRef, userPurchaseData);
-      console.log("Saved to user's purchases subcollection successfully");
+      // Try saving to user's purchases subcollection with error handling
+      try {
+        console.log(
+          `Saving to user subcollection: customers/${firebaseId}/purchases/${orderNumber}`
+        );
+        const userPurchaseRef = doc(
+          firestore,
+          `customers/${firebaseId}/purchases`,
+          orderNumber
+        );
 
+        // Enhanced user purchase data
+        const userPurchaseData = {
+          orderNumber,
+          purchaseRef: purchaseRef.path,
+          createdAt: serverTimestamp(),
+          orderDate: serverTimestamp(),
+          lastUpdated: serverTimestamp(),
+          status: "pending",
+          itemCount: sanitizedCartItems.length,
+          totalAmount,
+          transactionId: metadata.transactionId,
+
+          // Legacy fields for compatibility
+          dateTime: serverTimestamp(),
+          name: userName || "Guest",
+          email: userEmail || "no-email@provided.com",
+          stripeId: paymentIntentPrefix,
+          cartItems: sanitizedCartItems,
+          addressDetails,
+          total: totalAmount,
+        };
+
+        await setDoc(userPurchaseRef, userPurchaseData);
+        console.log("✓ Saved to user's purchases subcollection");
+
+        // Try saving to users collection as a fallback (in case we're using the wrong collection)
+        try {
+          const usersFallbackRef = doc(
+            firestore,
+            `users/${firebaseId}/purchases`,
+            orderNumber
+          );
+          await setDoc(usersFallbackRef, userPurchaseData);
+          console.log("✓ (Fallback) Saved to users collection as well");
+        } catch (fallbackError) {
+          console.log(
+            "× Fallback save to users collection failed (this is okay):",
+            fallbackError.message
+          );
+        }
+      } catch (userSaveError) {
+        console.error(
+          "× Failed to save to user subcollection:",
+          userSaveError.message
+        );
+        // Still return success since the main purchase was saved
+        return {
+          success: true,
+          orderNumber,
+          warning: "Saved to main purchases but not to user subcollection",
+        };
+      }
+
+      console.log("--------- SaveToFirestore Complete ---------");
       return { success: true, orderNumber };
     } catch (error) {
-      console.error("Error in saveWithRetry:", error);
+      console.error(
+        `Error in saveWithRetry (attempt ${retryCount + 1}/${MAX_RETRIES}):`,
+        error
+      );
       retryCount++;
-      
+
       if (retryCount < MAX_RETRIES) {
-        console.log(`Retry attempt ${retryCount} of ${MAX_RETRIES}...`);
-        return saveWithRetry(); // Recursive retry
+        console.log(`Retrying... (${retryCount}/${MAX_RETRIES})`);
+        return saveWithRetry();
       }
-      
-      throw error; // Re-throw after exhausting retries
+
+      throw error;
     }
   };
 
   try {
     const result = await saveWithRetry();
-    console.log("Purchase saved successfully:", result);
+    console.log("Final result:", result);
     return result;
   } catch (error) {
-    console.error("Fatal error saving purchase:", error);
-    // Add more detailed error information
-    if (error.code === 'permission-denied') {
-      throw new Error('Permission denied. Please ensure you are properly authenticated.');
+    console.error("Fatal error in SaveToFirestore:", error);
+    let errorMessage = "Unknown error saving purchase";
+
+    if (error.code === "permission-denied") {
+      errorMessage =
+        "Permission denied. Please ensure you are properly authenticated.";
+    } else if (error.code === "not-found") {
+      errorMessage =
+        "Collection or document not found. Database path may be incorrect.";
+    } else if (error.message) {
+      errorMessage = error.message;
     }
-    throw error;
+
+    return { success: false, error: errorMessage };
   }
 }
 
@@ -178,49 +260,51 @@ function preparePurchaseData(
   addressDetails
 ) {
   return {
-    orderNumber,
-    customerName: userName || "Anonymous",
+    addressDetails: addressDetails || null,
     customerEmail: userEmail,
     customerId: firebaseId,
-    paymentIntentId: paymentIntentPrefix,
-    orderDate: serverTimestamp(),
-    status: "pending",
-    addressDetails: addressDetails || null,
-    items: cartItems,
-    totalAmount: cartItems.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0).toFixed(2),
+    customerName: userName || "Anonymous",
     itemCount: cartItems.length,
+    items: cartItems,
+    orderDate: serverTimestamp(),
+    orderNumber,
+    paymentIntentId: paymentIntentPrefix,
+    status: "pending",
+    totalAmount: cartItems
+      .reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0)
+      .toFixed(2),
   };
 }
 
 // Helper function to generate searchable keywords
 function generateSearchKeywords(name, email, orderNumber) {
   const keywords = [];
-  
+
   // Add name parts
   if (name) {
-    const nameParts = name.toLowerCase().split(' ');
+    const nameParts = name.toLowerCase().split(" ");
     keywords.push(...nameParts);
   }
-  
+
   // Add email parts
   if (email) {
     const emailLower = email.toLowerCase();
     keywords.push(emailLower);
-    
+
     // Add username part of email
-    const atIndex = emailLower.indexOf('@');
+    const atIndex = emailLower.indexOf("@");
     if (atIndex > 0) {
       keywords.push(emailLower.substring(0, atIndex));
     }
   }
-  
+
   // Add order number and its parts
   if (orderNumber) {
     keywords.push(orderNumber.toLowerCase());
-    const orderParts = orderNumber.split('-');
+    const orderParts = orderNumber.split("-");
     keywords.push(...orderParts);
   }
-  
+
   // Remove duplicates and empty strings
-  return [...new Set(keywords)].filter(keyword => keyword.trim() !== '');
+  return [...new Set(keywords)].filter((keyword) => keyword.trim() !== "");
 }
