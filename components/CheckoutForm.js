@@ -4,16 +4,30 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
-import { useSelector } from "react-redux";
-import { selectCartItems } from "../lib/features/todos/cartSlice";
+import { useSelector, useDispatch } from "react-redux";
+import { selectCartItems, clearCart } from "../lib/features/todos/cartSlice";
+import {
+  selectLocalId,
+  selectUserName,
+  selectUserEmail,
+} from "../lib/features/todos/userSlice"; // Import selectors
+import SaveToFirestore from "../firebase/util/saveToFirestore";
+import { getAuth } from "firebase/auth"; // Import Firebase Auth
 
 export default function CheckoutForm({ addressDetails, isLoading }) {
   const stripe = useStripe();
   const elements = useElements();
+  const dispatch = useDispatch();
 
   const [message, setMessage] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [orderSaved, setOrderSaved] = useState(false);
+
+  // Fetch user and cart data from Redux
   const cartItems = useSelector(selectCartItems);
+  const userName = useSelector(selectUserName);
+  const userEmail = useSelector(selectUserEmail);
+  const userId = useSelector(selectLocalId);
 
   useEffect(() => {
     if (!stripe) {
@@ -62,51 +76,78 @@ export default function CheckoutForm({ addressDetails, isLoading }) {
     setIsProcessing(true);
     setMessage(null);
 
-    const elementsOptions = elements.getElement(PaymentElement)?._options;
-    console.log(
-      "Attempting payment confirmation with clientSecret from Elements options:",
-      elementsOptions?.clientSecret
-    );
-    const storedClientSecret = localStorage.getItem("clientSecret");
-    console.log(
-      "Client secret from localStorage at time of submit:",
-      storedClientSecret
-    );
+    try {
+      const return_url = `${window.location.origin}/account`;
 
-    const return_url = `${window.location.origin}/account`;
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: return_url,
+          shipping: addressDetails
+            ? {
+                name: addressDetails.name,
+                address: {
+                  line1: addressDetails.address.line1,
+                  line2: addressDetails.address.line2,
+                  city: addressDetails.address.city,
+                  state: addressDetails.address.state,
+                  postal_code: addressDetails.address.postal_code,
+                  country: addressDetails.address.country,
+                },
+              }
+            : undefined,
+        },
+        redirect: "if_required",
+      });
 
-    const { error } = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        return_url: return_url,
-        shipping: addressDetails
-          ? {
-              name: addressDetails.name,
-              address: {
-                line1: addressDetails.address.line1,
-                line2: addressDetails.address.line2,
-                city: addressDetails.address.city,
-                state: addressDetails.address.state,
-                postal_code: addressDetails.address.postal_code,
-                country: addressDetails.address.country,
-              },
-            }
-          : undefined,
-      },
-    });
+      if (error) {
+        if (error.type === "card_error" || error.type === "validation_error") {
+          setMessage(error.message);
+        } else {
+          setMessage("An unexpected error occurred.");
+          console.error("Stripe confirmation error:", error);
+        }
+      } else if (paymentIntent && paymentIntent.status === "succeeded") {
+        console.log("Payment succeeded:", paymentIntent.id);
 
-    if (error) {
-      if (error.type === "card_error" || error.type === "validation_error") {
-        setMessage(error.message);
+        // Ensure firebaseId is available
+        const auth = getAuth();
+        const firebaseId = userId || auth.currentUser?.uid;
+
+        if (!firebaseId) {
+          console.error("Firebase ID is missing. Cannot save order.");
+          setMessage(
+            "Payment succeeded, but there was an issue saving your order."
+          );
+          return;
+        }
+
+        // Save the order after successful payment
+        const saveResult = await SaveToFirestore(
+          userName,
+          userEmail,
+          firebaseId,
+          cartItems,
+          paymentIntent.id,
+          addressDetails
+        );
+
+        if (saveResult && saveResult.success) {
+          setMessage("Payment succeeded! Your order has been saved.");
+        } else {
+          setMessage(
+            "Payment succeeded, but there was an issue saving your order."
+          );
+        }
       } else {
-        setMessage("An unexpected error occurred.");
-        console.error("Stripe confirmation error:", error);
+        setMessage("Payment processing...");
       }
-    } else {
-      setMessage("Payment processing...");
+    } catch (error) {
+      console.error("Unhandled error during payment:", error);
+      setMessage(`An unexpected error occurred: ${error.message}`);
+    } finally {
+      setIsProcessing(false);
     }
-
-    setIsProcessing(false);
   };
 
   const paymentElementOptions = {
