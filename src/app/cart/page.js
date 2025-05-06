@@ -109,8 +109,6 @@ export default function Cart() {
   const API_URL =
     "https://us-central1-ragestate-app.cloudfunctions.net/stripePayment";
 
-  // console.log("Cart Items: ", cartItems);
-
   // NOTE: Assumes removeFromCart in cartSlice now removes the entire item line.
   const handleRemoveFromCart = (productId, selectedColor, selectedSize) => {
     dispatch(removeFromCart({ productId, selectedColor, selectedSize }));
@@ -221,7 +219,7 @@ export default function Cart() {
 
         setIsLoading(true);
         setErrorMessage("");
-        console.log(`Fetching client secret for amount: ${stripeTotal}`); // Log amount being sent
+        // console.log(`Fetching client secret for amount: ${stripeTotal}`); // Log amount being sent
 
         const response = await fetch(`${API_URL}/web-payment`, {
           method: "POST",
@@ -246,7 +244,7 @@ export default function Cart() {
         const { client_secret } = await response.json();
 
         // Log the received client secret
-        console.log("Received new client_secret:", client_secret);
+        // console.log("Received new client_secret:", client_secret);
 
         setState((prevState) => ({
           ...prevState,
@@ -305,8 +303,6 @@ export default function Cart() {
   );
 
   const hasPhysicalItems = cartItems.some((item) => !item.isDigital);
-
-  // console.log("cartItems", cartItems);
 
   const renderPromoSection = (item) => (
     <div className="flex flex-col space-y-2">
@@ -412,17 +408,10 @@ export default function Cart() {
           </button>
         </div>
       )}
-      {/* {isLoading && cartItems.length > 0 && (
-        <div className="flex justify-center items-center py-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-red-500"></div>
-          <span className="ml-2 text-white">Loading...</span>
-        </div>
-      )} */}
       {cartItems.length === 0 ? (
         <EmptyCart />
       ) : (
         <div className="mx-auto max-w-2xl px-4 pb-24 pt-32 sm:px-6 lg:max-w-7xl lg:px-8">
-          {/* <RandomDetailStyling /> */}
           <h1 className="text-3xl font-bold tracking-tight text-gray-100 sm:text-4xl">
             Shopping Cart
           </h1>
