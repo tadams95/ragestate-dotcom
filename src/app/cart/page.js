@@ -47,7 +47,7 @@ export default function Cart() {
   const [code, setCode] = useState("");
   const [validCode, setValidCode] = useState(false);
   const [codeError, setCodeError] = useState("");
-  const [isLoading, setIsLoading] = useState(false); // Keep for validation loading state
+  const [isLoading, setIsLoading] = useState(false); // This state now indicates client secret fetching
   const [errorMessage, setErrorMessage] = useState("");
   const [addressDetails, setAddressDetails] = useState(null); // Add this line
   const [discountAmount, setDiscountAmount] = useState(0);
@@ -221,6 +221,7 @@ export default function Cart() {
 
         setIsLoading(true);
         setErrorMessage("");
+        console.log(`Fetching client secret for amount: ${stripeTotal}`); // Log amount being sent
 
         const response = await fetch(`${API_URL}/web-payment`, {
           method: "POST",
@@ -244,6 +245,9 @@ export default function Cart() {
 
         const { client_secret } = await response.json();
 
+        // Log the received client secret
+        console.log("Received new client_secret:", client_secret);
+
         setState((prevState) => ({
           ...prevState,
           clientSecret: client_secret,
@@ -254,16 +258,34 @@ export default function Cart() {
         setErrorMessage(
           `Payment setup failed: ${error.message}. Please refresh the page or try again later.`
         );
+        // Ensure clientSecret is cleared on error if needed
+        setState((prevState) => ({ ...prevState, clientSecret: "" }));
+        localStorage.removeItem("clientSecret");
       } finally {
+        // Set loading false when fetch completes or fails
         setIsLoading(false);
       }
     };
 
     if (state.userName && state.userEmail && state.userId) {
       fetchClientSecret();
+    } else {
+      // If user details are missing, ensure loading is false and secret is cleared
+      setIsLoading(false);
+      if (state.clientSecret) {
+        setState((prevState) => ({ ...prevState, clientSecret: "" }));
+        localStorage.removeItem("clientSecret");
+      }
     }
     // Add stripeTotal to dependencies to refetch when discount changes the total
-  }, [state.userName, state.userEmail, state.userId, cartItems, stripeTotal]);
+  }, [
+    state.userName,
+    state.userEmail,
+    state.userId,
+    cartItems,
+    stripeTotal,
+    API_URL,
+  ]);
 
   const appearance = {
     theme: "stripe",
@@ -272,10 +294,15 @@ export default function Cart() {
       colorBackground: "#000000",
     },
   };
-  const options = {
-    clientSecret: state.clientSecret,
-    appearance: appearance,
-  };
+
+  // Memoize the options object based on clientSecret
+  const options = useMemo(
+    () => ({
+      clientSecret: state.clientSecret,
+      appearance: appearance,
+    }),
+    [state.clientSecret]
+  );
 
   const hasPhysicalItems = cartItems.some((item) => !item.isDigital);
 
@@ -640,18 +667,32 @@ export default function Cart() {
                 state.stripePromise ? (
                   <>
                     {/* Render Elements and CheckoutForm for authenticated users */}
-                    <Elements stripe={state.stripePromise} options={options}>
+                    <Elements
+                      key={state.clientSecret} // Force re-mount when clientSecret changes
+                      stripe={state.stripePromise}
+                      options={options} // Pass memoized options
+                    >
                       {hasPhysicalItems && (
                         <div className="mt-4">
                           <AddressForm onAddressChange={handleAddressChange} />
                         </div>
                       )}
-                      <CheckoutForm addressDetails={addressDetails} />{" "}
-                      {/* Update this line */}
+                      {/* Pass isLoading state to CheckoutForm */}
+                      <CheckoutForm
+                        addressDetails={addressDetails}
+                        isLoading={isLoading} // Pass the loading state
+                      />
                     </Elements>
                   </>
+                ) : isLoading && state.idToken && state.refreshToken ? (
+                  // Show loading indicator specifically when clientSecret is being fetched/updated
+                  <div className="flex justify-center items-center py-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-red-500"></div>
+                    <span className="ml-2 text-white">
+                      Updating payment details...
+                    </span>
+                  </div>
                 ) : (
-                  // Login or Create Account
                   <div>
                     <p className="text-sm text-gray-100 mb-2 text-center">
                       Please log in or create an account to checkout.
