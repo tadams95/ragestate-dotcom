@@ -39,9 +39,13 @@ app.post("/create-customer", async (req, res) => {
     }
   } catch (error) {
     console.error("Error creating customer:", error);
+    console.error("Stripe API response:", error);
     res
       .status(500)
-      .json({ error: "An error occurred while creating the customer." });
+      .json({
+        error: "An error occurred while creating the customer.",
+        details: error.message,
+      });
   }
 });
 
@@ -105,9 +109,13 @@ app.post("/payment-sheet", async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating payment sheet:", error);
+    console.error("Stripe API response:", error);
     res
       .status(500)
-      .json({ error: "An error occurred while creating the payment sheet." });
+      .json({
+        error: "An error occurred while creating the payment sheet.",
+        details: error.message,
+      });
   }
 });
 
@@ -123,9 +131,13 @@ app.get("/retrieve-customer/:customerId", async (req, res) => {
     res.json(customer);
   } catch (error) {
     console.error("Error retrieving customer:", error);
+    console.error("Stripe API response:", error);
     res
       .status(500)
-      .json({ error: "An error occurred while retrieving the customer." });
+      .json({
+        error: "An error occurred while retrieving the customer.",
+        details: error.message,
+      });
   }
 });
 
@@ -140,6 +152,8 @@ app.post("/create-payment-intent", async (req, res) => {
     });
     res.send({ client_secret: paymentIntent.client_secret });
   } catch (e) {
+    console.error("Error creating payment intent:", e);
+    console.error("Stripe API response:", e);
     return res.status(400).send({
       error: {
         message: e.message,
@@ -192,9 +206,13 @@ app.post("/web-payment", async (req, res) => {
     res.status(200).json({ client_secret: paymentIntent.client_secret });
   } catch (error) {
     console.error("Error creating payment intent:", error);
+    console.error("Stripe API response:", error);
     res
       .status(500)
-      .json({ error: "An error occurred while creating the payment intent." });
+      .json({
+        error: "An error occurred while creating the payment intent.",
+        details: error.message,
+      });
   }
 });
 

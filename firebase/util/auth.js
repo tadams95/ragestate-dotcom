@@ -46,7 +46,7 @@ export async function createUser(
 
     return response.data; // You might want to return the response data for further processing
   } catch (error) {
-    // console.error("Error creating user:", error.response.data);
+    console.error("Error creating user:", error.response ? error.response.data : error.message);
 
     if (error.response && error.response.data && error.response.data.error) {
       const errorCode = error.response.data.error.message;

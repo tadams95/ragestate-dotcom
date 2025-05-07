@@ -168,6 +168,13 @@ export default function CreateAccount() {
       }
 
       const stripeCustomerData = await stripeCustomerResponse.json();
+
+      // Validate Stripe customer response
+      if (!stripeCustomerData || !stripeCustomerData.customerId) {
+        console.error("Stripe customer creation failed. Response:", stripeCustomerData);
+        throw new Error("Failed to create Stripe customer");
+      }
+
       localStorage.setItem("stripeCustomerData", stripeCustomerData);
 
       // Update both databases with Stripe customer ID

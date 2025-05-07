@@ -38,5 +38,6 @@ next-env.d.ts
 
 rules/
 firestore.rules
+firebase-debug.log
 
 .secrets/
