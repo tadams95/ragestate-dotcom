@@ -14,6 +14,8 @@ app.post("/create-customer", async (req, res) => {
   try {
     const { email, name, firebaseId } = req.body;
 
+    console.log("Stripe customer creation request:", req.body);
+
     // Check if a customer with the provided email already exists in Stripe
     const existingCustomers = await stripe.customers.list({
       email: email,
@@ -35,17 +37,17 @@ app.post("/create-customer", async (req, res) => {
         },
       });
 
+      console.log("Stripe customer creation response:", customer);
+
       res.status(200).json({ customerId: customer.id });
     }
   } catch (error) {
     console.error("Error creating customer:", error);
     console.error("Stripe API response:", error);
-    res
-      .status(500)
-      .json({
-        error: "An error occurred while creating the customer.",
-        details: error.message,
-      });
+    res.status(500).json({
+      error: "An error occurred while creating the customer.",
+      details: error.message,
+    });
   }
 });
 
@@ -110,12 +112,10 @@ app.post("/payment-sheet", async (req, res) => {
   } catch (error) {
     console.error("Error creating payment sheet:", error);
     console.error("Stripe API response:", error);
-    res
-      .status(500)
-      .json({
-        error: "An error occurred while creating the payment sheet.",
-        details: error.message,
-      });
+    res.status(500).json({
+      error: "An error occurred while creating the payment sheet.",
+      details: error.message,
+    });
   }
 });
 
@@ -132,12 +132,10 @@ app.get("/retrieve-customer/:customerId", async (req, res) => {
   } catch (error) {
     console.error("Error retrieving customer:", error);
     console.error("Stripe API response:", error);
-    res
-      .status(500)
-      .json({
-        error: "An error occurred while retrieving the customer.",
-        details: error.message,
-      });
+    res.status(500).json({
+      error: "An error occurred while retrieving the customer.",
+      details: error.message,
+    });
   }
 });
 
@@ -207,12 +205,10 @@ app.post("/web-payment", async (req, res) => {
   } catch (error) {
     console.error("Error creating payment intent:", error);
     console.error("Stripe API response:", error);
-    res
-      .status(500)
-      .json({
-        error: "An error occurred while creating the payment intent.",
-        details: error.message,
-      });
+    res.status(500).json({
+      error: "An error occurred while creating the payment intent.",
+      details: error.message,
+    });
   }
 });
 

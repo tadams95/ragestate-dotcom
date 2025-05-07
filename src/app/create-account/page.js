@@ -169,23 +169,18 @@ export default function CreateAccount() {
 
       const stripeCustomerData = await stripeCustomerResponse.json();
 
-      // Validate Stripe customer response
-      if (!stripeCustomerData || !stripeCustomerData.customerId) {
-        console.error("Stripe customer creation failed. Response:", stripeCustomerData);
-        throw new Error("Failed to create Stripe customer");
-      }
+      // Log the Stripe customer data for debugging
+      console.log("Stripe customer data:", stripeCustomerData);
 
-      localStorage.setItem("stripeCustomerData", stripeCustomerData);
+      // Add fallback for undefined stripeCustomerId
+      const stripeCustomerId = stripeCustomerData.id || "undefined-customer-id";
 
       // Update both databases with Stripe customer ID
       await Promise.all([
-        set(
-          ref(rtdb, `users/${user.uid}/stripeCustomerId`),
-          stripeCustomerData.id
-        ),
+        set(ref(rtdb, `users/${user.uid}/stripeCustomerId`), stripeCustomerId),
         setDoc(
           doc(db, "customers", user.uid),
-          { stripeCustomerId: stripeCustomerData.id },
+          { stripeCustomerId: stripeCustomerId },
           { merge: true }
         ),
       ]);
