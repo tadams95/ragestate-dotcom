@@ -189,7 +189,11 @@ export default async function SaveToFirestore(
       // If a promo code was applied, update its usage in Firestore
       if (appliedPromoCode && appliedPromoCode.id) {
         console.log(`Attempting to update promo code: ${appliedPromoCode.id}`);
-        const promoCodeRef = doc(firestore, "promoterCodes", appliedPromoCode.id);
+        const promoCodeRef = doc(
+          firestore,
+          "promoterCodes",
+          appliedPromoCode.id
+        );
         try {
           const promoCodeSnap = await getDoc(promoCodeRef);
           if (promoCodeSnap.exists()) {
@@ -200,9 +204,13 @@ export default async function SaveToFirestore(
               lastUsed: serverTimestamp(),
               lastOrderNumber: orderNumber,
             });
-            console.log(`✓ Promo code ${appliedPromoCode.id} updated successfully.`);
+            console.log(
+              `✓ Promo code ${appliedPromoCode.id} updated successfully.`
+            );
           } else {
-            console.warn(`Promo code ${appliedPromoCode.id} not found for update.`);
+            console.warn(
+              `Promo code ${appliedPromoCode.id} not found for update.`
+            );
           }
         } catch (promoUpdateError) {
           console.error(
@@ -353,7 +361,9 @@ function preparePurchaseData(
     .toFixed(2);
 
   const discount = appliedPromoCode ? appliedPromoCode.discountValue || 0 : 0;
-  const finalTotalAmount = (parseFloat(totalAmountBeforeDiscount) - parseFloat(discount)).toFixed(2);
+  const finalTotalAmount = (
+    parseFloat(totalAmountBeforeDiscount) - parseFloat(discount)
+  ).toFixed(2);
 
   return {
     addressDetails: addressDetails || null,
