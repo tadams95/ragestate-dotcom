@@ -44,6 +44,7 @@ export default function Cart() {
   const [addressDetails, setAddressDetails] = useState(null);
   const [discountAmount, setDiscountAmount] = useState(0);
   const [promoApplied, setPromoApplied] = useState(false);
+  const [appliedPromoCodeData, setAppliedPromoCodeData] = useState(null); // Store details of the applied promo code
 
   const [state, setState] = useState({
     cartSubtotal: 0,
@@ -63,10 +64,11 @@ export default function Cart() {
     if (!upperCaseCode || upperCaseCode.trim() === "") {
       setValidCode(false);
       setCodeError("Please enter a promo code");
-      return false;
+      return { isValid: false, data: null };
     }
     if (promoApplied) {
-      return false;
+      setCodeError("A promo code has already been applied.");
+      return { isValid: false, data: null };
     }
 
     try {
@@ -77,19 +79,36 @@ export default function Cart() {
       const codeSnap = await getDoc(codeRef);
 
       if (codeSnap.exists()) {
+        const promoData = codeSnap.data();
+        if (!promoData.active) {
+          setValidCode(false);
+          setCodeError("This promo code is no longer active.");
+          return { isValid: false, data: null };
+        }
+        if (promoData.expiresAt && promoData.expiresAt.toDate() < new Date()) {
+          setValidCode(false);
+          setCodeError("This promo code has expired.");
+          return { isValid: false, data: null };
+        }
+        if (promoData.currentUses >= promoData.maxUses) {
+          setValidCode(false);
+          setCodeError("This promo code has reached its maximum usage limit.");
+          return { isValid: false, data: null };
+        }
+
         setValidCode(true);
         setCodeError("");
-        return true;
+        return { isValid: true, data: { id: codeSnap.id, ...promoData } };
       } else {
         setValidCode(false);
         setCodeError("Invalid promo code");
-        return false;
+        return { isValid: false, data: null };
       }
     } catch (error) {
       console.error("Error validating code:", error);
       setCodeError(`Error validating code: ${error.message}`);
       setValidCode(false);
-      return false;
+      return { isValid: false, data: null };
     } finally {
       setIsLoading(false);
     }
@@ -123,12 +142,13 @@ export default function Cart() {
     const upperCaseCode = code.toUpperCase();
 
     setIsLoading(true);
-    const isValid = await validatePromoCode(upperCaseCode);
+    const validationResult = await validatePromoCode(upperCaseCode);
     setIsLoading(false);
 
-    if (isValid) {
-      const discountValue = upperCaseCode === "RS20" ? 20 : 5;
-      setDiscountAmount(discountValue);
+    if (validationResult.isValid && validationResult.data) {
+      const promoData = validationResult.data;
+      setDiscountAmount(promoData.discountValue);
+      setAppliedPromoCodeData(promoData);
       setPromoApplied(true);
       setCodeError("");
 
@@ -139,12 +159,14 @@ export default function Cart() {
           prevState.cartSubtotal +
           prevState.cartSubtotal * taxRate +
           shipping -
-          discountValue;
+          promoData.discountValue;
         return {
           ...prevState,
           totalPrice: Math.max(0, newTotalPrice),
         };
       });
+    } else {
+      setAppliedPromoCodeData(null);
     }
   };
 
@@ -210,7 +232,7 @@ export default function Cart() {
     discountAmount
   ).toFixed(2);
   const finalTotal = Math.max(0, parseFloat(total)).toFixed(2);
-  const stripeTotal = Math.max(0, parseFloat(finalTotal) * 100);
+  const stripeTotal = Math.round(Math.max(0, parseFloat(finalTotal) * 100));
 
   useEffect(() => {
     const fetchClientSecret = async () => {
@@ -220,6 +242,26 @@ export default function Cart() {
             setState((prevState) => ({ ...prevState, clientSecret: "" }));
             localStorage.removeItem("clientSecret");
           }
+          return;
+        }
+
+        const MIN_STRIPE_AMOUNT = 50; // 50 cents, Stripe's typical minimum
+        if (stripeTotal < MIN_STRIPE_AMOUNT) {
+          console.warn(
+            `Stripe total amount ${stripeTotal} cents is below minimum ${MIN_STRIPE_AMOUNT} cents. Payment intent not created.`
+          );
+          setErrorMessage(
+            `Order total after discount ($${(stripeTotal / 100).toFixed(
+              2
+            )}) is below the minimum processing amount of $${(
+              MIN_STRIPE_AMOUNT / 100
+            ).toFixed(2)}. Please adjust your cart or promo code.`
+          );
+          if (state.clientSecret) {
+            setState((prevState) => ({ ...prevState, clientSecret: "" }));
+            localStorage.removeItem("clientSecret");
+          }
+          setIsLoading(false);
           return;
         }
 
@@ -395,6 +437,7 @@ export default function Cart() {
               userId={state.userId}
               userName={state.userName}
               userEmail={state.userEmail}
+              appliedPromoCode={appliedPromoCodeData} // Pass applied promo code data
             />
           </div>
         </div>

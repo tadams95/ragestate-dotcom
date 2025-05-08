@@ -19,7 +19,8 @@ export default async function SaveToFirestore(
   firebaseId,
   cartItems,
   paymentIntentPrefix,
-  addressDetails
+  addressDetails,
+  appliedPromoCode // Add appliedPromoCode as a new parameter
 ) {
   // Improved logging for easier debugging
   console.log("--------- SaveToFirestore Start ---------");
@@ -34,6 +35,7 @@ export default async function SaveToFirestore(
       ? `${paymentIntentPrefix.substring(0, 10)}...`
       : "not provided",
     hasAddressDetails: Boolean(addressDetails),
+    appliedPromoCodeId: appliedPromoCode ? appliedPromoCode.id : "none", // Log promo code ID if present
   });
 
   const firestore = getFirestore();
@@ -103,7 +105,8 @@ export default async function SaveToFirestore(
         firebaseId,
         sanitizedCartItems,
         paymentIntentPrefix,
-        addressDetails
+        addressDetails,
+        appliedPromoCode // Pass to preparePurchaseData
       );
 
       console.log("Purchase data prepared for", orderNumber);
@@ -178,10 +181,36 @@ export default async function SaveToFirestore(
       console.log("Saving to main purchases collection...");
       const purchaseRef = doc(firestore, "purchases", orderNumber);
       await setDoc(purchaseRef, {
-        ...purchaseData,
+        ...purchaseData, // purchaseData now includes promo details if any
         ...metadata,
       });
       console.log("✓ Saved to main purchases collection:", purchaseRef.path);
+
+      // If a promo code was applied, update its usage in Firestore
+      if (appliedPromoCode && appliedPromoCode.id) {
+        console.log(`Attempting to update promo code: ${appliedPromoCode.id}`);
+        const promoCodeRef = doc(firestore, "promoterCodes", appliedPromoCode.id);
+        try {
+          const promoCodeSnap = await getDoc(promoCodeRef);
+          if (promoCodeSnap.exists()) {
+            const promoData = promoCodeSnap.data();
+            const newUses = (promoData.currentUses || 0) + 1;
+            await updateDoc(promoCodeRef, {
+              currentUses: newUses,
+              lastUsed: serverTimestamp(),
+              lastOrderNumber: orderNumber,
+            });
+            console.log(`✓ Promo code ${appliedPromoCode.id} updated successfully.`);
+          } else {
+            console.warn(`Promo code ${appliedPromoCode.id} not found for update.`);
+          }
+        } catch (promoUpdateError) {
+          console.error(
+            `× Error updating promo code ${appliedPromoCode.id}:`,
+            promoUpdateError
+          );
+        }
+      }
 
       // Calculate total amount properly
       const totalAmount = sanitizedCartItems
@@ -223,7 +252,9 @@ export default async function SaveToFirestore(
           stripeId: paymentIntentPrefix,
           cartItems: sanitizedCartItems,
           addressDetails,
-          total: totalAmount,
+          total: totalAmount, // This should be the final total after discount
+          discountAmount: appliedPromoCode ? appliedPromoCode.discountValue : 0,
+          promoCodeUsed: appliedPromoCode ? appliedPromoCode.id : null,
         };
 
         await setDoc(userPurchaseRef, userPurchaseData);
@@ -314,8 +345,16 @@ function preparePurchaseData(
   firebaseId,
   cartItems,
   paymentIntentPrefix,
-  addressDetails
+  addressDetails,
+  appliedPromoCode // Add appliedPromoCode here
 ) {
+  const totalAmountBeforeDiscount = cartItems
+    .reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0)
+    .toFixed(2);
+
+  const discount = appliedPromoCode ? appliedPromoCode.discountValue || 0 : 0;
+  const finalTotalAmount = (parseFloat(totalAmountBeforeDiscount) - parseFloat(discount)).toFixed(2);
+
   return {
     addressDetails: addressDetails || null,
     customerEmail: userEmail,
@@ -327,9 +366,9 @@ function preparePurchaseData(
     orderNumber,
     paymentIntentId: paymentIntentPrefix,
     status: "pending",
-    totalAmount: cartItems
-      .reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0)
-      .toFixed(2),
+    totalAmount: finalTotalAmount, // Use the final amount after discount
+    discountAmount: discount,
+    promoCodeUsed: appliedPromoCode ? appliedPromoCode.id : null,
   };
 }
 

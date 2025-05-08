@@ -14,7 +14,7 @@ import {
 import SaveToFirestore from "../firebase/util/saveToFirestore";
 import { getAuth } from "firebase/auth"; // Import Firebase Auth
 
-export default function CheckoutForm({ addressDetails, isLoading }) {
+export default function CheckoutForm({ addressDetails, isLoading, appliedPromoCode }) {
   const stripe = useStripe();
   const elements = useElements();
   const dispatch = useDispatch();
@@ -129,7 +129,8 @@ export default function CheckoutForm({ addressDetails, isLoading }) {
           firebaseId,
           cartItems,
           paymentIntent.id,
-          addressDetails
+          addressDetails,
+          appliedPromoCode
         );
 
         if (saveResult && saveResult.success) {
