@@ -74,23 +74,28 @@ export default function Shop() {
         <div className="flex justify-end mb-8">
           <div className="flex gap-2 bg-black p-1 rounded-md">
             <button
-              onClick={() => setViewMode("grid")}
+              onClick={setGrid}
+              data-testid="grid-view-button"
+              aria-label="Grid view"
+              aria-pressed={viewMode === "grid"}
               className={`p-2 rounded ${
                 viewMode === "grid" ? "bg-red-700" : ""
               }`}
             >
               <GridIcon className="h-5 w-5 text-white" />
+            </button>
             <button
-              onClick={setGrid}
-              onClick={() => setViewMode("list")}
+              onClick={setList}
               data-testid="list-view-button"
+              aria-label="List view"
+              aria-pressed={viewMode === "list"}
               className={`p-2 rounded ${
                 viewMode === "list" ? "bg-red-700" : ""
               }`}
             >
               <ListBulletIcon className="h-5 w-5 text-white" />
-            <button
-              onClick={setList}
+            </button>
+          </div>
         </div>
 
         {/* Loading and Error States */}
@@ -118,7 +123,7 @@ export default function Shop() {
                 }
               `}
             >
-        {productsWithHref.map((product) => (
+              {productsWithHref.map((product) => (
                 <motion.div
                   key={product.id}
                   layout={prefersReducedMotion ? false : true}
@@ -126,7 +131,7 @@ export default function Shop() {
                   animate={{ opacity: 1 }}
                   exit={prefersReducedMotion ? undefined : { opacity: 0 }}
                 >
-          <ProductTile product={product} viewMode={viewMode} />
+                  <ProductTile product={product} viewMode={viewMode} />
                 </motion.div>
               ))}
             </motion.div>
