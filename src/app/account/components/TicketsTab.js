@@ -6,10 +6,12 @@ import Image from "next/image";
 import { TicketIcon } from "@heroicons/react/24/outline";
 import {
   collection,
+  collectionGroup,
   getDocs,
   getFirestore,
   query,
   where,
+  documentId,
 } from "firebase/firestore";
 
 export default function TicketsTab({
@@ -29,55 +31,67 @@ export default function TicketsTab({
     try {
       const firestore = getFirestore();
 
-      // First, get all events
-      const eventsCollectionRef = collection(firestore, "events");
-      const eventsSnapshot = await getDocs(eventsCollectionRef);
+      // Single collectionGroup query across all events' ragers
+      const ragersQ = query(
+        collectionGroup(firestore, "ragers"),
+        where("firebaseId", "==", userId),
+        where("active", "==", true)
+      );
+      const ragersSnapshot = await getDocs(ragersQ);
 
-      const ticketsPromises = eventsSnapshot.docs.map(async (doc) => {
-        const eventData = doc.data();
-        const ragersCollectionRef = collection(
-          firestore,
-          "events",
-          doc.id,
-          "ragers"
-        );
+      if (ragersSnapshot.empty) {
+        setTickets([]);
+        return;
+      }
 
-        // Query tickets where the user is the owner and ticket is active
-        const ragersQuerySnapshot = await getDocs(
-          query(
-            ragersCollectionRef,
-            where("firebaseId", "==", userId),
-            where("active", "==", true)
-          )
-        );
+      const ragerDocs = ragersSnapshot.docs;
+      // Derive parent event IDs from rager doc refs
+      const eventIds = Array.from(
+        new Set(
+          ragerDocs
+            .map((d) => d.ref.parent?.parent?.id)
+            .filter((id) => typeof id === "string" && id.length > 0)
+        )
+      );
 
-        // Map through ragers (tickets) and include event data
-        return ragersQuerySnapshot.docs.map((ragerDoc) => {
-          const ticketData = ragerDoc.data();
-          return {
-            id: ragerDoc.id,
-            eventId: doc.id,
-            eventName: eventData.name || "Unnamed Event",
-            eventDate: eventData.date || new Date().toISOString(),
-            eventTime: eventData.time || "TBA",
-            location: eventData.location || "TBA",
-            ticketType: ticketData.ticketType || "General Admission",
-            status: ticketData.active ? "active" : "inactive",
-            imageUrl: eventData.imgURL || null,
-            purchaseDate: ticketData.purchaseTimestamp
-              ? new Date(ticketData.purchaseTimestamp).toISOString()
-              : new Date().toISOString(),
-            price: ticketData.price ? `$${ticketData.price.toFixed(2)}` : "N/A",
-            ...ticketData,
-          };
-        });
+      // Batch fetch event docs in chunks of 10 for documentId() IN queries
+      const eventsCol = collection(firestore, "events");
+      const chunks = [];
+      for (let i = 0; i < eventIds.length; i += 10) {
+        chunks.push(eventIds.slice(i, i + 10));
+      }
+
+      const eventMap = new Map();
+      for (const chunk of chunks) {
+        const q = query(eventsCol, where(documentId(), "in", chunk));
+        const snap = await getDocs(q);
+        snap.forEach((doc) => eventMap.set(doc.id, doc.data()));
+      }
+
+      // Compose tickets with event metadata
+      const allTickets = ragerDocs.map((ragerDoc) => {
+        const ticketData = ragerDoc.data();
+        const eventId = ragerDoc.ref.parent?.parent?.id;
+        const eventData = (eventId && eventMap.get(eventId)) || {};
+
+        return {
+          id: ragerDoc.id,
+          eventId,
+          eventName: eventData.name || "Unnamed Event",
+          eventDate: eventData.date || new Date().toISOString(),
+          eventTime: eventData.time || "TBA",
+          location: eventData.location || "TBA",
+          ticketType: ticketData.ticketType || "General Admission",
+          status: ticketData.active ? "active" : "inactive",
+          imageUrl: eventData.imgURL || null,
+          purchaseDate: ticketData.purchaseTimestamp
+            ? new Date(ticketData.purchaseTimestamp).toISOString()
+            : new Date().toISOString(),
+          price: ticketData.price ? `$${ticketData.price.toFixed(2)}` : "N/A",
+          ...ticketData,
+        };
       });
 
-      // Flatten the array of arrays into a single array of tickets
-      const allTicketsArrays = await Promise.all(ticketsPromises);
-      const allTickets = allTicketsArrays.flat();
-
-      console.log("Fetched user tickets:", allTickets);
       setTickets(allTickets);
     } catch (error) {
       console.error("Error fetching user tickets:", error);

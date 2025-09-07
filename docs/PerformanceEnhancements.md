@@ -206,7 +206,7 @@ This document captures a focused performance review of the codebase and a priori
 ## Firestore query optimization checklist
 
 - [x] Events: switch to `where('dateTime','>=', Timestamp.now())` + `orderBy('dateTime','asc')` + `limit(n)`.
-- [ ] Tickets: replace N+1 reads with a `collectionGroup('ragers')` query and optionally denormalize to avoid extra joins.
+- [x] Tickets: replace N+1 reads with a `collectionGroup('ragers')` query and optionally denormalize to avoid extra joins.
 - [ ] Add indexes as needed for compound queries (Console -> Indexes).
 - [ ] If moving server-side, set appropriate cache headers and `revalidate` intervals.
 
