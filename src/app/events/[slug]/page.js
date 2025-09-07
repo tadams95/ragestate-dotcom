@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 import { usePathname, useSearchParams } from "next/navigation";
 import EventDetails from "../../../../components/EventDetails";
+import Image from "next/image";
 import EventStyling1 from "@/app/components/styling/EventStyling1";
 import Footer from "@/app/components/Footer";
 
@@ -62,7 +63,7 @@ export default function EventDetail() {
     <div className="bg-black min-h-screen">
       <Header />
       <EventStyling1 />
-      
+
       <main className="flex-grow">
         {loading ? (
           <div className="flex justify-center items-center h-[70vh]">
@@ -74,10 +75,13 @@ export default function EventDetail() {
               {/* Event header with logo - matches account page */}
               <div className="flex flex-col items-center mb-8">
                 <div className="flex justify-center mt-6 mb-4">
-                  <img 
-                    src="/assets/RSLogo2.png" 
-                    alt="RAGESTATE" 
-                    className="h-14 w-auto" 
+                  <Image
+                    src="/assets/RSLogo2.png"
+                    alt="RAGESTATE"
+                    width={200}
+                    height={56}
+                    className="h-14 w-auto"
+                    sizes="(max-width: 640px) 112px, 200px"
                   />
                 </div>
                 <h1 className="text-3xl font-bold leading-tight text-white text-center">
@@ -87,7 +91,7 @@ export default function EventDetail() {
                   View event information and secure your tickets.
                 </p>
               </div>
-              
+
               {/* Main content area with consistent border/shadow styling */}
               <div className="bg-gray-900/30 p-6 rounded-lg border border-gray-800 hover:border-red-500/30 transition-all duration-300 shadow-xl">
                 <EventDetails event={selectedEvent || event} />
@@ -96,7 +100,7 @@ export default function EventDetail() {
           </div>
         )}
       </main>
-      
+
       <Footer />
     </div>
   );

@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { TruckIcon, UserGroupIcon } from "@heroicons/react/24/outline";
-import toast, { Toaster } from 'react-hot-toast';
+import toast, { Toaster } from "react-hot-toast";
 
 import { useDispatch } from "react-redux";
 import { addToCart } from "../lib/features/todos/cartSlice";
@@ -69,36 +70,36 @@ export default function ProductDetails({ product }) {
       dispatch(addToCart(productToAdd));
       setSelectedSize(""); // Reset selectedSize
       setSelectedColor(""); // Reset selectedColor
-      toast.success('Added to cart!', {
+      toast.success("Added to cart!", {
         duration: 3000,
-        position: 'bottom-center',
+        position: "bottom-center",
         style: {
-          background: '#333',
-          color: '#fff',
-          border: '1px solid #444',
+          background: "#333",
+          color: "#fff",
+          border: "1px solid #444",
         },
       });
     } else {
       // Handle the case where not all required selections are made
       if (!selectedSize) {
-        toast.error('Please select a size', {
+        toast.error("Please select a size", {
           duration: 3000,
-          position: 'bottom-center',
+          position: "bottom-center",
           style: {
-            background: '#333',
-            color: '#fff',
-            border: '1px solid #444',
+            background: "#333",
+            color: "#fff",
+            border: "1px solid #444",
           },
         });
       }
       if (!selectedColor) {
-        toast.error('Please select a color', {
+        toast.error("Please select a color", {
           duration: 3000,
-          position: 'bottom-center',
+          position: "bottom-center",
           style: {
-            background: '#333',
-            color: '#fff',
-            border: '1px solid #444',
+            background: "#333",
+            color: "#fff",
+            border: "1px solid #444",
           },
         });
       }
@@ -178,17 +179,19 @@ export default function ProductDetails({ product }) {
               <h2 className="sr-only">Images</h2>
               <div className="grid grid-cols-2 gap-4">
                 {product.images.map((image, index) => (
-                  <div 
-                    key={image.id} 
+                  <div
+                    key={image.id}
                     className={classNames(
                       index === 0 ? "col-span-2 row-span-2" : "col-span-1",
                       "relative group"
                     )}
                   >
-                    <img
+                    <Image
                       src={image.src}
-                      alt={image.altText}
-                      className="rounded-lg w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      alt={image.altText || product.title}
+                      fill
+                      sizes="(min-width:1024px) 50vw, 100vw"
+                      className="rounded-lg object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                     <div className="absolute inset-0 rounded-lg  bg-opacity-0 group-hover:bg-opacity-10 transition-opacity duration-300" />
                   </div>
@@ -200,7 +203,9 @@ export default function ProductDetails({ product }) {
               <form onSubmit={handleAddToCart} className="space-y-6">
                 {/* Color picker */}
                 <div>
-                  <h2 className="text-sm font-medium text-gray-100 mb-3">Color</h2>
+                  <h2 className="text-sm font-medium text-gray-100 mb-3">
+                    Color
+                  </h2>
                   <select
                     value={selectedColor}
                     onChange={(e) => setSelectedColor(e.target.value)}
@@ -257,7 +262,9 @@ export default function ProductDetails({ product }) {
 
               {/* Policies */}
               <section aria-labelledby="policies-heading" className="mt-0">
-                <h2 id="policies-heading" className="sr-only">Our Policies</h2>
+                <h2 id="policies-heading" className="sr-only">
+                  Our Policies
+                </h2>
                 <dl className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                   {policies.map((policy) => (
                     <div

@@ -48,10 +48,14 @@ export default function Header() {
           <div className="flex lg:flex-1">
             <Link href="/" className="-m-1.5 p-1.5">
               <span className="sr-only">RAGESTATE</span>
-              <img
-                className="h-8 w-auto"
+              <Image
                 src="/assets/RSLogo2.png"
                 alt="RAGESTATE LOGO"
+                width={120}
+                height={32}
+                priority
+                sizes="(min-width: 1024px) 120px, 96px"
+                className="h-8 w-auto"
               />
             </Link>
           </div>
@@ -122,10 +126,13 @@ export default function Header() {
             <div className="flex items-center justify-between">
               <Link href="#" className="-m-1.5 p-1.5">
                 <span className="sr-only">RAGESTATE</span>
-                <img
+                <Image
                   className="h-8 w-auto"
                   src="https://firebasestorage.googleapis.com/v0/b/ragestate-app.appspot.com/o/RSLogo2.png?alt=media&token=d13ebc08-9d8d-4367-99ec-ace3627132d2"
                   alt="RAGESTATE LOGO"
+                  width={120}
+                  height={32}
+                  sizes="96px"
                 />
               </Link>
               <button

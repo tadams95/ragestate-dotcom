@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 const AppScreenshot = () => (
   <svg
     viewBox="0 0 366 729"
@@ -24,7 +26,16 @@ const AppScreenshot = () => (
       transform="translate(24 24)"
       clipPath="url(#2ade4387-9c63-4fc4-b754-10e687a0d332)"
     >
-      <img src="/assets/app-screenshot.png" alt="App screenshot" />
+      <div className="w-full h-full relative">
+        <Image
+          src="/assets/app-screenshot.png"
+          alt="App screenshot"
+          fill
+          sizes="(max-width: 640px) 288px, 316px"
+          style={{ objectFit: "cover" }}
+          priority
+        />
+      </div>
     </foreignObject>
   </svg>
 );

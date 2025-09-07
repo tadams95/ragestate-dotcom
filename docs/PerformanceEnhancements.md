@@ -212,9 +212,9 @@ This document captures a focused performance review of the codebase and a priori
 
 ## Image standardization checklist
 
-- [ ] Migrate header logo and other above-the-fold images to Next/Image with `priority` and fixed dimensions.
-- [ ] Replace raw `<img>` usage in product tiles, blog lists, and account UI with `<Image>`.
-- [ ] Provide `sizes` attributes for responsive layouts; use `fill` when appropriate.
+- [x] Migrate header logo and other above-the-fold images to Next/Image with `priority` and fixed dimensions. (Header logo in desktop/mobile)
+- [x] Replace raw `<img>` usage in product tiles, blog lists, and account UI with `<Image>`. (ProductTile + ProductDetail gallery)
+- [x] Provide `sizes` attributes for responsive layouts; use `fill` when appropriate.
 - [ ] Replace GIFs with MP4/WebM or WebP; use `<video>` for large hero animations.
 
 ## Measurement plan
