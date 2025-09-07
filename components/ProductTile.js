@@ -1,8 +1,9 @@
 import Link from "next/link";
 import Image from "next/image"; // Add this import
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 
 export default function ProductTile({ product, viewMode = "grid" }) {
+  const prefersReducedMotion = useReducedMotion();
   const priceNumber = parseFloat(product.variants[0]?.price?.amount || 0);
   const formattedPrice = priceNumber.toFixed(2);
 
@@ -43,8 +44,12 @@ export default function ProductTile({ product, viewMode = "grid" }) {
             ? "cursor-not-allowed opacity-75"
             : "hover:bg-gray-900/50 transition-colors"
         }`}
-        whileHover={isOutOfStock ? {} : { scale: 1.02 }}
-        whileTap={isOutOfStock ? {} : { scale: 0.98 }}
+        whileHover={
+          isOutOfStock || prefersReducedMotion ? undefined : { scale: 1.02 }
+        }
+        whileTap={
+          isOutOfStock || prefersReducedMotion ? undefined : { scale: 0.98 }
+        }
       >
         <div className="relative h-24 w-24 overflow-hidden rounded-md">
           <Image
@@ -97,8 +102,12 @@ export default function ProductTile({ product, viewMode = "grid" }) {
       className={`group relative ${
         isOutOfStock ? "cursor-not-allowed opacity-75" : ""
       }`}
-      whileHover={isOutOfStock ? {} : { scale: 1.05 }}
-      whileTap={isOutOfStock ? {} : { scale: 0.95 }}
+      whileHover={
+        isOutOfStock || prefersReducedMotion ? undefined : { scale: 1.05 }
+      }
+      whileTap={
+        isOutOfStock || prefersReducedMotion ? undefined : { scale: 0.95 }
+      }
     >
       <div className="aspect-h-1 aspect-w-1 w-full overflow-hidden rounded-lg xl:aspect-h-8 xl:aspect-w-7 mt-4 relative">
         <Image

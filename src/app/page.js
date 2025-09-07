@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 import Header from "./components/Header"; // Uncommented this line
 import Home3DAnimation from "./components/animations/home-3d-animation";
@@ -10,6 +10,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 export default function Home() {
+  const prefersReducedMotion = useReducedMotion();
   const [activeWorld, setActiveWorld] = useState("your"); // "your" or "ours"
   const [scrolled, setScrolled] = useState(false);
 
@@ -121,9 +122,13 @@ export default function Home() {
         >
           <motion.div
             className="container mx-auto text-center max-w-4xl"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: heroInView ? 1 : 0, y: heroInView ? 0 : 20 }}
-            transition={{ duration: 0.8 }}
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
+            animate={
+              prefersReducedMotion
+                ? { opacity: 1, y: 0 }
+                : { opacity: heroInView ? 1 : 0, y: heroInView ? 0 : 20 }
+            }
+            transition={{ duration: prefersReducedMotion ? 0 : 0.8 }}
           >
             <h1 className="text-4xl md:text-7xl font-extrabold mb-6">
               <span className="text-white">LIVE IN </span>
@@ -142,8 +147,8 @@ export default function Home() {
             <motion.button
               onClick={() => scrollToSection(ourWorldRef, "ours")} // Updated to use the new function
               className="px-8 py-2 bg-red-700 text-white rounded-md text-lg font-medium transition-all hover:bg-red-900 group"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={prefersReducedMotion ? undefined : { scale: 1.05 }}
+              whileTap={prefersReducedMotion ? undefined : { scale: 0.95 }}
             >
               ENTER OUR WORLD
               <span className="inline-block ml-2 transform group-hover:translate-x-1 transition-transform">
@@ -159,9 +164,13 @@ export default function Home() {
 
           <motion.div
             className="container mx-auto max-w-3xl text-center"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: manifestoInView ? 1 : 0 }}
-            transition={{ duration: 0.8 }}
+            initial={prefersReducedMotion ? false : { opacity: 0 }}
+            animate={
+              prefersReducedMotion
+                ? { opacity: 1 }
+                : { opacity: manifestoInView ? 1 : 0 }
+            }
+            transition={{ duration: prefersReducedMotion ? 0 : 0.8 }}
           >
             <h2 className="text-2xl md:text-4xl font-bold my-10 text-white">
               RAGESTATE Unfiltered
@@ -200,9 +209,12 @@ export default function Home() {
         >
           <motion.div
             className="container mx-auto text-center max-w-4xl"
-            initial={{ opacity: 0, y: 20 }}
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
+            transition={{
+              duration: prefersReducedMotion ? 0 : 0.8,
+              delay: prefersReducedMotion ? 0 : 0.2,
+            }}
           >
             <h2 className="text-4xl md:text-7xl font-extrabold mb-6">
               <span className="text-white">RAGE IN </span>
@@ -223,7 +235,7 @@ export default function Home() {
                 <motion.div
                   data-testid="events-section"
                   className="bg-black/60 backdrop-blur-sm p-8 rounded-lg border border-red-900/50 hover:border-red-600 transition-all group relative overflow-hidden"
-                  whileHover={{ y: -5 }}
+                  whileHover={prefersReducedMotion ? undefined : { y: -5 }}
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-red-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   <h3 className="text-2xl font-bold text-red-600 mb-4">
@@ -257,7 +269,7 @@ export default function Home() {
                 <motion.div
                   data-testid="apparel-section"
                   className="bg-black/60 backdrop-blur-sm p-8 rounded-lg border border-red-900/50 hover:border-red-600 transition-all group relative overflow-hidden"
-                  whileHover={{ y: -5 }}
+                  whileHover={prefersReducedMotion ? undefined : { y: -5 }}
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-red-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   <h3 className="text-2xl font-bold text-red-600 mb-4">
@@ -303,8 +315,12 @@ export default function Home() {
                 <Link href="/create-account">
                   <motion.button
                     className="px-8 py-2 bg-red-700 text-white rounded-md text-lg font-medium transition-all hover:bg-red-700 w-full sm:w-auto"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                    whileHover={
+                      prefersReducedMotion ? undefined : { scale: 1.05 }
+                    }
+                    whileTap={
+                      prefersReducedMotion ? undefined : { scale: 0.95 }
+                    }
                   >
                     CREATE ACCOUNT
                   </motion.button>

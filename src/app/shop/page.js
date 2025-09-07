@@ -6,7 +6,7 @@ import Footer from "../components/Footer";
 import ProductTile from "../../../components/ProductTile";
 import Header from "../components/Header";
 import ShopStyling from "../components/styling/ShopStyling";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   Squares2X2Icon as GridIcon,
   ListBulletIcon,
@@ -14,6 +14,7 @@ import {
 import AutoSliderBanner from "../../../components/AutoSliderBanner";
 
 export default function Shop() {
+  const prefersReducedMotion = useReducedMotion();
   const [productsWithHref, setProductsWithHref] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -101,12 +102,12 @@ export default function Shop() {
 
         {/* Products Grid/List */}
         {!loading && !error && (
-          <AnimatePresence mode="wait">
+          <>
             <motion.div
               key={viewMode}
-              initial={{ opacity: 0 }}
+              initial={prefersReducedMotion ? false : { opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              exit={prefersReducedMotion ? undefined : { opacity: 0 }}
               className={`
                 ${
                   viewMode === "grid"
@@ -118,16 +119,16 @@ export default function Shop() {
               {productsWithHref.map((product) => (
                 <motion.div
                   key={product.id}
-                  layout
-                  initial={{ opacity: 0 }}
+                  layout={prefersReducedMotion ? false : true}
+                  initial={prefersReducedMotion ? false : { opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
+                  exit={prefersReducedMotion ? undefined : { opacity: 0 }}
                 >
                   <ProductTile product={product} viewMode={viewMode} />
                 </motion.div>
               ))}
             </motion.div>
-          </AnimatePresence>
+          </>
         )}
 
         {/* No Products Message */}
