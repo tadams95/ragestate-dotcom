@@ -11,7 +11,11 @@ import {
   Squares2X2Icon as GridIcon,
   ListBulletIcon,
 } from "@heroicons/react/24/outline";
-import AutoSliderBanner from "../../../components/AutoSliderBanner";
+import dynamic from "next/dynamic";
+const AutoSliderBanner = dynamic(
+  () => import("../../../components/AutoSliderBanner"),
+  { ssr: false, loading: () => null }
+);
 
 export default function Shop() {
   const prefersReducedMotion = useReducedMotion();

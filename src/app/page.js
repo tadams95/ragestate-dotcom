@@ -4,7 +4,11 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 import Header from "./components/Header"; // Uncommented this line
-import Home3DAnimation from "./components/animations/home-3d-animation";
+import dynamic from "next/dynamic";
+const Home3DAnimation = dynamic(
+  () => import("./components/animations/home-3d-animation"),
+  { ssr: false, loading: () => null }
+);
 
 import Link from "next/link";
 import Image from "next/image";
