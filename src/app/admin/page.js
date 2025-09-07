@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import ClipboardDocumentListIcon from "@heroicons/react/24/outline/ClipboardDocumentListIcon";
 import UsersIcon from "@heroicons/react/24/outline/UsersIcon";
 import ShoppingBagIcon from "@heroicons/react/24/outline/ShoppingBagIcon";
@@ -12,11 +13,41 @@ import {
   useAuth,
 } from "../../../firebase/context/FirebaseContext";
 import AdminProtected from "../components/AdminProtected";
-import DashboardTab from "../components/admin/DashboardTab";
-import OrdersTab from "../components/admin/OrdersTab";
-import UsersTab from "../components/admin/UsersTab";
-import SettingsTab from "../components/admin/SettingsTab";
-import OrderDetailsModal from "../components/admin/OrderDetailsModal";
+// Lazy-load admin tabs and modal to keep them out of initial/shared chunks
+const DashboardTab = dynamic(() => import("../components/admin/DashboardTab"), {
+  loading: () => (
+    <div className="flex justify-center items-center h-32">
+      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-red-500"></div>
+    </div>
+  ),
+});
+const OrdersTab = dynamic(() => import("../components/admin/OrdersTab"), {
+  loading: () => (
+    <div className="flex justify-center items-center h-32">
+      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-red-500"></div>
+    </div>
+  ),
+});
+const UsersTab = dynamic(() => import("../components/admin/UsersTab"), {
+  loading: () => (
+    <div className="flex justify-center items-center h-32">
+      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-red-500"></div>
+    </div>
+  ),
+});
+const SettingsTab = dynamic(() => import("../components/admin/SettingsTab"), {
+  loading: () => (
+    <div className="flex justify-center items-center h-32">
+      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-red-500"></div>
+    </div>
+  ),
+});
+const OrderDetailsModal = dynamic(
+  () => import("../components/admin/OrderDetailsModal"),
+  {
+    loading: () => null, // avoid layout shift; modal will pop in when ready
+  }
+);
 import {
   formatDate,
   formatCurrency,
@@ -136,54 +167,66 @@ export default function AdminPage() {
   const inputStyling =
     "block w-full bg-black pl-2 rounded-md border-2 py-1.5 px-1 text-gray-100 shadow-sm ring-1 ring-inset ring-gray-700 placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-red-500 sm:text-sm sm:leading-6";
 
-  const tabComponents = {
-    dashboard: (
-      <DashboardTab
-        loading={loading}
-        error={error}
-        orders={orders}
-        userCount={userCount}
-        formatDate={formatDate}
-        formatCurrency={formatCurrency}
-        getStatusColor={getStatusColor}
-        setActiveTab={setActiveTab}
-        loadingState={loadingState}
-        errorState={errorState}
-      />
-    ),
-    orders: (
-      <OrdersTab
-        loading={loading}
-        error={error}
-        orders={orders}
-        formatDate={formatDate}
-        formatCurrency={formatCurrency}
-        getStatusColor={getStatusColor}
-        viewOrderDetails={viewOrderDetails}
-        inputStyling={inputStyling}
-        buttonStyling={buttonStyling}
-        loadingState={loadingState}
-        errorState={errorState}
-      />
-    ),
-    users: (
-      <UsersTab
-        loading={loading}
-        error={error}
-        users={users}
-        userCount={userCount}
-        currentUserPage={currentUserPage}
-        usersPerPage={usersPerPage}
-        handleUserPageChange={handleUserPageChange}
-        inputStyling={inputStyling}
-        buttonStyling={buttonStyling}
-        loadingState={loadingState}
-        errorState={errorState}
-      />
-    ),
-    settings: (
-      <SettingsTab inputStyling={inputStyling} buttonStyling={buttonStyling} />
-    ),
+  // Render only the active tab to avoid evaluating all tabs on first paint
+  const renderActiveTab = () => {
+    switch (activeTab) {
+      case "dashboard":
+        return (
+          <DashboardTab
+            loading={loading}
+            error={error}
+            orders={orders}
+            userCount={userCount}
+            formatDate={formatDate}
+            formatCurrency={formatCurrency}
+            getStatusColor={getStatusColor}
+            setActiveTab={setActiveTab}
+            loadingState={loadingState}
+            errorState={errorState}
+          />
+        );
+      case "orders":
+        return (
+          <OrdersTab
+            loading={loading}
+            error={error}
+            orders={orders}
+            formatDate={formatDate}
+            formatCurrency={formatCurrency}
+            getStatusColor={getStatusColor}
+            viewOrderDetails={viewOrderDetails}
+            inputStyling={inputStyling}
+            buttonStyling={buttonStyling}
+            loadingState={loadingState}
+            errorState={errorState}
+          />
+        );
+      case "users":
+        return (
+          <UsersTab
+            loading={loading}
+            error={error}
+            users={users}
+            userCount={userCount}
+            currentUserPage={currentUserPage}
+            usersPerPage={usersPerPage}
+            handleUserPageChange={handleUserPageChange}
+            inputStyling={inputStyling}
+            buttonStyling={buttonStyling}
+            loadingState={loadingState}
+            errorState={errorState}
+          />
+        );
+      case "settings":
+        return (
+          <SettingsTab
+            inputStyling={inputStyling}
+            buttonStyling={buttonStyling}
+          />
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -270,19 +313,21 @@ export default function AdminPage() {
                   </nav>
                 </div>
               </div>
-              <div className="mb-16">{tabComponents[activeTab]}</div>
+              <div className="mb-16">{renderActiveTab()}</div>
             </div>
           </div>
         </main>
         <Footer />
-        <OrderDetailsModal
-          selectedOrder={selectedOrder}
-          isOpen={orderDetailsOpen}
-          onClose={() => setOrderDetailsOpen(false)}
-          formatDate={formatDate}
-          formatCurrency={formatCurrency}
-          getStatusColor={getStatusColor}
-        />
+        {orderDetailsOpen && (
+          <OrderDetailsModal
+            selectedOrder={selectedOrder}
+            isOpen={orderDetailsOpen}
+            onClose={() => setOrderDetailsOpen(false)}
+            formatDate={formatDate}
+            formatCurrency={formatCurrency}
+            getStatusColor={getStatusColor}
+          />
+        )}
       </div>
     </AdminProtected>
   );
