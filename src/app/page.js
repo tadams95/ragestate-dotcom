@@ -49,30 +49,25 @@ export default function Home() {
 
   return (
     <div className="bg-black min-h-screen relative overflow-x-hidden">
-      {/* Dynamic background based on which "world" is active */}
-      <div
-        className={`fixed inset-0 transition-all duration-1000 z-0 ${
-          activeWorld === "ours" ? "opacity-100" : "opacity-0"
-        }`}
-      >
-        <div className="absolute inset-0 bg-gradient-to-b from-red-900/30 to-black"></div>
-        <Home3DAnimation
-          intensity={activeWorld === "ours" ? 1 : 0.3}
-          color="#EF4E4E"
-        />
-      </div>
-
-      <div
-        className={`fixed inset-0 transition-all duration-1000 z-0 ${
-          activeWorld === "your" ? "opacity-100" : "opacity-0"
-        }`}
-      >
-        <div className="absolute inset-0 bg-gradient-to-b from-blue-900/20 to-black"></div>
-        <Home3DAnimation
-          intensity={activeWorld === "your" ? 0.7 : 0.3}
-          color="#3B82F6"
-        />
-      </div>
+      {/* Single dynamic background; lazy-mount when hero in view */}
+      {(heroInView || manifestoInView) && (
+        <div className="fixed inset-0 transition-all duration-700 z-0">
+          <div
+            className={`absolute inset-0 transition-opacity duration-700 ${
+              activeWorld === "ours" ? "opacity-100" : "opacity-80"
+            } bg-gradient-to-b from-red-900/30 to-black`}
+          />
+          <div
+            className={`absolute inset-0 transition-opacity duration-700 ${
+              activeWorld === "your" ? "opacity-100" : "opacity-80"
+            } bg-gradient-to-b from-blue-900/20 to-black`}
+          />
+          <Home3DAnimation
+            intensity={activeWorld === "ours" ? 1 : 0.7}
+            color={activeWorld === "ours" ? "#EF4E4E" : "#3B82F6"}
+          />
+        </div>
+      )}
 
       {/* Split slogan navigation */}
       <div
