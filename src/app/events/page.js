@@ -4,7 +4,15 @@ import Footer from "../components/Footer";
 import Header from "../components/Header";
 
 import { db } from "../../../firebase/firebase";
-import { collection, getDocs } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  limit,
+  Timestamp,
+} from "firebase/firestore";
 import { useEffect, useState, useCallback } from "react";
 import EventTile from "../../../components/EventTile";
 import NoEventTile from "../../../components/NoEventTile";
@@ -19,22 +27,19 @@ export default function Events() {
   const fetchEventData = useCallback(async () => {
     try {
       const eventCollectionRef = collection(db, "events");
-      const eventSnapshot = await getDocs(eventCollectionRef);
+      // Targeted Firestore query: upcoming events only, sorted ascending, limited
+      const q = query(
+        eventCollectionRef,
+        where("dateTime", ">=", Timestamp.now()),
+        orderBy("dateTime", "asc"),
+        limit(24)
+      );
+      const eventSnapshot = await getDocs(q);
 
-      const currentDate = new Date().getTime();
-
-      // Filter out past events
-      const eventData = eventSnapshot.docs
-        .map((doc) => ({ ...doc.data(), id: doc.id }))
-        .filter((event) => {
-          const eventDateTime = event.dateTime.toDate().getTime();
-          return eventDateTime >= currentDate;
-        })
-        // Sort events by date (closest first)
-        .sort(
-          (a, b) =>
-            a.dateTime.toDate().getTime() - b.dateTime.toDate().getTime()
-        );
+      const eventData = eventSnapshot.docs.map((doc) => ({
+        ...doc.data(),
+        id: doc.id,
+      }));
 
       setEvents(eventData);
     } catch (error) {
