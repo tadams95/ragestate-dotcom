@@ -11,6 +11,7 @@ import {
   selectAuthenticated,
 } from "../../../lib/features/todos/userSlice";
 import refreshAuthTokens from "../../../firebase/util/refreshAuthTokens";
+import storage from "@/utils/storage";
 
 export default function AuthCheck() {
   const dispatch = useDispatch();
@@ -19,10 +20,12 @@ export default function AuthCheck() {
   useEffect(() => {
     const checkAuthentication = async () => {
       // Check if tokens are present in local storage
-      const idToken = localStorage.getItem("idToken");
-      const refreshToken = localStorage.getItem("refreshToken");
-      const email = localStorage.getItem("email");
-      const userId = localStorage.getItem("userId");
+      const { idToken, refreshToken, email, userId } = storage.readKeys([
+        "idToken",
+        "refreshToken",
+        "email",
+        "userId",
+      ]);
 
       if (idToken && refreshToken && email && userId) {
         // Dispatch loginSuccess action with tokens from localStorage
@@ -31,9 +34,7 @@ export default function AuthCheck() {
 
         // Check if ID token needs refreshing (e.g., nearing expiration)
         const tokenExpirationThreshold = 5 * 60 * 1000; // 5 minutes in milliseconds
-        const tokenExpirationTime = Number(
-          localStorage.getItem("tokenExpirationTime")
-        );
+        const tokenExpirationTime = Number(storage.get("tokenExpirationTime"));
         const currentTime = Date.now();
 
         if (
@@ -46,8 +47,8 @@ export default function AuthCheck() {
 
             if (newTokens && newTokens.idToken) {
               // Update the stored tokens and authentication state
-              localStorage.setItem("idToken", newTokens.idToken);
-              localStorage.setItem("refreshToken", newTokens.refreshToken);
+              storage.set("idToken", newTokens.idToken);
+              storage.set("refreshToken", newTokens.refreshToken);
               dispatch(
                 loginSuccess({
                   idToken: newTokens.idToken,

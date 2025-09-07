@@ -10,6 +10,7 @@ import {
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import storage from "@/utils/storage";
 
 const navigation = [
   { name: "SHOP", href: "/shop" },
@@ -26,16 +27,14 @@ export default function Header() {
   const [profilePicture, setProfilePicture] = useState("");
 
   useEffect(() => {
-    // Check if window object is defined (ensures we are in the browser)
-    if (typeof window !== "undefined") {
-      const storedIdToken = localStorage.getItem("idToken");
-      const storedRefreshToken = localStorage.getItem("refreshToken");
-      const storedProfilePicture = localStorage.getItem("profilePicture");
-
-      setIdToken(storedIdToken);
-      setRefreshToken(storedRefreshToken);
-      setProfilePicture(storedProfilePicture || "");
-    }
+    const {
+      idToken: idTok,
+      refreshToken: refTok,
+      profilePicture: pic,
+    } = storage.readKeys(["idToken", "refreshToken", "profilePicture"]);
+    setIdToken(idTok || null);
+    setRefreshToken(refTok || null);
+    setProfilePicture(pic || "");
   }, []);
 
   return (

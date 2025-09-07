@@ -26,6 +26,7 @@ import EmptyCart from "../../../components/EmptyCart";
 import RandomDetailStyling from "../components/styling/RandomDetailStyling";
 import CheckoutForm from "../../../components/CheckoutForm";
 import AddressForm from "../../../components/AddressForm";
+import storage from "@/utils/storage";
 
 // Import new components
 import PromoCodeInput from "./components/PromoCodeInput";
@@ -204,22 +205,21 @@ export default function Cart() {
   }, []);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const idToken = localStorage.getItem("idToken");
-      const refreshToken = localStorage.getItem("refreshToken");
-      const userName = localStorage.getItem("name");
-      const userEmail = localStorage.getItem("email");
-      const userId = localStorage.getItem("userId");
-
-      setState((prevState) => ({
-        ...prevState,
-        idToken,
-        refreshToken,
-        userName,
-        userEmail,
-        userId,
-      }));
-    }
+    const { idToken, refreshToken, name, email, userId } = storage.readKeys([
+      "idToken",
+      "refreshToken",
+      "name",
+      "email",
+      "userId",
+    ]);
+    setState((prevState) => ({
+      ...prevState,
+      idToken,
+      refreshToken,
+      userName: name || "",
+      userEmail: email || "",
+      userId: userId || "",
+    }));
   }, []);
 
   const taxRate = 0.075;
@@ -240,7 +240,7 @@ export default function Cart() {
         if (!cartItems.length || stripeTotal <= 0) {
           if (state.clientSecret) {
             setState((prevState) => ({ ...prevState, clientSecret: "" }));
-            localStorage.removeItem("clientSecret");
+            storage.remove("clientSecret");
           }
           return;
         }
@@ -259,7 +259,7 @@ export default function Cart() {
           );
           if (state.clientSecret) {
             setState((prevState) => ({ ...prevState, clientSecret: "" }));
-            localStorage.removeItem("clientSecret");
+            storage.remove("clientSecret");
           }
           setIsLoading(false);
           return;
@@ -294,14 +294,14 @@ export default function Cart() {
           ...prevState,
           clientSecret: client_secret,
         }));
-        localStorage.setItem("clientSecret", client_secret);
+        storage.set("clientSecret", client_secret);
       } catch (error) {
         console.error("Error fetching payment intent:", error.message);
         setErrorMessage(
           `Payment setup failed: ${error.message}. Please refresh the page or try again later.`
         );
         setState((prevState) => ({ ...prevState, clientSecret: "" }));
-        localStorage.removeItem("clientSecret");
+        storage.remove("clientSecret");
       } finally {
         setIsLoading(false);
       }
@@ -313,7 +313,7 @@ export default function Cart() {
       setIsLoading(false);
       if (state.clientSecret) {
         setState((prevState) => ({ ...prevState, clientSecret: "" }));
-        localStorage.removeItem("clientSecret");
+        storage.remove("clientSecret");
       }
     }
   }, [

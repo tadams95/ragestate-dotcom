@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { getFirestore, collection, getDocs } from "firebase/firestore";
 import Image from "next/image";
+import storage from "@/utils/storage";
 
 const fetchUserPurchases = async (firestore, userId) => {
   try {
@@ -26,12 +27,8 @@ export default function OrderHistory() {
   const firestore = useMemo(() => getFirestore(), []);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const userIdFromLocalStorage = localStorage.getItem("userId");
-      if (userIdFromLocalStorage) {
-        setUserId(userIdFromLocalStorage);
-      }
-    }
+    const { userId: uid } = storage.readKeys(["userId"]);
+    if (uid) setUserId(uid);
   }, []);
 
   useEffect(() => {
@@ -190,7 +187,7 @@ export default function OrderHistory() {
           >
             {/* Add gradient effect from About page */}
             <div className="absolute -inset-px bg-gradient-to-r from-red-500/0 to-purple-500/0 rounded-2xl [mask-image:linear-gradient(black,transparent)] group-hover:from-red-500/10 group-hover:to-purple-500/10" />
-            
+
             {/* Order header */}
             <div className="relative bg-gray-900/20 px-4 py-3 border-b border-gray-700">
               <div className="flex justify-between items-center">

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Header from "@/app/components/Header";
 import ProductDetails from "../../../../components/ProductDetail";
+import storage from "@/utils/storage";
 
 export default function ProductDetailClient({ product: initialProduct }) {
   const [loading, setLoading] = useState(true);
@@ -14,15 +15,8 @@ export default function ProductDetailClient({ product: initialProduct }) {
 
   useEffect(() => {
     if (!initialProduct && typeof window !== "undefined") {
-      try {
-        const product = JSON.parse(localStorage.getItem("selectedProduct"));
-        setSelectedProduct(product);
-      } catch (error) {
-        console.error(
-          "Failed to parse selected product from localStorage:",
-          error
-        );
-      }
+      const product = storage.getJSON("selectedProduct");
+      setSelectedProduct(product);
     }
 
     const timer = setTimeout(() => {

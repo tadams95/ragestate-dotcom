@@ -8,6 +8,7 @@ import EventDetails from "../../../../components/EventDetails";
 import Image from "next/image";
 import EventStyling1 from "@/app/components/styling/EventStyling1";
 import Footer from "@/app/components/Footer";
+import storage from "@/utils/storage";
 
 // Function to format the slug to match the document ID in Firestore
 const formatSlug = (slug) => {
@@ -31,10 +32,8 @@ export default function EventDetail() {
   const searchParams = useSearchParams();
   const db = getFirestore();
 
-  let selectedEvent = null;
-  if (typeof window !== "undefined") {
-    selectedEvent = JSON.parse(localStorage.getItem("selectedEvent"));
-  }
+  const selectedEvent =
+    typeof window !== "undefined" ? storage.getJSON("selectedEvent") : null;
 
   useEffect(() => {
     const slug = pathname.split("/events/")[1];

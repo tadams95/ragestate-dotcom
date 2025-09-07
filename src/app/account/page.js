@@ -22,6 +22,7 @@ import ProfileTab from "./components/ProfileTab";
 import TicketsTab from "./components/TicketsTab";
 import QrCodeTab from "./components/QrCodeTab";
 import SettingsTab from "./components/SettingsTab";
+import storage from "@/utils/storage";
 
 export default function Account() {
   const router = useRouter();
@@ -53,7 +54,7 @@ export default function Account() {
   useEffect(() => {
     async function fetchUserData() {
       if (typeof window !== "undefined") {
-        const storedUserId = localStorage.getItem("userId");
+        const storedUserId = storage.get("userId");
 
         if (storedUserId) {
           setUserId(storedUserId);
@@ -67,9 +68,9 @@ export default function Account() {
 
               if (userData.profilePicture) {
                 setProfilePicture(userData.profilePicture);
-                localStorage.setItem("profilePicture", userData.profilePicture);
+                storage.set("profilePicture", userData.profilePicture);
               } else {
-                const storedPic = localStorage.getItem("profilePicture");
+                const storedPic = storage.get("profilePicture");
                 setProfilePicture(storedPic || "");
               }
 
@@ -81,11 +82,13 @@ export default function Account() {
                 .join(" ");
               if (fullName) {
                 setUserName(fullName);
-                localStorage.setItem("userName", fullName);
+                storage.set("userName", fullName);
               } else {
-                const storedName =
-                  localStorage.getItem("userName") ||
-                  localStorage.getItem("name");
+                const { userName: un, name: nm } = storage.readKeys([
+                  "userName",
+                  "name",
+                ]);
+                const storedName = un || nm;
                 setUserName(storedName || "User");
               }
 
@@ -94,19 +97,21 @@ export default function Account() {
 
               if (userData.email) {
                 setUserEmail(userData.email);
-                localStorage.setItem("userEmail", userData.email);
+                storage.set("userEmail", userData.email);
               } else {
-                const storedEmail =
-                  localStorage.getItem("userEmail") ||
-                  localStorage.getItem("email");
+                const { userEmail: ue, email: em } = storage.readKeys([
+                  "userEmail",
+                  "email",
+                ]);
+                const storedEmail = ue || em;
                 setUserEmail(storedEmail || "");
               }
 
               if (userData.phoneNumber) {
                 setPhoneNumber(userData.phoneNumber);
-                localStorage.setItem("phoneNumber", userData.phoneNumber);
+                storage.set("phoneNumber", userData.phoneNumber);
               } else {
-                const storedPhone = localStorage.getItem("phoneNumber");
+                const storedPhone = storage.get("phoneNumber");
                 setPhoneNumber(storedPhone || "");
               }
             } else {
@@ -127,13 +132,28 @@ export default function Account() {
 
     function fallbackToLocalStorage() {
       console.log("Using localStorage data as fallback");
-      const storedUserId = localStorage.getItem("userId");
-      const storedProfilePicture = localStorage.getItem("profilePicture");
-      const storedUserName =
-        localStorage.getItem("userName") || localStorage.getItem("name");
-      const storedUserEmail =
-        localStorage.getItem("userEmail") || localStorage.getItem("email");
-      const storedPhoneNumber = localStorage.getItem("phoneNumber");
+      const {
+        userId: uid,
+        profilePicture: pic,
+        userName: un,
+        name: nm,
+        userEmail: ue,
+        email: em,
+        phoneNumber: ph,
+      } = storage.readKeys([
+        "userId",
+        "profilePicture",
+        "userName",
+        "name",
+        "userEmail",
+        "email",
+        "phoneNumber",
+      ]);
+      const storedUserId = uid;
+      const storedProfilePicture = pic;
+      const storedUserName = un || nm;
+      const storedUserEmail = ue || em;
+      const storedPhoneNumber = ph;
 
       setUserId(storedUserId || "");
       setProfilePicture(storedProfilePicture || "");

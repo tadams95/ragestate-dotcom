@@ -3,16 +3,17 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import storage from "@/utils/storage";
 
 function LoadingSkeleton() {
   return (
     <div className="animate-pulse">
-      <div className="h-4 w-24 bg-gray-700 rounded mb-4"/>
-      <div className="h-8 w-3/4 bg-gray-700 rounded mb-4"/>
-      <div className="h-4 w-48 bg-gray-700 rounded mb-8"/>
+      <div className="h-4 w-24 bg-gray-700 rounded mb-4" />
+      <div className="h-8 w-3/4 bg-gray-700 rounded mb-4" />
+      <div className="h-4 w-48 bg-gray-700 rounded mb-8" />
       <div className="space-y-4">
-        {[1,2,3].map((i) => (
-          <div key={i} className="h-4 bg-gray-700 rounded w-full"/>
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-4 bg-gray-700 rounded w-full" />
         ))}
       </div>
     </div>
@@ -21,21 +22,22 @@ function LoadingSkeleton() {
 
 export default function BlogPostClient({ blog }) {
   const [selectedBlog, setSelectedBlog] = useState(blog);
-  const [readingTime, setReadingTime] = useState(""); 
+  const [readingTime, setReadingTime] = useState("");
 
   useEffect(() => {
     if (!blog && typeof window !== "undefined") {
-      const storedBlog = JSON.parse(localStorage.getItem("selectedBlog"));
-      if (storedBlog) {
-        setSelectedBlog(storedBlog);
-      }
+      const storedBlog = storage.getJSON("selectedBlog");
+      if (storedBlog) setSelectedBlog(storedBlog);
     }
 
     // Calculate reading time
     if (selectedBlog) {
       const wordCount = Object.keys(selectedBlog)
-        .filter(key => key.startsWith('p'))
-        .reduce((count, key) => count + (selectedBlog[key]?.split(' ').length || 0), 0);
+        .filter((key) => key.startsWith("p"))
+        .reduce(
+          (count, key) => count + (selectedBlog[key]?.split(" ").length || 0),
+          0
+        );
       const timeInMinutes = Math.ceil(wordCount / 200); // Assuming average reading speed of 200 words/minute
       setReadingTime(`${timeInMinutes} min read`);
     }
@@ -90,7 +92,6 @@ export default function BlogPostClient({ blog }) {
         </div>
       </div>
 
-
       <div className="space-y-6">
         <p>{selectedBlog.p1}</p>
         <p>{selectedBlog.p2}</p>
@@ -101,10 +102,10 @@ export default function BlogPostClient({ blog }) {
       </div>
 
       <figure className="mt-16 flex justify-center items-center">
-        <Image 
-          src="/assets/RSLogo2.png" 
-          alt="Ragestate Logo" 
-          width={150} 
+        <Image
+          src="/assets/RSLogo2.png"
+          alt="Ragestate Logo"
+          width={150}
           height={150}
           className="opacity-80 hover:opacity-100 transition-opacity duration-300"
         />

@@ -4,14 +4,13 @@ import { useDispatch } from "react-redux";
 import { addToCart } from "../lib/features/todos/cartSlice";
 import toast, { Toaster } from "react-hot-toast";
 import Image from "next/image";
+import storage from "@/utils/storage";
 
 export default function EventDetails({ event }) {
   const dispatch = useDispatch();
 
-  let selectedEvent = null;
-  if (typeof window !== "undefined") {
-    selectedEvent = JSON.parse(localStorage.getItem("selectedEvent"));
-  }
+  const selectedEvent =
+    typeof window !== "undefined" ? storage.getJSON("selectedEvent") : null;
 
   let timestamp = event.dateTime;
   const date = new Date(
@@ -90,7 +89,8 @@ export default function EventDetails({ event }) {
     "flex w-full justify-center rounded-md bg-red-700 px-8 py-3 text-base font-medium text-white hover:bg-red-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 transition-colors";
 
   // Common card styling with hover effects matching about page
-  const cardStyling = "bg-gray-900/50 p-5 rounded-lg border border-gray-800 shadow-md hover:border-red-500/30 transition-all duration-300";
+  const cardStyling =
+    "bg-gray-900/50 p-5 rounded-lg border border-gray-800 shadow-md hover:border-red-500/30 transition-all duration-300";
 
   return (
     <>
