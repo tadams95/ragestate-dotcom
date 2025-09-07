@@ -14,9 +14,22 @@ const formatSlug = (title) => {
     .replace(/\-\-+/g, "-");
 };
 
+// Minimal in-memory cache (session-only), short TTL to avoid stale data
+const CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
+let cacheAllProducts = { ts: 0, data: null };
+const cacheByHandle = new Map(); // handle -> { ts, data }
+
+const now = () => Date.now();
+const isFresh = (ts) => now() - ts < CACHE_TTL_MS;
+
 export async function fetchShopifyProducts() {
   try {
+    if (cacheAllProducts.data && isFresh(cacheAllProducts.ts)) {
+      return cacheAllProducts.data;
+    }
+
     const products = await client.product.fetchAll();
+    cacheAllProducts = { ts: now(), data: products };
     return products;
   } catch (error) {
     console.error("Error fetching Shopify products:", error);
@@ -34,10 +47,28 @@ export async function fetchShopifyProducts() {
 
 export async function fetchShopifyProductBySlug(slug) {
   try {
-    const products = await client.product.fetchAll();
-    const product = products.find(
-      (product) => formatSlug(product.title) === slug
-    );
+    // First, try by handle (most efficient)
+    const cached = cacheByHandle.get(slug);
+    if (cached && isFresh(cached.ts)) {
+      return cached.data;
+    }
+
+    try {
+      const byHandle = await client.product.fetchByHandle(slug);
+      if (byHandle) {
+        cacheByHandle.set(slug, { ts: now(), data: byHandle });
+        return byHandle;
+      }
+    } catch (_) {
+      // fetchByHandle throws if not found; we'll fallback to list
+    }
+
+    // Fallback: use cached/all products and match by formatted title
+    const products = await fetchShopifyProducts();
+    const product = products.find((p) => formatSlug(p.title) === slug);
+    if (product) {
+      cacheByHandle.set(slug, { ts: now(), data: product });
+    }
     return product || null;
   } catch (error) {
     console.error("Error fetching product by slug:", error);
@@ -47,7 +78,8 @@ export async function fetchShopifyProductBySlug(slug) {
 
 export async function fetchAllProductSlugs() {
   try {
-    const products = await client.product.fetchAll();
+    // Reuse products cache to avoid repeated heavy calls
+    const products = await fetchShopifyProducts();
     return products.map((product) => formatSlug(product.title));
   } catch (error) {
     console.error("Error fetching all product slugs:", error);

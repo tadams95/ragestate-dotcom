@@ -207,8 +207,13 @@ This document captures a focused performance review of the codebase and a priori
 
 - [x] Events: switch to `where('dateTime','>=', Timestamp.now())` + `orderBy('dateTime','asc')` + `limit(n)`.
 - [x] Tickets: replace N+1 reads with a `collectionGroup('ragers')` query and optionally denormalize to avoid extra joins.
-- [ ] Add indexes as needed for compound queries (Console -> Indexes).
+- [x] Add composite index for collection group `ragers` on `firebaseId ASC`, `active ASC` (Firestore implicitly appends `__name__ ASC`).
 - [ ] If moving server-side, set appropriate cache headers and `revalidate` intervals.
+
+Indexing status
+
+- ragers composite index created (scope: collection group). Fields: `firebaseId ASC`, `active ASC`, `__name__ ASC` (implicit). Supports `where('firebaseId','==', uid)` + `where('active','==', true)` with no orderBy.
+- Events page query (`where('dateTime','>=', now) + orderBy('dateTime')`) is satisfied by a single-field index on `dateTime` (no composite index needed).
 
 ## Image standardization checklist
 
@@ -299,6 +304,10 @@ This document captures a focused performance review of the codebase and a priori
 
 - Network tab: measure payload size and request frequency reduction
 - Time-to-interactive improvement on shop page
+
+Status
+
+- Implemented: In-memory caching (TTL) for product list and by-handle lookups; product detail now fetched by handle with cached fallback; slugs reuse the list cache. Pagination deferred to avoid UI changes.
 
 ---
 
@@ -413,7 +422,7 @@ Applied across: Header, Account page, AuthCheck, Events detail, Blog client, Pro
 
 ## Data fetching optimization checklist
 
-- [ ] Implement caching layer for Shopify products (memory + TTL)
+- [x] Implement caching layer for Shopify products (memory + TTL)
 - [ ] Add pagination to product fetching
 - [ ] Replace client-side filtering with server-side queries
 - [ ] Add loading states and error boundaries for all async operations
