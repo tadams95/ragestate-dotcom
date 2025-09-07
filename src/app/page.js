@@ -249,6 +249,9 @@ export default function Home() {
                   data-testid="events-section"
                   className="bg-black/60 backdrop-blur-sm p-8 rounded-lg border border-red-900/50 hover:border-red-600 transition-all group relative overflow-hidden"
                   whileHover={prefersReducedMotion ? undefined : { y: -5 }}
+                  viewport={{ once: true, amount: 0.3 }}
+                  initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
+                  whileInView={{ opacity: 1, y: 0 }}
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-red-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   <h3 className="text-2xl font-bold text-red-600 mb-4">
@@ -283,6 +286,9 @@ export default function Home() {
                   data-testid="apparel-section"
                   className="bg-black/60 backdrop-blur-sm p-8 rounded-lg border border-red-900/50 hover:border-red-600 transition-all group relative overflow-hidden"
                   whileHover={prefersReducedMotion ? undefined : { y: -5 }}
+                  viewport={{ once: true, amount: 0.3 }}
+                  initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
+                  whileInView={{ opacity: 1, y: 0 }}
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-red-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   <h3 className="text-2xl font-bold text-red-600 mb-4">

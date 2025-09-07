@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ShoppingCartIcon } from "@heroicons/react/24/outline";
+import ShoppingCartIcon from "@heroicons/react/24/outline/ShoppingCartIcon";
 
 export default function EmptyCart() {
   return (

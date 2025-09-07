@@ -1,12 +1,10 @@
 "use client";
 
 import { Dialog, DialogPanel } from "@headlessui/react";
-import {
-  Bars3Icon,
-  XMarkIcon,
-  ShoppingBagIcon,
-  UserIcon,
-} from "@heroicons/react/24/outline";
+import Bars3Icon from "@heroicons/react/24/outline/Bars3Icon";
+import XMarkIcon from "@heroicons/react/24/outline/XMarkIcon";
+import ShoppingBagIcon from "@heroicons/react/24/outline/ShoppingBagIcon";
+import UserIcon from "@heroicons/react/24/outline/UserIcon";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";

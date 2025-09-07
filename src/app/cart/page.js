@@ -8,7 +8,7 @@ import { useSelector, useDispatch } from "react-redux";
 //REMOVE AFTER MOJO PIN
 import { doc, getFirestore, getDoc } from "firebase/firestore";
 
-import { TruckIcon, XMarkIcon } from "@heroicons/react/20/solid";
+import XMarkIcon from "@heroicons/react/20/solid/XMarkIcon";
 
 import {
   selectCartItems,

@@ -1,11 +1,9 @@
 "use client";
 
 import React from "react";
-import {
-  XMarkIcon,
-  TruckIcon,
-  DevicePhoneMobileIcon,
-} from "@heroicons/react/20/solid";
+import XMarkIcon from "@heroicons/react/20/solid/XMarkIcon";
+import TruckIcon from "@heroicons/react/20/solid/TruckIcon";
+import DevicePhoneMobileIcon from "@heroicons/react/20/solid/DevicePhoneMobileIcon";
 
 export default function CartItemDisplay({
   item,

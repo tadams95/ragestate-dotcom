@@ -5,7 +5,8 @@ import Footer from "./components/Footer";
 import Header from "./components/Header";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { HomeIcon, EnvelopeIcon } from "@heroicons/react/24/outline";
+import HomeIcon from "@heroicons/react/24/outline/HomeIcon";
+import EnvelopeIcon from "@heroicons/react/24/outline/EnvelopeIcon";
 
 export default function NotFound() {
   const [mounted, setMounted] = useState(false);

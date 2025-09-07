@@ -117,7 +117,8 @@ export default function Shop() {
             <motion.div
               key={viewMode}
               initial={prefersReducedMotion ? false : { opacity: 0 }}
-              animate={{ opacity: 1 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true, amount: 0.2 }}
               exit={prefersReducedMotion ? undefined : { opacity: 0 }}
               className={`
                 ${

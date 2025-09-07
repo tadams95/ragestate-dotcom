@@ -1,12 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  ClipboardDocumentListIcon,
-  UsersIcon,
-  ShoppingBagIcon,
-  Cog6ToothIcon,
-} from "@heroicons/react/24/outline";
+import ClipboardDocumentListIcon from "@heroicons/react/24/outline/ClipboardDocumentListIcon";
+import UsersIcon from "@heroicons/react/24/outline/UsersIcon";
+import ShoppingBagIcon from "@heroicons/react/24/outline/ShoppingBagIcon";
+import Cog6ToothIcon from "@heroicons/react/24/outline/Cog6ToothIcon";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import {

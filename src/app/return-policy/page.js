@@ -1,7 +1,7 @@
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
-import { CheckCircleIcon } from "@heroicons/react/20/solid";
+import CheckCircleIcon from "@heroicons/react/20/solid/CheckCircleIcon";
 
 export default function ReturnPolicy() {
   return (

@@ -418,11 +418,52 @@ Status
 
 ## Bundle size and JavaScript optimization checklist
 
-- [ ] Audit bundle size with `npm run build` and look for large chunks
+- [x] Audit bundle size with `npm run build` and look for large chunks
+  - Current notable routes (post-optimizations):
+    - Home `/`: First Load JS ~159 kB (was ~373 kB before dynamic 3D import)
+    - Shop `/shop`: First Load JS ~174 kB (banner now lazy-loaded)
+- [x] Dev-only bundle analyzer wired (script: `npm run analyze`) — reports at `.next/analyze/*.html`
 - [ ] Implement code splitting for admin routes and less-used features
-- [ ] Tree-shake unused Framer Motion, Three.js, and Heroicons imports
-- [ ] Consider lazy loading non-critical components (admin, guest mix, etc.)
-- [ ] Move large dependencies (Three.js ecosystem) to dynamic imports
+- [x] Tree-shake unused Framer Motion and Heroicons imports
+  - Switched all Heroicons imports to per-icon deep imports (e.g., `@heroicons/react/24/outline/HomeIcon`) across key pages to reduce bundle footprint.
+  - Framer Motion usage trimmed earlier and deferred in-view on Home/Shop; further pruning remains possible but main hotspots are addressed.
+- [x] Consider lazy loading non-critical components
+  - Home 3D animation (Three.js/R3F) is now dynamically imported
+  - Shop AutoSliderBanner is now dynamically imported
+- [x] Move large dependencies (Three.js ecosystem) to dynamic imports
+
+### Dev-only Bundle Analyzer (setup steps)
+
+These steps add a dev-only analyzer to inspect bundles locally without affecting production.
+
+1. Install analyzer (dev only):
+   - npm i -D @next/bundle-analyzer
+2. Wrap Next config with analyzer when ANALYZE is set:
+   - In `next.config.mjs`:
+     - import with: `import bundleAnalyzer from '@next/bundle-analyzer';`
+     - export: `export default bundleAnalyzer({ enabled: process.env.ANALYZE === 'true' })(nextConfig);`
+3. Add an npm script:
+   - "analyze": "ANALYZE=true next build"
+4. Run the analyzer and open the reported stats to find large chunks.
+
+Note: This is dev-only and does not ship to production.
+
+### Framer Motion deferral candidates (low-risk next steps)
+
+- Home (below-the-fold):
+  - Defer animations in the Our World grid tiles (EVENTS/APPAREL cards) via a dynamic import for the motion wrapper or gate with `viewport={{ once: true }}`.
+  - The "JOIN THE MOVEMENT" CTA block can render static first; hydrate motion on interaction or on in-view.
+- Shop:
+  - Product list container initial fade-in can be gated by in-view. Keep per-item hover small and local.
+- Blog/Product detail (if any motion wrappers exist):
+  - Defer motion wrappers below-the-fold similarly; avoid large list-wide AnimatePresence.
+
+All of the above are no-UI-change toggles that reduce initial JS/INP without altering behavior.
+
+Applied now
+
+- Home Our World tiles (EVENTS/APPAREL cards) gated with `viewport={{ once: true, amount: 0.3 }}` and `whileInView`.
+- Shop products list container uses `whileInView` with `viewport={{ once: true, amount: 0.2 }}`.
 
 ## localStorage optimization checklist
 

@@ -1,3 +1,5 @@
+const bundleAnalyzer = require("@next/bundle-analyzer");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
@@ -48,11 +50,6 @@ const nextConfig = {
         pathname: "/**",
       },
     ],
-    domains: [
-      // Add any image domains you're using
-      "images.unsplash.com",
-      "example.com",
-    ],
   },
 
   env: {
@@ -61,5 +58,10 @@ const nextConfig = {
   },
 };
 
+// Wrap with bundle analyzer when ANALYZE=true
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+});
+
 // Use CommonJS export instead of ES modules
-module.exports = nextConfig;
+module.exports = withBundleAnalyzer(nextConfig);

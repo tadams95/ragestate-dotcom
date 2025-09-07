@@ -2,13 +2,11 @@
 
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import {
-  UserCircleIcon,
-  ShoppingBagIcon,
-  Cog6ToothIcon,
-  QrCodeIcon,
-  TicketIcon,
-} from "@heroicons/react/24/outline";
+import UserCircleIcon from "@heroicons/react/24/outline/UserCircleIcon";
+import ShoppingBagIcon from "@heroicons/react/24/outline/ShoppingBagIcon";
+import Cog6ToothIcon from "@heroicons/react/24/outline/Cog6ToothIcon";
+import QrCodeIcon from "@heroicons/react/24/outline/QrCodeIcon";
+import TicketIcon from "@heroicons/react/24/outline/TicketIcon";
 
 import Link from "next/link";
 import OrderHistory from "../../../components/OrderHistory";

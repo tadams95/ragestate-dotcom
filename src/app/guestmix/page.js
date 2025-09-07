@@ -1,11 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import {
-  UserCircleIcon,
-  MusicalNoteIcon,
-  CheckIcon,
-} from "@heroicons/react/24/solid";
+import UserCircleIcon from "@heroicons/react/24/solid/UserCircleIcon";
+import MusicalNoteIcon from "@heroicons/react/24/solid/MusicalNoteIcon";
+import CheckIcon from "@heroicons/react/24/solid/CheckIcon";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import RandomDetailStyling from "../components/styling/RandomDetailStyling";

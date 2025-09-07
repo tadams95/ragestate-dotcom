@@ -1,9 +1,4 @@
-import {
-  BugAntIcon,
-  ChatBubbleLeftRightIcon,
-  ComputerDesktopIcon,
-  EnvelopeIcon,
-} from "@heroicons/react/24/outline";
+import EnvelopeIcon from "@heroicons/react/24/outline/EnvelopeIcon";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
