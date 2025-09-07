@@ -25,6 +25,7 @@ export default function Header() {
   const [idToken, setIdToken] = useState(null);
   const [refreshToken, setRefreshToken] = useState(null);
   const [profilePicture, setProfilePicture] = useState("");
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     const {
@@ -35,6 +36,7 @@ export default function Header() {
     setIdToken(idTok || null);
     setRefreshToken(refTok || null);
     setProfilePicture(pic || "");
+    setHydrated(true);
   }, []);
 
   return (
@@ -87,32 +89,41 @@ export default function Header() {
               <ShoppingBagIcon className="h-6 w-6" aria-hidden="true" />
               <span aria-hidden="true"></span>
             </Link>
-            {idToken && refreshToken ? (
-              <Link
-                href="/account"
-                className="text-sm font-semibold leading-6 text-gray-100"
-              >
-                {profilePicture ? (
-                  <Image
-                    src={profilePicture}
-                    alt="Profile"
-                    width={60}
-                    height={24}
-                    className="h-6 w-6 rounded-md"
-                  />
-                ) : (
+            <div className="inline-flex items-center justify-center h-6 w-6">
+              {!hydrated ? (
+                <div
+                  aria-hidden
+                  className="h-6 w-6 rounded-md bg-zinc-800/60"
+                />
+              ) : idToken && refreshToken ? (
+                <Link
+                  href="/account"
+                  className="text-sm font-semibold leading-6 text-gray-100"
+                  aria-label="Account"
+                >
+                  {profilePicture ? (
+                    <Image
+                      src={profilePicture}
+                      alt="Profile"
+                      width={24}
+                      height={24}
+                      className="h-6 w-6 rounded-md"
+                    />
+                  ) : (
+                    <UserIcon className="h-6 w-6" aria-hidden="true" />
+                  )}
+                </Link>
+              ) : (
+                <Link
+                  href="/login"
+                  className="text-sm font-semibold leading-6 text-gray-100"
+                  aria-label="Login"
+                >
                   <UserIcon className="h-6 w-6" aria-hidden="true" />
-                )}
-              </Link>
-            ) : (
-              <Link
-                href="/login"
-                className="text-sm font-semibold leading-6 text-gray-100"
-              >
-                <UserIcon className="h-6 w-6" aria-hidden="true" />
-                <span aria-hidden="true"></span>
-              </Link>
-            )}
+                  <span aria-hidden="true"></span>
+                </Link>
+              )}
+            </div>
           </div>
         </nav>
         <Dialog
