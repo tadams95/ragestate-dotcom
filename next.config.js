@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   // Ensure SWC is used for compilation
   swcMinify: true,
 
@@ -47,13 +50,14 @@ const nextConfig = {
     ],
     domains: [
       // Add any image domains you're using
-      'images.unsplash.com',
-      'example.com',
+      "images.unsplash.com",
+      "example.com",
     ],
   },
 
   env: {
-    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || 'https://ragestate.com',
+    NEXT_PUBLIC_SITE_URL:
+      process.env.NEXT_PUBLIC_SITE_URL || "https://ragestate.com",
   },
 };
 

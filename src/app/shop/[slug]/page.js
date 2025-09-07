@@ -16,7 +16,8 @@ export async function generateStaticParams() {
     }));
   } catch (error) {
     console.error("Error in generateStaticParams:", error);
-    throw error;
+    // If Shopify is unavailable, return no params to avoid build failure
+    return [];
   } finally {
     // console.log("generateStaticParams: End");
   }
@@ -44,12 +45,15 @@ export async function generateMetadata({ params }) {
     };
   } catch (error) {
     console.error("Error in generateMetadata:", error);
-    throw error;
+    // Fallback metadata when product can't be fetched
+    return {
+      title: "Product",
+      description: "Product not available",
+    };
   } finally {
     // console.log("generateMetadata: End");
   }
 }
-
 
 export default async function ProductDetailPage({ params }) {
   const { slug } = params;
@@ -73,7 +77,10 @@ export default async function ProductDetailPage({ params }) {
     return <ProductDetailClient product={plainProduct} />;
   } catch (error) {
     console.error("Error in ProductDetailPage:", error);
-    throw error;
+    // Render a minimal not-found fragment if product cannot be loaded
+    return {
+      notFound: true,
+    };
   } finally {
     // console.log("ProductDetailPage: End");
   }

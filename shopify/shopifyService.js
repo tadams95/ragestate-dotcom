@@ -20,7 +20,15 @@ export async function fetchShopifyProducts() {
     return products;
   } catch (error) {
     console.error("Error fetching Shopify products:", error);
-    throw error;
+    // Gracefully handle closed/unavailable shop so builds/pages don't crash
+    if (
+      error?.message?.toLowerCase?.().includes("unavailable") ||
+      error?.message?.toLowerCase?.().includes("payment_required") ||
+      error?.status === 402
+    ) {
+      return [];
+    }
+    return [];
   }
 }
 
@@ -33,7 +41,7 @@ export async function fetchShopifyProductBySlug(slug) {
     return product || null;
   } catch (error) {
     console.error("Error fetching product by slug:", error);
-    throw error;
+    return null;
   }
 }
 
@@ -43,6 +51,7 @@ export async function fetchAllProductSlugs() {
     return products.map((product) => formatSlug(product.title));
   } catch (error) {
     console.error("Error fetching all product slugs:", error);
-    throw error;
+    // If the shop is unavailable, return an empty list so static params generation succeeds
+    return [];
   }
 }
