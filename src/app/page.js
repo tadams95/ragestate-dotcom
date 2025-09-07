@@ -17,6 +17,7 @@ export default function Home() {
   // Refs for scrolling sections
   const yourWorldRef = useRef(null); // Added ref for "your world" section
   const ourWorldRef = useRef(null);
+  const timeoutRef = useRef(null);
   const { ref: heroRef, inView: heroInView } = useInView({ threshold: 0.3 });
   const { ref: manifestoRef, inView: manifestoInView } = useInView({
     threshold: 0.3,
@@ -44,9 +45,17 @@ export default function Home() {
         behavior: "smooth",
       });
 
-      setTimeout(() => setActiveWorld(worldType), 500);
+      // Clear any existing timer before setting a new one
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => setActiveWorld(worldType), 500);
     }
   };
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
 
   return (
     <div className="bg-black min-h-screen relative overflow-x-hidden">

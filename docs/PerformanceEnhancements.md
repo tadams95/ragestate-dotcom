@@ -366,6 +366,12 @@ Status
 - Consider using `useEffect` cleanup functions consistently
 - Add abort controllers for fetch requests that can be cancelled
 
+Status
+
+- [x] Home (`src/app/page.js`): Debounce timer for `scrollToSection` stored in ref; cleared before reuse and on unmount.
+- [x] Events (`src/app/events/page.js`): Loading delay timeout now cleared via effect cleanup.
+- [x] AutoSlider banners already clear their intervals on unmount.
+
 ---
 
 ## P2: AuthCheck running expensive operations on every render

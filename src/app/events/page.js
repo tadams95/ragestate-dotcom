@@ -46,18 +46,27 @@ export default function Events() {
       console.error("Error fetching event data:", error);
     } finally {
       // Set a small delay to make the transition smoother
-      setTimeout(() => {
+      if (typeof window !== "undefined") {
+        const id = setTimeout(() => {
+          setIsLoading(false);
+        }, 300);
+        // Return a no-op for call site; caller handles cleanup in effect
+        return () => clearTimeout(id);
+      } else {
         setIsLoading(false);
-      }, 300);
+      }
     }
   }, []);
 
   useEffect(() => {
-    let isMounted = true;
-    fetchEventData();
+    let cleanup = null;
+    (async () => {
+      const maybeCleanup = await fetchEventData();
+      if (typeof maybeCleanup === "function") cleanup = maybeCleanup;
+    })();
 
     return () => {
-      isMounted = false;
+      if (cleanup) cleanup();
     };
   }, [fetchEventData]);
 
