@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   UserCircleIcon,
@@ -171,15 +171,18 @@ export default function Account() {
     fetchUserData();
   }, []);
 
-  const handleLogout = async (event) => {
-    event.preventDefault();
-    const result = await logoutUser();
-    if (result.success) {
-      router.push("/login");
-    } else {
-      console.error("Logout failed:", result.message);
-    }
-  };
+  const handleLogout = useCallback(
+    async (event) => {
+      event.preventDefault();
+      const result = await logoutUser();
+      if (result.success) {
+        router.push("/login");
+      } else {
+        console.error("Logout failed:", result.message);
+      }
+    },
+    [router]
+  );
 
   const tabComponents = useMemo(
     () => ({
@@ -225,15 +228,7 @@ export default function Account() {
         />
       ),
     }),
-    [
-      userId,
-      firstName,
-      lastName,
-      phoneNumber,
-      userEmail,
-      profilePicture,
-      activeTab,
-    ]
+    [userId, firstName, lastName, phoneNumber, userEmail, profilePicture]
   );
 
   return (

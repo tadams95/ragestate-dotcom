@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { fetchShopifyProducts } from "../../../shopify/shopifyService";
 import Footer from "../components/Footer";
 import ProductTile from "../../../components/ProductTile";
@@ -19,6 +19,8 @@ export default function Shop() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [viewMode, setViewMode] = useState("grid"); // Keep the view mode state
+  const setGrid = useCallback(() => setViewMode("grid"), []);
+  const setList = useCallback(() => setViewMode("list"), []);
 
   useEffect(() => {
     let isMounted = true;
@@ -78,8 +80,8 @@ export default function Shop() {
               }`}
             >
               <GridIcon className="h-5 w-5 text-white" />
-            </button>
             <button
+              onClick={setGrid}
               onClick={() => setViewMode("list")}
               data-testid="list-view-button"
               className={`p-2 rounded ${
@@ -87,8 +89,8 @@ export default function Shop() {
               }`}
             >
               <ListBulletIcon className="h-5 w-5 text-white" />
-            </button>
-          </div>
+            <button
+              onClick={setList}
         </div>
 
         {/* Loading and Error States */}
@@ -116,7 +118,7 @@ export default function Shop() {
                 }
               `}
             >
-              {productsWithHref.map((product) => (
+        {productsWithHref.map((product) => (
                 <motion.div
                   key={product.id}
                   layout={prefersReducedMotion ? false : true}
@@ -124,7 +126,7 @@ export default function Shop() {
                   animate={{ opacity: 1 }}
                   exit={prefersReducedMotion ? undefined : { opacity: 0 }}
                 >
-                  <ProductTile product={product} viewMode={viewMode} />
+          <ProductTile product={product} viewMode={viewMode} />
                 </motion.div>
               ))}
             </motion.div>

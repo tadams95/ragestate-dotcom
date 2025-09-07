@@ -350,6 +350,13 @@ Status
 - Split large components (like account page) into smaller, focused components
 - Use React DevTools Profiler to identify unnecessary re-renders
 
+Status
+
+- [x] Account (`src/app/account/page.js`): `handleLogout` memoized; `tabComponents` memo now excludes `activeTab` so switching tabs doesn’t rebuild all panes.
+- [x] Shop (`src/app/shop/page.js`): view mode handlers memoized (`setGrid`/`setList`); stable props into `ProductTile`.
+- [x] ProductTile (`components/ProductTile.js`): wrapped in `React.memo` with a safe comparator to avoid unnecessary re-renders across grid/list toggles.
+- [x] Home (`src/app/page.js`): `scrollToSection` memoized to keep handler stable.
+
 ---
 
 ## P1: Timer and interval memory leaks

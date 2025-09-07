@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 import Header from "./components/Header"; // Uncommented this line
@@ -33,7 +33,7 @@ export default function Home() {
   }, []);
 
   // Improved scroll function that works for both sections
-  const scrollToSection = (ref, worldType) => {
+  const scrollToSection = useCallback((ref, worldType) => {
     if (ref.current) {
       const rect = ref.current.getBoundingClientRect();
       // Increase offset to decrease the scroll a bit
@@ -49,7 +49,7 @@ export default function Home() {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       timeoutRef.current = setTimeout(() => setActiveWorld(worldType), 500);
     }
-  };
+  }, []);
 
   useEffect(() => {
     return () => {

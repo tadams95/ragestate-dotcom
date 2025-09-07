@@ -1,8 +1,9 @@
 import Link from "next/link";
 import Image from "next/image"; // Add this import
+import React from "react";
 import { motion, useReducedMotion } from "framer-motion";
 
-export default function ProductTile({ product, viewMode = "grid" }) {
+function ProductTile({ product, viewMode = "grid" }) {
   const prefersReducedMotion = useReducedMotion();
   const priceNumber = parseFloat(product.variants[0]?.price?.amount || 0);
   const formattedPrice = priceNumber.toFixed(2);
@@ -155,3 +156,26 @@ export default function ProductTile({ product, viewMode = "grid" }) {
     </Link>
   );
 }
+
+export default React.memo(ProductTile, (prev, next) => {
+  const prevVariant = prev.product?.variants?.[0];
+  const nextVariant = next.product?.variants?.[0];
+  const prevPrice = parseFloat(prevVariant?.price?.amount || 0);
+  const nextPrice = parseFloat(nextVariant?.price?.amount || 0);
+
+  return (
+    prev.viewMode === next.viewMode &&
+    prev.product?.id === next.product?.id &&
+    prev.product?.title === next.product?.title &&
+    prevPrice === nextPrice &&
+    prev.product?.imageSrc === next.product?.imageSrc &&
+    prev.product?.imageAlt === next.product?.imageAlt &&
+    prev.product?.variants?.every((v, i) => {
+      const nv = next.product?.variants?.[i];
+      return (
+        v?.available === nv?.available &&
+        (v?.quantityAvailable || 0) === (nv?.quantityAvailable || 0)
+      );
+    })
+  );
+});
