@@ -12,7 +12,7 @@ export default function Post({ postData }) {
   };
 
   return (
-  <div className="bg-[#0d0d0f] p-4 rounded-[14px] mb-4 border border-white/10 shadow-[0_4px_12px_-4px_#000c]">
+    <div className="bg-[#0d0d0f] p-4 rounded-[14px] mb-4 border border-white/10 shadow-[0_4px_12px_-4px_#000c]">
       <PostHeader author={data.author} timestamp={data.timestamp} />
       <PostContent content={data.content} />
       <PostActions />

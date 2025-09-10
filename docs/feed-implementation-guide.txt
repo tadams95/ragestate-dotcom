@@ -372,3 +372,83 @@ V3
 - Track: DAU of feed, posts/day, median time-to-first-post, scroll depth, submit-to-visible latency.
 - Errors: upload failures, function latency, rules denials.
 - Cost: reads per session; cap listeners and rely on paginated queries.
+
+18. NEXT STEPS (SEQUENTIAL CHECKLIST)
+-------------------------------------
+
+Preflight (once)
+- Ensure Firebase web env vars are set (no quotes) locally and on hosting:
+  - NEXT_PUBLIC_FIREBASE_API_KEY
+  - NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+  - NEXT_PUBLIC_FIREBASE_PROJECT_ID
+  - NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+  - NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+  - NEXT_PUBLIC_FIREBASE_APP_ID
+- Confirm Firestore and Storage are enabled in the Firebase console.
+
+Step 1 — Indexes (see Section 15)
+- Add/confirm:
+  - posts: isPublic ASC, timestamp DESC; userId ASC, timestamp DESC
+  - postComments: postId ASC, timestamp ASC
+  - follows: followerId ASC; followedId ASC
+  - userFeeds.feedItems: createdAt DESC (if using feedItems)
+
+Step 2 — Harden Security Rules (see Section 14)
+- Lock userFeeds writes to Functions only; keep reads to owner.
+- Validate post creates (userId == auth.uid, isPublic boolean, content length cap).
+- Constrain follows create/delete to the acting user; prevent self-follow.
+Deploy rules.
+
+Step 3 — Cloud Functions: Counters
+- Implement onCreate/onDelete for postLikes to inc/dec posts.likeCount atomically.
+- Implement onCreate/onDelete for postComments to inc/dec posts.commentCount.
+Deploy and verify with a quick like/comment.
+
+Step 4 — Cloud Functions: Fan-out (personal feeds)
+- Implement onCreate(posts/{postId}) to fan-out to followers:
+  - Write userFeeds/{followerId}/feedItems/{postId} = { createdAt: now }.
+  - Trim to max N (e.g., 500) items per user.
+Deploy and test with a new post.
+
+Step 5 — Data Model Tweak (avoid large arrays)
+- Migrate from userFeeds.postIds array → userFeeds/{userId}/feedItems subcollection.
+- Backfill dev data (optional) by copying existing postIds into feedItems.
+
+Step 6 — Client: Personalized feed pagination
+- In Feed container, page feedItems by createdAt desc, batch hydrate posts by documentId() in chunks of ≤10, with startAfter cursor.
+- Keep a fallback to public Latest if no personalized items.
+
+Step 7 — Client: Global Latest route
+- Add /feed/latest that queries posts where isPublic == true orderBy timestamp desc with pagination.
+- Requires the posts composite index above.
+
+Step 8 — Likes (optimistic)
+- Toggle like by writing postLikes doc id `${postId}_${uid}`; disable button while in-flight.
+- Optimistically adjust local likeCount; let Functions settle truth.
+- Handle signed-out state with prompt/redirect to login.
+
+Step 9 — Comments (lazy sheet)
+- Create CommentsSheet; open on demand from the post card.
+- Query postComments where postId == target, order by timestamp asc, paginate.
+- Post a new comment; rely on Functions to bump count.
+
+Step 10 — Post Composer (text → single image)
+- Build composer with text validation and optional single image upload to Storage `posts/{postId}/...`.
+- On submit: create post with isPublic: true, timestamp: server time, mediaUrls if present.
+- Autosave draft to sessionStorage; basic error and loading states.
+
+Step 11 — Follow graph UI
+- Add FollowButton that creates/deletes `follows` doc id `${followerId}_${followedId}` optimistically.
+- Use a single read to reflect initial state.
+
+Step 12 — UX polish and quality gates
+- Add "New Posts" banner when newer items appear above viewport; tap scrolls/merges.
+- Empty, error, and offline states per spec; respect prefers-reduced-motion.
+- Add minimal metrics hooks (post_create, post_view, reaction_add, comments_open).
+- Component tests for PostCard and feed pagination; optional emulator test for Functions.
+
+Done when
+- Personalized feed paginates from feedItems for signed-in users; /feed/latest works.
+- Users can create a text post (and with a single image), like/unlike, and comment.
+- Counts update accurately via Cloud Functions; rules enforce client cannot write userFeeds.
+- Basic UX polish and metrics are in place.
