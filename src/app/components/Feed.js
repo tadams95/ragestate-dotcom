@@ -22,7 +22,7 @@ import { formatDate } from "@/utils/formatters";
 // Firestore 'in' queries accept up to 10 IDs; page size <= 10 is safest
 const PAGE_SIZE = 10;
 
-export default function Feed() {
+export default function Feed({ forcePublic = false }) {
   const { currentUser, loading: authLoading } = useAuth();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -52,6 +52,11 @@ export default function Feed() {
     try {
       // Determine mode synchronously for this call
       let mode = feedMode;
+      if (forcePublic) {
+        mode = "public";
+        setFeedMode(mode);
+      }
+
       if (!mode) {
         if (!currentUser) {
           mode = "public";
@@ -203,10 +208,10 @@ export default function Feed() {
 
   // Initial load once auth settles
   useEffect(() => {
-    if (!authLoading) {
+    if (!authLoading || forcePublic) {
       fetchFeedPage();
     }
-  }, [authLoading, fetchFeedPage]);
+  }, [authLoading, forcePublic, fetchFeedPage]);
 
   if (authLoading) {
     return <p className="text-center text-gray-400">Checking auth…</p>;
