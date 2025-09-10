@@ -94,7 +94,11 @@ export default function PostActions({
 
   const onShare = async () => {
     try {
-      const url = typeof window !== "undefined" ? window.location.href : "";
+      let url = "";
+      if (typeof window !== "undefined") {
+        const origin = window.location.origin;
+        url = postId ? `${origin}/post/${postId}` : window.location.href;
+      }
       if (navigator?.share) {
         await navigator.share({ url });
       } else if (navigator?.clipboard) {
