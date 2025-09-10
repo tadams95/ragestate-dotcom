@@ -5,10 +5,8 @@ import { auth } from "../firebase";
 
 import { setLocalId } from "../../lib/features/todos/userSlice";
 
-const clean = (v) => (v || "").trim().replace(/^['"]|['"]$/g, "");
-const API_KEY = clean(
-  process.env.NEXT_PUBLIC_apiKey || process.env.NEXT_PUBLIC_FIREBASE_API_KEY
-);
+const API_KEY =
+  process.env.NEXT_PUBLIC_apiKey || process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
 
 export async function createUser(
   email,
