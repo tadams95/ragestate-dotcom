@@ -16,6 +16,7 @@ import {
   orderBy,
   limit,
   startAfter,
+  onSnapshot,
 } from "firebase/firestore";
 import { formatDate } from "@/utils/formatters";
 
@@ -45,6 +46,134 @@ export default function Feed({ forcePublic = false }) {
     // Reset feed when auth state changes
     resetAndLoad();
   }, [currentUser, resetAndLoad]);
+
+  // Listen for new posts created locally to prepend without refresh
+  useEffect(() => {
+    function onNewPost(e) {
+      const post = e?.detail;
+      if (!post) return;
+      setPosts((prev) => [post, ...prev.filter((p) => p.id !== post.id)]);
+    }
+    if (typeof window !== "undefined") {
+      window.addEventListener("feed:new-post", onNewPost);
+    }
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("feed:new-post", onNewPost);
+      }
+    };
+  }, []);
+
+  // Lightweight real-time: listen for newest items and prepend as they arrive
+  useEffect(() => {
+    let unsub;
+    if (forcePublic) {
+      // Always public mode listener
+      const q = query(
+        collection(db, "posts"),
+        where("isPublic", "==", true),
+        orderBy("timestamp", "desc"),
+        limit(1)
+      );
+      unsub = onSnapshot(q, (snap) => {
+        snap.docChanges().forEach((chg) => {
+          if (chg.type === "added") {
+            const d = chg.doc;
+            const p = d.data();
+            const mapped = {
+              id: d.id,
+              author: p.userDisplayName || p.userId || "User",
+              avatarUrl: p.userProfilePicture || null,
+              timestamp: formatDate(
+                p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp
+              ),
+              content: p.content || "",
+              likeCount: typeof p.likeCount === "number" ? p.likeCount : 0,
+              commentCount:
+                typeof p.commentCount === "number" ? p.commentCount : 0,
+            };
+            setPosts((prev) => [
+              mapped,
+              ...prev.filter((x) => x.id !== mapped.id),
+            ]);
+          }
+        });
+      });
+      return () => unsub && unsub();
+    }
+
+    if (feedMode === "public") {
+      const q = query(
+        collection(db, "posts"),
+        where("isPublic", "==", true),
+        orderBy("timestamp", "desc"),
+        limit(1)
+      );
+      unsub = onSnapshot(q, (snap) => {
+        snap.docChanges().forEach((chg) => {
+          if (chg.type === "added") {
+            const d = chg.doc;
+            const p = d.data();
+            const mapped = {
+              id: d.id,
+              author: p.userDisplayName || p.userId || "User",
+              avatarUrl: p.userProfilePicture || null,
+              timestamp: formatDate(
+                p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp
+              ),
+              content: p.content || "",
+              likeCount: typeof p.likeCount === "number" ? p.likeCount : 0,
+              commentCount:
+                typeof p.commentCount === "number" ? p.commentCount : 0,
+            };
+            setPosts((prev) => [
+              mapped,
+              ...prev.filter((x) => x.id !== mapped.id),
+            ]);
+          }
+        });
+      });
+    } else if (feedMode === "user" && currentUser?.uid) {
+      const q = query(
+        collection(db, "userFeeds", currentUser.uid, "feedItems"),
+        orderBy("timestamp", "desc"),
+        limit(1)
+      );
+      unsub = onSnapshot(q, async (snap) => {
+        for (const chg of snap.docChanges()) {
+          if (chg.type === "added") {
+            const id = chg.doc.id;
+            try {
+              const postSnap = await getDoc(doc(db, "posts", id));
+              if (postSnap.exists()) {
+                const p = postSnap.data();
+                const mapped = {
+                  id: postSnap.id,
+                  author: p.userDisplayName || p.userId || "User",
+                  avatarUrl: p.userProfilePicture || null,
+                  timestamp: formatDate(
+                    p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp
+                  ),
+                  content: p.content || "",
+                  likeCount: typeof p.likeCount === "number" ? p.likeCount : 0,
+                  commentCount:
+                    typeof p.commentCount === "number" ? p.commentCount : 0,
+                };
+                setPosts((prev) => [
+                  mapped,
+                  ...prev.filter((x) => x.id !== mapped.id),
+                ]);
+              }
+            } catch (e) {
+              console.warn("Failed to fetch live post", id, e);
+            }
+          }
+        }
+      });
+    }
+
+    return () => unsub && unsub();
+  }, [feedMode, currentUser, forcePublic]);
 
   const fetchFeedPage = useCallback(async () => {
     if (loading || !hasMore) return;
@@ -91,6 +220,7 @@ export default function Feed({ forcePublic = false }) {
             return {
               id: d.id,
               author: p.userDisplayName || p.userId || "User",
+              avatarUrl: p.userProfilePicture || null,
               timestamp: formatDate(
                 p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp
               ),
@@ -121,6 +251,7 @@ export default function Feed({ forcePublic = false }) {
             .map((p) => ({
               id: p.id,
               author: p.userDisplayName || p.userId || "User",
+              avatarUrl: p.userProfilePicture || null,
               timestamp: formatDate(
                 p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp
               ),
@@ -181,6 +312,7 @@ export default function Feed({ forcePublic = false }) {
       const mapped = results.map((p) => ({
         id: p.id,
         author: p.userDisplayName || p.userId || "User",
+        avatarUrl: p.userProfilePicture || null,
         timestamp: formatDate(
           p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp
         ),

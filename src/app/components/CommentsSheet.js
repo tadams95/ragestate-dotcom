@@ -11,10 +11,9 @@ import {
   where,
   orderBy,
   limit,
-  startAfter,
-  getDocs,
   addDoc,
   serverTimestamp,
+  onSnapshot,
 } from "firebase/firestore";
 import { formatDate } from "@/utils/formatters";
 
@@ -26,42 +25,46 @@ export default function CommentsSheet({ postId, onClose }) {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [lastDoc, setLastDoc] = useState(null);
+  const [take, setTake] = useState(PAGE_SIZE);
   const [newComment, setNewComment] = useState("");
   const contentRef = useRef(null);
 
-  const fetchPage = useCallback(async () => {
-    if (!postId || loading || !hasMore) return;
-    setLoading(true);
-    try {
-      const constraints = [
-        where("postId", "==", postId),
-        orderBy("timestamp", "asc"),
-        limit(PAGE_SIZE),
-      ];
-      if (lastDoc) constraints.push(startAfter(lastDoc));
-      const q = query(collection(db, "postComments"), ...constraints);
-      const snap = await getDocs(q);
-      const batch = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setComments((prev) => dedupeComments([...prev, ...batch]));
-      setLastDoc(snap.docs[snap.docs.length - 1] || null);
-      if (snap.size < PAGE_SIZE) setHasMore(false);
-      // Scroll to bottom on first load
-      if (!lastDoc && contentRef.current) {
-        setTimeout(() => {
-          contentRef.current.scrollTop = contentRef.current.scrollHeight;
-        }, 0);
-      }
-    } catch (e) {
-      console.error("Failed to load comments", e);
-    } finally {
-      setLoading(false);
-    }
-  }, [postId, loading, hasMore, lastDoc]);
-
+  // Live listener with incremental limit
   useEffect(() => {
-    fetchPage();
-  }, [fetchPage]);
+    if (!postId) return;
+    setLoading(true);
+    const q = query(
+      collection(db, "postComments"),
+      where("postId", "==", postId),
+      orderBy("timestamp", "asc"),
+      limit(take)
+    );
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        setComments((prev) => dedupeComments(list));
+        setHasMore(snap.size >= take);
+        // Scroll to bottom on first load when small lists
+        if (contentRef.current) {
+          setTimeout(() => {
+            contentRef.current.scrollTop = contentRef.current.scrollHeight;
+          }, 0);
+        }
+        setLoading(false);
+      },
+      (e) => {
+        console.error("Comments live listener error", e);
+        setLoading(false);
+      }
+    );
+    return () => unsub();
+  }, [postId, take]);
+
+  const fetchMore = useCallback(() => {
+    if (!hasMore || loading) return;
+    setTake((t) => t + PAGE_SIZE);
+  }, [hasMore, loading]);
 
   const onSubmit = async (e) => {
     e?.preventDefault?.();
@@ -94,6 +97,13 @@ export default function CommentsSheet({ postId, onClose }) {
         content: text,
         timestamp: serverTimestamp(),
       });
+      try {
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("comments:new", { detail: { postId } })
+          );
+        }
+      } catch {}
       setComments((prev) => dedupeComments(prev));
     } catch (e) {
       console.error("Failed to post comment", e);
@@ -166,7 +176,7 @@ export default function CommentsSheet({ postId, onClose }) {
           {!loading && hasMore && (
             <button
               className="text-sm text-gray-300 hover:text-white"
-              onClick={fetchPage}
+              onClick={fetchMore}
             >
               Load more
             </button>

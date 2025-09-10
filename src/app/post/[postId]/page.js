@@ -32,6 +32,7 @@ export default function PostPermalinkPage() {
         const mapped = {
           id: snap.id,
           author: p.userDisplayName || p.userId || "User",
+          avatarUrl: p.userProfilePicture || null,
           timestamp: formatDate(
             p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp
           ),

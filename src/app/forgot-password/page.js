@@ -29,7 +29,6 @@ export default function ForgotPassword() {
   // Memoize the onChange handlers using useCallback
   const handleEmailChange = useCallback((e) => {
     setEmail(e.target.value);
-    console.log("Email: ", e.target.value);
   }, []);
 
   return (
