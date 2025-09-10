@@ -443,9 +443,10 @@ Step 8 — Likes (optimistic)
 Note: Likes are enabled only for authenticated users by security rules; guests can view counts but cannot like/unlike.
 
 Step 9 — Comments (lazy sheet)
-- [ ] Create CommentsSheet; open on demand from the post card.
-- [ ] Query postComments where postId == target, order by timestamp asc, paginate.
-- [ ] Post a new comment; rely on Functions to bump count.
+- [x] Create CommentsSheet; open on demand from the post card.
+- [x] Query postComments where postId == target, order by timestamp asc, paginate.
+- [x] Post a new comment; rely on Functions to bump count.
+Note: Comments require authentication to create; guests can read.
 
 Step 10 — Post Composer (text → single image)
 - [ ] Build composer with text validation and optional single image upload to Storage `posts/{postId}/...`.

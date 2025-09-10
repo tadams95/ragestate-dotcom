@@ -1,6 +1,9 @@
 import axios from "axios";
 
-import { signInWithEmailAndPassword } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+} from "firebase/auth";
 import { auth } from "../firebase";
 
 import { setLocalId } from "../../lib/features/todos/userSlice";
@@ -88,23 +91,15 @@ export async function loginUser(email, password) {
 
 export async function forgotPassword(email) {
   try {
-    const response = await axios.post(
-      "https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=" +
-        API_KEY,
-      {
-        requestType: "PASSWORD_RESET",
-        email: email,
-      }
-    );
-
-    // Handle successful response
-    console.log("Password reset email sent successfully:", response.data);
-    // You might want to return a success message or a boolean indicating success here
+    // Use Firebase Auth SDK to avoid manual API key handling
+    await sendPasswordResetEmail(auth, email);
+    console.log("Password reset email sent successfully for:", email);
     return true;
   } catch (error) {
-    // Handle errors
-    console.error("Password reset failed:", error.response.data.error.message);
-    // You might want to return an error message or a boolean indicating failure here
+    // FirebaseError has 'code' and 'message'
+    const code = error?.code || "unknown";
+    const message = error?.message || String(error);
+    console.error("Password reset failed:", code, message);
     return false;
   }
 }

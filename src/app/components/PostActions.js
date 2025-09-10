@@ -15,6 +15,7 @@ export default function PostActions({
   postId,
   likeCount = 0,
   commentCount = 0,
+  onOpenComments,
 }) {
   const { currentUser } = useAuth();
   const [optimisticLikes, setOptimisticLikes] = useState(likeCount);
@@ -123,6 +124,7 @@ export default function PostActions({
 
       <button
         className="flex items-center space-x-1 hover:text-white"
+        onClick={onOpenComments}
         aria-label="Comments"
         title="Comments"
       >

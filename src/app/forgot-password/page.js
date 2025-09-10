@@ -16,6 +16,7 @@ export default function ForgotPassword() {
 
   async function confirmReset(e) {
     e.preventDefault(); // Prevent default form submission
+    console.log("Submitting password reset for:", email);
 
     const success = await forgotPassword(email);
 
