@@ -95,6 +95,9 @@ export default function Feed({ forcePublic = false }) {
                 p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp
               ),
               content: p.content || "",
+              likeCount: typeof p.likeCount === "number" ? p.likeCount : 0,
+              commentCount:
+                typeof p.commentCount === "number" ? p.commentCount : 0,
             };
           });
 
@@ -122,6 +125,9 @@ export default function Feed({ forcePublic = false }) {
                 p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp
               ),
               content: p.content || "",
+              likeCount: typeof p.likeCount === "number" ? p.likeCount : 0,
+              commentCount:
+                typeof p.commentCount === "number" ? p.commentCount : 0,
             }));
 
           setPosts((prev) => [...prev, ...mapped]);
@@ -179,6 +185,8 @@ export default function Feed({ forcePublic = false }) {
           p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp
         ),
         content: p.content || "",
+        likeCount: typeof p.likeCount === "number" ? p.likeCount : 0,
+        commentCount: typeof p.commentCount === "number" ? p.commentCount : 0,
       }));
 
       setPosts((prev) => [...prev, ...mapped]);

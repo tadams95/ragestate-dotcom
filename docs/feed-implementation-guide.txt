@@ -13,7 +13,7 @@ STATUS CHECKLIST
 - [x] Fan-out to userFeeds/{uid}/feedItems (personal feeds) live
 - [x] Client: personalized feed pagination + public fallback
 - [ ] Client: /feed/latest route (global latest)
-- [ ] Client: like toggle (optimistic)
+- [x] Client: like toggle (optimistic)
 - [ ] Client: comments UI + pagination
 - [ ] Post composer (text + single image)
 - [ ] Follow graph UI (FollowButton)
@@ -437,9 +437,10 @@ Step 6 — Client: Personalized feed pagination
  Note: Required posts composite indexes are already in place.
 
 Step 8 — Likes (optimistic)
-- [ ] Toggle like by writing postLikes doc id `${postId}_${uid}`; disable button while in-flight.
-- [ ] Optimistically adjust local likeCount; let Functions settle truth.
-- [ ] Handle signed-out state with prompt/redirect to login.
+- [x] Toggle like by writing postLikes doc id `${postId}_${uid}`; disable button while in-flight.
+- [x] Optimistically adjust local likeCount; let Functions settle truth.
+- [x] Handle signed-out state with prompt/redirect to login.
+Note: Likes are enabled only for authenticated users by security rules; guests can view counts but cannot like/unlike.
 
 Step 9 — Comments (lazy sheet)
 - [ ] Create CommentsSheet; open on demand from the post card.

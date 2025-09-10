@@ -15,7 +15,11 @@ export default function Post({ postData }) {
     <div className="bg-[#0d0d0f] p-4 rounded-[14px] mb-4 border border-white/10 shadow-[0_4px_12px_-4px_#000c]">
       <PostHeader author={data.author} timestamp={data.timestamp} />
       <PostContent content={data.content} />
-      <PostActions />
+      <PostActions
+        postId={postData?.id}
+        likeCount={postData?.likeCount}
+        commentCount={postData?.commentCount}
+      />
       {/* Optional: CommentSection could go here */}
     </div>
   );
