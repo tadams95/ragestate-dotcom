@@ -19,28 +19,26 @@ import {
 } from "firebase/firestore";
 import { formatDate } from "@/utils/formatters";
 
-// Firestore 'in' queries accept up to 10 IDs; pick a smaller page size to be safe
-const PAGE_SIZE = 5;
+// Firestore 'in' queries accept up to 10 IDs; page size <= 10 is safest
+const PAGE_SIZE = 10;
 
 export default function Feed() {
   const { currentUser, loading: authLoading } = useAuth();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   // 'user' = personalized feed via userFeeds.postIds; 'public' = fallback to latest public posts
   const [feedMode, setFeedMode] = useState(null);
-  const [postIdsCache, setPostIdsCache] = useState(null);
   const [lastPublicDoc, setLastPublicDoc] = useState(null);
+  const [lastPersonalDoc, setLastPersonalDoc] = useState(null);
   const observer = useRef();
 
   const resetAndLoad = useCallback(() => {
     setPosts([]);
-    setPage(1);
     setHasMore(true);
     setFeedMode(null);
-    setPostIdsCache(null);
     setLastPublicDoc(null);
+    setLastPersonalDoc(null);
   }, []);
 
   useEffect(() => {
@@ -54,23 +52,21 @@ export default function Feed() {
     try {
       // Determine mode synchronously for this call
       let mode = feedMode;
-      let idsCache = postIdsCache;
       if (!mode) {
         if (!currentUser) {
           mode = "public";
         } else {
-          const feedSnap = await getDoc(doc(db, "userFeeds", currentUser.uid));
-          const ids = feedSnap.exists() ? feedSnap.data().postIds || [] : [];
-          if (ids.length > 0) {
-            mode = "user";
-            idsCache = ids;
-          } else {
-            mode = "public";
-          }
+          // Try personalized feed first by peeking at one feedItems doc
+          const firstPageQ = query(
+            collection(db, "userFeeds", currentUser.uid, "feedItems"),
+            orderBy("timestamp", "desc"),
+            limit(PAGE_SIZE)
+          );
+          const peek = await getDocs(firstPageQ);
+          mode = peek.size > 0 ? "user" : "public";
         }
         // Persist for subsequent calls
         setFeedMode(mode);
-        if (idsCache) setPostIdsCache(idsCache);
       }
 
       // PUBLIC mode: show latest posts site-wide
@@ -130,45 +126,41 @@ export default function Feed() {
         }
       }
 
-      // USER mode: read post IDs from cache (or fetch once) and page through
-      let postIds = idsCache || postIdsCache;
-      if (!postIds) {
-        const feedSnap = await getDoc(doc(db, "userFeeds", currentUser.uid));
-        postIds = feedSnap.exists() ? feedSnap.data().postIds || [] : [];
-        setPostIdsCache(postIds);
-      }
+      // USER mode: read from userFeeds/{uid}/feedItems ordered by timestamp desc
+      const constraints = [orderBy("timestamp", "desc"), limit(PAGE_SIZE)];
+      if (lastPersonalDoc) constraints.push(startAfter(lastPersonalDoc));
+      const feedItemsQ = query(
+        collection(db, "userFeeds", currentUser.uid, "feedItems"),
+        ...constraints
+      );
+      const feedSnap = await getDocs(feedItemsQ);
 
-      const startIndex = (page - 1) * PAGE_SIZE;
-      const slice = postIds.slice(startIndex, startIndex + PAGE_SIZE);
-
-      if (slice.length === 0) {
-        // If user's feed is empty, gracefully switch to public mode
+      if (feedSnap.empty) {
+        // If no personalized items, gracefully switch to public mode
         setFeedMode("public");
-        // Trigger a public fetch on next intersection tick
-        setHasMore(true);
+        setLastPersonalDoc(null);
         setLoading(false);
+        // Trigger a public fetch on next intersection
         return;
       }
 
-      // Fetch posts by ID in one or more 'in' queries (10 max per query)
+      const ids = feedSnap.docs.map((d) => d.id);
+      // Fetch posts in chunks of 10
       const chunks = [];
-      for (let i = 0; i < slice.length; i += 10) {
-        chunks.push(slice.slice(i, i + 10));
-      }
+      for (let i = 0; i < ids.length; i += 10)
+        chunks.push(ids.slice(i, i + 10));
 
       const results = [];
-      await Promise.all(
-        chunks.map(async (ids) => {
-          const qIds = query(
-            collection(db, "posts"),
-            where(documentId(), "in", ids)
-          );
-          const snap = await getDocs(qIds);
-          snap.forEach((d) => results.push({ id: d.id, ...d.data() }));
-        })
-      );
+      for (const group of chunks) {
+        const qIds = query(
+          collection(db, "posts"),
+          where(documentId(), "in", group)
+        );
+        const snap = await getDocs(qIds);
+        snap.forEach((d) => results.push({ id: d.id, ...d.data() }));
+      }
 
-      // Sort by timestamp desc and map to Post component shape
+      // Sort by timestamp desc and map
       results.sort((a, b) => {
         const ta = a.timestamp?.toDate ? a.timestamp.toDate().getTime() : 0;
         const tb = b.timestamp?.toDate ? b.timestamp.toDate().getTime() : 0;
@@ -185,14 +177,14 @@ export default function Feed() {
       }));
 
       setPosts((prev) => [...prev, ...mapped]);
-      setPage((prev) => prev + 1);
-      if (slice.length < PAGE_SIZE) setHasMore(false);
+      setLastPersonalDoc(feedSnap.docs[feedSnap.docs.length - 1] || null);
+      if (feedSnap.size < PAGE_SIZE) setHasMore(false);
     } catch (err) {
       console.error("Failed to fetch feed:", err);
     } finally {
       setLoading(false);
     }
-  }, [currentUser, page, hasMore, loading]);
+  }, [currentUser, hasMore, loading, feedMode, lastPublicDoc, lastPersonalDoc]);
 
   // Intersection observer for infinite scroll
   const lastPostElementRef = useCallback(
