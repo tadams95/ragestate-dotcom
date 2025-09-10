@@ -423,7 +423,7 @@ Status
     - Home `/`: First Load JS ~159 kB (was ~373 kB before dynamic 3D import)
     - Shop `/shop`: First Load JS ~174 kB (banner now lazy-loaded)
 - [x] Dev-only bundle analyzer wired (script: `npm run analyze`) — reports at `.next/analyze/*.html`
-- [ ] Implement code splitting for admin routes and less-used features
+- [x] Implement code splitting for admin routes and less-used features
 - [x] Tree-shake unused Framer Motion and Heroicons imports
   - Switched all Heroicons imports to per-icon deep imports (e.g., `@heroicons/react/24/outline/HomeIcon`) across key pages to reduce bundle footprint.
   - Framer Motion usage trimmed earlier and deferred in-view on Home/Shop; further pruning remains possible but main hotspots are addressed.
@@ -486,3 +486,11 @@ Applied across: Header, Account page, AuthCheck, Events detail, Blog client, Pro
 ---
 
 If you want, I can implement the P0 items behind small guarded PRs so we can validate improvements incrementally.
+
+---
+
+## Social features (feed + chat) quick plan
+
+- Feed MVP: posts, images, likes; userFeeds fan-out; `next/image` media; infinite scroll with Firestore pagination; Cloud Functions for counters and fan-out; hardened rules and indexes.
+- Chat MVP: Firestore-first DMs, per-user chat summaries, messages subcollections, Storage-backed media, push notifications; throttled typing indicators and presence.
+- Next 2 sprints: ship Feed MVP first, then Chat MVP; measure read costs and INP; add ranking and group chat in V2.

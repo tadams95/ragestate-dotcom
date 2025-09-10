@@ -245,3 +245,130 @@ C. Content Growth Strategy
 
 Remember to leverage your existing user authentication and profile system 
 to integrate seamlessly with the new feed functionality.
+
+11. SOCIAL GRAPH & FEED STRATEGY
+--------------------------------
+
+A. Follow graph
+   - Collection: `follows`
+     - docId: `${followerId}_${followedId}` (or auto-id with both fields indexed)
+     - followerId: string
+     - followedId: string
+     - createdAt: timestamp
+
+   Indexes:
+   - followerId ASC (list who I follow)
+   - followedId ASC (list who follows a user)
+
+B. Feed generation options
+   - On-read (recommended for MVP): Query `posts` by authors the user follows via batched `where('__name__','in',..)` is not viable at scale; instead:
+     - Maintain `userFeeds/{userId}` with a rolling window of latest ~500 postIds via Cloud Functions fan-out on write (bounded list + TTL trim).
+     - Read: page through `userFeeds/{userId}.postIds` in chunks and hydrate posts by `where(documentId(), 'in', batchOf10)`.
+   - Hybrid: Also support a public "Latest" tab that queries recent public posts regardless of follow.
+   - Ranking (Phase 2): Store engagement features (likeCount delta, recency bucket, author affinity) and rank client-side or via a small Cloud Function endpoint.
+
+C. Media handling
+   - Upload to Firebase Storage under `posts/{postId}/{filename}`.
+   - Generate resized images/thumbnails via a Storage-triggered CF; store under `posts/{postId}/thumb_...` and update `mediaVariants` on the post.
+   - Prefer MP4/WebM for video; store poster image.
+
+12. UI ROUTES AND COMPONENTS (NEXT.JS APP ROUTER)
+-------------------------------------------------
+
+Routes
+ - `/feed` (personalized) and `/feed/latest` (global latest)
+ - `/post/[postId]` (permalink, SEO)
+ - `/profile/[userId]` (user timeline + follow/DM)
+
+Components
+ - `src/app/feed/page.js` (server shell + client hydrated list)
+ - `components/feed/FeedContainer.js` (client; pagination/infinite scroll)
+ - `components/feed/PostComposer.js` (create post with media upload)
+ - `components/feed/PostCard.js` (display, like, comment count)
+ - `components/feed/CommentsSheet.js` (lazy drawer/modal to fetch comments on demand)
+ - `components/feed/FollowButton.js`
+
+Performance
+ - Lazy-load `CommentsSheet` and any heavy media players.
+ - Use `next/image` with `sizes` and responsive layout.
+ - Subscribe to live updates only for the visible window of posts, or rely on background refresh + pull-to-refresh to control read costs.
+
+13. CLOUD FUNCTIONS (DETAIL)
+----------------------------
+
+A. onCreate(post)
+   - Read the author’s followers (bounded by pagination; fan-out in batches).
+   - Append `postId` to each `userFeeds/{followerId}.postIds` array or a `feedItems` subcollection with `createdAt` for easy pagination.
+   - Trim feed documents to a max length (e.g., 500) to bound read/compute.
+
+B. onWrite(like/comment)
+   - Transactionally update `likeCount`/`commentCount` on post.
+   - Optionally write a `engagements/{postId}` aggregate doc for ranking.
+
+C. scheduled (every 15m)
+   - Trim stale items from `userFeeds`.
+   - Recompute lightweight trending metrics (e.g., likes in last 2h).
+
+D. storage.onFinalize
+   - If image/video uploaded, generate thumbnails/poster and update post.
+
+14. SECURITY RULES (HARDENED)
+-----------------------------
+
+Rules additions beyond Section 2:
+```
+match /follows/{id} {
+  allow read: if true; // profiles are public; tighten if needed
+  allow create: if request.auth != null &&
+    request.resource.data.followerId == request.auth.uid &&
+    request.resource.data.followedId is string &&
+    request.resource.data.followerId != request.resource.data.followedId;
+  allow delete: if request.auth != null && resource.data.followerId == request.auth.uid;
+}
+
+match /userFeeds/{userId} {
+  allow read: if request.auth != null && request.auth.uid == userId;
+  allow write: if false; // Only CF service account writes
+}
+```
+
+Consider separate `feedItems` subcollection to avoid large arrays:
+ - `userFeeds/{userId}/feedItems/{postId}` with fields: createdAt, rank.
+ - Paginate with `orderBy('createdAt','desc')` + `limit()` + `startAfter()`.
+
+15. INDEXES
+-----------
+
+- posts: `timestamp DESC`, `userId ASC, timestamp DESC` (author timeline)
+- postComments: `postId ASC, timestamp ASC`
+- follows: `followerId ASC`, `followedId ASC`
+- userFeeds.feedItems: `createdAt DESC`
+
+16. ROLLOUT PLAN (MVP → V2)
+---------------------------
+
+MVP (2–3 sprints)
+ - Post text + images, public posts
+ - Personal feed via fan-out to `userFeeds/feedItems` (bounded)
+ - Likes, basic comments (loaded on demand)
+ - Profiles with follow/unfollow
+ - Content reporting flag (write to `reports` collection)
+
+V2
+ - Video upload with server-side poster/thumbs
+ - Notifications (Cloud Messaging) on likes/comments/follows
+ - Hashtags + simple search
+ - Basic ranking (recency + small engagement boost)
+ - Moderation tooling (admin UI list of reports; takedown)
+
+V3
+ - Stories/shorts (separate collection + TTL)
+ - Advanced ranking and A/B testing
+ - Saved posts/collections
+
+17. METRICS & ALERTING
+----------------------
+
+- Track: DAU of feed, posts/day, median time-to-first-post, scroll depth, submit-to-visible latency.
+- Errors: upload failures, function latency, rules denials.
+- Cost: reads per session; cap listeners and rely on paginated queries.

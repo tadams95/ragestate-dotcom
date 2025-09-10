@@ -148,3 +148,80 @@ and adequate performance for most chat scenarios.
 
 Start with Firestore for chat, then evaluate performance metrics with real users
 before considering a more complex Socket.io implementation.
+
+NEXT: CHAT IMPLEMENTATION BLUEPRINT (FIRESTORE-FIRST)
+----------------------------------------------------
+
+1) DATA MODEL
+- chats/{chatId}
+   - type: 'dm' | 'group'
+   - members: array of userIds (≤ 50 for Firestore efficiency)
+   - memberCount: number
+   - createdAt, updatedAt: timestamp
+   - lastMessage: { text, senderId, createdAt } (denormalized)
+   - name, photoUrl (for groups)
+
+- chats/{chatId}/messages/{messageId}
+   - senderId, text, mediaUrl, mediaType ('image'|'video'|null)
+   - createdAt: timestamp
+   - status: 'sent'|'delivered'|'read' (optional)
+
+- users/{userId}/chatSummaries/{chatId}
+   - chatId, peerId(s), lastMessage (copy), unreadCount, pinned, muted
+   - updatedAt
+
+2) SECURITY RULES (ESSENTIALS)
+```
+match /chats/{chatId} {
+   allow read, write: if request.auth != null &&
+      request.auth.uid in resource.data.members;
+}
+match /chats/{chatId}/messages/{msgId} {
+   allow read, create: if request.auth != null &&
+      request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
+   allow update, delete: if false; // messages immutable (edit via function if needed)
+}
+match /users/{userId}/chatSummaries/{chatId} {
+   allow read, write: if request.auth != null && request.auth.uid == userId;
+}
+```
+
+3) FUNCTIONS
+- onCreate(message):
+   - Update chat.lastMessage + updatedAt
+   - Increment recipient(s) unreadCount in their chatSummaries
+   - Optional: push notification via FCM
+- onJoin/Leave group: update members, write system message
+- Storage finalize: generate image/video thumbnails for messages
+
+4) CLIENT IMPLEMENTATION
+- Conversations list (subscriptions):
+   - Listen to `users/{uid}/chatSummaries` ordered by updatedAt desc limit 25
+- Messages view (active chat):
+   - Listen to `chats/{chatId}/messages` ordered by createdAt desc limit 25 with pagination via startAfter
+   - Send typing indicators via a lightweight `presence/typing` subcollection (throttled updates)
+- Media uploads: use Firebase Storage; write message with mediaUrl after upload
+
+5) OPTIMIZATIONS
+- Detach listeners when the chat screen is hidden
+- Batch writes for send + summary updates via a CF callable, or client-side batched write
+- Throttle typing indicators (≥2s) and store ephemeral state under `/presence/typing/{userId}` with TTL cleanup by a scheduled function
+- Archive old chats by moving summaries to an `archived` flag to reduce hot listeners
+
+6) MIGRATION TO SOCKET.IO (IF/WHEN NEEDED)
+- Keep Firestore as the source of truth for persistence
+- Introduce a websocket gateway for low-latency presence/typing and bursty group chats
+- Mirror events to Firestore in the background for durability
+
+7) UI ROUTES & COMPONENTS
+- `/chat` chats list; `/chat/[chatId]` active room
+- components/chat:
+   - ChatList, ChatListItem
+   - ChatRoom (message list + composer)
+   - MessageBubble, MediaMessage
+   - TypingIndicator (debounced)
+
+8) ROLLOUT
+- MVP: 1:1 DMs, images, unread counts, push notif
+- V2: Groups (≤50), typing, read receipts
+- V3: Reactions, audio notes, message edit/delete via CF, moderation tools

@@ -1,141 +1,251 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react"; // Import useRef and useCallback
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useAuth } from "../../../firebase/context/FirebaseContext";
+import { db } from "../../../firebase/firebase";
 import Post from "./Post";
+import PostSkeleton from "./PostSkeleton";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+  documentId,
+  orderBy,
+  limit,
+  startAfter,
+} from "firebase/firestore";
+import { formatDate } from "@/utils/formatters";
 
-// Simulate an API call that returns paginated data
-const fetchDummyPosts = async (page = 1, limit = 3) => {
-  console.log(`Fetching page ${page}`);
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
-  const allPosts = [
-    {
-      id: 1,
-      author: "User One",
-      timestamp: "2h ago",
-      content: "This is just a placeholder post.",
-    },
-    {
-      id: 2,
-      author: "User Two",
-      timestamp: "1h ago",
-      content: "This is what the feed may look like.",
-    },
-    {
-      id: 3,
-      author: "User Three",
-      timestamp: "30m ago",
-      content: "Testing in prod is not the best idea but here we are.",
-    },
-    {
-      id: 4,
-      author: "User Four",
-      timestamp: "3h ago",
-      content: "More content loading.",
-    },
-    {
-      id: 5,
-      author: "User Five",
-      timestamp: "4h ago",
-      content: "Infinite scroll is cool.",
-    },
-    {
-      id: 6,
-      author: "User Six",
-      timestamp: "5h ago",
-      content: "Almost at the end?",
-    },
-    {
-      id: 7,
-      author: "User Seven",
-      timestamp: "6h ago",
-      content: "Keep scrolling...",
-    },
-    {
-      id: 8,
-      author: "User Eight",
-      timestamp: "7h ago",
-      content: "Another one.",
-    },
-    {
-      id: 9,
-      author: "User Nine",
-      timestamp: "8h ago",
-      content: "The final simulated post.",
-    },
-  ];
-
-  const start = (page - 1) * limit;
-  const end = start + limit;
-  const posts = allPosts.slice(start, end);
-  const hasMore = end < allPosts.length; // Check if there are more posts available
-
-  return { posts, hasMore };
-};
+// Firestore 'in' queries accept up to 10 IDs; pick a smaller page size to be safe
+const PAGE_SIZE = 5;
 
 export default function Feed() {
+  const { currentUser, loading: authLoading } = useAuth();
   const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(false); // Initially false, true only during fetch
-  const [page, setPage] = useState(1); // Track current page
-  const [hasMore, setHasMore] = useState(true); // Track if more posts are available
-  const observer = useRef(); // Ref for the IntersectionObserver
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  // 'user' = personalized feed via userFeeds.postIds; 'public' = fallback to latest public posts
+  const [feedMode, setFeedMode] = useState(null);
+  const [postIdsCache, setPostIdsCache] = useState(null);
+  const [lastPublicDoc, setLastPublicDoc] = useState(null);
+  const observer = useRef();
 
-  const loadMorePosts = useCallback(async () => {
-    if (loading || !hasMore) return; // Don't fetch if already loading or no more posts
+  const resetAndLoad = useCallback(() => {
+    setPosts([]);
+    setPage(1);
+    setHasMore(true);
+    setFeedMode(null);
+    setPostIdsCache(null);
+    setLastPublicDoc(null);
+  }, []);
+
+  useEffect(() => {
+    // Reset feed when auth state changes
+    resetAndLoad();
+  }, [currentUser, resetAndLoad]);
+
+  const fetchFeedPage = useCallback(async () => {
+    if (loading || !hasMore) return;
     setLoading(true);
     try {
-      const { posts: newPosts, hasMore: moreAvailable } = await fetchDummyPosts(
-        page
+      // Determine mode synchronously for this call
+      let mode = feedMode;
+      let idsCache = postIdsCache;
+      if (!mode) {
+        if (!currentUser) {
+          mode = "public";
+        } else {
+          const feedSnap = await getDoc(doc(db, "userFeeds", currentUser.uid));
+          const ids = feedSnap.exists() ? feedSnap.data().postIds || [] : [];
+          if (ids.length > 0) {
+            mode = "user";
+            idsCache = ids;
+          } else {
+            mode = "public";
+          }
+        }
+        // Persist for subsequent calls
+        setFeedMode(mode);
+        if (idsCache) setPostIdsCache(idsCache);
+      }
+
+      // PUBLIC mode: show latest posts site-wide
+      if (!currentUser || mode === "public") {
+        try {
+          const constraints = [
+            where("isPublic", "==", true),
+            orderBy("timestamp", "desc"),
+            limit(PAGE_SIZE),
+          ];
+          if (lastPublicDoc) constraints.push(startAfter(lastPublicDoc));
+          const qPublic = query(collection(db, "posts"), ...constraints);
+          const snap = await getDocs(qPublic);
+
+          const mapped = snap.docs.map((d) => {
+            const p = d.data();
+            return {
+              id: d.id,
+              author: p.userDisplayName || p.userId || "User",
+              timestamp: formatDate(
+                p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp
+              ),
+              content: p.content || "",
+            };
+          });
+
+          setPosts((prev) => [...prev, ...mapped]);
+          setLastPublicDoc(snap.docs[snap.docs.length - 1] || null);
+          if (snap.size < PAGE_SIZE) setHasMore(false);
+          return;
+        } catch (e) {
+          // Likely missing composite index: fall back to timestamp-only query and filter client-side
+          console.warn(
+            "Public feed index missing, falling back to timestamp-only query",
+            e?.code || e
+          );
+          const constraints = [orderBy("timestamp", "desc"), limit(PAGE_SIZE)];
+          if (lastPublicDoc) constraints.push(startAfter(lastPublicDoc));
+          const qFallback = query(collection(db, "posts"), ...constraints);
+          const snap = await getDocs(qFallback);
+          const mapped = snap.docs
+            .map((d) => ({ id: d.id, ...d.data() }))
+            .filter((p) => p.isPublic)
+            .map((p) => ({
+              id: p.id,
+              author: p.userDisplayName || p.userId || "User",
+              timestamp: formatDate(
+                p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp
+              ),
+              content: p.content || "",
+            }));
+
+          setPosts((prev) => [...prev, ...mapped]);
+          setLastPublicDoc(snap.docs[snap.docs.length - 1] || null);
+          if (snap.size < PAGE_SIZE) setHasMore(false);
+          return;
+        }
+      }
+
+      // USER mode: read post IDs from cache (or fetch once) and page through
+      let postIds = idsCache || postIdsCache;
+      if (!postIds) {
+        const feedSnap = await getDoc(doc(db, "userFeeds", currentUser.uid));
+        postIds = feedSnap.exists() ? feedSnap.data().postIds || [] : [];
+        setPostIdsCache(postIds);
+      }
+
+      const startIndex = (page - 1) * PAGE_SIZE;
+      const slice = postIds.slice(startIndex, startIndex + PAGE_SIZE);
+
+      if (slice.length === 0) {
+        // If user's feed is empty, gracefully switch to public mode
+        setFeedMode("public");
+        // Trigger a public fetch on next intersection tick
+        setHasMore(true);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch posts by ID in one or more 'in' queries (10 max per query)
+      const chunks = [];
+      for (let i = 0; i < slice.length; i += 10) {
+        chunks.push(slice.slice(i, i + 10));
+      }
+
+      const results = [];
+      await Promise.all(
+        chunks.map(async (ids) => {
+          const qIds = query(
+            collection(db, "posts"),
+            where(documentId(), "in", ids)
+          );
+          const snap = await getDocs(qIds);
+          snap.forEach((d) => results.push({ id: d.id, ...d.data() }));
+        })
       );
-      setPosts((prevPosts) => [...prevPosts, ...newPosts]);
-      setPage((prevPage) => prevPage + 1);
-      setHasMore(moreAvailable);
-    } catch (error) {
-      console.error("Failed to fetch posts:", error);
-      // Handle error state if needed
+
+      // Sort by timestamp desc and map to Post component shape
+      results.sort((a, b) => {
+        const ta = a.timestamp?.toDate ? a.timestamp.toDate().getTime() : 0;
+        const tb = b.timestamp?.toDate ? b.timestamp.toDate().getTime() : 0;
+        return tb - ta;
+      });
+
+      const mapped = results.map((p) => ({
+        id: p.id,
+        author: p.userDisplayName || p.userId || "User",
+        timestamp: formatDate(
+          p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp
+        ),
+        content: p.content || "",
+      }));
+
+      setPosts((prev) => [...prev, ...mapped]);
+      setPage((prev) => prev + 1);
+      if (slice.length < PAGE_SIZE) setHasMore(false);
+    } catch (err) {
+      console.error("Failed to fetch feed:", err);
     } finally {
       setLoading(false);
     }
-  }, [page, loading, hasMore]); // Dependencies for the callback
+  }, [currentUser, page, hasMore, loading]);
 
-  // Ref for the sentinel element
+  // Intersection observer for infinite scroll
   const lastPostElementRef = useCallback(
     (node) => {
-      if (loading) return; // Don't observe while loading
-      if (observer.current) observer.current.disconnect(); // Disconnect previous observer
-
+      if (loading) return;
+      if (observer.current) observer.current.disconnect();
       observer.current = new IntersectionObserver((entries) => {
-        // If the sentinel element is intersecting (visible) and there are more posts
         if (entries[0].isIntersecting && hasMore) {
-          loadMorePosts();
+          fetchFeedPage();
         }
       });
-
-      if (node) observer.current.observe(node); // Observe the new sentinel node
+      if (node) observer.current.observe(node);
     },
-    [loading, hasMore, loadMorePosts]
-  ); // Dependencies for the ref callback
+    [loading, hasMore, fetchFeedPage]
+  );
 
-  // Initial data load
+  // Initial load once auth settles
   useEffect(() => {
-    loadMorePosts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run only once on mount
+    if (!authLoading) {
+      fetchFeedPage();
+    }
+  }, [authLoading, fetchFeedPage]);
 
-  // Initial loading state before any posts are loaded
+  if (authLoading) {
+    return <p className="text-center text-gray-400">Checking auth…</p>;
+  }
+
+  // If not signed in, we'll still show public posts
+
   if (posts.length === 0 && loading) {
-    return <p className="text-center text-gray-400">Loading feed...</p>;
+    return (
+      <div className="max-w-2xl mx-auto">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <PostSkeleton key={i} />
+        ))}
+      </div>
+    );
   }
 
   if (posts.length === 0 && !hasMore) {
-    return <p className="text-center text-gray-400">No posts yet.</p>;
+    return (
+      <p className="text-center text-gray-400">
+        No posts yet.{" "}
+        {currentUser
+          ? "Follow creators to see updates."
+          : "Sign in to personalize your feed."}
+      </p>
+    );
   }
 
   return (
     <div className="max-w-2xl mx-auto">
       {posts.map((post, index) => {
-        // If it's the last post, attach the ref to it
         if (posts.length === index + 1) {
           return (
             <div ref={lastPostElementRef} key={post.id}>
@@ -146,11 +256,9 @@ export default function Feed() {
           return <Post key={post.id} postData={post} />;
         }
       })}
-      {/* Show loading indicator at the bottom while fetching more */}
       {loading && (
         <p className="text-center text-gray-400 py-4">Loading more posts...</p>
       )}
-      {/* Show message when all posts are loaded */}
       {!loading && !hasMore && posts.length > 0 && (
         <p className="text-center text-gray-500 py-4">
           You've reached the end!

@@ -5,7 +5,8 @@ import { auth } from "../firebase";
 
 import { setLocalId } from "../../lib/features/todos/userSlice";
 
-const API_KEY = "AIzaSyDcHCRWrYonzJa_Pyfwzbfp-r3bxz2bUX8";
+const API_KEY =
+  process.env.NEXT_PUBLIC_apiKey || process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
 
 export async function createUser(
   email,

@@ -1,6 +1,6 @@
 // firebase.js
 
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
 import {
   getAuth,
   setPersistence,
@@ -10,28 +10,44 @@ import { getFirestore } from "firebase/firestore";
 import { getDatabase } from "firebase/database";
 import { getStorage } from "firebase/storage";
 
-import { api, key } from "../lib/features/todos/userSlice";
-
+// Read Firebase web config from environment (no hardcoded defaults)
+// Supports both the project's existing key names and FIREBASE_* aliases.
 const firebaseConfig = {
-  apiKey: api + key,
-  authDomain: process.env.authDomain,
-  databaseURL: process.env.databaseURL,
-  projectId: "ragestate-app",
-  storageBucket: "ragestate-app.appspot.com",
-  messagingSenderId: process.env.messagingSenderId,
-  appId: process.env.appId,
-  measurementId: process.env.measurementId,
+  apiKey:
+    process.env.NEXT_PUBLIC_apiKey || process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain:
+    process.env.NEXT_PUBLIC_authDomain ||
+    process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  databaseURL:
+    process.env.NEXT_PUBLIC_databaseURL ||
+    process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
+  projectId:
+    process.env.NEXT_PUBLIC_projectId ||
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket:
+    process.env.NEXT_PUBLIC_storageBucket ||
+    process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId:
+    process.env.NEXT_PUBLIC_messagingSenderId ||
+    process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId:
+    process.env.NEXT_PUBLIC_appId || process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId:
+    process.env.NEXT_PUBLIC_measurementId ||
+    process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Initialize Firebase app
-const app = initializeApp(firebaseConfig);
+// Initialize Firebase app (avoid duplicate init during hot reload)
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 const auth = getAuth(app);
 
-// Set persistence to local (survives browser refresh)
-setPersistence(auth, browserLocalPersistence).catch((error) => {
-  console.error("Auth persistence error:", error);
-});
+// Set persistence to local (survives browser refresh); only run in the browser
+if (typeof window !== "undefined") {
+  setPersistence(auth, browserLocalPersistence).catch((error) => {
+    console.error("Auth persistence error:", error);
+  });
+}
 
 // Initialize Firebase Firestore
 const db = getFirestore(app);
