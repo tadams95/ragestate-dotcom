@@ -10,32 +10,51 @@ import { getFirestore } from "firebase/firestore";
 import { getDatabase } from "firebase/database";
 import { getStorage } from "firebase/storage";
 
-// Read Firebase web config from environment (no hardcoded defaults)
-// Supports both the project's existing key names and FIREBASE_* aliases.
-const firebaseConfig = {
-  apiKey:
-    process.env.NEXT_PUBLIC_apiKey || process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain:
-    process.env.NEXT_PUBLIC_authDomain ||
-    process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  databaseURL:
-    process.env.NEXT_PUBLIC_databaseURL ||
-    process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
-  projectId:
-    process.env.NEXT_PUBLIC_projectId ||
-    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket:
-    process.env.NEXT_PUBLIC_storageBucket ||
-    process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId:
-    process.env.NEXT_PUBLIC_messagingSenderId ||
-    process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId:
-    process.env.NEXT_PUBLIC_appId || process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId:
-    process.env.NEXT_PUBLIC_measurementId ||
-    process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+// Helpers to read and sanitize public env vars (strip accidental quotes/spaces)
+const clean = (v) => (v || "").trim().replace(/^['"]|['"]$/g, "");
+const pickEnv = (...names) => {
+  for (const n of names) {
+    const val = process.env[n];
+    if (val && clean(val)) return clean(val);
+  }
+  return undefined;
 };
+
+// Read Firebase web config from environment (no hardcoded defaults); supports our keys and FIREBASE_* aliases.
+const firebaseConfig = {
+  apiKey: pickEnv("NEXT_PUBLIC_apiKey", "NEXT_PUBLIC_FIREBASE_API_KEY"),
+  authDomain: pickEnv(
+    "NEXT_PUBLIC_authDomain",
+    "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN"
+  ),
+  databaseURL: pickEnv(
+    "NEXT_PUBLIC_databaseURL",
+    "NEXT_PUBLIC_FIREBASE_DATABASE_URL"
+  ),
+  projectId: pickEnv(
+    "NEXT_PUBLIC_projectId",
+    "NEXT_PUBLIC_FIREBASE_PROJECT_ID"
+  ),
+  storageBucket: pickEnv(
+    "NEXT_PUBLIC_storageBucket",
+    "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET"
+  ),
+  messagingSenderId: pickEnv(
+    "NEXT_PUBLIC_messagingSenderId",
+    "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID"
+  ),
+  appId: pickEnv("NEXT_PUBLIC_appId", "NEXT_PUBLIC_FIREBASE_APP_ID"),
+  measurementId: pickEnv(
+    "NEXT_PUBLIC_measurementId",
+    "NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID"
+  ),
+};
+
+if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+  console.error(
+    "Missing Firebase env. Ensure NEXT_PUBLIC_apiKey and NEXT_PUBLIC_projectId (or FIREBASE_* aliases) are set."
+  );
+}
 
 // Initialize Firebase app (avoid duplicate init during hot reload)
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
