@@ -1,11 +1,16 @@
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
-import { getFirestore, doc, updateDoc } from "firebase/firestore";
+import {
+  getStorage,
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+} from "firebase/storage";
+import { getFirestore, doc, updateDoc, setDoc } from "firebase/firestore";
 import { getDatabase, ref as dbRef, update } from "firebase/database";
 
 /**
  * Uploads an image file to Firebase Storage and updates the user's profile
  * in both Firestore and Realtime Database
- * 
+ *
  * @param {File} file - The image file to upload
  * @param {string} userId - The user's Firebase ID
  * @param {Function} onProgress - Optional callback for upload progress (0-100)
@@ -23,7 +28,7 @@ export default async function uploadImage(file, userId, onProgress, onError) {
 
     try {
       // Validate file is an image
-      if (!file.type.match('image.*')) {
+      if (!file.type.match("image.*")) {
         const error = new Error("Only image files are allowed");
         if (onError) onError(error);
         reject(error);
@@ -42,23 +47,26 @@ export default async function uploadImage(file, userId, onProgress, onError) {
       const storage = getStorage();
       const firestore = getFirestore();
       const database = getDatabase();
-      
+
       // Create a storage reference with timestamp to avoid cache issues
       const timestamp = new Date().getTime();
-      const fileExtension = file.name.split('.').pop();
+      const fileExtension = file.name.split(".").pop();
       const fileName = `profile_${timestamp}.${fileExtension}`;
       const storageRef = ref(storage, `profilePictures/${userId}/${fileName}`);
-      
+
       console.log("Starting upload to:", storageRef.fullPath);
-      
+
       // Upload the file
       const uploadTask = uploadBytesResumable(storageRef, file);
-      
+
       // Listen for state changes, errors, and completion
-      uploadTask.on('state_changed',
+      uploadTask.on(
+        "state_changed",
         // Progress handler
         (snapshot) => {
-          const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+          const progress = Math.round(
+            (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+          );
           console.log(`Upload progress: ${progress}%`);
           if (onProgress) onProgress(progress);
         },
@@ -73,27 +81,30 @@ export default async function uploadImage(file, userId, onProgress, onError) {
           try {
             // Get download URL
             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            console.log('File uploaded successfully. Available at:', downloadURL);
-            
+            console.log(
+              "File uploaded successfully. Available at:",
+              downloadURL
+            );
+
             // Batch updates to both databases
             const updates = [];
-            
+
             // 1. Update Firestore - Also update firstName, lastName if available
             try {
               const userRef = doc(firestore, "customers", userId);
               const updateData = {
                 profilePicture: downloadURL,
-                lastUpdated: new Date().toISOString()
+                lastUpdated: new Date().toISOString(),
               };
-              
+
               // If we have first and last name in localStorage, also update those
               // This ensures Firestore has complete user data
               const firstName = localStorage.getItem("firstName");
               const lastName = localStorage.getItem("lastName");
-              
+
               if (firstName) updateData.firstName = firstName;
               if (lastName) updateData.lastName = lastName;
-              
+
               await updateDoc(userRef, updateData);
               console.log("Firestore updated with new profile picture");
               updates.push("Firestore");
@@ -101,13 +112,29 @@ export default async function uploadImage(file, userId, onProgress, onError) {
               console.error("Error updating Firestore:", err);
               // Continue with other updates even if this fails
             }
-            
+
+            // 1b. Mirror to public profiles collection so avatars render for everyone
+            try {
+              const profileRef = doc(firestore, "profiles", userId);
+              await setDoc(
+                profileRef,
+                {
+                  photoURL: downloadURL,
+                  lastUpdated: new Date().toISOString(),
+                },
+                { merge: true }
+              );
+              console.log("Profiles doc updated with new photoURL");
+            } catch (err) {
+              console.error("Error updating profiles doc:", err);
+            }
+
             // 2. Update Realtime Database
             try {
               const userRtDbRef = dbRef(database, `${userId}`);
               await update(userRtDbRef, {
                 profilePicture: downloadURL,
-                lastUpdated: new Date().toISOString()
+                lastUpdated: new Date().toISOString(),
               });
               console.log("Realtime Database updated with new profile picture");
               updates.push("Realtime Database");
@@ -115,7 +142,7 @@ export default async function uploadImage(file, userId, onProgress, onError) {
               console.error("Error updating Realtime Database:", err);
               // Continue with localStorage even if this fails
             }
-            
+
             // 3. Update localStorage
             try {
               localStorage.setItem("profilePicture", downloadURL);
@@ -124,15 +151,19 @@ export default async function uploadImage(file, userId, onProgress, onError) {
             } catch (err) {
               console.error("Error updating localStorage:", err);
             }
-            
+
             if (updates.length === 0) {
-              const error = new Error("Failed to update profile picture in any database");
+              const error = new Error(
+                "Failed to update profile picture in any database"
+              );
               if (onError) onError(error);
               reject(error);
               return;
             }
-            
-            console.log(`Profile picture successfully updated in: ${updates.join(", ")}`);
+
+            console.log(
+              `Profile picture successfully updated in: ${updates.join(", ")}`
+            );
             resolve(downloadURL);
           } catch (error) {
             console.error("Error in final upload processing:", error);

@@ -67,7 +67,7 @@ export default function PostPermalinkPage() {
         )}
         {!loading && post && <Post postData={post} />}
       </div>
-      <Footer />
+      {/* <Footer /> */}
     </div>
   );
 }

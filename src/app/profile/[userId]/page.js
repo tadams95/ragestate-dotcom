@@ -54,23 +54,39 @@ export default function ProfilePage({ params }) {
     async function loadProfile() {
       if (!profileUserId) return;
       try {
-        const [profileSnap, customerSnap] = await Promise.all([
-          getDoc(doc(db, "profiles", profileUserId)),
-          getDoc(doc(db, "customers", profileUserId)),
-        ]);
+        // Always load the public profile document
+        const profileSnap = await getDoc(doc(db, "profiles", profileUserId));
+        const p = profileSnap.exists() ? profileSnap.data() : {};
         if (!cancelled) {
-          const p = profileSnap.exists() ? profileSnap.data() : {};
-          const c = customerSnap.exists() ? customerSnap.data() : {};
           setProfile({
             displayName:
               p.displayName ||
               `${p.firstName || ""} ${p.lastName || ""}`.trim() ||
               "User",
-            // Prefer explicit profile photoURL; fallback to customers.profilePicture; then legacy field
-            photoURL: p.photoURL || c.profilePicture || p.profilePicture || "",
+            photoURL: p.photoURL || p.profilePicture || "",
             bio: p.bio || "",
             usernameLower: p.usernameLower || "",
           });
+        }
+
+        // Optional owner-only fallback: if viewing own profile and no photoURL yet, try customers.profilePicture
+        if (
+          !cancelled &&
+          !p.photoURL &&
+          !p.profilePicture &&
+          currentUser?.uid === profileUserId
+        ) {
+          try {
+            const customerSnap = await getDoc(
+              doc(db, "customers", profileUserId)
+            );
+            const c = customerSnap.exists() ? customerSnap.data() : {};
+            if (c.profilePicture) {
+              setProfile((prev) => ({ ...prev, photoURL: c.profilePicture }));
+            }
+          } catch (err) {
+            // Ignore permission errors for public viewers
+          }
         }
       } catch (e) {
         console.warn("Failed to load profile", e);
@@ -80,7 +96,7 @@ export default function ProfilePage({ params }) {
     return () => {
       cancelled = true;
     };
-  }, [profileUserId]);
+  }, [profileUserId, currentUser]);
 
   const refreshCounts = useCallback(async () => {
     if (!profileUserId) return;
