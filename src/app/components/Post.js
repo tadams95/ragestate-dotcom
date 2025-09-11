@@ -47,6 +47,7 @@ export default function Post({ postData }) {
         author={liveData?.author || data.author}
         timestamp={liveData?.timestamp || data.timestamp}
         avatarUrl={liveData?.avatarUrl ?? postData?.avatarUrl}
+        usernameLower={postData?.usernameLower}
       />
       <PostContent content={liveData?.content ?? data.content} />
       <PostActions

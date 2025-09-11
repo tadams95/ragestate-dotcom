@@ -12,10 +12,10 @@ STATUS CHECKLIST
 - [x] Cloud Functions v2: counters (likes/comments) transactional
 - [x] Fan-out to userFeeds/{uid}/feedItems (personal feeds) live
 - [x] Client: personalized feed pagination + public fallback
-- [ ] Client: /feed/latest route (global latest)
+- [x] Client: /feed/latest route (global latest)
 - [x] Client: like toggle (optimistic)
-- [ ] Client: comments UI + pagination
-- [ ] Post composer (text + single image)
+- [x] Client: comments UI + pagination
+- [x] Post composer (text + single image)
 - [ ] Follow graph UI (FollowButton)
 - [ ] UX polish + tests/metrics
 
