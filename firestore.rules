@@ -1,0 +1,247 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Basic functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isCurrentUser(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Type guards and validators
+    function isString(v) { return v is string; }
+    function isBool(v) { return v is bool; }
+    function isTimestamp(v) { return v is timestamp; }
+    function isList(v) { return v is list; }
+    // Max length check using regex (supports newlines via [\s\S])
+    function isMaxLen500(v) {
+      return v is string && v.matches('^[\\s\\S]{0,500}$');
+    }
+    function hasOnlyKeys(data, keys) {
+      return data.keys().hasOnly(keys);
+    }
+
+    // Improved admin check that combines both methods
+    function isAdmin() {
+      return request.auth != null && (
+        // Check adminUsers collection
+        exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid)) ||
+        // Check if document exists and has isAdmin = true
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true)
+      );
+    }
+
+    // ADMIN ACCESS: Allow admins to read everything
+    match /{document=**} {
+      allow read: if isAdmin();
+    }
+
+    // Allow users to access their own data and write to specific collections
+    match /users/{userId} {
+      allow read: if isCurrentUser(userId) || isAdmin();
+      allow write: if isCurrentUser(userId) || isAdmin();
+    }
+    
+    // Admin users collection - more restrictive access
+    match /adminUsers/{uid} {
+      allow read: if isAuthenticated() && (isCurrentUser(uid) || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // Public user profiles: minimal safe fields for display
+    // Clients should only write benign fields here; sensitive data must remain in /users
+    match /profiles/{userId} {
+      allow read: if true;
+      allow create, update: if isCurrentUser(userId) || isAdmin()
+        && hasOnlyKeys(request.resource.data, [
+          'displayName', 'photoURL', 'bio', 'usernameLower'
+        ])
+        && (!request.resource.data.keys().hasAny(['displayName']) || isString(request.resource.data.displayName))
+        && (!request.resource.data.keys().hasAny(['photoURL']) || isString(request.resource.data.photoURL))
+        && (!request.resource.data.keys().hasAny(['bio']) || isMaxLen500(request.resource.data.bio))
+        && (!request.resource.data.keys().hasAny(['usernameLower']) || isString(request.resource.data.usernameLower));
+      allow delete: if isCurrentUser(userId) || isAdmin();
+    }
+
+    // Username registry: lowercase unique handles
+  match /usernames/{usernameLower} {
+      allow read: if true;
+      // Create only if not taken; must bind to caller's uid
+      allow create: if isAuthenticated()
+    && usernameLower.matches('^[a-z0-9._-]+$')
+        && request.resource.data.uid == request.auth.uid
+        && !exists(/databases/$(database)/documents/usernames/$(usernameLower));
+      // Updates disabled (rename handled via delete/create by admin or function)
+      allow update: if false;
+      // Allow delete only by admin to prevent squatting/races; keep simple for MVP
+      allow delete: if isAdmin();
+    }
+    
+    // Allow any authenticated user to READ promoter codes
+    // Secure: Disallow client-side writes, use Cloud Function 'applyPromoCode' instead.
+    match /promoterCodes/{codeId} {
+      allow read: if request.auth != null;
+      // Reverted: Prevent direct client writes now that Cloud Function handles it.
+      allow write: if false;
+    }
+    
+    // Purchases collection - modified to allow creating new purchases
+    match /purchases/{purchaseId} {
+      allow read: if isAdmin() || 
+                  (isAuthenticated() && 
+                   (resource == null || resource.data.customerId == request.auth.uid));
+      // Allow authenticated users to create purchases, but only admins can modify
+      allow create: if isAuthenticated() && 
+                    request.resource.data.customerId == request.auth.uid;
+      allow update, delete: if isAdmin();
+      
+      // Subcollections inherit parent rules plus their own
+      match /{document=**} {
+        allow read: if isAdmin() || 
+                    (isAuthenticated() && 
+                     get(/databases/$(database)/documents/purchases/$(purchaseId)).data.customerId == request.auth.uid);
+      }
+    }
+
+    // Customer collection with purchases subcollection
+    match /customers/{userId} {
+      allow read: if isCurrentUser(userId) || isAdmin();
+      allow write: if isCurrentUser(userId) || isAdmin();
+      
+      match /purchases/{purchaseId} {
+        allow read, write: if isCurrentUser(userId) || isAdmin();
+      }
+    }
+
+    // Allow access to products collection
+    match /products/{productId} {
+      allow read: if true;
+    }
+    
+    // Events collection with ragers subcollection
+    match /events/{eventId} {
+      allow read: if true;  // Allow all users to read events
+      
+      // Allow reading and updating specific ragers (tickets)
+      match /ragers/{ragerId} {
+        allow read: if true;
+        // Allow update if the user is the current owner of the ticket
+        allow update: if isAuthenticated() && 
+                      resource.data.firebaseId == request.auth.uid;
+      }
+    }
+
+    // Feed: posts
+    match /posts/{postId} {
+      // MVP: all posts are public to read
+      allow read: if true;
+
+      // Create: only author can create; validate schema; counters must start at 0
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && isString(request.resource.data.userId)
+        && (!request.resource.data.keys().hasAny(['userDisplayName']) || isString(request.resource.data.userDisplayName))
+        && (!request.resource.data.keys().hasAny(['userProfilePicture']) || isString(request.resource.data.userProfilePicture))
+        && (!request.resource.data.keys().hasAny(['content']) || isMaxLen500(request.resource.data.content))
+        && (!request.resource.data.keys().hasAny(['mediaUrls']) || (isList(request.resource.data.mediaUrls)))
+        && isBool(request.resource.data.isPublic)
+        && isTimestamp(request.resource.data.timestamp)
+        && (!request.resource.data.keys().hasAny(['likeCount']) || request.resource.data.likeCount == 0)
+        && (!request.resource.data.keys().hasAny(['commentCount']) || request.resource.data.commentCount == 0);
+
+      // Update/Delete: only author; lock immutable/counter fields from client edits
+      allow update, delete: if isAuthenticated()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.timestamp == resource.data.timestamp
+        && request.resource.data.likeCount == resource.data.likeCount
+        && request.resource.data.commentCount == resource.data.commentCount
+        && (!request.resource.data.keys().hasAny(['userDisplayName']) || isString(request.resource.data.userDisplayName))
+        && (!request.resource.data.keys().hasAny(['userProfilePicture']) || isString(request.resource.data.userProfilePicture))
+        && (!request.resource.data.keys().hasAny(['content']) || isMaxLen500(request.resource.data.content))
+        && (!request.resource.data.keys().hasAny(['mediaUrls']) || isList(request.resource.data.mediaUrls))
+        && (!request.resource.data.keys().hasAny(['isPublic']) || isBool(request.resource.data.isPublic));
+    }
+
+    // Feed: postLikes (per user like doc)
+    match /postLikes/{likeId} {
+      allow read: if true;
+      // One like per user per post is enforced by client doc-id strategy; rules validate ownership
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && isString(request.resource.data.postId)
+        && isTimestamp(request.resource.data.timestamp);
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // Feed: postComments
+    match /postComments/{commentId} {
+      allow read: if true;
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && isString(request.resource.data.postId)
+        && isMaxLen500(request.resource.data.content)
+        && isTimestamp(request.resource.data.timestamp);
+      // Only allow author to edit/delete their own comment; lock postId and userId
+      allow update, delete: if isAuthenticated()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.postId == resource.data.postId;
+    }
+
+    // Feed: userFeeds (personalized list) — client read-only; backend writes
+    match /userFeeds/{userId} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow write: if false; // only via privileged environment
+
+      // Explicitly cover subcollections like feedItems
+      match /feedItems/{postId} {
+        allow read: if isAuthenticated() && request.auth.uid == userId;
+        allow write: if false;
+      }
+    }
+
+    // Social graph: follows
+    match /follows/{edgeId} {
+      allow read: if true;
+      allow create: if isAuthenticated()
+        && isString(request.resource.data.followerId)
+        && isString(request.resource.data.followedId)
+        && request.resource.data.followerId == request.auth.uid
+        && request.resource.data.followerId != request.resource.data.followedId
+        && (!request.resource.data.keys().hasAny(['createdAt']) || isTimestamp(request.resource.data.createdAt));
+      allow delete: if isAuthenticated() && resource.data.followerId == request.auth.uid;
+    }
+
+    // Chat: chats metadata
+    match /chats/{chatId} {
+      allow read, update, delete: if isAuthenticated() && request.auth.uid in resource.data.members;
+      // Create requires at least 2 members and must include the creator
+      allow create: if isAuthenticated()
+        && request.resource.data.members is list
+        && request.resource.data.members.size() >= 2
+        && request.auth.uid in request.resource.data.members;
+    }
+
+    // Chat: messages subcollection
+    match /chats/{chatId}/messages/{messageId} {
+      allow read, create: if isAuthenticated() &&
+        request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
+      allow update, delete: if false; // immutable messages
+    }
+
+    // Chat: per-user summaries
+    match /users/{userId}/chatSummaries/{chatId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -448,10 +448,10 @@ Step 9 — Comments (lazy sheet)
 - [x] Post a new comment; rely on Functions to bump count.
 Note: Comments require authentication to create; guests can read.
 
-Step 10 — Post Composer (text → single image)
-- [ ] Build composer with text validation and optional single image upload to Storage `posts/{postId}/...`.
-- [ ] On submit: create post with isPublic: true, timestamp: server time, mediaUrls if present.
-- [ ] Autosave draft to sessionStorage; basic error and loading states.
+ Step 10 — Post Composer (text → single image)
+ - [x] Build composer with text validation and optional single image upload to Storage `posts/{postId}/...`.
+ - [x] On submit: create post with isPublic: true, timestamp: server time, mediaUrls if present.
+ - [x] Autosave draft to sessionStorage; basic error and loading states.
 
 Step 11 — Follow graph UI
 - [ ] Add FollowButton that creates/deletes `follows` doc id `${followerId}_${followedId}` optimistically.

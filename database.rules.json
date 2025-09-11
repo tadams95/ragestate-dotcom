@@ -1,0 +1,67 @@
+{
+  "rules": {
+    "users": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
+      ".indexOn": ["email", "isAdmin"],
+      "$uid": {
+        ".read": true,
+        ".write": "auth != null && (auth.uid == $uid || root.child('users').child(auth.uid).child('isAdmin').val() === true)",
+        "email": {
+          ".validate": "newData.isString() && newData.val().matches(/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}$/i)"
+        },
+        "firstName": {
+          ".validate": "newData.isString()"
+        },
+        "lastName": {
+          ".validate": "newData.isString()"
+        },
+        "isAdmin": {
+          ".validate": "!newData.exists() || newData.isBoolean() || (auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true)"
+        },
+        "phoneNumber": {
+          ".validate": "newData.isString()"
+        }
+      }
+    },
+    "announcements": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
+      "$announcementId": {
+        "title": { ".validate": "newData.isString()" },
+        "content": { ".validate": "newData.isString()" },
+        "timestamp": { ".validate": "newData.isNumber()" },
+        "publishedBy": { ".validate": "newData.isString()" }
+      }
+    },
+    "events": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
+      ".indexOn": ["date", "name", "active"],
+      "$eventId": {
+        "name": { ".validate": "newData.isString()" },
+        "date": { ".validate": "newData.isNumber()" },
+        "description": { ".validate": "newData.isString()" },
+        "active": { ".validate": "newData.isBoolean()" },
+        "attendees": {
+          "$attendeeId": {
+            ".write": "auth != null && (auth.uid == $attendeeId || root.child('users').child(auth.uid).child('isAdmin').val() === true)",
+            ".read": "auth != null && (auth.uid == $attendeeId || root.child('users').child(auth.uid).child('isAdmin').val() === true)"
+          }
+        }
+      }
+    },
+    "settings": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
+    },
+    "promotions": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
+      ".indexOn": ["active", "code", "expiration"]
+    },
+    "$other": {
+      ".read": false,
+      ".write": false
+    }
+  }
+}

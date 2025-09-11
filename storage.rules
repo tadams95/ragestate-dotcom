@@ -1,0 +1,53 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    function isAudio() {
+      return request.resource.contentType.matches('audio/.*') ||
+             request.resource.contentType == 'application/octet-stream'; // fallback some browsers use
+    }
+
+    // Limit sizes (in bytes)
+    function under(size) {
+      return request.resource.size < size;
+    }
+
+    // Publicly readable profile pictures; users can write to their own folder
+    match /profilePictures/{uid}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSignedIn() && request.auth.uid == uid && isImage() && under(5 * 1024 * 1024);
+    }
+
+    // Post media uploaded under posts/{postId}/...
+    // Public read; any signed-in user may upload images up to 10MB
+    // Ownership is enforced at the Firestore layer when creating posts
+    match /posts/{postId}/{filename} {
+      allow read: if true;
+      allow write: if isSignedIn() && isImage() && under(10 * 1024 * 1024);
+    }
+
+    // Guest mixes (public submission form currently unauthenticated)
+    // Keep public reads; allow writes without auth but constrain type/size.
+    match /guest-mixes/{filename} {
+      allow read: if true;
+      allow write: if isAudio() && under(200 * 1024 * 1024);
+    }
+
+    match /guest-mix-cover-photo/{filename} {
+      allow read: if true;
+      allow write: if isImage() && under(10 * 1024 * 1024);
+    }
+
+    // Default deny
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}
