@@ -12,6 +12,7 @@ import Link from "next/link";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { loginUser } from "../../../lib/utils/auth";
+import { getFirestore, doc, getDoc } from "firebase/firestore";
 
 const API_URL =
   "https://us-central1-ragestate-app.cloudfunctions.net/stripePayment";
@@ -61,42 +62,67 @@ export default function Login() {
         const name = `${userData.firstName} ${userData.lastName}`;
         dispatch(setUserName(name));
         localStorage.setItem("name", name);
+      }
+
+      // Prefer the public profiles.photoURL for header/avatar; fallback to customers.profilePicture
+      try {
+        const db = getFirestore();
+        const profileSnap = await getDoc(doc(db, "profiles", user.uid));
+        const publicPhoto = profileSnap.exists()
+          ? profileSnap.data()?.photoURL || ""
+          : "";
+        const fallbackPhoto = userData?.profilePicture || "/assets/user.png";
+        localStorage.setItem("profilePicture", publicPhoto || fallbackPhoto);
+      } catch (_) {
+        // If Firestore read fails, still set a fallback so Header can render something
         localStorage.setItem(
           "profilePicture",
-          userData.profilePicture || "/assets/user.png"
+          userData?.profilePicture || "/assets/user.png"
         );
       }
 
-      // Create or get Stripe customer
-      const stripeCustomerResponse = await fetch(`${API_URL}/create-customer`, {
+      // Immediately route to the Feed so the Header remounts with up-to-date auth/avatar state
+      setEmail("");
+      setPassword("");
+      dispatch(setAuthenticated(true));
+      setIsAuthenticating(false);
+      router.push("/feed");
+
+      // Fire-and-forget: Create or get Stripe customer (do not block login or navigation)
+      fetch(`${API_URL}/create-customer`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: user.email,
           name: userData?.displayName || "",
           firebaseId: user.uid,
         }),
-      });
-
-      if (!stripeCustomerResponse.ok) {
-        console.error(
-          "Failed to create Stripe customer. Status:",
-          stripeCustomerResponse.status
-        );
-        const errorMessage = await stripeCustomerResponse.text();
-        console.error("Error Message:", errorMessage);
-      } else {
-        const stripeCustomerData = await stripeCustomerResponse.json();
-        localStorage.setItem("stripeCustomerData", stripeCustomerData);
-      }
-
-      setEmail("");
-      setPassword("");
-      dispatch(setAuthenticated(true));
-      setIsAuthenticating(false);
-      router.back();
+      })
+        .then(async (res) => {
+          if (!res.ok) {
+            console.error(
+              "Failed to create Stripe customer. Status:",
+              res.status
+            );
+            const msg = await res.text().catch(() => "");
+            if (msg) console.error("Error Message:", msg);
+            return;
+          }
+          const stripeCustomerData = await res.json().catch(() => null);
+          if (stripeCustomerData) {
+            localStorage.setItem(
+              "stripeCustomerData",
+              JSON.stringify(stripeCustomerData)
+            );
+          }
+        })
+        .catch((e) => {
+          // Likely CORS during local dev; don't block login
+          console.warn(
+            "Stripe create-customer request failed:",
+            e?.message || e
+          );
+        });
     } catch (error) {
       console.error("Error signing in:", error.message);
       setError(error.message);

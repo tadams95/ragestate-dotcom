@@ -231,7 +231,12 @@ export default function Feed({ forcePublic = false }) {
             };
           });
 
-          setPosts((prev) => [...prev, ...mapped]);
+          // Append without duplicating existing post IDs
+          setPosts((prev) => {
+            const existing = new Set(prev.map((p) => p.id));
+            const deduped = mapped.filter((p) => !existing.has(p.id));
+            return [...prev, ...deduped];
+          });
           setLastPublicDoc(snap.docs[snap.docs.length - 1] || null);
           if (snap.size < PAGE_SIZE) setHasMore(false);
           return;
@@ -261,7 +266,12 @@ export default function Feed({ forcePublic = false }) {
                 typeof p.commentCount === "number" ? p.commentCount : 0,
             }));
 
-          setPosts((prev) => [...prev, ...mapped]);
+          // Append without duplicating existing post IDs
+          setPosts((prev) => {
+            const existing = new Set(prev.map((p) => p.id));
+            const deduped = mapped.filter((p) => !existing.has(p.id));
+            return [...prev, ...deduped];
+          });
           setLastPublicDoc(snap.docs[snap.docs.length - 1] || null);
           if (snap.size < PAGE_SIZE) setHasMore(false);
           return;
@@ -321,7 +331,12 @@ export default function Feed({ forcePublic = false }) {
         commentCount: typeof p.commentCount === "number" ? p.commentCount : 0,
       }));
 
-      setPosts((prev) => [...prev, ...mapped]);
+      // Append without duplicating existing post IDs
+      setPosts((prev) => {
+        const existing = new Set(prev.map((p) => p.id));
+        const deduped = mapped.filter((p) => !existing.has(p.id));
+        return [...prev, ...deduped];
+      });
       setLastPersonalDoc(feedSnap.docs[feedSnap.docs.length - 1] || null);
       if (feedSnap.size < PAGE_SIZE) setHasMore(false);
     } catch (err) {
