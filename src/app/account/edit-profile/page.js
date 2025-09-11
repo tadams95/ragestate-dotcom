@@ -1,35 +1,28 @@
-"use client";
+'use client';
 
-import React, { useEffect, useMemo, useState } from "react";
-import { useAuth } from "../../../../firebase/context/FirebaseContext";
-import { db } from "../../../../firebase/firebase";
-import {
-  collection,
-  doc,
-  getDoc,
-  runTransaction,
-  serverTimestamp,
-  setDoc,
-} from "firebase/firestore";
+import { doc, getDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+import { useAuth } from '../../../../firebase/context/FirebaseContext';
+import { db } from '../../../../firebase/firebase';
 
 function normalizeUsername(input) {
-  const v = String(input || "")
+  const v = String(input || '')
     .trim()
     .toLowerCase();
   // Allow a-z, 0-9, dot and underscore; collapse spaces/dashes
-  return v.replace(/[^a-z0-9._]/g, "").slice(0, 20);
+  return v.replace(/[^a-z0-9._]/g, '').slice(0, 20);
 }
 
 export default function EditProfilePage() {
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [displayName, setDisplayName] = useState("");
-  const [photoURL, setPhotoURL] = useState("");
-  const [bio, setBio] = useState("");
-  const [username, setUsername] = useState("");
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
+  const [displayName, setDisplayName] = useState('');
+  const [photoURL, setPhotoURL] = useState('');
+  const [bio, setBio] = useState('');
+  const [username, setUsername] = useState('');
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -39,17 +32,17 @@ export default function EditProfilePage() {
         return;
       }
       try {
-        const snap = await getDoc(doc(db, "profiles", currentUser.uid));
+        const snap = await getDoc(doc(db, 'profiles', currentUser.uid));
         if (!cancelled) {
           const data = snap.exists() ? snap.data() : {};
-          setDisplayName(data.displayName || currentUser.displayName || "");
-          setPhotoURL(data.photoURL || currentUser.photoURL || "");
-          setBio(data.bio || "");
-          setUsername(data.usernameLower || "");
+          setDisplayName(data.displayName || currentUser.displayName || '');
+          setPhotoURL(data.photoURL || currentUser.photoURL || '');
+          setBio(data.bio || '');
+          setUsername(data.usernameLower || '');
           setLoading(false);
         }
       } catch (e) {
-        console.warn("Failed to load profile", e);
+        console.warn('Failed to load profile', e);
         setLoading(false);
       }
     }
@@ -61,24 +54,24 @@ export default function EditProfilePage() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setMessage("");
+    setError('');
+    setMessage('');
     if (!currentUser) return;
     const desired = normalizeUsername(username);
     if (!desired || desired.length < 3) {
-      setError("Username must be at least 3 characters (a–z, 0–9, . or _)");
+      setError('Username must be at least 3 characters (a–z, 0–9, . or _)');
       return;
     }
     setSaving(true);
     try {
       await runTransaction(db, async (tx) => {
         const userKey = desired;
-        const userRef = doc(db, "usernames", userKey);
+        const userRef = doc(db, 'usernames', userKey);
         const existing = await tx.get(userRef);
         if (existing.exists()) {
           const data = existing.data();
           if (data.uid !== currentUser.uid) {
-            throw new Error("That username is taken.");
+            throw new Error('That username is taken.');
           }
           // same user re-saving; proceed
         } else {
@@ -87,18 +80,18 @@ export default function EditProfilePage() {
             createdAt: serverTimestamp(),
           });
         }
-        const profileRef = doc(db, "profiles", currentUser.uid);
+        const profileRef = doc(db, 'profiles', currentUser.uid);
         const profileData = {
-          displayName: (displayName || "").trim(),
-          photoURL: (photoURL || "").trim(),
-          bio: (bio || "").slice(0, 500),
+          displayName: (displayName || '').trim(),
+          photoURL: (photoURL || '').trim(),
+          bio: (bio || '').slice(0, 500),
           usernameLower: userKey,
         };
         tx.set(profileRef, profileData, { merge: true });
       });
-      setMessage("Saved.");
+      setMessage('Saved.');
     } catch (e) {
-      setError(e?.message || "Failed to save");
+      setError(e?.message || 'Failed to save');
     } finally {
       setSaving(false);
     }
@@ -106,7 +99,7 @@ export default function EditProfilePage() {
 
   if (!currentUser) {
     return (
-      <div className="max-w-xl mx-auto py-10 text-center text-white">
+      <div className="mx-auto max-w-xl py-10 text-center text-white">
         <p>Please sign in to edit your profile.</p>
       </div>
     );
@@ -114,65 +107,63 @@ export default function EditProfilePage() {
 
   if (loading) {
     return (
-      <div className="max-w-xl mx-auto py-10 text-center text-white">
+      <div className="mx-auto max-w-xl py-10 text-center text-white">
         <p>Loading…</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-xl mx-auto py-8 text-white">
-      <h1 className="text-xl font-semibold mb-4">Edit Profile</h1>
+    <div className="mx-auto max-w-xl py-8 text-white">
+      <h1 className="mb-4 text-xl font-semibold">Edit Profile</h1>
       <form
         onSubmit={onSubmit}
-        className="space-y-4 bg-[#0d0d0f] border border-white/10 rounded-xl p-4"
+        className="space-y-4 rounded-xl border border-white/10 bg-[#0d0d0f] p-4"
       >
         <div>
-          <label className="block text-sm text-gray-300 mb-1">
-            Display name
-          </label>
+          <label className="mb-1 block text-sm text-gray-300">Display name</label>
           <input
             type="text"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            className="w-full bg-[#16171a] border border-white/10 rounded px-3 py-2"
+            className="w-full rounded border border-white/10 bg-[#16171a] px-3 py-2"
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-300 mb-1">Photo URL</label>
+          <label className="mb-1 block text-sm text-gray-300">Photo URL</label>
           <input
             type="url"
             value={photoURL}
             onChange={(e) => setPhotoURL(e.target.value)}
-            className="w-full bg-[#16171a] border border-white/10 rounded px-3 py-2"
+            className="w-full rounded border border-white/10 bg-[#16171a] px-3 py-2"
             placeholder="https://…"
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-300 mb-1">Bio</label>
+          <label className="mb-1 block text-sm text-gray-300">Bio</label>
           <textarea
             value={bio}
             onChange={(e) => setBio(e.target.value)}
-            className="w-full bg-[#16171a] border border-white/10 rounded px-3 py-2"
+            className="w-full rounded border border-white/10 bg-[#16171a] px-3 py-2"
             maxLength={500}
             rows={3}
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-300 mb-1">Username</label>
+          <label className="mb-1 block text-sm text-gray-300">Username</label>
           <div className="flex items-center gap-2">
-            <span className="text-gray-400">ragestate.com/u/</span>
+            <span className="text-gray-400">ragestate.com/</span>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(normalizeUsername(e.target.value))}
-              className="flex-1 bg-[#16171a] border border-white/10 rounded px-3 py-2"
+              className="flex-1 rounded border border-white/10 bg-[#16171a] px-3 py-2"
               placeholder="yourname"
               minLength={3}
               maxLength={20}
             />
           </div>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="mt-1 text-xs text-gray-500">
             Lowercase letters, numbers, dot and underscore. 3–20 characters.
           </p>
         </div>
@@ -184,9 +175,9 @@ export default function EditProfilePage() {
           <button
             type="submit"
             disabled={saving}
-            className="px-4 py-2 rounded-lg bg-[#ff1f42] text-white disabled:opacity-50"
+            className="rounded-lg bg-[#ff1f42] px-4 py-2 text-white disabled:opacity-50"
           >
-            {saving ? "Saving…" : "Save"}
+            {saving ? 'Saving…' : 'Save'}
           </button>
         </div>
       </form>

@@ -11,7 +11,7 @@ export default function PostHeader({ author, timestamp, avatarUrl, usernameLower
       <div className="flex items-center space-x-2">
         {/* Avatar */}
         {usernameLower ? (
-          <Link href={`/u/${usernameLower}`} prefetch={false} className="block active:opacity-80">
+          <Link href={`/${usernameLower}`} prefetch={false} className="block active:opacity-80">
             {avatarUrl ? (
               <Image
                 src={avatarUrl}
@@ -42,7 +42,7 @@ export default function PostHeader({ author, timestamp, avatarUrl, usernameLower
         <div>
           {usernameLower ? (
             <Link
-              href={`/u/${usernameLower}`}
+              href={`/${usernameLower}`}
               prefetch={false}
               className="text-[15px] font-semibold leading-5 text-white hover:underline active:opacity-90"
             >
