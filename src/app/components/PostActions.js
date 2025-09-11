@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback, useRef } from "react";
 import { useAuth } from "../../../firebase/context/FirebaseContext";
 import { db } from "../../../firebase/firebase";
 import {
@@ -21,6 +21,10 @@ export default function PostActions({
   const [optimisticLikes, setOptimisticLikes] = useState(likeCount);
   const [isLiking, setIsLiking] = useState(false);
   const [hasLiked, setHasLiked] = useState(false);
+  const [showReactions, setShowReactions] = useState(false);
+  const longPressRef = useRef(null);
+  const longPressTimer = useRef(null);
+  const [reactions, setReactions] = useState({}); // {"👍": 12, "🔥": 3, "😂": 1}
 
   // Build like doc id `${postId}_${uid}` when signed in
   const likeDocRef = useMemo(() => {
@@ -80,6 +84,27 @@ export default function PostActions({
     }
   }, [currentUser, postId, likeDocRef, isLiking, ensureHasLiked, likeCount]);
 
+  // Long-press to open reaction bar
+  const startLongPress = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    longPressTimer.current = setTimeout(() => setShowReactions(true), 400);
+  };
+  const cancelLongPress = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  };
+
+  const addReaction = (emoji) => {
+    // Optimistic local cluster; wiring to backend can be added later
+    setReactions((prev) => ({ ...prev, [emoji]: (prev[emoji] || 0) + 1 }));
+    setShowReactions(false);
+  };
+
+  const topReactions = useMemo(() => {
+    const entries = Object.entries(reactions);
+    entries.sort((a, b) => (b[1] || 0) - (a[1] || 0));
+    return entries.slice(0, 3);
+  }, [reactions]);
+
   const formatCount = (n) => {
     if (n >= 1_000_000)
       return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
@@ -110,11 +135,32 @@ export default function PostActions({
 
   return (
     <div className="flex items-center space-x-4 text-gray-400">
+      {/* Reaction cluster */}
+      {topReactions.length > 0 && (
+        <div
+          className="flex items-center gap-1 text-sm px-2 py-1 rounded-full bg-white/5 border border-white/10"
+          aria-label={topReactions.map(([e, c]) => `${e} ${c}`).join(", ")}
+        >
+          {topReactions.map(([e, c]) => (
+            <span key={e} className="inline-flex items-center gap-0.5">
+              <span aria-hidden>{e}</span>
+              <span className="tabular-nums" aria-label={`${e} ${c}`}>
+                {formatCount(c)}
+              </span>
+            </span>
+          ))}
+        </div>
+      )}
       <button
-        className={`flex items-center space-x-1 hover:text-white ${
+        className={`flex items-center space-x-1 hover:text-white active:opacity-80 h-11 px-2 rounded ${
           hasLiked ? "text-white" : ""
         }`}
         onClick={onToggleLike}
+        onMouseDown={startLongPress}
+        onTouchStart={startLongPress}
+        onMouseUp={cancelLongPress}
+        onMouseLeave={cancelLongPress}
+        onTouchEnd={cancelLongPress}
         disabled={isLiking}
         aria-pressed={hasLiked}
         aria-label={hasLiked ? "Unlike" : "Like"}
@@ -127,7 +173,7 @@ export default function PostActions({
       </button>
 
       <button
-        className="flex items-center space-x-1 hover:text-white"
+        className="flex items-center space-x-1 hover:text-white active:opacity-80 h-11 px-2 rounded"
         onClick={onOpenComments}
         aria-label="Comments"
         title="Comments"
@@ -139,13 +185,35 @@ export default function PostActions({
       </button>
 
       <button
-        className="flex items-center hover:text-white"
+        className="flex items-center hover:text-white active:opacity-80 h-11 px-2 rounded"
         onClick={onShare}
         aria-label="Share"
         title="Share"
       >
         <span className="text-base leading-none">{shareIcon}</span>
       </button>
+
+      {/* Reaction bar overlay */}
+      {showReactions && (
+        <div
+          ref={longPressRef}
+          className="absolute mt-[-48px] ml-2 px-2 py-1 rounded-full bg-[#0d0d0f] border border-white/10 shadow-lg flex items-center gap-2"
+          role="dialog"
+          aria-label="Add a reaction"
+          onMouseLeave={() => setShowReactions(false)}
+        >
+          {["👍", "🔥", "😂", "👏", "🎉", "❤️"].map((e) => (
+            <button
+              key={e}
+              className="text-lg hover:scale-110 transition-transform"
+              onClick={() => addReaction(e)}
+              aria-label={`React ${e}`}
+            >
+              {e}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

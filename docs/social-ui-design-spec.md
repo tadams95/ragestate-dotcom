@@ -21,14 +21,15 @@ KPIs: Time-to-first-post, Scroll depth, DAU retention, Message reply latency, Po
 
 ## 2. Design Principles
 
-| Principle              | Description                      | Implementation Tactics                                                |
-| ---------------------- | -------------------------------- | --------------------------------------------------------------------- |
-| Fast Perception        | First visual paint feels instant | Skeletons + content shimmer within 150ms; defer heavy media offscreen |
-| Visual Hierarchy       | Author + content > chrome        | Muted container backgrounds; strong type scale for author & actions   |
-| Motion With Restraint  | Motion conveys state change only | 150–220ms ease-out fades/slides; no gratuitous continuous animations  |
-| Tap Precision          | Mobile-first ergonomic targets   | 44px min hit area; clustered actions right-aligned for thumb reach    |
-| Progressive Disclosure | Show essentials, reveal depth    | Collapse long text > 300 chars; lazy load comments & reactions list   |
-| Theme Cohesion         | Brand neon energy on dark canvas | Token-driven color + accent states limited to primary interactions    |
+| Principle              | Description                          | Implementation Tactics                                                |
+| ---------------------- | ------------------------------------ | --------------------------------------------------------------------- |
+| Fast Perception        | First visual paint feels instant     | Skeletons + content shimmer within 150ms; defer heavy media offscreen |
+| Visual Hierarchy       | Author + content > chrome            | Muted container backgrounds; strong type scale for author & actions   |
+| Motion With Restraint  | Motion conveys state change only     | 150–220ms ease-out fades/slides; no gratuitous continuous animations  |
+| Tap Precision          | Mobile-first ergonomic targets       | 44px min hit area; clustered actions right-aligned for thumb reach    |
+| Progressive Disclosure | Show essentials, reveal depth        | Collapse long text > 300 chars; lazy load comments & reactions list   |
+| Theme Cohesion         | Brand neon energy on dark canvas     | Token-driven color + accent states limited to primary interactions    |
+| Mobile-first           | Design primarily for small viewports | Prioritize vertical flow, thumb zones, safe-areas; enhance at ≥sm     |
 
 ---
 
@@ -95,6 +96,47 @@ Use subtle 1px borders with translucency for contrast layering: `border: 1px sol
 
 Heroicons outline + minimal custom glyphs (reactions). Stroke width consistent (1.5). Action icons 20px; micro icons (presence dots) 8–10px.
 
+### 3.6 Responsive Grid & Breakpoints (Mobile-first)
+
+Baseline target devices: 360×740, 390×844, 414×896 (iOS/Android modern). Use fluid widths with consistent side gutters.
+
+- Breakpoints (Tailwind):
+
+  - base: <640 (mobile, default styles)
+  - sm: ≥640 (small tablet/landscape phones)
+  - md: ≥768 (tablet)
+  - lg: ≥1024 (desktop)
+  - xl: ≥1280 (wider desktop)
+
+- Containers & gutters:
+
+  - Mobile: full-bleed with 16px side padding (`px-4`) unless media requires edge-to-edge.
+  - sm–md: center content with `max-w-[720px]` for feed column.
+  - lg+: `max-w-[1040-1160px]` with optional secondary column.
+
+- Safe areas (iOS notch/home indicator):
+
+  - Add `padding-bottom: env(safe-area-inset-bottom)` for bottom sheets, sticky bars, and FABs.
+  - Header: `height: 56–64px`; if fixed, set `padding-top` on pages to prevent overlap.
+
+- Touch ergonomics:
+
+  - Hit targets ≥44×44px; minimum spacing 8px between tap targets.
+  - Place primary actions within right-thumb zone on mobile where possible.
+
+- Keyboard/IME avoidance:
+
+  - Composer and inputs must avoid the on-screen keyboard; use viewport units (`dvh`) and safe-area padding. On iOS Safari, prefer `100dvh` over `100vh`.
+
+- Typography scaling:
+
+  - Use `clamp()` for headings, e.g., section title `clamp(18px, 2.8vw, 20px)`.
+  - Keep body at 15–16px base; don’t go below 14px on mobile.
+
+- Images & media:
+  - Use `next/image` with `sizes="(max-width: 640px) 100vw, 640px"` for feed media.
+  - Lazy-load offscreen; prefetch only the first in-viewport media.
+
 ---
 
 ## 4. Feed UI
@@ -107,6 +149,13 @@ Heroicons outline + minimal custom glyphs (reactions). Stroke width consistent (
 | 640–1023   | 1 + side meta (optional later)               | 720px       | Centered                            |
 | ≥1024      | 1 primary + 1 secondary (suggested / trends) | 1040–1160px | Secondary column lazy-loaded        |
 
+Mobile-specific behaviors:
+
+- Sticky header at top with translucent background; page content padded (`pt-16/24`).
+- Optional “new posts” pill appears under header, centered; tap scrolls to top and merges.
+- Action bar icons spaced for thumb tap; label-less on mobile, labeled at lg+ if needed.
+- Media respects device orientation; limit max height to 60vh to avoid full scroll lock.
+
 ### 4.2 Post Card Structure
 
 ```
@@ -118,6 +167,11 @@ Heroicons outline + minimal custom glyphs (reactions). Stroke width consistent (
 [Action bar]
   (Like/React)  (Comment)  (Share)  (Save?)    [Reaction count cluster]
 [Inline reaction faces row (top 3 types) + comment count + view count (future)]
+
+Responsive notes:
+- Author row wraps: timestamp breaks to next line (`sm:inline`)
+- Truncate body with `line-clamp-5` on mobile; relax to 7–8 lines on md+.
+- Overflow menu becomes long-press on mobile; click/hover on desktop.
 ```
 
 ### 4.3 Interaction States
@@ -155,6 +209,11 @@ Lazy load offscreen images via IntersectionObserver root margin 400px. Preload f
 - Append sentinel 600px before bottom; auto-prefetch next page.
 - If new posts arrive while user is not at top: show floating "New Posts (3)" pill at top center (sticky fade-in). Tap scrolls & merges.
 
+Mobile guidance:
+
+- Avoid scroll jank: observer rootMargin `400px`; keep list items stable height to reduce layout shifts.
+- Keep page size modest (8–12) on mobile to limit memory pressure; hydrate progressively.
+
 ### 4.8 Error & Empty States
 
 | State      | Copy                                     | Action                                  |
@@ -170,7 +229,7 @@ Lazy load offscreen images via IntersectionObserver root margin 400px. Preload f
 ### 5.1 Flow
 
 1. Collapsed inline field: "Share what’s in your RAGESTATE…"
-2. Expand → modal sheet (mobile bottom sheet, desktop centered) with fields: Text (auto-grow), Media tray, Tagging (Phase 2), Visibility toggle.
+2. Expand → modal sheet (mobile bottom sheet with safe-area padding; desktop centered) with fields: Text (auto-grow), Media tray, Tagging (Phase 2), Visibility toggle.
 3. Primary button active after text length > 1 OR media attached.
 
 ### 5.2 Controls
@@ -213,6 +272,10 @@ Local (sessionStorage) autosave every 3s if dirty. Recover prompt if last draft 
 [Scroll-To-Latest FAB] (appears if > 600px away)
 [Composer Bar]
   [+]  Text field (grow up to 6 lines)  [Emoji] [Send]
+
+Mobile specifics:
+- Keep top bar 56px; larger touch targets for Back and Send.
+- When keyboard opens, keep “Scroll-To-Latest” accessible above keyboard.
 ```
 
 ### 6.3 Message Bubble Variants
@@ -318,6 +381,12 @@ Reduce all durations by 30% on high-motion user interactions to keep responsiven
 | Media lazy load threshold                 | 400px viewport margin                 |
 | Re-render on typing (others)              | JSON diff only; no list reflow        |
 
+Mobile-first performance:
+
+- Limit long tasks on main thread; break work into microtasks.
+- Avoid large images on cellular; prefer 1080px max width for uploads; serve AVIF/WebP where possible.
+- Defer non-critical analytics until idle or next tick after first interaction.
+
 Lazy import: emoji picker, media viewer, reaction picker, analytics tracking hooks.
 
 ---
@@ -372,6 +441,13 @@ Lazy import: emoji picker, media viewer, reaction picker, analytics tracking hoo
 - Virtualization: react-virtual or custom intersection batching for >120 items.
 - Reaction animations: Use transform/opacity only; no layout thrash.
 
+Mobile-tailored Tailwind patterns:
+
+- Containers: `px-4 sm:px-6 lg:px-8`, `max-w-2xl mx-auto` for primary column.
+- Typography: `text-base sm:text-[15px]` with `clamp()` for headings.
+- Sticky/fixed bars: add `backdrop-blur-md` and `supports-[padding:env(safe-area-inset-bottom)]:pb-[env(safe-area-inset-bottom)]`.
+- Media: `rounded-2xl overflow-hidden aspect-video sm:aspect-[4/3]` with `object-cover`.
+
 ---
 
 ## 16. Metrics Instrumentation Hooks
@@ -393,6 +469,38 @@ Lazy import: emoji picker, media viewer, reaction picker, analytics tracking hoo
 - Focus states always visible (2px ring accent).
 - Motion reduced gracefully.
 - Live regions polite; suppress while user scrolls upward (prevent focus steal).
+- Touch access: Ensure 44px min touch targets; add visible pressed states on mobile.
+
+---
+
+## 19. Mobile-first Overview (Quick Reference)
+
+- Layout
+
+  - Single-column flow by default; enhance to two-column at `lg+`.
+  - Fixed header; content padded to avoid overlap.
+  - Optional bottom sheet composer; respects safe-area insets.
+
+- Ergonomics
+
+  - Hit targets ≥44px; key actions within thumb zone.
+  - Avoid edge swipes interfering with OS gestures; keep primary actions inset.
+
+- Performance
+
+  - Smaller page size on feed; lazy-load and avoid reflow.
+  - Preload only immediate viewport media.
+
+- Media
+
+  - Maintain aspect ratios; clip rather than stretch.
+  - Use `sizes` to tailor image srcset for mobile first.
+
+- Accessibility
+  - Proper landmarks; readable base text size; large controls.
+  - Motion respects `prefers-reduced-motion`.
+
+This section governs default behavior; desktop is an enhancement.
 
 ---
 

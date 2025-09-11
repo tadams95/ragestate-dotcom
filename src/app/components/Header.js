@@ -61,7 +61,7 @@ export default function Header() {
           <div className="flex lg:hidden">
             <button
               type="button"
-              className="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-100"
+              className="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-100 h-11 w-11 active:opacity-80"
               onClick={() => setMobileMenuOpen(true)}
             >
               <span className="sr-only">Open main menu</span>
@@ -84,10 +84,12 @@ export default function Header() {
               href="/cart"
               className="text-sm font-semibold leading-6 text-gray-100 px-20"
             >
-              <ShoppingBagIcon className="h-6 w-6" aria-hidden="true" />
+              <span className="inline-flex h-11 w-11 items-center justify-center -m-2 active:opacity-80">
+                <ShoppingBagIcon className="h-6 w-6" aria-hidden="true" />
+              </span>
               <span aria-hidden="true"></span>
             </Link>
-            <div className="inline-flex items-center justify-center h-6 w-6">
+            <div className="inline-flex items-center justify-center h-11 w-11 -m-2">
               {!hydrated ? (
                 <div
                   aria-hidden
@@ -96,7 +98,7 @@ export default function Header() {
               ) : idToken && refreshToken ? (
                 <Link
                   href="/account"
-                  className="text-sm font-semibold leading-6 text-gray-100"
+                  className="text-sm font-semibold leading-6 text-gray-100 inline-flex h-11 w-11 items-center justify-center active:opacity-80"
                   aria-label="Account"
                 >
                   {profilePicture ? (
@@ -105,6 +107,8 @@ export default function Header() {
                       alt="Profile"
                       width={24}
                       height={24}
+                      sizes="24px"
+                      loading="lazy"
                       className="h-6 w-6 rounded-md"
                     />
                   ) : (
@@ -114,7 +118,7 @@ export default function Header() {
               ) : (
                 <Link
                   href="/login"
-                  className="text-sm font-semibold leading-6 text-gray-100"
+                  className="text-sm font-semibold leading-6 text-gray-100 inline-flex h-11 w-11 items-center justify-center active:opacity-80"
                   aria-label="Login"
                 >
                   <UserIcon className="h-6 w-6" aria-hidden="true" />
@@ -145,7 +149,7 @@ export default function Header() {
               </Link>
               <button
                 type="button"
-                className="-m-2.5 rounded-md p-2.5 text-gray-700"
+                className="-m-2.5 rounded-md p-2.5 text-gray-700 h-11 w-11 active:opacity-80"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <span className="sr-only">Close menu</span>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { useSelector } from "react-redux";
 import { selectUserName } from "../../../lib/features/todos/userSlice";
 import { db } from "../../../firebase/firebase";
@@ -112,7 +113,7 @@ export default function CommentsSheet({ postId, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-6">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-6 supports-[padding:env(safe-area-inset-bottom)]:pb-[env(safe-area-inset-bottom)]">
       <div className="w-full sm:max-w-2xl bg-[#0d0d0f] text-white rounded-t-2xl sm:rounded-2xl border border-white/10 shadow-xl flex flex-col max-h-[90vh]">
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
           <h3 className="text-base font-semibold">Comments</h3>
@@ -142,10 +143,13 @@ export default function CommentsSheet({ postId, onClose }) {
             >
               <div className="w-8 h-8 rounded-md bg-white/10 flex items-center justify-center overflow-hidden">
                 {c.userProfilePicture ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <Image
                     src={c.userProfilePicture}
                     alt="avatar"
+                    width={32}
+                    height={32}
+                    sizes="32px"
+                    loading="lazy"
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -185,21 +189,23 @@ export default function CommentsSheet({ postId, onClose }) {
 
         <form
           onSubmit={onSubmit}
-          className="border-t border-white/10 p-3 flex items-end space-x-2"
+          className="border-t border-white/10 p-3 flex items-end space-x-2 sticky bottom-0 bg-[#0d0d0f] supports-[padding:env(safe-area-inset-bottom)]:pb-[env(safe-area-inset-bottom)]"
         >
           <textarea
-            className="flex-1 bg-[#16171a] text-sm text-white placeholder-gray-500 rounded-lg p-2 border border-white/10 focus:outline-none focus:ring-2 focus:ring-[#ff1f42]"
+            className="flex-1 bg-[#16171a] text-sm text-white placeholder-gray-500 rounded-lg p-3 min-h-11 border border-white/10 focus:outline-none focus:ring-2 focus:ring-[#ff1f42]"
             placeholder={currentUser ? "Add a comment…" : "Sign in to comment"}
             rows={1}
             maxLength={500}
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             disabled={!currentUser}
+            inputMode="text"
+            enterKeyHint="send"
           />
           <button
             type="submit"
             disabled={!currentUser || newComment.trim().length === 0}
-            className="px-3 py-2 text-sm font-semibold rounded-lg bg-[#ff1f42] text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2.5 h-11 text-sm font-semibold rounded-lg bg-[#ff1f42] text-white disabled:opacity-50 disabled:cursor-not-allowed active:opacity-80"
           >
             Send
           </button>

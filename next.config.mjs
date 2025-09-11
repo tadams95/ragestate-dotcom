@@ -26,6 +26,18 @@ const nextConfig = {
         port: "",
         pathname: "/**", // Match all paths under the hostname
       },
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "graph.facebook.com",
+        port: "",
+        pathname: "/**",
+      },
     ],
   },
 };

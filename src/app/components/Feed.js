@@ -33,6 +33,10 @@ export default function Feed({ forcePublic = false }) {
   const [lastPublicDoc, setLastPublicDoc] = useState(null);
   const [lastPersonalDoc, setLastPersonalDoc] = useState(null);
   const observer = useRef();
+  const topObserver = useRef();
+  const topSentinelRef = useRef(null);
+  const [isAtTop, setIsAtTop] = useState(true);
+  const [pendingNew, setPendingNew] = useState([]);
 
   const resetAndLoad = useCallback(() => {
     setPosts([]);
@@ -52,7 +56,14 @@ export default function Feed({ forcePublic = false }) {
     function onNewPost(e) {
       const post = e?.detail;
       if (!post) return;
-      setPosts((prev) => [post, ...prev.filter((p) => p.id !== post.id)]);
+      if (isAtTop) {
+        setPosts((prev) => [post, ...prev.filter((p) => p.id !== post.id)]);
+      } else {
+        setPendingNew((prev) => [
+          post,
+          ...prev.filter((p) => p.id !== post.id),
+        ]);
+      }
     }
     if (typeof window !== "undefined") {
       window.addEventListener("feed:new-post", onNewPost);
@@ -64,7 +75,7 @@ export default function Feed({ forcePublic = false }) {
     };
   }, []);
 
-  // Lightweight real-time: listen for newest items and prepend as they arrive
+  // Lightweight real-time: listen for newest items; buffer when not at top
   useEffect(() => {
     let unsub;
     if (forcePublic) {
@@ -92,10 +103,17 @@ export default function Feed({ forcePublic = false }) {
               commentCount:
                 typeof p.commentCount === "number" ? p.commentCount : 0,
             };
-            setPosts((prev) => [
-              mapped,
-              ...prev.filter((x) => x.id !== mapped.id),
-            ]);
+            if (isAtTop) {
+              setPosts((prev) => [
+                mapped,
+                ...prev.filter((x) => x.id !== mapped.id),
+              ]);
+            } else {
+              setPendingNew((prev) => [
+                mapped,
+                ...prev.filter((x) => x.id !== mapped.id),
+              ]);
+            }
           }
         });
       });
@@ -126,10 +144,17 @@ export default function Feed({ forcePublic = false }) {
               commentCount:
                 typeof p.commentCount === "number" ? p.commentCount : 0,
             };
-            setPosts((prev) => [
-              mapped,
-              ...prev.filter((x) => x.id !== mapped.id),
-            ]);
+            if (isAtTop) {
+              setPosts((prev) => [
+                mapped,
+                ...prev.filter((x) => x.id !== mapped.id),
+              ]);
+            } else {
+              setPendingNew((prev) => [
+                mapped,
+                ...prev.filter((x) => x.id !== mapped.id),
+              ]);
+            }
           }
         });
       });
@@ -159,10 +184,17 @@ export default function Feed({ forcePublic = false }) {
                   commentCount:
                     typeof p.commentCount === "number" ? p.commentCount : 0,
                 };
-                setPosts((prev) => [
-                  mapped,
-                  ...prev.filter((x) => x.id !== mapped.id),
-                ]);
+                if (isAtTop) {
+                  setPosts((prev) => [
+                    mapped,
+                    ...prev.filter((x) => x.id !== mapped.id),
+                  ]);
+                } else {
+                  setPendingNew((prev) => [
+                    mapped,
+                    ...prev.filter((x) => x.id !== mapped.id),
+                  ]);
+                }
               }
             } catch (e) {
               console.warn("Failed to fetch live post", id, e);
@@ -174,6 +206,32 @@ export default function Feed({ forcePublic = false }) {
 
     return () => unsub && unsub();
   }, [feedMode, currentUser, forcePublic]);
+
+  // Track whether top of list is visible
+  useEffect(() => {
+    if (!topSentinelRef.current) return;
+    if (topObserver.current) topObserver.current.disconnect();
+    topObserver.current = new IntersectionObserver(
+      (entries) => setIsAtTop(entries[0]?.isIntersecting ?? true),
+      { root: null, threshold: 0.01 }
+    );
+    topObserver.current.observe(topSentinelRef.current);
+    return () => topObserver.current && topObserver.current.disconnect();
+  }, [topSentinelRef]);
+
+  const applyPending = useCallback(() => {
+    if (pendingNew.length === 0) return;
+    setPosts((prev) => {
+      const existing = new Set(prev.map((p) => p.id));
+      const deduped = pendingNew.filter((p) => !existing.has(p.id));
+      return [...deduped, ...prev];
+    });
+    setPendingNew([]);
+    try {
+      if (typeof window !== "undefined")
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch {}
+  }, [pendingNew]);
 
   const fetchFeedPage = useCallback(async () => {
     if (loading || !hasMore) return;
@@ -351,11 +409,14 @@ export default function Feed({ forcePublic = false }) {
     (node) => {
       if (loading) return;
       if (observer.current) observer.current.disconnect();
-      observer.current = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && hasMore) {
-          fetchFeedPage();
-        }
-      });
+      observer.current = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting && hasMore) {
+            fetchFeedPage();
+          }
+        },
+        { root: null, rootMargin: "600px 0px", threshold: 0 }
+      );
       if (node) observer.current.observe(node);
     },
     [loading, hasMore, fetchFeedPage]
@@ -397,6 +458,26 @@ export default function Feed({ forcePublic = false }) {
 
   return (
     <div className="max-w-2xl mx-auto">
+      {/* Top sentinel to detect if user is at top */}
+      <div ref={topSentinelRef} aria-hidden className="h-0" />
+
+      {/* New posts banner */}
+      {pendingNew.length > 0 && !isAtTop && (
+        <div className="sticky top-2 z-20 mb-2 flex justify-center">
+          <button
+            onClick={applyPending}
+            className="px-3 py-1.5 text-sm font-semibold rounded-full bg-[#ff1f42] text-white shadow hover:bg-[#ff415f] active:opacity-90"
+            aria-label={`Show ${pendingNew.length} new ${
+              pendingNew.length === 1 ? "post" : "posts"
+            }`}
+            title={`Show ${pendingNew.length} new ${
+              pendingNew.length === 1 ? "post" : "posts"
+            }`}
+          >
+            {pendingNew.length} new {pendingNew.length === 1 ? "post" : "posts"}
+          </button>
+        </div>
+      )}
       {posts.map((post, index) => {
         if (posts.length === index + 1) {
           return (
@@ -408,8 +489,10 @@ export default function Feed({ forcePublic = false }) {
           return <Post key={post.id} postData={post} />;
         }
       })}
-      {loading && (
-        <p className="text-center text-gray-400 py-4">Loading more posts...</p>
+      {loading && posts.length > 0 && (
+        <div className="py-4">
+          <PostSkeleton />
+        </div>
       )}
       {!loading && !hasMore && posts.length > 0 && (
         <p className="text-center text-gray-500 py-4">
