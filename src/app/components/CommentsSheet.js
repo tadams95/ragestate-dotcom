@@ -140,7 +140,7 @@ export default function CommentsSheet({ postId, onClose }) {
               className="flex items-start space-x-3"
               role="listitem"
             >
-              <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center overflow-hidden">
+              <div className="w-8 h-8 rounded-md bg-white/10 flex items-center justify-center overflow-hidden">
                 {c.userProfilePicture ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img

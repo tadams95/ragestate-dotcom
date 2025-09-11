@@ -24,8 +24,11 @@ import {
 import Post from "../../components/Post";
 import Followbutton from "../../components/Followbutton";
 import { formatDate } from "@/utils/formatters";
+import Header from "@/app/components/Header";
+import { useRouter } from "next/navigation";
 
 export default function ProfilePage({ params }) {
+  const router = useRouter();
   const { currentUser } = useAuth();
   const profileUserId = params?.userId;
 
@@ -51,17 +54,22 @@ export default function ProfilePage({ params }) {
     async function loadProfile() {
       if (!profileUserId) return;
       try {
-        const snap = await getDoc(doc(db, "profiles", profileUserId));
+        const [profileSnap, customerSnap] = await Promise.all([
+          getDoc(doc(db, "profiles", profileUserId)),
+          getDoc(doc(db, "customers", profileUserId)),
+        ]);
         if (!cancelled) {
-          const data = snap.exists() ? snap.data() : {};
+          const p = profileSnap.exists() ? profileSnap.data() : {};
+          const c = customerSnap.exists() ? customerSnap.data() : {};
           setProfile({
             displayName:
-              data.displayName ||
-              `${data.firstName || ""} ${data.lastName || ""}`.trim() ||
+              p.displayName ||
+              `${p.firstName || ""} ${p.lastName || ""}`.trim() ||
               "User",
-            photoURL: data.photoURL || data.profilePicture || "",
-            bio: data.bio || "",
-            usernameLower: data.usernameLower || "",
+            // Prefer explicit profile photoURL; fallback to customers.profilePicture; then legacy field
+            photoURL: p.photoURL || c.profilePicture || p.profilePicture || "",
+            bio: p.bio || "",
+            usernameLower: p.usernameLower || "",
           });
         }
       } catch (e) {
@@ -161,79 +169,97 @@ export default function ProfilePage({ params }) {
   const isOwnProfile = currentUser?.uid === profileUserId;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6 text-white">
-      {/* Header */}
-      <div className="bg-[#0d0d0f] border border-white/10 rounded-2xl p-5 mb-6 flex items-center gap-4">
-        <div className="w-16 h-16 rounded-full overflow-hidden bg-white/10 flex items-center justify-center">
-          {profile.photoURL ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={profile.photoURL}
-              alt={profile.displayName}
-              className="w-full h-full object-cover"
+    <div className="bg-black min-h-screen text-white">
+      <Header />
+      <div className="max-w-3xl mx-auto px-4 pt-24 pb-6">
+        {/* Top nav: Back */}
+        <div className="mb-4">
+          <button
+            onClick={() => router.back()}
+            className="inline-flex items-center gap-2 text-sm text-gray-300 hover:text-white"
+            aria-label="Go back"
+          >
+            <span aria-hidden>←</span> Back
+          </button>
+        </div>
+        {/* Header */}
+        <div className="bg-[#0d0d0f] border border-white/10 rounded-2xl p-5 mb-6 flex items-center gap-4">
+          <div className="w-16 h-16 rounded-md overflow-hidden bg-white/10 flex items-center justify-center">
+            {profile.photoURL ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={profile.photoURL}
+                alt={profile.displayName}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="text-xl">👤</span>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl font-semibold truncate">
+              {profile.displayName || "User"}
+            </h1>
+            {profile.usernameLower && (
+              <p className="text-xs text-gray-500">@{profile.usernameLower}</p>
+            )}
+            {profile.bio && (
+              <p className="text-sm text-gray-300 mt-1 line-clamp-2">
+                {profile.bio}
+              </p>
+            )}
+            <div className="mt-2 text-sm text-gray-400 flex items-center gap-4">
+              <span>
+                <strong className="text-white">{followersCount}</strong>{" "}
+                Followers
+              </span>
+              <span>
+                <strong className="text-white">{followingCount}</strong>{" "}
+                Following
+              </span>
+            </div>
+          </div>
+          {!isOwnProfile && (
+            <Followbutton
+              targetUserId={profileUserId}
+              onChange={refreshCounts}
             />
-          ) : (
-            <span className="text-xl">👤</span>
           )}
         </div>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-semibold truncate">
-            {profile.displayName || "User"}
-          </h1>
-          {profile.usernameLower && (
-            <p className="text-xs text-gray-500">@{profile.usernameLower}</p>
-          )}
-          {profile.bio && (
-            <p className="text-sm text-gray-300 mt-1 line-clamp-2">
-              {profile.bio}
-            </p>
-          )}
-          <div className="mt-2 text-sm text-gray-400 flex items-center gap-4">
-            <span>
-              <strong className="text-white">{followersCount}</strong> Followers
-            </span>
-            <span>
-              <strong className="text-white">{followingCount}</strong> Following
-            </span>
-          </div>
+
+        {/* Tabs (only Posts for now) */}
+        <div className="flex items-center gap-3 mb-4 border-b border-white/10">
+          <button className="py-2 px-1 text-sm font-semibold text-white border-b-2 border-[#ff1f42]">
+            Posts
+          </button>
+          {/* Future tabs: About, Followers, Following */}
         </div>
-        {!isOwnProfile && (
-          <Followbutton targetUserId={profileUserId} onChange={refreshCounts} />
-        )}
-      </div>
 
-      {/* Tabs (only Posts for now) */}
-      <div className="flex items-center gap-3 mb-4 border-b border-white/10">
-        <button className="py-2 px-1 text-sm font-semibold text-white border-b-2 border-[#ff1f42]">
-          Posts
-        </button>
-        {/* Future tabs: About, Followers, Following */}
-      </div>
-
-      {/* Posts list */}
-      <div className="space-y-4">
-        {posts.map((p) => (
-          <Post
-            key={p.id}
-            postData={{ ...p, usernameLower: profile.usernameLower }}
-          />
-        ))}
-        {loadingPosts && (
-          <p className="text-center text-gray-400 py-4">Loading…</p>
-        )}
-        {!loadingPosts && hasMore && (
-          <div className="flex justify-center py-4">
-            <button
-              onClick={loadPosts}
-              className="px-4 py-2 text-sm font-semibold rounded-lg bg-[#16171a] border border-white/10 hover:bg-white/10"
-            >
-              Load more
-            </button>
-          </div>
-        )}
-        {!loadingPosts && !hasMore && posts.length === 0 && (
-          <p className="text-center text-gray-400 py-8">No posts yet.</p>
-        )}
+        {/* Posts list */}
+        <div className="space-y-4">
+          {posts.map((p) => (
+            <Post
+              key={p.id}
+              postData={{ ...p, usernameLower: profile.usernameLower }}
+            />
+          ))}
+          {loadingPosts && (
+            <p className="text-center text-gray-400 py-4">Loading…</p>
+          )}
+          {!loadingPosts && hasMore && (
+            <div className="flex justify-center py-4">
+              <button
+                onClick={loadPosts}
+                className="px-4 py-2 text-sm font-semibold rounded-lg bg-[#16171a] border border-white/10 hover:bg-white/10"
+              >
+                Load more
+              </button>
+            </div>
+          )}
+          {!loadingPosts && !hasMore && posts.length === 0 && (
+            <p className="text-center text-gray-400 py-8">No posts yet.</p>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -17,10 +17,10 @@ export default function PostHeader({
             <img
               src={avatarUrl}
               alt={author || "User"}
-              className="w-8 h-8 rounded-full object-cover border border-white/10"
+              className="w-8 h-8 rounded-md object-cover border border-white/10"
             />
           ) : (
-            <div className="w-8 h-8 bg-gray-500 rounded-full" />
+            <div className="w-8 h-8 bg-gray-500 rounded-md" />
           )}
         </Link>
       ) : avatarUrl ? (
@@ -28,10 +28,10 @@ export default function PostHeader({
         <img
           src={avatarUrl}
           alt={author || "User"}
-          className="w-8 h-8 rounded-full object-cover border border-white/10"
+          className="w-8 h-8 rounded-md object-cover border border-white/10"
         />
       ) : (
-        <div className="w-8 h-8 bg-gray-500 rounded-full" />
+        <div className="w-8 h-8 bg-gray-500 rounded-md" />
       )}
       <div>
         {usernameLower ? (
