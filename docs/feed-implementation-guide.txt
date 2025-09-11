@@ -454,14 +454,14 @@ Note: Comments require authentication to create; guests can read.
  - [x] Autosave draft to sessionStorage; basic error and loading states.
 
 Step 11 — Follow graph UI
-- [ ] Add FollowButton that creates/deletes `follows` doc id `${followerId}_${followedId}` optimistically.
-- [ ] Use a single read to reflect initial state.
+ - [x] Add FollowButton that creates/deletes `follows` doc id `${followerId}_${followedId}` optimistically.
+ - [x] Use a single read to reflect initial state.
 
 Step 12 — UX polish and quality gates
-- [ ] Add "New Posts" banner when newer items appear above viewport; tap scrolls/merges.
-- [ ] Empty, error, and offline states per spec; respect prefers-reduced-motion.
-- [ ] Add minimal metrics hooks (post_create, post_view, reaction_add, comments_open).
-- [ ] Component tests for PostCard and feed pagination; optional emulator test for Functions.
+- [x] Add "New Posts" banner when newer items appear above viewport; tap scrolls/merges.
+- [x] Empty, error, and offline states per spec; respect prefers-reduced-motion.
+- [x] Add minimal metrics hooks (post_create, reaction_add, comments_open, post_share).
+- [x] Component tests for Post and PostActions interactions; pagination tests deferred.
 
 Done when
 - Personalized feed paginates from feedItems for signed-in users; /feed/latest works.

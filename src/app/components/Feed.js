@@ -1,24 +1,25 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useAuth } from "../../../firebase/context/FirebaseContext";
-import { db } from "../../../firebase/firebase";
-import Post from "./Post";
-import PostSkeleton from "./PostSkeleton";
+import { track } from '@/app/utils/metrics';
+import { formatDate } from '@/utils/formatters';
 import {
   collection,
   doc,
+  documentId,
   getDoc,
   getDocs,
-  query,
-  where,
-  documentId,
-  orderBy,
   limit,
-  startAfter,
   onSnapshot,
-} from "firebase/firestore";
-import { formatDate } from "@/utils/formatters";
+  orderBy,
+  query,
+  startAfter,
+  where,
+} from 'firebase/firestore';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useAuth } from '../../../firebase/context/FirebaseContext';
+import { db } from '../../../firebase/firebase';
+import Post from './Post';
+import PostSkeleton from './PostSkeleton';
 
 // Firestore 'in' queries accept up to 10 IDs; page size <= 10 is safest
 const PAGE_SIZE = 10;
@@ -37,6 +38,8 @@ export default function Feed({ forcePublic = false }) {
   const topSentinelRef = useRef(null);
   const [isAtTop, setIsAtTop] = useState(true);
   const [pendingNew, setPendingNew] = useState([]);
+  const [isOnline, setIsOnline] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   const resetAndLoad = useCallback(() => {
     setPosts([]);
@@ -59,19 +62,30 @@ export default function Feed({ forcePublic = false }) {
       if (isAtTop) {
         setPosts((prev) => [post, ...prev.filter((p) => p.id !== post.id)]);
       } else {
-        setPendingNew((prev) => [
-          post,
-          ...prev.filter((p) => p.id !== post.id),
-        ]);
+        setPendingNew((prev) => [post, ...prev.filter((p) => p.id !== post.id)]);
       }
     }
-    if (typeof window !== "undefined") {
-      window.addEventListener("feed:new-post", onNewPost);
+    if (typeof window !== 'undefined') {
+      window.addEventListener('feed:new-post', onNewPost);
     }
     return () => {
-      if (typeof window !== "undefined") {
-        window.removeEventListener("feed:new-post", onNewPost);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('feed:new-post', onNewPost);
       }
+    };
+    // We intentionally do not include isAtTop here to avoid re-binding the handler per scroll.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Offline/online listener
+  useEffect(() => {
+    const update = () => setIsOnline(typeof navigator === 'undefined' ? true : navigator.onLine);
+    update();
+    window.addEventListener('online', update);
+    window.addEventListener('offline', update);
+    return () => {
+      window.removeEventListener('online', update);
+      window.removeEventListener('offline', update);
     };
   }, []);
 
@@ -81,38 +95,30 @@ export default function Feed({ forcePublic = false }) {
     if (forcePublic) {
       // Always public mode listener
       const q = query(
-        collection(db, "posts"),
-        where("isPublic", "==", true),
-        orderBy("timestamp", "desc"),
-        limit(1)
+        collection(db, 'posts'),
+        where('isPublic', '==', true),
+        orderBy('timestamp', 'desc'),
+        limit(1),
       );
       unsub = onSnapshot(q, (snap) => {
         snap.docChanges().forEach((chg) => {
-          if (chg.type === "added") {
+          if (chg.type === 'added') {
             const d = chg.doc;
             const p = d.data();
             const mapped = {
               id: d.id,
-              author: p.userDisplayName || p.userId || "User",
+              userId: p.userId,
+              author: p.userDisplayName || p.userId || 'User',
               avatarUrl: p.userProfilePicture || null,
-              timestamp: formatDate(
-                p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp
-              ),
-              content: p.content || "",
-              likeCount: typeof p.likeCount === "number" ? p.likeCount : 0,
-              commentCount:
-                typeof p.commentCount === "number" ? p.commentCount : 0,
+              timestamp: formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp),
+              content: p.content || '',
+              likeCount: typeof p.likeCount === 'number' ? p.likeCount : 0,
+              commentCount: typeof p.commentCount === 'number' ? p.commentCount : 0,
             };
             if (isAtTop) {
-              setPosts((prev) => [
-                mapped,
-                ...prev.filter((x) => x.id !== mapped.id),
-              ]);
+              setPosts((prev) => [mapped, ...prev.filter((x) => x.id !== mapped.id)]);
             } else {
-              setPendingNew((prev) => [
-                mapped,
-                ...prev.filter((x) => x.id !== mapped.id),
-              ]);
+              setPendingNew((prev) => [mapped, ...prev.filter((x) => x.id !== mapped.id)]);
             }
           }
         });
@@ -120,84 +126,68 @@ export default function Feed({ forcePublic = false }) {
       return () => unsub && unsub();
     }
 
-    if (feedMode === "public") {
+    if (feedMode === 'public') {
       const q = query(
-        collection(db, "posts"),
-        where("isPublic", "==", true),
-        orderBy("timestamp", "desc"),
-        limit(1)
+        collection(db, 'posts'),
+        where('isPublic', '==', true),
+        orderBy('timestamp', 'desc'),
+        limit(1),
       );
       unsub = onSnapshot(q, (snap) => {
         snap.docChanges().forEach((chg) => {
-          if (chg.type === "added") {
+          if (chg.type === 'added') {
             const d = chg.doc;
             const p = d.data();
             const mapped = {
               id: d.id,
-              author: p.userDisplayName || p.userId || "User",
+              userId: p.userId,
+              author: p.userDisplayName || p.userId || 'User',
               avatarUrl: p.userProfilePicture || null,
-              timestamp: formatDate(
-                p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp
-              ),
-              content: p.content || "",
-              likeCount: typeof p.likeCount === "number" ? p.likeCount : 0,
-              commentCount:
-                typeof p.commentCount === "number" ? p.commentCount : 0,
+              timestamp: formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp),
+              content: p.content || '',
+              likeCount: typeof p.likeCount === 'number' ? p.likeCount : 0,
+              commentCount: typeof p.commentCount === 'number' ? p.commentCount : 0,
             };
             if (isAtTop) {
-              setPosts((prev) => [
-                mapped,
-                ...prev.filter((x) => x.id !== mapped.id),
-              ]);
+              setPosts((prev) => [mapped, ...prev.filter((x) => x.id !== mapped.id)]);
             } else {
-              setPendingNew((prev) => [
-                mapped,
-                ...prev.filter((x) => x.id !== mapped.id),
-              ]);
+              setPendingNew((prev) => [mapped, ...prev.filter((x) => x.id !== mapped.id)]);
             }
           }
         });
       });
-    } else if (feedMode === "user" && currentUser?.uid) {
+    } else if (feedMode === 'user' && currentUser?.uid) {
       const q = query(
-        collection(db, "userFeeds", currentUser.uid, "feedItems"),
-        orderBy("timestamp", "desc"),
-        limit(1)
+        collection(db, 'userFeeds', currentUser.uid, 'feedItems'),
+        orderBy('timestamp', 'desc'),
+        limit(1),
       );
       unsub = onSnapshot(q, async (snap) => {
         for (const chg of snap.docChanges()) {
-          if (chg.type === "added") {
+          if (chg.type === 'added') {
             const id = chg.doc.id;
             try {
-              const postSnap = await getDoc(doc(db, "posts", id));
+              const postSnap = await getDoc(doc(db, 'posts', id));
               if (postSnap.exists()) {
                 const p = postSnap.data();
                 const mapped = {
                   id: postSnap.id,
-                  author: p.userDisplayName || p.userId || "User",
+                  userId: p.userId,
+                  author: p.userDisplayName || p.userId || 'User',
                   avatarUrl: p.userProfilePicture || null,
-                  timestamp: formatDate(
-                    p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp
-                  ),
-                  content: p.content || "",
-                  likeCount: typeof p.likeCount === "number" ? p.likeCount : 0,
-                  commentCount:
-                    typeof p.commentCount === "number" ? p.commentCount : 0,
+                  timestamp: formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp),
+                  content: p.content || '',
+                  likeCount: typeof p.likeCount === 'number' ? p.likeCount : 0,
+                  commentCount: typeof p.commentCount === 'number' ? p.commentCount : 0,
                 };
                 if (isAtTop) {
-                  setPosts((prev) => [
-                    mapped,
-                    ...prev.filter((x) => x.id !== mapped.id),
-                  ]);
+                  setPosts((prev) => [mapped, ...prev.filter((x) => x.id !== mapped.id)]);
                 } else {
-                  setPendingNew((prev) => [
-                    mapped,
-                    ...prev.filter((x) => x.id !== mapped.id),
-                  ]);
+                  setPendingNew((prev) => [mapped, ...prev.filter((x) => x.id !== mapped.id)]);
                 }
               }
             } catch (e) {
-              console.warn("Failed to fetch live post", id, e);
+              console.warn('Failed to fetch live post', id, e);
             }
           }
         }
@@ -205,6 +195,8 @@ export default function Feed({ forcePublic = false }) {
     }
 
     return () => unsub && unsub();
+    // We intentionally ignore isAtTop to avoid thrashing the listener when scrolling
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feedMode, currentUser, forcePublic]);
 
   // Track whether top of list is visible
@@ -213,7 +205,7 @@ export default function Feed({ forcePublic = false }) {
     if (topObserver.current) topObserver.current.disconnect();
     topObserver.current = new IntersectionObserver(
       (entries) => setIsAtTop(entries[0]?.isIntersecting ?? true),
-      { root: null, threshold: 0.01 }
+      { root: null, threshold: 0.01 },
     );
     topObserver.current.observe(topSentinelRef.current);
     return () => topObserver.current && topObserver.current.disconnect();
@@ -228,8 +220,14 @@ export default function Feed({ forcePublic = false }) {
     });
     setPendingNew([]);
     try {
-      if (typeof window !== "undefined")
-        window.scrollTo({ top: 0, behavior: "smooth" });
+      if (typeof window !== 'undefined') {
+        const prefersReduced =
+          window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        window.scrollTo({ top: 0, behavior: prefersReduced ? 'auto' : 'smooth' });
+      }
+    } catch {}
+    try {
+      track('feed_new_banner_click', { count: pendingNew.length });
     } catch {}
   }, [pendingNew]);
 
@@ -240,52 +238,50 @@ export default function Feed({ forcePublic = false }) {
       // Determine mode synchronously for this call
       let mode = feedMode;
       if (forcePublic) {
-        mode = "public";
+        mode = 'public';
         setFeedMode(mode);
       }
 
       if (!mode) {
         if (!currentUser) {
-          mode = "public";
+          mode = 'public';
         } else {
           // Try personalized feed first by peeking at one feedItems doc
           const firstPageQ = query(
-            collection(db, "userFeeds", currentUser.uid, "feedItems"),
-            orderBy("timestamp", "desc"),
-            limit(PAGE_SIZE)
+            collection(db, 'userFeeds', currentUser.uid, 'feedItems'),
+            orderBy('timestamp', 'desc'),
+            limit(PAGE_SIZE),
           );
           const peek = await getDocs(firstPageQ);
-          mode = peek.size > 0 ? "user" : "public";
+          mode = peek.size > 0 ? 'user' : 'public';
         }
         // Persist for subsequent calls
         setFeedMode(mode);
       }
 
       // PUBLIC mode: show latest posts site-wide
-      if (!currentUser || mode === "public") {
+      if (!currentUser || mode === 'public') {
         try {
           const constraints = [
-            where("isPublic", "==", true),
-            orderBy("timestamp", "desc"),
+            where('isPublic', '==', true),
+            orderBy('timestamp', 'desc'),
             limit(PAGE_SIZE),
           ];
           if (lastPublicDoc) constraints.push(startAfter(lastPublicDoc));
-          const qPublic = query(collection(db, "posts"), ...constraints);
+          const qPublic = query(collection(db, 'posts'), ...constraints);
           const snap = await getDocs(qPublic);
 
           const mapped = snap.docs.map((d) => {
             const p = d.data();
             return {
               id: d.id,
-              author: p.userDisplayName || p.userId || "User",
+              userId: p.userId,
+              author: p.userDisplayName || p.userId || 'User',
               avatarUrl: p.userProfilePicture || null,
-              timestamp: formatDate(
-                p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp
-              ),
-              content: p.content || "",
-              likeCount: typeof p.likeCount === "number" ? p.likeCount : 0,
-              commentCount:
-                typeof p.commentCount === "number" ? p.commentCount : 0,
+              timestamp: formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp),
+              content: p.content || '',
+              likeCount: typeof p.likeCount === 'number' ? p.likeCount : 0,
+              commentCount: typeof p.commentCount === 'number' ? p.commentCount : 0,
             };
           });
 
@@ -297,31 +293,30 @@ export default function Feed({ forcePublic = false }) {
           });
           setLastPublicDoc(snap.docs[snap.docs.length - 1] || null);
           if (snap.size < PAGE_SIZE) setHasMore(false);
+          setLoadError('');
           return;
         } catch (e) {
           // Likely missing composite index: fall back to timestamp-only query and filter client-side
           console.warn(
-            "Public feed index missing, falling back to timestamp-only query",
-            e?.code || e
+            'Public feed index missing, falling back to timestamp-only query',
+            e?.code || e,
           );
-          const constraints = [orderBy("timestamp", "desc"), limit(PAGE_SIZE)];
+          const constraints = [orderBy('timestamp', 'desc'), limit(PAGE_SIZE)];
           if (lastPublicDoc) constraints.push(startAfter(lastPublicDoc));
-          const qFallback = query(collection(db, "posts"), ...constraints);
+          const qFallback = query(collection(db, 'posts'), ...constraints);
           const snap = await getDocs(qFallback);
           const mapped = snap.docs
             .map((d) => ({ id: d.id, ...d.data() }))
             .filter((p) => p.isPublic)
             .map((p) => ({
               id: p.id,
-              author: p.userDisplayName || p.userId || "User",
+              userId: p.userId,
+              author: p.userDisplayName || p.userId || 'User',
               avatarUrl: p.userProfilePicture || null,
-              timestamp: formatDate(
-                p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp
-              ),
-              content: p.content || "",
-              likeCount: typeof p.likeCount === "number" ? p.likeCount : 0,
-              commentCount:
-                typeof p.commentCount === "number" ? p.commentCount : 0,
+              timestamp: formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp),
+              content: p.content || '',
+              likeCount: typeof p.likeCount === 'number' ? p.likeCount : 0,
+              commentCount: typeof p.commentCount === 'number' ? p.commentCount : 0,
             }));
 
           // Append without duplicating existing post IDs
@@ -332,22 +327,23 @@ export default function Feed({ forcePublic = false }) {
           });
           setLastPublicDoc(snap.docs[snap.docs.length - 1] || null);
           if (snap.size < PAGE_SIZE) setHasMore(false);
+          setLoadError('');
           return;
         }
       }
 
       // USER mode: read from userFeeds/{uid}/feedItems ordered by timestamp desc
-      const constraints = [orderBy("timestamp", "desc"), limit(PAGE_SIZE)];
+      const constraints = [orderBy('timestamp', 'desc'), limit(PAGE_SIZE)];
       if (lastPersonalDoc) constraints.push(startAfter(lastPersonalDoc));
       const feedItemsQ = query(
-        collection(db, "userFeeds", currentUser.uid, "feedItems"),
-        ...constraints
+        collection(db, 'userFeeds', currentUser.uid, 'feedItems'),
+        ...constraints,
       );
       const feedSnap = await getDocs(feedItemsQ);
 
       if (feedSnap.empty) {
         // If no personalized items, gracefully switch to public mode
-        setFeedMode("public");
+        setFeedMode('public');
         setLastPersonalDoc(null);
         setLoading(false);
         // Trigger a public fetch on next intersection
@@ -357,15 +353,11 @@ export default function Feed({ forcePublic = false }) {
       const ids = feedSnap.docs.map((d) => d.id);
       // Fetch posts in chunks of 10
       const chunks = [];
-      for (let i = 0; i < ids.length; i += 10)
-        chunks.push(ids.slice(i, i + 10));
+      for (let i = 0; i < ids.length; i += 10) chunks.push(ids.slice(i, i + 10));
 
       const results = [];
       for (const group of chunks) {
-        const qIds = query(
-          collection(db, "posts"),
-          where(documentId(), "in", group)
-        );
+        const qIds = query(collection(db, 'posts'), where(documentId(), 'in', group));
         const snap = await getDocs(qIds);
         snap.forEach((d) => results.push({ id: d.id, ...d.data() }));
       }
@@ -379,14 +371,13 @@ export default function Feed({ forcePublic = false }) {
 
       const mapped = results.map((p) => ({
         id: p.id,
-        author: p.userDisplayName || p.userId || "User",
+        userId: p.userId,
+        author: p.userDisplayName || p.userId || 'User',
         avatarUrl: p.userProfilePicture || null,
-        timestamp: formatDate(
-          p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp
-        ),
-        content: p.content || "",
-        likeCount: typeof p.likeCount === "number" ? p.likeCount : 0,
-        commentCount: typeof p.commentCount === "number" ? p.commentCount : 0,
+        timestamp: formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp),
+        content: p.content || '',
+        likeCount: typeof p.likeCount === 'number' ? p.likeCount : 0,
+        commentCount: typeof p.commentCount === 'number' ? p.commentCount : 0,
       }));
 
       // Append without duplicating existing post IDs
@@ -398,11 +389,12 @@ export default function Feed({ forcePublic = false }) {
       setLastPersonalDoc(feedSnap.docs[feedSnap.docs.length - 1] || null);
       if (feedSnap.size < PAGE_SIZE) setHasMore(false);
     } catch (err) {
-      console.error("Failed to fetch feed:", err);
+      console.error('Failed to fetch feed:', err);
+      setLoadError('Failed to load posts. Pull to refresh or try again.');
     } finally {
       setLoading(false);
     }
-  }, [currentUser, hasMore, loading, feedMode, lastPublicDoc, lastPersonalDoc]);
+  }, [currentUser, hasMore, loading, feedMode, lastPublicDoc, lastPersonalDoc, forcePublic]);
 
   // Intersection observer for infinite scroll
   const lastPostElementRef = useCallback(
@@ -415,11 +407,11 @@ export default function Feed({ forcePublic = false }) {
             fetchFeedPage();
           }
         },
-        { root: null, rootMargin: "600px 0px", threshold: 0 }
+        { root: null, rootMargin: '600px 0px', threshold: 0 },
       );
       if (node) observer.current.observe(node);
     },
-    [loading, hasMore, fetchFeedPage]
+    [loading, hasMore, fetchFeedPage],
   );
 
   // Initial load once auth settles
@@ -437,7 +429,7 @@ export default function Feed({ forcePublic = false }) {
 
   if (posts.length === 0 && loading) {
     return (
-      <div className="max-w-2xl mx-auto">
+      <div className="mx-auto max-w-2xl">
         {Array.from({ length: 3 }).map((_, i) => (
           <PostSkeleton key={i} />
         ))}
@@ -447,17 +439,27 @@ export default function Feed({ forcePublic = false }) {
 
   if (posts.length === 0 && !hasMore) {
     return (
-      <p className="text-center text-gray-400">
-        No posts yet.{" "}
-        {currentUser
-          ? "Follow creators to see updates."
-          : "Sign in to personalize your feed."}
-      </p>
+      <div className="mx-auto max-w-2xl p-4 text-center text-gray-400">
+        {!isOnline && (
+          <p className="mb-2 rounded border border-white/10 bg-white/5 p-3">
+            You're offline. Showing cached content if available.
+          </p>
+        )}
+        {loadError && (
+          <p className="mb-2 rounded border border-red-500/20 bg-red-500/10 p-3 text-red-300">
+            {loadError}
+          </p>
+        )}
+        <p>
+          No posts yet.{' '}
+          {currentUser ? 'Follow creators to see updates.' : 'Sign in to personalize your feed.'}
+        </p>
+      </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="mx-auto max-w-2xl">
       {/* Top sentinel to detect if user is at top */}
       <div ref={topSentinelRef} aria-hidden className="h-0" />
 
@@ -466,16 +468,21 @@ export default function Feed({ forcePublic = false }) {
         <div className="sticky top-2 z-20 mb-2 flex justify-center">
           <button
             onClick={applyPending}
-            className="px-3 py-1.5 text-sm font-semibold rounded-full bg-[#ff1f42] text-white shadow hover:bg-[#ff415f] active:opacity-90"
+            className="rounded-full bg-[#ff1f42] px-3 py-1.5 text-sm font-semibold text-white shadow hover:bg-[#ff415f] active:opacity-90"
             aria-label={`Show ${pendingNew.length} new ${
-              pendingNew.length === 1 ? "post" : "posts"
+              pendingNew.length === 1 ? 'post' : 'posts'
             }`}
-            title={`Show ${pendingNew.length} new ${
-              pendingNew.length === 1 ? "post" : "posts"
-            }`}
+            title={`Show ${pendingNew.length} new ${pendingNew.length === 1 ? 'post' : 'posts'}`}
           >
-            {pendingNew.length} new {pendingNew.length === 1 ? "post" : "posts"}
+            {pendingNew.length} new {pendingNew.length === 1 ? 'post' : 'posts'}
           </button>
+        </div>
+      )}
+      {!isOnline && (
+        <div className="sticky top-2 z-10 mb-2 flex justify-center">
+          <div className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-gray-300">
+            Offline — actions may be delayed
+          </div>
         </div>
       )}
       {posts.map((post, index) => {
@@ -495,9 +502,7 @@ export default function Feed({ forcePublic = false }) {
         </div>
       )}
       {!loading && !hasMore && posts.length > 0 && (
-        <p className="text-center text-gray-500 py-4">
-          You've reached the end!
-        </p>
+        <p className="py-4 text-center text-gray-500">You've reached the end!</p>
       )}
     </div>
   );

@@ -1,22 +1,12 @@
-"use client";
+'use client';
 
-import React, { useMemo, useState, useCallback, useRef } from "react";
-import { useAuth } from "../../../firebase/context/FirebaseContext";
-import { db } from "../../../firebase/firebase";
-import {
-  doc,
-  setDoc,
-  deleteDoc,
-  getDoc,
-  serverTimestamp,
-} from "firebase/firestore";
+import { track } from '@/app/utils/metrics';
+import { deleteDoc, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { useAuth } from '../../../firebase/context/FirebaseContext';
+import { db } from '../../../firebase/firebase';
 
-export default function PostActions({
-  postId,
-  likeCount = 0,
-  commentCount = 0,
-  onOpenComments,
-}) {
+export default function PostActions({ postId, likeCount = 0, commentCount = 0, onOpenComments }) {
   const { currentUser } = useAuth();
   const [optimisticLikes, setOptimisticLikes] = useState(likeCount);
   const [isLiking, setIsLiking] = useState(false);
@@ -29,7 +19,7 @@ export default function PostActions({
   // Build like doc id `${postId}_${uid}` when signed in
   const likeDocRef = useMemo(() => {
     if (!postId || !currentUser?.uid) return null;
-    return doc(db, "postLikes", `${postId}_${currentUser.uid}`);
+    return doc(db, 'postLikes', `${postId}_${currentUser.uid}`);
   }, [postId, currentUser?.uid]);
 
   const checkInitialLike = useCallback(async () => {
@@ -51,7 +41,7 @@ export default function PostActions({
   const onToggleLike = useCallback(async () => {
     if (!currentUser) {
       // You can route to login here or show a toast; keep it simple for now
-      alert("Please sign in to like posts.");
+      alert('Please sign in to like posts.');
       return;
     }
     if (!postId || !likeDocRef || isLiking) return;
@@ -63,6 +53,9 @@ export default function PostActions({
         setOptimisticLikes((n) => Math.max(0, n - 1));
         setHasLiked(false);
         await deleteDoc(likeDocRef);
+        try {
+          track('reaction_add', { postId, type: 'unlike' });
+        } catch {}
       } else {
         // Like
         setOptimisticLikes((n) => n + 1);
@@ -72,13 +65,16 @@ export default function PostActions({
           userId: currentUser.uid,
           timestamp: serverTimestamp(),
         });
+        try {
+          track('reaction_add', { postId, type: 'like' });
+        } catch {}
       }
       // Backend functions will update posts.likeCount; our optimistic UI smooths the UX
     } catch (e) {
       // Revert optimistic change if needed
       setHasLiked((prev) => !prev);
       setOptimisticLikes(likeCount);
-      console.error("Failed to toggle like", e);
+      console.error('Failed to toggle like', e);
     } finally {
       setIsLiking(false);
     }
@@ -106,21 +102,20 @@ export default function PostActions({
   }, [reactions]);
 
   const formatCount = (n) => {
-    if (n >= 1_000_000)
-      return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
-    if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+    if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
     return `${n}`;
   };
 
   // Regular emojis for actions
-  const likeIcon = hasLiked ? "❤️" : "🤍";
-  const commentIcon = "💬";
-  const shareIcon = "↗️";
+  const likeIcon = hasLiked ? '❤️' : '🤍';
+  const commentIcon = '💬';
+  const shareIcon = '↗️';
 
   const onShare = async () => {
     try {
-      let url = "";
-      if (typeof window !== "undefined") {
+      let url = '';
+      if (typeof window !== 'undefined') {
         const origin = window.location.origin;
         url = postId ? `${origin}/post/${postId}` : window.location.href;
       }
@@ -130,6 +125,9 @@ export default function PostActions({
         await navigator.clipboard.writeText(url);
         // Optionally show a toast; keeping minimal
       }
+      try {
+        track('post_share', { postId });
+      } catch {}
     } catch (_) {}
   };
 
@@ -138,8 +136,8 @@ export default function PostActions({
       {/* Reaction cluster */}
       {topReactions.length > 0 && (
         <div
-          className="flex items-center gap-1 text-sm px-2 py-1 rounded-full bg-white/5 border border-white/10"
-          aria-label={topReactions.map(([e, c]) => `${e} ${c}`).join(", ")}
+          className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-sm"
+          aria-label={topReactions.map(([e, c]) => `${e} ${c}`).join(', ')}
         >
           {topReactions.map(([e, c]) => (
             <span key={e} className="inline-flex items-center gap-0.5">
@@ -152,8 +150,8 @@ export default function PostActions({
         </div>
       )}
       <button
-        className={`flex items-center space-x-1 hover:text-white active:opacity-80 h-11 px-2 rounded ${
-          hasLiked ? "text-white" : ""
+        className={`flex h-11 items-center space-x-1 rounded px-2 hover:text-white active:opacity-80 ${
+          hasLiked ? 'text-white' : ''
         }`}
         onClick={onToggleLike}
         onMouseDown={startLongPress}
@@ -163,29 +161,25 @@ export default function PostActions({
         onTouchEnd={cancelLongPress}
         disabled={isLiking}
         aria-pressed={hasLiked}
-        aria-label={hasLiked ? "Unlike" : "Like"}
-        title={hasLiked ? "Unlike" : "Like"}
+        aria-label={hasLiked ? 'Unlike' : 'Like'}
+        title={hasLiked ? 'Unlike' : 'Like'}
       >
         <span className="text-base leading-none">{likeIcon}</span>
-        <span className="text-sm tabular-nums">
-          {formatCount(optimisticLikes)}
-        </span>
+        <span className="text-sm tabular-nums">{formatCount(optimisticLikes)}</span>
       </button>
 
       <button
-        className="flex items-center space-x-1 hover:text-white active:opacity-80 h-11 px-2 rounded"
+        className="flex h-11 items-center space-x-1 rounded px-2 hover:text-white active:opacity-80"
         onClick={onOpenComments}
         aria-label="Comments"
         title="Comments"
       >
         <span className="text-base leading-none">{commentIcon}</span>
-        <span className="text-sm tabular-nums">
-          {formatCount(commentCount)}
-        </span>
+        <span className="text-sm tabular-nums">{formatCount(commentCount)}</span>
       </button>
 
       <button
-        className="flex items-center hover:text-white active:opacity-80 h-11 px-2 rounded"
+        className="flex h-11 items-center rounded px-2 hover:text-white active:opacity-80"
         onClick={onShare}
         aria-label="Share"
         title="Share"
@@ -197,15 +191,15 @@ export default function PostActions({
       {showReactions && (
         <div
           ref={longPressRef}
-          className="absolute mt-[-48px] ml-2 px-2 py-1 rounded-full bg-[#0d0d0f] border border-white/10 shadow-lg flex items-center gap-2"
+          className="absolute ml-2 mt-[-48px] flex items-center gap-2 rounded-full border border-white/10 bg-[#0d0d0f] px-2 py-1 shadow-lg"
           role="dialog"
           aria-label="Add a reaction"
           onMouseLeave={() => setShowReactions(false)}
         >
-          {["👍", "🔥", "😂", "👏", "🎉", "❤️"].map((e) => (
+          {['👍', '🔥', '😂', '👏', '🎉', '❤️'].map((e) => (
             <button
               key={e}
-              className="text-lg hover:scale-110 transition-transform"
+              className="text-lg transition-transform hover:scale-110"
               onClick={() => addReaction(e)}
               aria-label={`React ${e}`}
             >

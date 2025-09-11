@@ -1,26 +1,27 @@
-"use client";
+'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Dialog, DialogPanel } from "@headlessui/react";
-import { useSelector } from "react-redux";
-import { selectUserName } from "../../../lib/features/todos/userSlice";
-import { useAuth } from "../../../firebase/context/FirebaseContext";
-import { db, storage } from "../../../firebase/firebase";
-import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { track } from '@/app/utils/metrics';
+import { Dialog, DialogPanel } from '@headlessui/react';
+import { collection, doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSelector } from 'react-redux';
+import { useAuth } from '../../../firebase/context/FirebaseContext';
+import { db, storage } from '../../../firebase/firebase';
+import { selectUserName } from '../../../lib/features/todos/userSlice';
 
-const DRAFT_KEY = "postComposer.draft";
+const DRAFT_KEY = 'postComposer.draft';
 
 export default function PostComposer() {
   const { currentUser } = useAuth();
   const localUserName = useSelector(selectUserName);
-  const [content, setContent] = useState("");
+  const [content, setContent] = useState('');
   const [file, setFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState("");
+  const [previewUrl, setPreviewUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [open, setOpen] = useState(false);
-  const [savedDraft, setSavedDraft] = useState("");
+  const [savedDraft, setSavedDraft] = useState('');
   const saveTimerRef = useRef(null);
 
   // Load saved draft (don't auto-apply; offer recovery)
@@ -56,7 +57,7 @@ export default function PostComposer() {
   // Generate preview when file selected
   useEffect(() => {
     if (!file) {
-      setPreviewUrl("");
+      setPreviewUrl('');
       return;
     }
     const url = URL.createObjectURL(file);
@@ -73,38 +74,38 @@ export default function PostComposer() {
   const onPickFile = (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    if (!f.type.startsWith("image/")) {
-      setError("Only image files are allowed.");
+    if (!f.type.startsWith('image/')) {
+      setError('Only image files are allowed.');
       return;
     }
-    setError("");
+    setError('');
     setFile(f);
   };
 
   const onRemoveFile = () => {
     setFile(null);
-    setPreviewUrl("");
+    setPreviewUrl('');
   };
 
   const onSubmit = async (e) => {
     e.preventDefault();
     if (!currentUser) {
-      alert("Please sign in to post.");
+      alert('Please sign in to post.');
       return;
     }
     if (!canSubmit) return;
     setSubmitting(true);
-    setError("");
+    setError('');
     try {
       // Create a new post ref to derive postId for storage path
-      const postsCol = collection(db, "posts");
+      const postsCol = collection(db, 'posts');
       const postRef = doc(postsCol);
 
       let mediaUrls = [];
       if (file) {
         const storageRef = ref(
           storage,
-          `posts/${postRef.id}/${Date.now()}_${file.name.replace(/\s+/g, "_")}`
+          `posts/${postRef.id}/${Date.now()}_${file.name.replace(/\s+/g, '_')}`,
         );
         const snap = await uploadBytes(storageRef, file);
         const url = await getDownloadURL(snap.ref);
@@ -112,26 +113,22 @@ export default function PostComposer() {
       }
 
       // Resolve display name and profile image
-      let resolvedName = (
-        localUserName ||
-        currentUser.displayName ||
-        ""
-      ).trim();
+      let resolvedName = (localUserName || currentUser.displayName || '').trim();
       if (!resolvedName) {
         try {
-          const fn = localStorage.getItem("firstName") || "";
-          const ln = localStorage.getItem("lastName") || "";
+          const fn = localStorage.getItem('firstName') || '';
+          const ln = localStorage.getItem('lastName') || '';
           resolvedName = `${fn} ${ln}`.trim();
         } catch {}
       }
       if (!resolvedName) {
-        resolvedName = currentUser.email?.split("@")[0] || "User";
+        resolvedName = currentUser.email?.split('@')[0] || 'User';
       }
 
       let resolvedPhoto = currentUser.photoURL || null;
       if (!resolvedPhoto) {
         try {
-          const lsPhoto = localStorage.getItem("profilePicture");
+          const lsPhoto = localStorage.getItem('profilePicture');
           if (lsPhoto) resolvedPhoto = lsPhoto;
         } catch {}
       }
@@ -150,34 +147,40 @@ export default function PostComposer() {
 
       await setDoc(postRef, payload);
 
+      // Metrics: post_create
+      try {
+        track('post_create', {
+          hasImage: !!mediaUrls.length,
+          contentLength: payload.content?.length || 0,
+        });
+      } catch {}
+
       // Broadcast to feed so it can prepend without a hard refresh
       try {
         const newPost = {
           id: postRef.id,
-          author: payload.userDisplayName || payload.userId || "User",
+          author: payload.userDisplayName || payload.userId || 'User',
           avatarUrl: payload.userProfilePicture || null,
-          timestamp: "Just now",
+          timestamp: 'Just now',
           content: payload.content,
           likeCount: 0,
           commentCount: 0,
         };
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(
-            new CustomEvent("feed:new-post", { detail: newPost })
-          );
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('feed:new-post', { detail: newPost }));
         }
       } catch {}
 
       // Reset form and draft
-      setContent("");
+      setContent('');
       setFile(null);
-      setPreviewUrl("");
+      setPreviewUrl('');
       try {
         sessionStorage.removeItem(DRAFT_KEY);
       } catch {}
     } catch (err) {
-      console.error("Failed to create post:", err);
-      setError("Failed to create post. Please try again.");
+      console.error('Failed to create post:', err);
+      setError('Failed to create post. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -186,21 +189,21 @@ export default function PostComposer() {
   if (!currentUser) return null; // Keep minimal per spec
 
   return (
-    <div className="max-w-2xl mx-auto mb-6">
+    <div className="mx-auto mb-6 max-w-2xl">
       {/* Collapsed trigger */}
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full bg-[#0d0d0f] text-left text-gray-300 hover:text-white p-3 rounded-[14px] border border-white/10 active:opacity-80"
+        className="w-full rounded-[14px] border border-white/10 bg-[#0d0d0f] p-3 text-left text-gray-300 hover:text-white active:opacity-80"
       >
-        {savedDraft && !content ? "Continue your draft…" : "Share something…"}
+        {savedDraft && !content ? 'Continue your draft…' : 'Share something…'}
       </button>
 
       <Dialog open={open} onClose={setOpen} className="relative z-50">
         <div className="fixed inset-0 bg-black/60" aria-hidden="true" />
-        <div className="fixed inset-0 flex items-end sm:items-center justify-center supports-[padding:env(safe-area-inset-bottom)]:pb-[env(safe-area-inset-bottom)]">
-          <DialogPanel className="w-full sm:max-w-2xl bg-[#0d0d0f] text-white rounded-t-2xl sm:rounded-2xl border border-white/10 shadow-xl p-4 sm:p-6">
-            <div className="flex items-center justify-between mb-2">
+        <div className="fixed inset-0 flex items-end justify-center supports-[padding:env(safe-area-inset-bottom)]:pb-[env(safe-area-inset-bottom)] sm:items-center">
+          <DialogPanel className="w-full rounded-t-2xl border border-white/10 bg-[#0d0d0f] p-4 text-white shadow-xl sm:max-w-2xl sm:rounded-2xl sm:p-6">
+            <div className="mb-2 flex items-center justify-between">
               <h3 className="text-base font-semibold">Create post</h3>
               <button
                 onClick={() => setOpen(false)}
@@ -212,11 +215,11 @@ export default function PostComposer() {
             </div>
             {/* Recovery prompt */}
             {savedDraft && !content && (
-              <div className="mb-3 text-sm text-gray-300 bg-white/5 border border-white/10 rounded p-3 flex items-center justify-between">
+              <div className="mb-3 flex items-center justify-between rounded border border-white/10 bg-white/5 p-3 text-sm text-gray-300">
                 <span>We found a saved draft.</span>
                 <div className="space-x-2">
                   <button
-                    className="text-[#ff1f42] hover:text-[#ff415f] font-semibold"
+                    className="font-semibold text-[#ff1f42] hover:text-[#ff415f]"
                     onClick={() => {
                       setContent(savedDraft);
                     }}
@@ -229,7 +232,7 @@ export default function PostComposer() {
                       try {
                         sessionStorage.removeItem(DRAFT_KEY);
                       } catch {}
-                      setSavedDraft("");
+                      setSavedDraft('');
                     }}
                   >
                     Dismiss
@@ -240,7 +243,7 @@ export default function PostComposer() {
 
             <form onSubmit={onSubmit}>
               <textarea
-                className="w-full bg-transparent text-white placeholder-gray-500 outline-none resize-none min-h-[120px]"
+                className="min-h-[120px] w-full resize-none bg-transparent text-white placeholder-gray-500 outline-none"
                 placeholder="What's happening?"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
@@ -248,39 +251,34 @@ export default function PostComposer() {
                 autoFocus
               />
               {previewUrl && (
-                <div className="mt-3 relative">
+                <div className="relative mt-3">
                   {/* Using regular img for blob URL preview keeps it simple; set explicit dimensions to reduce CLS */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={previewUrl}
                     alt="Selected preview"
-                    className="rounded-md object-contain border border-white/10 max-h-[60vh] w-full"
+                    className="max-h-[60vh] w-full rounded-md border border-white/10 object-contain"
                     loading="eager"
                   />
                   <button
                     type="button"
                     onClick={onRemoveFile}
-                    className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded"
+                    className="absolute right-2 top-2 rounded bg-black/60 px-2 py-1 text-xs text-white"
                   >
                     Remove
                   </button>
                 </div>
               )}
               {error && (
-                <p className="text-red-400 text-sm mt-2" role="alert">
+                <p className="mt-2 text-sm text-red-400" role="alert">
                   {error}
                 </p>
               )}
-              <div className="flex items-center justify-between mt-4">
+              <div className="mt-4 flex items-center justify-between">
                 <div>
-                  <label className="inline-flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:text-white h-11">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={onPickFile}
-                      className="hidden"
-                    />
-                    <span className="px-3 py-2.5 border border-white/20 rounded hover:bg-white/10 active:opacity-80 inline-flex items-center">
+                  <label className="inline-flex h-11 cursor-pointer items-center gap-2 text-sm text-gray-300 hover:text-white">
+                    <input type="file" accept="image/*" onChange={onPickFile} className="hidden" />
+                    <span className="inline-flex items-center rounded border border-white/20 px-3 py-2.5 hover:bg-white/10 active:opacity-80">
                       Add image
                     </span>
                   </label>
@@ -288,13 +286,13 @@ export default function PostComposer() {
                 <button
                   type="submit"
                   disabled={!canSubmit}
-                  className={`px-4 py-2.5 h-11 rounded font-semibold active:opacity-80 ${
+                  className={`h-11 rounded px-4 py-2.5 font-semibold active:opacity-80 ${
                     canSubmit
-                      ? "bg-[#ff1f42] hover:bg-[#ff415f] text-white"
-                      : "bg-gray-700 text-gray-400 cursor-not-allowed"
+                      ? 'bg-[#ff1f42] text-white hover:bg-[#ff415f]'
+                      : 'cursor-not-allowed bg-gray-700 text-gray-400'
                   }`}
                 >
-                  {submitting ? "Posting…" : "Post"}
+                  {submitting ? 'Posting…' : 'Post'}
                 </button>
               </div>
             </form>
