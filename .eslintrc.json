@@ -2,7 +2,8 @@
   "extends": [
     "next/core-web-vitals",
     "plugin:@typescript-eslint/recommended",
-    "plugin:react-hooks/recommended"
+    "plugin:react-hooks/recommended",
+    "prettier"
   ],
   "plugins": ["@typescript-eslint", "react-hooks", "tailwindcss"],
   "rules": {
@@ -15,7 +16,10 @@
         "varsIgnorePattern": "^_"
       }
     ],
-    "tailwindcss/no-custom-classname": "warn"
+    "tailwindcss/no-custom-classname": "warn",
+    "react/no-unescaped-entities": "off",
+    "react/display-name": "off",
+    "@next/next/no-img-element": "warn"
   },
   "settings": {
     "tailwindcss": {

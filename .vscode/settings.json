@@ -86,5 +86,49 @@
   "firebase.features.deployemulator": true,
 
   // Redux DevTools integration
-  "reduxDevTools.enableTimeTravel": true
+  "reduxDevTools.enableTimeTravel": true,
+
+  // Linting and formatting consistency
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "explicit"
+  },
+  "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
+  "eslint.workingDirectories": [{ "mode": "auto" }],
+
+  // Reduce noise and improve performance
+  "search.exclude": {
+    "**/.next": true,
+    "**/node_modules": true,
+    "**/coverage": true
+  },
+  "files.watcherExclude": {
+    "**/.next/**": true,
+    "**/node_modules/**": true
+  },
+
+  // Tailwind & JSX ergonomics
+  "tailwindCSS.experimental.classRegex": [
+    ["clsx\\(([^)]*)\\)", "(?:'|\"|`)([^'\"`]*)(?:'|\"|`)"],
+    ["cn\\(([^)]*)\\)", "(?:'|\"|`)([^'\"`]*)(?:'|\"|`)"]
+  ],
+  "emmet.includeLanguages": {
+    "javascript": "javascriptreact",
+    "typescript": "typescriptreact"
+  },
+  "editor.linkedEditing": true,
+
+  // Next.js / TS quality-of-life
+  "typescript.tsserver.maxTsServerMemory": 4096,
+  "typescript.preferences.importModuleSpecifier": "shortest",
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "javascript.updateImportsOnFileMove.enabled": "always",
+
+  // Git and npm ergonomics
+  "git.autoFetch": true,
+  "git.pruneOnFetch": true,
+  "git.confirmSync": false,
+  "git.mergeEditor": true,
+  "npm.autoDetect": "on",
+  "terminal.integrated.defaultProfile.osx": "zsh"
 }
