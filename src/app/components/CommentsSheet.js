@@ -146,10 +146,10 @@ export default function CommentsSheet({ postId, onClose }) {
             <div className="space-y-3">
               {Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="flex items-start space-x-3">
-                  <div className="h-8 w-8 rounded-md bg-white/10 animate-pulse" />
+                  <div className="h-8 w-8 animate-pulse rounded-md bg-white/10" />
                   <div className="flex-1 space-y-2">
-                    <div className="h-3 w-32 rounded bg-white/10 animate-pulse" />
-                    <div className="h-3 w-56 rounded bg-white/5 animate-pulse" />
+                    <div className="h-3 w-32 animate-pulse rounded bg-white/10" />
+                    <div className="h-3 w-56 animate-pulse rounded bg-white/5" />
                   </div>
                 </div>
               ))}

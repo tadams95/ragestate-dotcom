@@ -6,8 +6,14 @@ import Followbutton from './Followbutton';
 
 export default function PostHeader({ author, timestamp, avatarUrl, usernameLower, authorUserId }) {
   const { currentUser } = useAuth();
-  const displayName = author || (usernameLower ? `@${usernameLower}` : authorUserId ? `uid:${String(authorUserId).slice(0, 8)}` : '');
-  const altText = `${(usernameLower ? `@${usernameLower}` : author || 'user')} avatar`;
+  const displayName =
+    author ||
+    (usernameLower
+      ? `@${usernameLower}`
+      : authorUserId
+        ? `uid:${String(authorUserId).slice(0, 8)}`
+        : '');
+  const altText = `${usernameLower ? `@${usernameLower}` : author || 'user'} avatar`;
   return (
     <div className="mb-2 flex items-center justify-between">
       <div className="flex items-center space-x-2">
@@ -25,7 +31,7 @@ export default function PostHeader({ author, timestamp, avatarUrl, usernameLower
                 className="h-8 w-8 rounded-md border border-white/10 object-cover"
               />
             ) : (
-              <div className="h-8 w-8 rounded-md bg-white/10 animate-pulse" />
+              <div className="h-8 w-8 animate-pulse rounded-md bg-white/10" />
             )}
           </Link>
         ) : avatarUrl ? (
@@ -39,7 +45,7 @@ export default function PostHeader({ author, timestamp, avatarUrl, usernameLower
             className="h-8 w-8 rounded-md border border-white/10 object-cover"
           />
         ) : (
-          <div className="h-8 w-8 rounded-md bg-white/10 animate-pulse" />
+          <div className="h-8 w-8 animate-pulse rounded-md bg-white/10" />
         )}
         <div>
           {usernameLower ? (

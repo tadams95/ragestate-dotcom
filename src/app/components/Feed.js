@@ -375,7 +375,7 @@ export default function Feed({ forcePublic = false }) {
       const mapped = results.map((p) => ({
         id: p.id,
         userId: p.userId,
-  author: p.userDisplayName || (p.usernameLower ? `@${p.usernameLower}` : p.userId),
+        author: p.userDisplayName || (p.usernameLower ? `@${p.usernameLower}` : p.userId),
         avatarUrl: p.userProfilePicture || null,
         timestamp: formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp),
         content: p.content || '',
