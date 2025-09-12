@@ -1,5 +1,6 @@
 'use client';
 
+import { linkifyAll } from '@/app/utils/linkify';
 import { formatDate } from '@/utils/formatters';
 import {
   addDoc,
@@ -185,7 +186,9 @@ export default function CommentsSheet({ postId, onClose }) {
                     {formatDate(c.timestamp?.toDate ? c.timestamp.toDate() : c.timestamp)}
                   </span>
                 </div>
-                <p className="whitespace-pre-wrap break-words text-sm text-gray-200">{c.content}</p>
+                <p className="whitespace-pre-line break-words text-sm text-gray-200">
+                  {linkifyAll(c.content)}
+                </p>
               </div>
             </div>
           ))}
