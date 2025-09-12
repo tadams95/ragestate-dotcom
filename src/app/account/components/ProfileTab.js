@@ -1,9 +1,11 @@
-"use client";
+'use client';
 
-import { useState, useRef } from "react";
-import Image from "next/image";
-import uploadImage from "../../../../firebase/util/uploadImage";
-import { updateUserData } from "../../../../lib/utils/auth";
+import Image from 'next/image';
+import { useRef, useState } from 'react';
+import toast, { Toaster } from 'react-hot-toast';
+import removeProfileImage from '../../../../firebase/util/removeProfileImage';
+import uploadImage from '../../../../firebase/util/uploadImage';
+import { updateUserData } from '../../../../lib/utils/auth';
 
 export default function ProfileTab({
   userId,
@@ -18,22 +20,20 @@ export default function ProfileTab({
   cardStyling,
   containerStyling,
 }) {
-  const [firstName, setFirstName] = useState(initialFirstName || "");
-  const [lastName, setLastName] = useState(initialLastName || "");
-  const [phoneNumber, setPhoneNumber] = useState(initialPhoneNumber || "");
-  const [userEmail, setUserEmail] = useState(initialUserEmail || ""); // Assuming email might be editable or needed
-  const [currentProfilePicture, setCurrentProfilePicture] = useState(
-    initialProfilePicture || ""
-  );
+  const [firstName, setFirstName] = useState(initialFirstName || '');
+  const [lastName, setLastName] = useState(initialLastName || '');
+  const [phoneNumber, setPhoneNumber] = useState(initialPhoneNumber || '');
+  const [userEmail, setUserEmail] = useState(initialUserEmail || ''); // Assuming email might be editable or needed
+  const [currentProfilePicture, setCurrentProfilePicture] = useState(initialProfilePicture || '');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState("");
+  const [uploadError, setUploadError] = useState('');
   const fileInputRef = useRef(null);
 
   const handleProfileUpdate = async (event) => {
     event.preventDefault();
     if (!userId) {
-      alert("User ID not found. Cannot update profile.");
+      alert('User ID not found. Cannot update profile.');
       return;
     }
     const updatedData = {
@@ -45,11 +45,11 @@ export default function ProfileTab({
 
     const result = await updateUserData(userId, updatedData);
     if (result.success) {
-      alert("Profile updated successfully!");
+      toast.success('Profile updated');
       // Optionally update parent state if needed, e.g., for username display
       // onUpdateSuccess({ firstName, lastName });
     } else {
-      alert(result.message || "Failed to update profile");
+      toast.error(result.message || 'Failed to update profile');
     }
   };
 
@@ -59,27 +59,43 @@ export default function ProfileTab({
 
     setIsUploading(true);
     setUploadProgress(0);
-    setUploadError("");
+    setUploadError('');
 
     try {
       const imageUrl = await uploadImage(
         file,
         userId,
         (progress) => setUploadProgress(progress),
-        (error) => setUploadError(error.message)
+        (error) => setUploadError(error.message),
       );
 
       setCurrentProfilePicture(imageUrl); // Update local state for immediate feedback
       setProfilePicture(imageUrl); // Update parent state (e.g., for Header)
-      localStorage.setItem("profilePicture", imageUrl); // Update localStorage
+      localStorage.setItem('profilePicture', imageUrl); // Update localStorage
 
-      console.log("Profile picture updated successfully");
+      toast.success('Profile picture updated');
       setIsUploading(false);
       setUploadProgress(0);
     } catch (error) {
-      console.error("Image upload failed:", error);
-      setUploadError(error.message || "Upload failed. Please try again.");
+      console.error('Image upload failed:', error);
+      const msg = error.message || 'Upload failed. Please try again.';
+      setUploadError(msg);
+      toast.error(msg);
       setIsUploading(false);
+    }
+  };
+
+  const handleRemoveImage = async () => {
+    if (!userId) return;
+    const ok = window.confirm('Remove your profile image?');
+    if (!ok) return;
+    try {
+      await removeProfileImage(userId);
+      setCurrentProfilePicture('');
+      setProfilePicture('');
+      toast.success('Profile image removed');
+    } catch (err) {
+      toast.error(err?.message || 'Failed to remove profile image');
     }
   };
 
@@ -89,19 +105,14 @@ export default function ProfileTab({
 
   return (
     <div className={containerStyling}>
-      <h2 className="text-2xl font-bold text-white mb-6">
-        Profile Information
-      </h2>
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-8 items-start">
+      <h2 className="mb-6 text-2xl font-bold text-white">Profile Information</h2>
+      <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-5">
         {/* Profile Info Form */}
         <div className="md:col-span-3">
           <form className="space-y-6" onSubmit={handleProfileUpdate}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
-                <label
-                  htmlFor="firstName"
-                  className="block text-sm font-medium text-gray-300"
-                >
+                <label htmlFor="firstName" className="block text-sm font-medium text-gray-300">
                   First Name
                 </label>
                 <input
@@ -114,10 +125,7 @@ export default function ProfileTab({
                 />
               </div>
               <div>
-                <label
-                  htmlFor="lastName"
-                  className="block text-sm font-medium text-gray-300"
-                >
+                <label htmlFor="lastName" className="block text-sm font-medium text-gray-300">
                   Last Name
                 </label>
                 <input
@@ -132,10 +140,7 @@ export default function ProfileTab({
             </div>
 
             <div>
-              <label
-                htmlFor="phoneNumber"
-                className="block text-sm font-medium text-gray-300"
-              >
+              <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-300">
                 Phone Number
               </label>
               <input
@@ -149,10 +154,7 @@ export default function ProfileTab({
             </div>
 
             <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-300"
-              >
+              <label htmlFor="email" className="block text-sm font-medium text-gray-300">
                 Email Address
               </label>
               <input
@@ -175,24 +177,24 @@ export default function ProfileTab({
         </div>
 
         {/* Profile Picture and Account Details */}
-        <div className="md:col-span-2 space-y-6">
+        <div className="space-y-6 md:col-span-2">
           <div className={cardStyling}>
-            <div className="flex flex-col items-center mb-4">
-              <div className="relative group">
+            <div className="mb-4 flex flex-col items-center">
+              <div className="group relative">
                 <Image
                   // Use local state for immediate UI update
-                  src={currentProfilePicture || "/assets/user.png"}
+                  src={currentProfilePicture || '/assets/user.png'}
                   alt="Profile"
                   width={120}
                   height={120}
-                  className="rounded-md border-2 border-gray-300 hover:border-red-500 transition-all duration-300 object-cover w-[120px] h-[120px]"
+                  className="h-[120px] w-[120px] rounded-md border-2 border-gray-300 object-cover transition-all duration-300 hover:border-red-500"
                   key={currentProfilePicture} // Add key to force re-render on src change
                 />
                 {isUploading && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-70 rounded-md">
-                    <div className="w-16 h-16 relative mb-2">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center rounded-md bg-black bg-opacity-70">
+                    <div className="relative mb-2 h-16 w-16">
                       <svg
-                        className="animate-spin h-full w-full text-red-500"
+                        className="h-full w-full animate-spin text-red-500"
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
@@ -211,7 +213,7 @@ export default function ProfileTab({
                           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                         ></path>
                       </svg>
-                      <span className="absolute inset-0 flex items-center justify-center text-white font-bold text-sm">
+                      <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-white">
                         {uploadProgress}%
                       </span>
                     </div>
@@ -219,10 +221,10 @@ export default function ProfileTab({
                 )}
                 {!isUploading && (
                   <div
-                    className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-md opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                    className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-md bg-black bg-opacity-50 opacity-0 transition-opacity group-hover:opacity-100"
                     onClick={triggerFileInput}
                   >
-                    <span className="text-white text-sm">Change Photo</span>
+                    <span className="text-sm text-white">Change Photo</span>
                   </div>
                 )}
               </div>
@@ -233,25 +235,31 @@ export default function ProfileTab({
                 onChange={handleImageUpload}
                 className="hidden"
               />
-              <button
-                onClick={triggerFileInput}
-                disabled={isUploading}
-                className={`mt-3 text-sm ${
-                  isUploading
-                    ? "text-gray-500"
-                    : "text-red-500 hover:text-red-400"
-                } font-medium`}
-              >
-                {isUploading ? "Uploading..." : "Upload Image"}
-              </button>
-              {uploadError && (
-                <p className="text-sm text-red-500 mt-1">{uploadError}</p>
-              )}
+              <div className="mt-2 flex gap-3">
+                <button
+                  onClick={triggerFileInput}
+                  disabled={isUploading}
+                  className={`mt-3 text-sm ${
+                    isUploading ? 'text-gray-500' : 'text-red-500 hover:text-red-400'
+                  } font-medium`}
+                >
+                  {isUploading ? 'Uploading...' : 'Upload Image'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRemoveImage}
+                  className="mt-3 text-sm font-medium text-gray-400 hover:text-gray-200"
+                >
+                  Remove Image
+                </button>
+              </div>
+              {uploadError && <p className="mt-1 text-sm text-red-500">{uploadError}</p>}
             </div>
           </div>
           {/* Removed Account Status section as per original code */}
         </div>
       </div>
+      <Toaster position="bottom-center" />
     </div>
   );
 }

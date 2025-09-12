@@ -1,4 +1,6 @@
-"use client";
+'use client';
+
+import EditProfileForm from './EditProfileForm';
 
 export default function SettingsTab({
   inputStyling,
@@ -21,24 +23,29 @@ export default function SettingsTab({
   const handleDeleteAccount = () => {
     // Add account deletion logic here
     // This should likely involve confirmation prompts
-    alert("Account deletion feature not yet implemented.");
-    console.log("Delete account clicked");
+    alert('Account deletion feature not yet implemented.');
+    console.log('Delete account clicked');
   };
 
   return (
     <div className={containerStyling}>
-      <h2 className="text-2xl font-bold text-white mb-6">Account Settings</h2>
+      <h2 className="mb-6 text-2xl font-bold text-white">Account Settings</h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-8 items-start">
-        {/* Password Change Form */}
+      <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-5">
+        {/* Profile Handle & Bio + Password Change */}
         <div className="md:col-span-3">
+          <div className="mb-6">
+            <EditProfileForm
+              inputStyling={inputStyling}
+              buttonStyling={buttonStyling}
+              cardStyling={cardStyling}
+            />
+          </div>
           <div className={`${cardStyling} mb-6`}>
-            <h3 className="text-xl font-medium text-white mb-4">
-              Change Password
-            </h3>
+            <h3 className="mb-4 text-xl font-medium text-white">Change Password</h3>
             {/* <form className="space-y-4" onSubmit={handlePasswordUpdate}> */}
             <form className="space-y-4">
-              {" "}
+              {' '}
               {/* Temporarily disable submit */}
               <div>
                 <label
@@ -56,10 +63,7 @@ export default function SettingsTab({
                 />
               </div>
               <div>
-                <label
-                  htmlFor="new-password"
-                  className="block text-sm font-medium text-gray-300"
-                >
+                <label htmlFor="new-password" className="block text-sm font-medium text-gray-300">
                   New Password
                 </label>
                 <input
@@ -89,9 +93,9 @@ export default function SettingsTab({
                 <button
                   type="button"
                   className={buttonStyling}
-                  onClick={() => alert("Password update not implemented yet.")}
+                  onClick={() => alert('Password update not implemented yet.')}
                 >
-                  {" "}
+                  {' '}
                   {/* Temporarily disable */}
                   Update Password
                 </button>
@@ -101,22 +105,20 @@ export default function SettingsTab({
         </div>
 
         {/* Account Management and Details */}
-        <div className="md:col-span-2 space-y-6">
+        <div className="space-y-6 md:col-span-2">
           <div className={cardStyling}>
-            <h3 className="text-lg font-medium text-gray-100 mb-4">
-              Account Management
-            </h3>
+            <h3 className="mb-4 text-lg font-medium text-gray-100">Account Management</h3>
             <div className="space-y-4">
               <button
                 onClick={onLogout} // Use the passed handler
-                className="w-full flex justify-center items-center bg-red-700 hover:bg-red-800 text-white font-medium py-2 px-4 rounded-md transition-colors"
+                className="flex w-full items-center justify-center rounded-md bg-red-700 px-4 py-2 font-medium text-white transition-colors hover:bg-red-800"
               >
                 Sign Out
               </button>
 
               <button
                 onClick={handleDeleteAccount}
-                className="w-full flex justify-center items-center text-red-500 border border-red-500 hover:bg-red-500/10 font-medium py-2 px-4 rounded-md transition-colors"
+                className="flex w-full items-center justify-center rounded-md border border-red-500 px-4 py-2 font-medium text-red-500 transition-colors hover:bg-red-500/10"
               >
                 Delete Account
               </button>
