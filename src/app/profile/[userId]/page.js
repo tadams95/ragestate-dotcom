@@ -18,7 +18,6 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../../../firebase/context/FirebaseContext';
 import { db } from '../../../../firebase/firebase';
-import Followbutton from '../../components/Followbutton';
 import Post from '../../components/Post';
 
 export default function ProfilePage({ params }) {
@@ -33,6 +32,7 @@ export default function ProfilePage({ params }) {
     photoURL: '',
     bio: '',
     usernameLower: '',
+    profileSongUrl: '',
   });
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
@@ -92,6 +92,7 @@ export default function ProfilePage({ params }) {
             photoURL: p.photoURL || p.profilePicture || '',
             bio: p.bio || '',
             usernameLower: p.usernameLower || paramUsername || '',
+            profileSongUrl: p.profileSongUrl || '',
           });
         }
 
@@ -196,7 +197,7 @@ export default function ProfilePage({ params }) {
   return (
     <div className="min-h-screen bg-black text-white">
       <Header />
-      <div className="mx-auto max-w-3xl px-4 pb-6 pt-24">
+      <div className="mx-auto max-w-6xl px-4 pb-6 pt-24">
         {/* Top nav: Back */}
         <div className="mb-4">
           <button
@@ -207,67 +208,122 @@ export default function ProfilePage({ params }) {
             <span aria-hidden>←</span> Back
           </button>
         </div>
-        {/* Header */}
-        <div className="mb-6 flex items-center gap-4 rounded-2xl border border-white/10 bg-[#0d0d0f] p-5">
-          <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-md bg-white/10">
-            {profile.photoURL ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={profile.photoURL}
-                alt={profile.displayName}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <span className="text-xl">👤</span>
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-xl font-semibold">{profile.displayName || 'User'}</h1>
-            {profile.usernameLower && (
-              <p className="text-xs text-gray-500">@{profile.usernameLower}</p>
-            )}
-            {profile.bio && (
-              <p className="mt-1 line-clamp-2 text-sm text-gray-300">{profile.bio}</p>
-            )}
-            <div className="mt-2 flex items-center gap-4 text-sm text-gray-400">
-              <span>
-                <strong className="text-white">{followersCount}</strong> Followers
-              </span>
-              <span>
-                <strong className="text-white">{followingCount}</strong> Following
-              </span>
-            </div>
-          </div>
-          {!isOwnProfile && <Followbutton targetUserId={resolvedUid} onChange={refreshCounts} />}
-        </div>
 
-        {/* Tabs (only Posts for now) */}
-        <div className="mb-4 flex items-center gap-3 border-b border-white/10">
-          <button className="border-b-2 border-[#ff1f42] px-1 py-2 text-sm font-semibold text-white">
-            Posts
-          </button>
-          {/* Future tabs: About, Followers, Following */}
-        </div>
-
-        {/* Posts list */}
-        <div className="space-y-4">
-          {posts.map((p) => (
-            <Post key={p.id} postData={{ ...p, usernameLower: profile.usernameLower }} />
-          ))}
-          {loadingPosts && <p className="py-4 text-center text-gray-400">Loading…</p>}
-          {!loadingPosts && hasMore && (
-            <div className="flex justify-center py-4">
-              <button
-                onClick={loadPosts}
-                className="rounded-lg border border-white/10 bg-[#16171a] px-4 py-2 text-sm font-semibold hover:bg-white/10"
-              >
-                Load more
-              </button>
+        {/* Responsive two-column layout */}
+        <div className="grid gap-6 md:grid-cols-12">
+          {/* Left column: profile card + song */}
+          <aside className="space-y-6 md:col-span-4">
+            <div className="rounded-2xl border border-white/10 bg-[#0d0d0f] p-5">
+              <div className="mb-4 flex items-center gap-4">
+                <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-md bg-white/10">
+                  {profile.photoURL ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={profile.photoURL}
+                      alt={profile.displayName}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-2xl">👤</span>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h1 className="truncate text-xl font-semibold">
+                    {profile.displayName || 'User'}
+                  </h1>
+                  {profile.usernameLower && (
+                    <p className="text-xs text-gray-500">@{profile.usernameLower}</p>
+                  )}
+                  {/* uncomment to reveal followers/following counts */}
+                  {/* <div className="mt-2 flex items-center gap-4 text-sm text-gray-400">
+                    <span>
+                      <strong className="text-white">{followersCount}</strong> Followers
+                    </span>
+                    <span>
+                      <strong className="text-white">{followingCount}</strong> Following
+                    </span>
+                  </div> */}
+                </div>
+              </div>
+              {profile.bio && (
+                <p className="whitespace-pre-line text-sm text-gray-300">{profile.bio}</p>
+              )}
+              {/* {!isOwnProfile && (
+                <div className="mt-4">
+                  <Followbutton targetUserId={resolvedUid} onChange={refreshCounts} />
+                </div>
+              )} */}
             </div>
-          )}
-          {!loadingPosts && !hasMore && posts.length === 0 && (
-            <p className="py-8 text-center text-gray-400">No posts yet.</p>
-          )}
+
+            {profile.profileSongUrl ? (
+              <div className="rounded-2xl border border-white/10 bg-[#0d0d0f] p-4">
+                {/* <h3 className="mb-2 text-sm font-semibold text-white">Profile Song</h3> */}
+                {/* Classic compact player on mobile */}
+                <div className="md:hidden">
+                  <iframe
+                    title="SoundCloud player (compact)"
+                    width="100%"
+                    height="166"
+                    scrolling="no"
+                    frameBorder="no"
+                    allow="autoplay"
+                    src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(
+                      profile.profileSongUrl,
+                    )}&color=%23ff1f42&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=false`}
+                  />
+                </div>
+                {/* Visual player on md+ for a richer presentation */}
+                <div className="hidden md:block">
+                  <iframe
+                    title="SoundCloud player (visual)"
+                    width="100%"
+                    height="320"
+                    className="h-[300px] lg:h-[360px]"
+                    scrolling="no"
+                    frameBorder="no"
+                    allow="autoplay"
+                    src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(
+                      profile.profileSongUrl,
+                    )}&color=%23ff1f42&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=true`}
+                  />
+                </div>
+              </div>
+            ) : null}
+          </aside>
+
+          {/* Right column: posts */}
+          <main className="md:col-span-8">
+            {/* Tabs (future friendly, aligned within posts column) */}
+            {/* <div className="mb-4 border-b border-white/10">
+              <div className="-mb-px flex items-center gap-4">
+                <button
+                  aria-current="page"
+                  className="border-b-2 border-[#ff1f42] px-1 py-2 text-sm font-semibold text-white"
+                >
+                  Posts
+                </button>
+              </div>
+            </div> */}
+            <div className="space-y-4">
+              {posts.map((p) => (
+                <Post key={p.id} postData={{ ...p, usernameLower: profile.usernameLower }} />
+              ))}
+              {loadingPosts && <p className="py-4 text-center text-gray-400">Loading…</p>}
+              {!loadingPosts && hasMore && (
+                <div className="flex justify-center py-4">
+                  <button
+                    onClick={loadPosts}
+                    className="rounded-lg border border-white/10 bg-[#16171a] px-4 py-2 text-sm font-semibold hover:bg-white/10"
+                  >
+                    Load more
+                  </button>
+                </div>
+              )}
+              {!loadingPosts && !hasMore && posts.length === 0 && (
+                <p className="py-8 text-center text-gray-400">No posts yet.</p>
+              )}
+            </div>
+          </main>
         </div>
       </div>
     </div>

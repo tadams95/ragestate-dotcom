@@ -1,6 +1,7 @@
 'use client';
 
 import EditProfileForm from './EditProfileForm';
+import ProfileSongForm from './ProfileSongForm';
 
 export default function SettingsTab({
   inputStyling,
@@ -36,6 +37,13 @@ export default function SettingsTab({
         <div className="md:col-span-3">
           <div className="mb-6">
             <EditProfileForm
+              inputStyling={inputStyling}
+              buttonStyling={buttonStyling}
+              cardStyling={cardStyling}
+            />
+          </div>
+          <div className="mb-6">
+            <ProfileSongForm
               inputStyling={inputStyling}
               buttonStyling={buttonStyling}
               cardStyling={cardStyling}
