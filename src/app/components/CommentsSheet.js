@@ -142,6 +142,19 @@ export default function CommentsSheet({ postId, onClose }) {
           {comments.length === 0 && !loading && (
             <p className="text-gray-400">Be the first to comment.</p>
           )}
+          {comments.length === 0 && loading && (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="flex items-start space-x-3">
+                  <div className="h-8 w-8 rounded-md bg-white/10 animate-pulse" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 w-32 rounded bg-white/10 animate-pulse" />
+                    <div className="h-3 w-56 rounded bg-white/5 animate-pulse" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
           {comments.map((c) => (
             <div key={c.id} className="flex items-start space-x-3" role="listitem">
               <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-md bg-white/10">
@@ -175,12 +188,14 @@ export default function CommentsSheet({ postId, onClose }) {
                       className="font-semibold hover:underline"
                     >
                       {c.userDisplayName ||
-                        (currentUser && c.userId === currentUser.uid
-                          ? localUserName || currentUser.displayName || 'You'
-                          : 'User')}
+                        (c.usernameLower
+                          ? `@${c.usernameLower}`
+                          : currentUser && c.userId === currentUser.uid
+                            ? localUserName || currentUser.displayName || 'You'
+                            : `uid:${String(c.userId).slice(0, 8)}`)}
                     </Link>
                   ) : (
-                    <span className="font-semibold">{c.userDisplayName || 'User'}</span>
+                    <span className="font-semibold">{c.userDisplayName || 'Unknown user'}</span>
                   )}
                   <span className="ml-2 text-gray-500">
                     {formatDate(c.timestamp?.toDate ? c.timestamp.toDate() : c.timestamp)}

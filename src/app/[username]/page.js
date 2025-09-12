@@ -1,7 +1,7 @@
 'use client';
 
-import ProfilePage from '../profile/[userId]/page';
+import ProfileView from '../profile/ProfileView';
 
 export default function UsernameProfilePage({ params }) {
-  return <ProfilePage params={{ userId: params?.username || '' }} />;
+  return <ProfileView params={{ userId: params?.username || '' }} />;
 }
