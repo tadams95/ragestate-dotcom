@@ -2,7 +2,7 @@
 
 import { track } from '@/app/utils/metrics';
 import { Dialog, DialogPanel } from '@headlessui/react';
-import { collection, doc, serverTimestamp, setDoc, getDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';

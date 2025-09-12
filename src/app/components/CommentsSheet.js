@@ -1,24 +1,25 @@
-"use client";
+'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { useSelector } from "react-redux";
-import { selectUserName } from "../../../lib/features/todos/userSlice";
-import { db } from "../../../firebase/firebase";
-import { doc, getDoc } from "firebase/firestore";
-import { useAuth } from "../../../firebase/context/FirebaseContext";
+import { formatDate } from '@/utils/formatters';
 import {
-  collection,
-  query,
-  where,
-  orderBy,
-  limit,
   addDoc,
-  serverTimestamp,
+  collection,
+  doc,
+  getDoc,
+  limit,
   onSnapshot,
-} from "firebase/firestore";
-import { formatDate } from "@/utils/formatters";
+  orderBy,
+  query,
+  serverTimestamp,
+  where,
+} from 'firebase/firestore';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSelector } from 'react-redux';
+import { useAuth } from '../../../firebase/context/FirebaseContext';
+import { db } from '../../../firebase/firebase';
+import { selectUserName } from '../../../lib/features/todos/userSlice';
 
 const PAGE_SIZE = 20;
 
@@ -29,7 +30,7 @@ export default function CommentsSheet({ postId, onClose }) {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [take, setTake] = useState(PAGE_SIZE);
-  const [newComment, setNewComment] = useState("");
+  const [newComment, setNewComment] = useState('');
   const contentRef = useRef(null);
 
   // Live listener with incremental limit
@@ -37,16 +38,16 @@ export default function CommentsSheet({ postId, onClose }) {
     if (!postId) return;
     setLoading(true);
     const q = query(
-      collection(db, "postComments"),
-      where("postId", "==", postId),
-      orderBy("timestamp", "asc"),
-      limit(take)
+      collection(db, 'postComments'),
+      where('postId', '==', postId),
+      orderBy('timestamp', 'asc'),
+      limit(take),
     );
     const unsub = onSnapshot(
       q,
       (snap) => {
-  const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-  setComments(dedupeComments(list));
+        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        setComments(dedupeComments(list));
         setHasMore(snap.size >= take);
         // Scroll to bottom on first load when small lists
         if (contentRef.current) {
@@ -57,9 +58,9 @@ export default function CommentsSheet({ postId, onClose }) {
         setLoading(false);
       },
       (e) => {
-        console.error("Comments live listener error", e);
+        console.error('Comments live listener error', e);
         setLoading(false);
-      }
+      },
     );
     return () => unsub();
   }, [postId, take]);
@@ -74,16 +75,16 @@ export default function CommentsSheet({ postId, onClose }) {
     const text = newComment.trim();
     if (!text) return;
     if (!currentUser) {
-      alert("Please sign in to comment.");
+      alert('Please sign in to comment.');
       return;
     }
     try {
-      setNewComment("");
+      setNewComment('');
       // Optimistic prepend (we display in asc order; append makes sense)
       // Resolve usernameLower once for link consistency
       let usernameLower = null;
       try {
-        const prof = await getDoc(doc(db, "profiles", currentUser.uid));
+        const prof = await getDoc(doc(db, 'profiles', currentUser.uid));
         usernameLower = prof.exists() ? prof.data()?.usernameLower || null : null;
       } catch {}
 
@@ -91,8 +92,8 @@ export default function CommentsSheet({ postId, onClose }) {
         id: `optimistic_${Date.now()}`,
         postId,
         userId: currentUser.uid,
-        userDisplayName: currentUser.displayName || "You",
-        userProfilePicture: currentUser.photoURL || "",
+        userDisplayName: currentUser.displayName || 'You',
+        userProfilePicture: currentUser.photoURL || '',
         usernameLower: usernameLower || null,
         content: text,
         timestamp: new Date(),
@@ -100,7 +101,7 @@ export default function CommentsSheet({ postId, onClose }) {
       };
       setComments((prev) => dedupeComments([...prev, optimistic]));
 
-      await addDoc(collection(db, "postComments"), {
+      await addDoc(collection(db, 'postComments'), {
         postId,
         userId: currentUser.uid,
         userDisplayName: currentUser.displayName || null,
@@ -110,23 +111,21 @@ export default function CommentsSheet({ postId, onClose }) {
         timestamp: serverTimestamp(),
       });
       try {
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(
-            new CustomEvent("comments:new", { detail: { postId } })
-          );
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('comments:new', { detail: { postId } }));
         }
       } catch {}
       setComments((prev) => dedupeComments(prev));
     } catch (e) {
-      console.error("Failed to post comment", e);
+      console.error('Failed to post comment', e);
       // Revert optimistic if needed (simple: reload list next open)
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-6 supports-[padding:env(safe-area-inset-bottom)]:pb-[env(safe-area-inset-bottom)]">
-      <div className="w-full sm:max-w-2xl bg-[#0d0d0f] text-white rounded-t-2xl sm:rounded-2xl border border-white/10 shadow-xl flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 supports-[padding:env(safe-area-inset-bottom)]:pb-[env(safe-area-inset-bottom)] sm:items-center sm:p-6">
+      <div className="flex max-h-[90vh] w-full flex-col rounded-t-2xl border border-white/10 bg-[#0d0d0f] text-white shadow-xl sm:max-w-2xl sm:rounded-2xl">
+        <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
           <h3 className="text-base font-semibold">Comments</h3>
           <button
             className="text-gray-400 hover:text-white"
@@ -138,21 +137,13 @@ export default function CommentsSheet({ postId, onClose }) {
           </button>
         </div>
 
-        <div
-          ref={contentRef}
-          className="flex-1 overflow-y-auto px-4 py-3 space-y-3"
-          role="list"
-        >
+        <div ref={contentRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-3" role="list">
           {comments.length === 0 && !loading && (
             <p className="text-gray-400">Be the first to comment.</p>
           )}
           {comments.map((c) => (
-            <div
-              key={c.id}
-              className="flex items-start space-x-3"
-              role="listitem"
-            >
-              <div className="w-8 h-8 rounded-md bg-white/10 flex items-center justify-center overflow-hidden">
+            <div key={c.id} className="flex items-start space-x-3" role="listitem">
+              <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-md bg-white/10">
                 {c.userProfilePicture ? (
                   <Link
                     href={c.usernameLower ? `/${c.usernameLower}` : `/profile/${c.userId || ''}`}
@@ -167,7 +158,7 @@ export default function CommentsSheet({ postId, onClose }) {
                       height={32}
                       sizes="32px"
                       loading="lazy"
-                      className="w-full h-full object-cover"
+                      className="h-full w-full object-cover"
                     />
                   </Link>
                 ) : (
@@ -184,32 +175,23 @@ export default function CommentsSheet({ postId, onClose }) {
                     >
                       {c.userDisplayName ||
                         (currentUser && c.userId === currentUser.uid
-                          ? localUserName || currentUser.displayName || "You"
-                          : "User")}
+                          ? localUserName || currentUser.displayName || 'You'
+                          : 'User')}
                     </Link>
                   ) : (
-                    <span className="font-semibold">
-                      {c.userDisplayName || "User"}
-                    </span>
+                    <span className="font-semibold">{c.userDisplayName || 'User'}</span>
                   )}
-                  <span className="text-gray-500 ml-2">
-                    {formatDate(
-                      c.timestamp?.toDate ? c.timestamp.toDate() : c.timestamp
-                    )}
+                  <span className="ml-2 text-gray-500">
+                    {formatDate(c.timestamp?.toDate ? c.timestamp.toDate() : c.timestamp)}
                   </span>
                 </div>
-                <p className="text-sm text-gray-200 whitespace-pre-wrap break-words">
-                  {c.content}
-                </p>
+                <p className="whitespace-pre-wrap break-words text-sm text-gray-200">{c.content}</p>
               </div>
             </div>
           ))}
           {loading && <p className="text-gray-400">Loading…</p>}
           {!loading && hasMore && (
-            <button
-              className="text-sm text-gray-300 hover:text-white"
-              onClick={fetchMore}
-            >
+            <button className="text-sm text-gray-300 hover:text-white" onClick={fetchMore}>
               Load more
             </button>
           )}
@@ -217,11 +199,11 @@ export default function CommentsSheet({ postId, onClose }) {
 
         <form
           onSubmit={onSubmit}
-          className="border-t border-white/10 p-3 flex items-end space-x-2 sticky bottom-0 bg-[#0d0d0f] supports-[padding:env(safe-area-inset-bottom)]:pb-[env(safe-area-inset-bottom)]"
+          className="sticky bottom-0 flex items-end space-x-2 border-t border-white/10 bg-[#0d0d0f] p-3 supports-[padding:env(safe-area-inset-bottom)]:pb-[env(safe-area-inset-bottom)]"
         >
           <textarea
-            className="flex-1 bg-[#16171a] text-sm text-white placeholder-gray-500 rounded-lg p-3 min-h-11 border border-white/10 focus:outline-none focus:ring-2 focus:ring-[#ff1f42]"
-            placeholder={currentUser ? "Add a comment…" : "Sign in to comment"}
+            className="min-h-11 flex-1 rounded-lg border border-white/10 bg-[#16171a] p-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#ff1f42]"
+            placeholder={currentUser ? 'Add a comment…' : 'Sign in to comment'}
             rows={1}
             maxLength={500}
             value={newComment}
@@ -233,7 +215,7 @@ export default function CommentsSheet({ postId, onClose }) {
           <button
             type="submit"
             disabled={!currentUser || newComment.trim().length === 0}
-            className="px-4 py-2.5 h-11 text-sm font-semibold rounded-lg bg-[#ff1f42] text-white disabled:opacity-50 disabled:cursor-not-allowed active:opacity-80"
+            className="h-11 rounded-lg bg-[#ff1f42] px-4 py-2.5 text-sm font-semibold text-white active:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Send
           </button>
@@ -247,13 +229,11 @@ export default function CommentsSheet({ postId, onClose }) {
 function dedupeComments(list) {
   const byId = new Map();
   const realSigs = new Set(
-    list
-      .filter((c) => !c._optimistic)
-      .map((c) => `${c.userId || ""}|${(c.content || "").trim()}`)
+    list.filter((c) => !c._optimistic).map((c) => `${c.userId || ''}|${(c.content || '').trim()}`),
   );
   for (const c of list) {
     if (c._optimistic) {
-      const sig = `${c.userId || ""}|${(c.content || "").trim()}`;
+      const sig = `${c.userId || ''}|${(c.content || '').trim()}`;
       if (realSigs.has(sig)) continue;
     }
     if (!byId.has(c.id)) byId.set(c.id, c);

@@ -1,9 +1,8 @@
-import { initializeApp, cert } from 'firebase-admin/app';
-import { getFirestore, FieldPath } from 'firebase-admin/firestore';
+import { cert, initializeApp } from 'firebase-admin/app';
+import { FieldPath, getFirestore } from 'firebase-admin/firestore';
 import fs from 'fs';
-import path from 'path';
+import path, { dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
 
 // __dirname for ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -31,7 +30,10 @@ const LIVE = args.includes('--live');
 async function main() {
   try {
     // Load service account like other scripts
-    const saPath = path.join(__dirname, '../.secrets/ragestate-app-firebase-adminsdk-en4dj-67ffd1c011.json');
+    const saPath = path.join(
+      __dirname,
+      '../.secrets/ragestate-app-firebase-adminsdk-en4dj-67ffd1c011.json',
+    );
     if (!fs.existsSync(saPath)) {
       throw new Error(`Service account file not found at ${saPath}`);
     }
@@ -55,7 +57,7 @@ async function main() {
       if (usernameCache.has(uid)) return usernameCache.get(uid);
       try {
         const prof = await db.collection('profiles').doc(uid).get();
-        const uname = prof.exists ? (prof.data()?.usernameLower || null) : null;
+        const uname = prof.exists ? prof.data()?.usernameLower || null : null;
         usernameCache.set(uid, uname);
         return uname;
       } catch (e) {
@@ -86,10 +88,16 @@ async function main() {
     await processCollection('posts', async (docSnap) => {
       scanned++;
       const data = docSnap.data() || {};
-      if (data.usernameLower) { skipped++; return; }
+      if (data.usernameLower) {
+        skipped++;
+        return;
+      }
       const uid = data.userId;
       const uname = await getUsernameLower(uid);
-      if (!uname) { skipped++; return; }
+      if (!uname) {
+        skipped++;
+        return;
+      }
       try {
         if (LIVE) await docSnap.ref.set({ usernameLower: uname }, { merge: true });
         updatedPosts++;
@@ -103,10 +111,16 @@ async function main() {
     await processCollection('postComments', async (docSnap) => {
       scanned++;
       const data = docSnap.data() || {};
-      if (data.usernameLower) { skipped++; return; }
+      if (data.usernameLower) {
+        skipped++;
+        return;
+      }
       const uid = data.userId;
       const uname = await getUsernameLower(uid);
-      if (!uname) { skipped++; return; }
+      if (!uname) {
+        skipped++;
+        return;
+      }
       try {
         if (LIVE) await docSnap.ref.set({ usernameLower: uname }, { merge: true });
         updatedComments++;
@@ -116,7 +130,9 @@ async function main() {
       }
     });
 
-    log(`Backfill complete. scanned=${scanned}, updatedPosts=${updatedPosts}, updatedComments=${updatedComments}, skipped=${skipped}`);
+    log(
+      `Backfill complete. scanned=${scanned}, updatedPosts=${updatedPosts}, updatedComments=${updatedComments}, skipped=${skipped}`,
+    );
   } catch (e) {
     logErr('Fatal error in backfill script', e);
     process.exit(1);
