@@ -2,7 +2,7 @@
 
 import { track } from '@/app/utils/metrics';
 import { Dialog, DialogPanel } from '@headlessui/react';
-import { collection, doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, doc, serverTimestamp, setDoc, getDoc } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
@@ -133,10 +133,18 @@ export default function PostComposer() {
         } catch {}
       }
 
+      // Resolve usernameLower for linking to profile
+      let usernameLower = null;
+      try {
+        const prof = await getDoc(doc(db, 'profiles', currentUser.uid));
+        usernameLower = prof.exists() ? prof.data()?.usernameLower || null : null;
+      } catch {}
+
       const payload = {
         userId: currentUser.uid,
         userDisplayName: resolvedName,
         userProfilePicture: resolvedPhoto || null,
+        usernameLower: usernameLower || null,
         content: content.trim(),
         isPublic: true,
         timestamp: serverTimestamp(),
@@ -163,6 +171,7 @@ export default function PostComposer() {
           avatarUrl: payload.userProfilePicture || null,
           timestamp: 'Just now',
           content: payload.content,
+          usernameLower: payload.usernameLower || undefined,
           likeCount: 0,
           commentCount: 0,
         };

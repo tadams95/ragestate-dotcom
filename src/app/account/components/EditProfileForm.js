@@ -2,6 +2,7 @@
 
 import { doc, getDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
+import toast, { Toaster } from 'react-hot-toast';
 import { useAuth } from '../../../../firebase/context/FirebaseContext';
 import { db } from '../../../../firebase/firebase';
 
@@ -82,8 +83,11 @@ export default function EditProfileForm({ inputStyling, buttonStyling, cardStyli
         tx.set(profileRef, profileData, { merge: true });
       });
       setMessage('Saved.');
+      toast.success('Saved');
     } catch (e) {
-      setError(e?.message || 'Failed to save');
+      const msg = e?.message || 'Failed to save';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
@@ -139,7 +143,22 @@ export default function EditProfileForm({ inputStyling, buttonStyling, cardStyli
           </div>
 
           {error && <p className="text-sm text-red-400">{error}</p>}
-          {message && <p className="text-sm text-green-400">{message}</p>}
+          {message && (
+            <p className="text-sm text-green-400">
+              {message}
+              {username ? (
+                <>
+                  {' '}
+                  <a
+                    href={`/${username}`}
+                    className="ml-1 underline underline-offset-2 hover:text-green-300"
+                  >
+                    View profile
+                  </a>
+                </>
+              ) : null}
+            </p>
+          )}
 
           <div className="pt-2">
             <button type="submit" disabled={saving} className={buttonStyling}>
@@ -148,6 +167,7 @@ export default function EditProfileForm({ inputStyling, buttonStyling, cardStyli
           </div>
         </form>
       )}
+      <Toaster position="bottom-center" />
     </div>
   );
 }

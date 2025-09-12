@@ -2,9 +2,11 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useSelector } from "react-redux";
 import { selectUserName } from "../../../lib/features/todos/userSlice";
 import { db } from "../../../firebase/firebase";
+import { doc, getDoc } from "firebase/firestore";
 import { useAuth } from "../../../firebase/context/FirebaseContext";
 import {
   collection,
@@ -43,8 +45,8 @@ export default function CommentsSheet({ postId, onClose }) {
     const unsub = onSnapshot(
       q,
       (snap) => {
-        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        setComments((prev) => dedupeComments(list));
+  const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  setComments(dedupeComments(list));
         setHasMore(snap.size >= take);
         // Scroll to bottom on first load when small lists
         if (contentRef.current) {
@@ -78,12 +80,20 @@ export default function CommentsSheet({ postId, onClose }) {
     try {
       setNewComment("");
       // Optimistic prepend (we display in asc order; append makes sense)
+      // Resolve usernameLower once for link consistency
+      let usernameLower = null;
+      try {
+        const prof = await getDoc(doc(db, "profiles", currentUser.uid));
+        usernameLower = prof.exists() ? prof.data()?.usernameLower || null : null;
+      } catch {}
+
       const optimistic = {
         id: `optimistic_${Date.now()}`,
         postId,
         userId: currentUser.uid,
         userDisplayName: currentUser.displayName || "You",
         userProfilePicture: currentUser.photoURL || "",
+        usernameLower: usernameLower || null,
         content: text,
         timestamp: new Date(),
         _optimistic: true,
@@ -95,6 +105,7 @@ export default function CommentsSheet({ postId, onClose }) {
         userId: currentUser.uid,
         userDisplayName: currentUser.displayName || null,
         userProfilePicture: currentUser.photoURL || null,
+        usernameLower: usernameLower || null,
         content: text,
         timestamp: serverTimestamp(),
       });
@@ -143,27 +154,44 @@ export default function CommentsSheet({ postId, onClose }) {
             >
               <div className="w-8 h-8 rounded-md bg-white/10 flex items-center justify-center overflow-hidden">
                 {c.userProfilePicture ? (
-                  <Image
-                    src={c.userProfilePicture}
-                    alt="avatar"
-                    width={32}
-                    height={32}
-                    sizes="32px"
-                    loading="lazy"
-                    className="w-full h-full object-cover"
-                  />
+                  <Link
+                    href={c.usernameLower ? `/${c.usernameLower}` : `/profile/${c.userId || ''}`}
+                    prefetch={false}
+                    className="block"
+                    aria-label="View profile"
+                  >
+                    <Image
+                      src={c.userProfilePicture}
+                      alt="avatar"
+                      width={32}
+                      height={32}
+                      sizes="32px"
+                      loading="lazy"
+                      className="w-full h-full object-cover"
+                    />
+                  </Link>
                 ) : (
                   <span className="text-xs text-gray-300">👤</span>
                 )}
               </div>
               <div className="min-w-0">
                 <div className="text-sm">
-                  <span className="font-semibold">
-                    {c.userDisplayName ||
-                      (currentUser && c.userId === currentUser.uid
-                        ? localUserName || currentUser.displayName || "You"
-                        : "User")}
-                  </span>
+                  {c.userId ? (
+                    <Link
+                      href={c.usernameLower ? `/${c.usernameLower}` : `/profile/${c.userId}`}
+                      prefetch={false}
+                      className="font-semibold hover:underline"
+                    >
+                      {c.userDisplayName ||
+                        (currentUser && c.userId === currentUser.uid
+                          ? localUserName || currentUser.displayName || "You"
+                          : "User")}
+                    </Link>
+                  ) : (
+                    <span className="font-semibold">
+                      {c.userDisplayName || "User"}
+                    </span>
+                  )}
                   <span className="text-gray-500 ml-2">
                     {formatDate(
                       c.timestamp?.toDate ? c.timestamp.toDate() : c.timestamp

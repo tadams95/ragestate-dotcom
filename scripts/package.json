@@ -8,7 +8,9 @@
     "migrate:live": "node migrateUsersToFirestore.js --live",
     "sync:photos:dry": "node syncProfilePictures.js",
     "sync:photos:live": "node syncProfilePictures.js --live",
-    "sync:photos:overwrite": "node syncProfilePictures.js --live --overwrite"
+    "sync:photos:overwrite": "node syncProfilePictures.js --live --overwrite",
+    "backfill:usernames:dry": "node backfillUsernames.js",
+    "backfill:usernames:live": "node backfillUsernames.js --live"
   },
   "dependencies": {
     "firebase-admin": "^11.10.1"

@@ -1,0 +1,17 @@
+--- BACKFILL START ---
+[2025-09-12T02:47:09.152Z] Starting username backfill: mode=LIVE
+[2025-09-12T02:47:10.045Z] posts/GHZsiOoMaZ2a1PYL0shL: set usernameLower=tyrelle
+[2025-09-12T02:47:10.193Z] posts/RdHSnHa2gB7LZm7i7vSl: set usernameLower=tyrelle
+[2025-09-12T02:47:10.327Z] posts/aMh7W1T9BGBw6bgcup2d: set usernameLower=tyrelle
+[2025-09-12T02:47:10.474Z] posts/dIUI8588LOmQmV0ofU77: set usernameLower=tyrelle
+[2025-09-12T02:47:10.623Z] posts/fPpJhCPCUhIYJmE20IaQ: set usernameLower=tyrelle
+[2025-09-12T02:47:10.771Z] posts/pPqe5sJLuxqg9bvEOBRa: set usernameLower=tyrelle
+[2025-09-12T02:47:10.912Z] posts/sF0tT3bOYpb13AyPuWlB: set usernameLower=tyrelle
+[2025-09-12T02:47:11.056Z] posts/yn3yhyG4aYlP22bJLYnv: set usernameLower=tyrelle
+[2025-09-12T02:47:11.327Z] postComments/FhS74ftQfwDpJtNXlRPm: set usernameLower=tyrelle
+[2025-09-12T02:47:11.461Z] postComments/UjLmFy6N5mvcDy35FmSG: set usernameLower=tyrelle
+[2025-09-12T02:47:11.596Z] postComments/g6IAS2aEnPpFowwklWeN: set usernameLower=tyrelle
+[2025-09-12T02:47:11.730Z] postComments/nnj8IFUhCLJCvUinlh29: set usernameLower=tyrelle
+[2025-09-12T02:47:11.856Z] postComments/oc1baKnsBbbnAs89PWAw: set usernameLower=tyrelle
+[2025-09-12T02:47:11.996Z] postComments/xffWXtdMIMDbQYHGmLI2: set usernameLower=tyrelle
+[2025-09-12T02:47:11.996Z] Backfill complete. scanned=15, updatedPosts=8, updatedComments=6, skipped=1
