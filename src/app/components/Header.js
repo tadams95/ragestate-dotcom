@@ -11,9 +11,9 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 const navigation = [
-  { name: 'SHOP', href: '/shop' },
+  { name: 'ABOUT', href: '/about' },
   { name: 'EVENTS', href: '/events' },
-  // { name: "ABOUT", href: "/about" },
+  { name: 'SHOP', href: '/shop' },
   // { name: "PRODUCTS", href: "/products" },
   // { name: "BLOG", href: "/blog" },
 ];
