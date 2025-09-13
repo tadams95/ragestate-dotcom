@@ -16,7 +16,7 @@ export default function Home() {
       </div>
       <Header />
       <main className="relative z-10 flex min-h-screen items-center justify-center pt-20">
-        <h3 className="text-xl font-extrabold tracking-wide md:text-2xl">stay tuned</h3>
+        <h3 className="text-xl font-semibold tracking-wide md:text-xl">stay tuned</h3>
       </main>
     </div>
   );
