@@ -137,8 +137,9 @@ service cloud.firestore {
 
     // Feed: posts
     match /posts/{postId} {
-      // MVP: all posts are public to read
-      allow read: if true;
+      // Public posts readable by anyone; private posts only by author
+      allow read: if resource.data.isPublic == true ||
+                   (isAuthenticated() && resource.data.userId == request.auth.uid);
 
       // Create: only author can create; validate schema; counters must start at 0
       allow create: if isAuthenticated()
@@ -164,7 +165,9 @@ service cloud.firestore {
         && (!request.resource.data.keys().hasAny(['userProfilePicture']) || isString(request.resource.data.userProfilePicture))
         && (!request.resource.data.keys().hasAny(['content']) || isMaxLen500(request.resource.data.content))
         && (!request.resource.data.keys().hasAny(['mediaUrls']) || isList(request.resource.data.mediaUrls))
-        && (!request.resource.data.keys().hasAny(['isPublic']) || isBool(request.resource.data.isPublic));
+        && (!request.resource.data.keys().hasAny(['isPublic']) || isBool(request.resource.data.isPublic))
+        && (!request.resource.data.keys().hasAny(['edited']) || isBool(request.resource.data.edited))
+        && (!request.resource.data.keys().hasAny(['updatedAt']) || isTimestamp(request.resource.data.updatedAt));
     }
 
     // Feed: postLikes (per user like doc)

@@ -122,12 +122,11 @@ export default function ProfileView({ params }) {
     if (!resolvedUid || loadingPosts || !hasMore) return;
     setLoadingPosts(true);
     try {
-      const constraints = [
-        where('userId', '==', resolvedUid),
-        where('isPublic', '==', true),
-        orderBy('timestamp', 'desc'),
-        limit(10),
-      ];
+      const isOwner = currentUser?.uid === resolvedUid;
+      const constraints = [where('userId', '==', resolvedUid)];
+      if (!isOwner) constraints.push(where('isPublic', '==', true));
+      constraints.push(orderBy('timestamp', 'desc'));
+      constraints.push(limit(10));
       if (lastDoc) constraints.push(startAfter(lastDoc));
       const q = query(collection(db, 'posts'), ...constraints);
       const snap = await getDocs(q);
@@ -135,10 +134,12 @@ export default function ProfileView({ params }) {
         const p = d.data();
         return {
           id: d.id,
+          userId: p.userId,
           author: p.userDisplayName || p.userId || 'User',
           avatarUrl: p.userProfilePicture || null,
           timestamp: formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp),
           content: p.content || '',
+          isPublic: typeof p.isPublic === 'boolean' ? p.isPublic : true,
           likeCount: typeof p.likeCount === 'number' ? p.likeCount : 0,
           commentCount: typeof p.commentCount === 'number' ? p.commentCount : 0,
         };
@@ -156,7 +157,7 @@ export default function ProfileView({ params }) {
     } finally {
       setLoadingPosts(false);
     }
-  }, [resolvedUid, loadingPosts, hasMore, lastDoc]);
+  }, [resolvedUid, currentUser, loadingPosts, hasMore, lastDoc]);
 
   useEffect(() => {
     // Reset when navigating across profiles, guard initial load to prevent double-fetch in Strict Mode

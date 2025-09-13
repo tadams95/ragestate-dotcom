@@ -18,6 +18,10 @@ STATUS CHECKLIST
 - [x] Post composer (text + single image)
 - [ ] Follow graph UI (FollowButton)
 - [ ] UX polish + tests/metrics
+- [ ] Privacy toggle (Public/Private) end-to-end
+- [ ] Post edit (author-only) with audit fields
+- [ ] Post delete (author-only) with cleanup
+- [ ] Functions onUpdate/onDelete for posts visibility & cleanup
 
 1. FIRESTORE DATABASE STRUCTURE
 -------------------------------
@@ -33,10 +37,12 @@ Create the following collections in Firestore:
     - mediaUrls: array (optional images/videos)
     - mediaType: string ('image', 'video', null)
     - timestamp: timestamp
+      - updatedAt: timestamp (null unless edited)
+      - edited: boolean (default false)
     - likeCount: number
     - commentCount: number
     - tags: array (optional)
-    - isPublic: boolean
+      - isPublic: boolean (true=public, false=private to author only)
     
 - postLikes
   - likeId (document)
@@ -69,11 +75,36 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // Posts - users can read public posts, create their own, edit own
-    match /posts/{postId} {
-      allow read: if resource.data.isPublic == true || resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if resource.data.userId == request.auth.uid;
-    }
+      match /posts/{postId} {
+         allow read: if resource.data.isPublic == true || resource.data.userId == request.auth.uid;
+         allow create: if request.auth != null &&
+            request.resource.data.userId == request.auth.uid &&
+            request.resource.data.timestamp is timestamp &&
+            request.resource.data.likeCount == 0 &&
+            request.resource.data.commentCount == 0 &&
+            request.resource.data.isPublic is bool &&
+            (request.resource.data.content is string &&
+               request.resource.data.content.size() <= 2000);
+
+         // Author-only updates with field protections
+         allow update: if request.auth != null && resource.data.userId == request.auth.uid &&
+            // Immutable critical fields
+            request.resource.data.userId == resource.data.userId &&
+            request.resource.data.timestamp == resource.data.timestamp &&
+            // Client cannot modify counters
+            request.resource.data.likeCount == resource.data.likeCount &&
+            request.resource.data.commentCount == resource.data.commentCount &&
+            // Edited flag and updatedAt may be set when content/media/visibility change
+            (request.resource.data.edited is bool) &&
+            (request.resource.data.updatedAt is timestamp || request.resource.data.updatedAt == null) &&
+            // Validate content length and media types
+            (request.resource.data.content is string && request.resource.data.content.size() <= 2000) &&
+            (request.resource.data.mediaUrls is list || request.resource.data.mediaUrls == resource.data.mediaUrls) &&
+            (request.resource.data.isPublic is bool);
+
+         // Author-only delete
+         allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      }
     
     // Likes - users can read, create their own, delete own
     match /postLikes/{likeId} {
@@ -136,6 +167,20 @@ A. processNewPost
 B. updateFeedCounts
    - Triggered when posts are liked/commented
    - Updates counters atomically
+D. onUpdatePost (posts/{postId})
+    - Detect changes to `isPublic`:
+       - If changed from true → false: remove this post from followers' `userFeeds/{uid}/feedItems` and from any public caches/indexes.
+       - If changed from false → true: fan-out to followers (same as onCreate path) and eligible public lists.
+    - If `content` or `mediaUrls` change: no fan-out needed; just ensure `edited=true` and `updatedAt=now` are set. Do not touch counters.
+    - Guardrails: ignore updates where only counters changed (should be handled by separate counter functions).
+
+E. onDeletePost (posts/{postId})
+    - Remove associated docs:
+       - Delete `userFeeds/{followerId}/feedItems/{postId}` for all followers and the author.
+       - Delete `postLikes` (batched/paginated) for this post.
+       - Delete `postComments` (batched/paginated) for this post.
+       - Delete Storage media under `posts/{postId}/...` (if any).
+    - Consider a soft-delete flag in future; for now, hard delete.
 
 C. notifyMentionedUsers
    - Send notifications when users are mentioned
@@ -167,6 +212,22 @@ D. User-specific Feeds
    - Show posts from followed users
    - Include suggested content
 
+E. Privacy (Public/Private)
+   - Add a visibility toggle to the composer and edit flow: `Public` (default) or `Private`.
+   - Private posts are visible only to the author; do not appear in followers' feeds or public latest.
+   - UI: badge on the post card indicating `Private` for the author.
+
+F. Edit Post
+   - Author can edit `content`, `mediaUrls`, and `isPublic`.
+   - On save: set `edited=true` and `updatedAt=serverTimestamp()`.
+   - If `isPublic` changes, backend function handles fan-out removal/addition.
+   - Client should optimistically update UI and disable save while pending.
+
+G. Delete Post
+   - Author can delete their post from overflow menu on the post card.
+   - Confirmation dialog required.
+   - On success, remove from UI immediately; backend cleanup will proceed via function.
+
 6. OPTIMIZATION TECHNIQUES
 -------------------------
 
@@ -185,6 +246,7 @@ C. Lazy Loading
 D. Denormalization
    - Store duplicate data (like usernames) to avoid excess queries
    - Keep counters (likes, comments) on posts to avoid counting on-the-fly
+   - Store `edited` and `updatedAt` on the post to avoid additional lookups
 
 7. IMPLEMENTATION ORDER
 ----------------------
@@ -200,6 +262,12 @@ Phase 2: Enhanced Interactions
    - Implement media uploads
    - Create user profile integration
    - Add basic notifications
+
+Phase 2.5: Privacy + Edit/Delete
+   - Add Public/Private toggle to composer and post card edit.
+   - Implement client edit modal and delete flow.
+   - Deploy updated security rules validating immutable and protected fields.
+   - Add `onUpdatePost` and `onDeletePost` functions and verify feed fan-out changes.
 
 Phase 3: Advanced Features
    - Add hashtags and trending topics
@@ -217,6 +285,8 @@ A. Component Testing
 B. Integration Testing
    - Test feed with real Firebase backend
    - Verify realtime updates work properly
+   - Verify visibility changes: public→private removes from follower feeds; private→public adds.
+   - Verify edit/update respects rules (counters immutable from client).
 
 C. Performance Testing
    - Test with large datasets
@@ -227,8 +297,9 @@ C. Performance Testing
 ---------------------------
 
 A. Privacy Settings
-   - Allow users to create public/private posts
+   - Allow users to create public/private posts (toggle in composer and edit)
    - Control who can comment on posts
+   - Future: add `followers-only` as a third visibility state (requires fan-out to followers only)
 
 B. Content Moderation
    - Implement reporting system
@@ -301,6 +372,7 @@ Components
  - `components/feed/PostCard.js` (display, like, comment count)
  - `components/feed/CommentsSheet.js` (lazy drawer/modal to fetch comments on demand)
  - `components/feed/FollowButton.js`
+   - `components/feed/EditPostModal.js` (edit content/visibility)
 
 Performance
  - Lazy-load `CommentsSheet` and any heavy media players.
@@ -344,6 +416,14 @@ match /userFeeds/{userId} {
   allow read: if request.auth != null && request.auth.uid == userId;
   allow write: if false; // Only CF service account writes
 }
+
+// Extra validations on posts to prevent client tampering of counters and identity
+match /posts/{postId} {
+   allow update: if request.auth != null && resource.data.userId == request.auth.uid &&
+      request.resource.data.likeCount == resource.data.likeCount &&
+      request.resource.data.commentCount == resource.data.commentCount &&
+      request.resource.data.userId == resource.data.userId;
+}
 ```
 
 Consider separate `feedItems` subcollection to avoid large arrays:
@@ -367,6 +447,8 @@ MVP (2–3 sprints)
  - Likes, basic comments (loaded on demand)
  - Profiles with follow/unfollow
  - Content reporting flag (write to `reports` collection)
+   - Public/Private toggle
+   - Edit/Delete by author
 
 V2
  - Video upload with server-side poster/thumbs
@@ -374,6 +456,7 @@ V2
  - Hashtags + simple search
  - Basic ranking (recency + small engagement boost)
  - Moderation tooling (admin UI list of reports; takedown)
+   - Followers-only visibility (requires follow-aware fan-out)
 
 V3
  - Stories/shorts (separate collection + TTL)
@@ -412,6 +495,14 @@ Step 2 — Harden Security Rules (see Section 14)
 - [x] Validate post creates (userId == auth.uid, isPublic boolean, content length cap).
 - [x] Constrain follows create/delete to the acting user; prevent self-follow.
 Deploy rules.
+
+Step 2.5 — Privacy + Edit/Delete
+- [ ] Add `edited` (bool) and `updatedAt` (timestamp|null) fields to posts; default edited=false.
+- [ ] Update composer to include Public/Private toggle; default Public.
+- [ ] Add EditPostModal from PostCard overflow for author; supports content and visibility.
+- [ ] Add Delete action with confirm.
+- [ ] Deploy updated rules preventing counter/userId tampering.
+- [ ] Add/Deploy `onUpdatePost` and `onDeletePost` functions and validate fan-out changes and cleanup.
 
 Step 3 — Cloud Functions: Counters
 - [x] Implement onCreate/onDelete for postLikes to inc/dec posts.likeCount atomically.

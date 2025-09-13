@@ -22,6 +22,7 @@ export default function PostComposer() {
   const [error, setError] = useState('');
   const [open, setOpen] = useState(false);
   const [savedDraft, setSavedDraft] = useState('');
+  const [isPublic, setIsPublic] = useState(true);
   const saveTimerRef = useRef(null);
 
   // Load saved draft (don't auto-apply; offer recovery)
@@ -154,7 +155,7 @@ export default function PostComposer() {
         userProfilePicture: resolvedPhoto || null,
         usernameLower: usernameLower || null,
         content: content.trim(),
-        isPublic: true,
+        isPublic,
         timestamp: serverTimestamp(),
         likeCount: 0,
         commentCount: 0,
@@ -192,6 +193,7 @@ export default function PostComposer() {
       setContent('');
       setFile(null);
       setPreviewUrl('');
+      setIsPublic(true);
       try {
         sessionStorage.removeItem(DRAFT_KEY);
       } catch {}
@@ -292,12 +294,23 @@ export default function PostComposer() {
                 </p>
               )}
               <div className="mt-4 flex items-center justify-between">
-                <div>
+                <div className="flex items-center gap-3">
                   <label className="inline-flex h-11 cursor-pointer items-center gap-2 text-sm text-gray-300 hover:text-white">
                     <input type="file" accept="image/*" onChange={onPickFile} className="hidden" />
                     <span className="inline-flex items-center rounded border border-white/20 px-3 py-2.5 hover:bg-white/10 active:opacity-80">
                       Add image
                     </span>
+                  </label>
+                  <label className="inline-flex items-center gap-2 text-sm text-gray-300">
+                    <span className="text-gray-400">Visibility</span>
+                    <select
+                      value={isPublic ? 'public' : 'private'}
+                      onChange={(e) => setIsPublic(e.target.value === 'public')}
+                      className="rounded-md border border-white/20 bg-transparent px-2 py-1 text-white"
+                    >
+                      <option value="public">Public</option>
+                      <option value="private">Private</option>
+                    </select>
                   </label>
                 </div>
                 <button

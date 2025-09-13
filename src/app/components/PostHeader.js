@@ -1,4 +1,5 @@
 'use client';
+import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '../../../firebase/context/FirebaseContext';
@@ -11,6 +12,11 @@ export default function PostHeader({
   usernameLower,
   authorUserId,
   hideFollow = false,
+  isAuthor = false,
+  isPublic = true,
+  onEdit,
+  onTogglePrivacy,
+  onDelete,
 }) {
   const { currentUser } = useAuth();
   const displayName =
@@ -71,8 +77,50 @@ export default function PostHeader({
           <p className="text-xs text-gray-400">{timestamp || 'Time ago'}</p>
         </div>
       </div>
-      {authorUserId && currentUser?.uid !== authorUserId && !hideFollow && (
+      {!hideFollow && authorUserId && currentUser?.uid !== authorUserId && (
         <Followbutton targetUserId={authorUserId} variant="compact" />
+      )}
+      {isAuthor && (
+        <Menu as="div" className="relative inline-block text-left">
+          <MenuButton
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/10 bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white"
+            aria-label="Post options"
+          >
+            ⋯
+          </MenuButton>
+          <MenuItems className="absolute right-0 z-10 mt-2 w-44 origin-top-right rounded-md border border-white/10 bg-[#0d0d0f] p-1 shadow-xl focus:outline-none">
+            <MenuItem>
+              {({ active }) => (
+                <button
+                  className={`w-full rounded px-3 py-2 text-left text-sm ${active ? 'bg-white/10 text-white' : 'text-gray-300'}`}
+                  onClick={() => onEdit?.()}
+                >
+                  Edit
+                </button>
+              )}
+            </MenuItem>
+            <MenuItem>
+              {({ active }) => (
+                <button
+                  className={`w-full rounded px-3 py-2 text-left text-sm ${active ? 'bg-white/10 text-white' : 'text-gray-300'}`}
+                  onClick={() => onTogglePrivacy?.()}
+                >
+                  {isPublic ? 'Make Private' : 'Make Public'}
+                </button>
+              )}
+            </MenuItem>
+            <MenuItem>
+              {({ active }) => (
+                <button
+                  className={`w-full rounded px-3 py-2 text-left text-sm ${active ? 'bg-white/10 text-white' : 'text-red-300'}`}
+                  onClick={() => onDelete?.()}
+                >
+                  Delete
+                </button>
+              )}
+            </MenuItem>
+          </MenuItems>
+        </Menu>
       )}
     </div>
   );
