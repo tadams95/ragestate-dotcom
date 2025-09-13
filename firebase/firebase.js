@@ -43,10 +43,17 @@ const storage = getStorage(app);
 // Requires NEXT_PUBLIC_RECAPTCHA_SITE_KEY to be set in env for the client bundle
 try {
   if (typeof window !== 'undefined') {
-    initializeAppCheck(app, {
-      provider: new ReCaptchaV3Provider(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ''),
-      isTokenAutoRefreshEnabled: true,
-    });
+    const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+    if (siteKey && siteKey.trim().length > 0) {
+      initializeAppCheck(app, {
+        provider: new ReCaptchaV3Provider(siteKey),
+        isTokenAutoRefreshEnabled: true,
+      });
+    } else {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('App Check not initialized: NEXT_PUBLIC_RECAPTCHA_SITE_KEY is missing.');
+      }
+    }
   }
 } catch (err) {
   console.error('App Check initialization error:', err);
