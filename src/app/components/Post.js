@@ -39,6 +39,7 @@ export default function Post({ postData, hideFollow = false }) {
         commentCount: typeof p.commentCount === 'number' ? p.commentCount : 0,
         author: p.userDisplayName || p.userId || data.author,
         avatarUrl: p.userProfilePicture || null,
+        usernameLower: p.usernameLower || postData?.usernameLower,
         content: p.content ?? data.content,
         timestamp:
           formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp) || data.timestamp,
@@ -54,7 +55,7 @@ export default function Post({ postData, hideFollow = false }) {
         author={liveData?.author || data.author}
         timestamp={liveData?.timestamp || data.timestamp}
         avatarUrl={liveData?.avatarUrl ?? postData?.avatarUrl}
-        usernameLower={postData?.usernameLower}
+        usernameLower={liveData?.usernameLower ?? postData?.usernameLower}
         authorUserId={postData?.userId}
         hideFollow={hideFollow}
       />
