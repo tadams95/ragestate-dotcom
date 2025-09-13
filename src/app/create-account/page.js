@@ -1,51 +1,50 @@
-"use client";
+'use client';
 
-import Footer from "../components/Footer";
-import Header from "../components/Header";
+import Footer from '../components/Footer';
+import Header from '../components/Header';
 
-import { createUser } from "../../../lib/utils/auth";
-import { useState } from "react";
-import { useDispatch } from "react-redux";
-import { loginSuccess } from "../../../lib/features/todos/authSlice";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { loginSuccess } from '../../../lib/features/todos/authSlice';
+import { createUser } from '../../../lib/utils/auth';
 
-import { rtdb, db } from "../../../firebase/firebase";
-import { ref, set } from "firebase/database";
-import { doc, setDoc } from "firebase/firestore";
-import { handleAuthError } from "../../../lib/utils/authUtils"; // You may need to create this
+import { sendEmailVerification } from 'firebase/auth';
+import { auth } from '../../../firebase/firebase';
+import { handleAuthError } from '../../../lib/utils/authUtils'; // You may need to create this
 
 export default function CreateAccount() {
   const router = useRouter();
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [passwordError, setPasswordError] = useState("");
-  const [passwordMatchError, setPasswordMatchError] = useState("");
-  const [formError, setFormError] = useState("");
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordMatchError, setPasswordMatchError] = useState('');
+  const [formError, setFormError] = useState('');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const dispatch = useDispatch();
 
-  const API_URL =
-    "https://us-central1-ragestate-app.cloudfunctions.net/stripePayment";
+  // const API_URL = "https://us-central1-ragestate-app.cloudfunctions.net/stripePayment";
 
   const inputStyling =
-    "block w-full bg-black pl-2 rounded-md border-2 py-1.5 px-1 text-gray-100 shadow-sm ring-1 ring-inset ring-gray-700 placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-red-500 sm:text-sm sm:leading-6";
+    'block w-full bg-black pl-2 rounded-md border-2 py-1.5 px-1 text-gray-100 shadow-sm ring-1 ring-inset ring-gray-700 placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-red-500 sm:text-sm sm:leading-6';
 
   const buttonStyling =
-    "flex w-full justify-center rounded-md bg-transparent px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 border-2 border-gray-100 transition-all duration-200";
+    'flex w-full justify-center rounded-md bg-transparent px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 border-2 border-gray-100 transition-all duration-200';
 
   const cancelCreateHandler = () => {
-    setFirstName("");
-    setLastName("");
-    setPhoneNumber("");
-    setEmail("");
-    setPassword("");
-    setConfirmPassword("");
+    setFirstName('');
+    setLastName('');
+    setPhoneNumber('');
+    setEmail('');
+    setPassword('');
+    setConfirmPassword('');
   };
 
   const handleEmailChange = (e) => {
@@ -58,7 +57,7 @@ export default function CreateAccount() {
     const newPassword = e.target.value;
     setPassword(newPassword);
     const errors = validatePassword(newPassword);
-    setPasswordError(errors.length > 0 ? errors.join(", ") : "");
+    setPasswordError(errors.length > 0 ? errors.join(', ') : '');
   };
 
   const handleConfirmPasswordChange = (e) => {
@@ -69,33 +68,30 @@ export default function CreateAccount() {
 
   const validatePassword = (password) => {
     const errors = [];
-    if (password.length < 8)
-      errors.push("Password must be at least 8 characters");
-    if (!/[A-Z]/.test(password))
-      errors.push("Include at least one uppercase letter");
-    if (!/[a-z]/.test(password))
-      errors.push("Include at least one lowercase letter");
-    if (!/[0-9]/.test(password)) errors.push("Include at least one number");
+    if (password.length < 8) errors.push('Password must be at least 8 characters');
+    if (!/[A-Z]/.test(password)) errors.push('Include at least one uppercase letter');
+    if (!/[a-z]/.test(password)) errors.push('Include at least one lowercase letter');
+    if (!/[0-9]/.test(password)) errors.push('Include at least one number');
     return errors;
   };
 
   const validatePasswordMatch = (value) => {
     if (password !== value) {
-      setPasswordMatchError("Passwords do not match");
+      setPasswordMatchError('Passwords do not match');
     } else {
-      setPasswordMatchError("");
+      setPasswordMatchError('');
     }
   };
 
   const formatPhoneNumber = (value) => {
-    const phone = value.replace(/\D/g, "");
+    const phone = value.replace(/\D/g, '');
     const match = phone.match(/^(\d{0,3})(\d{0,3})(\d{0,4})$/);
     if (match) {
       return !match[2]
         ? match[1]
         : !match[3]
-        ? `(${match[1]}) ${match[2]}`
-        : `(${match[1]}) ${match[2]}-${match[3]}`;
+          ? `(${match[1]}) ${match[2]}`
+          : `(${match[1]}) ${match[2]}-${match[3]}`;
     }
     return phone;
   };
@@ -108,20 +104,20 @@ export default function CreateAccount() {
   const handleSignUp = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setFormError("");
+    setFormError('');
 
     try {
       // Validate password
       const passwordErrors = validatePassword(password);
       if (passwordErrors.length > 0) {
-        setPasswordError(passwordErrors.join(", "));
+        setPasswordError(passwordErrors.join(', '));
         setIsLoading(false);
         return;
       }
 
       // Validate passwords match
       if (password !== confirmPassword) {
-        setPasswordMatchError("Passwords do not match");
+        setPasswordMatchError('Passwords do not match');
         setIsLoading(false);
         return;
       }
@@ -130,60 +126,22 @@ export default function CreateAccount() {
 
       const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
       if (!emailRegex.test(email)) {
-        throw new Error("Please enter a valid email address");
+        throw new Error('Please enter a valid email address');
       }
 
       // Create user using the new architecture
-      const { user, userData } = await createUser(
+      const { user } = await createUser(
         email,
         password,
         firstName,
         lastName,
         phoneNumber,
-        "", // expoPushToken is empty for web users
-        dispatch
+        '', // expoPushToken is empty for web users
+        dispatch,
       );
 
-      // Create Stripe customer
-      const stripeCustomerResponse = await fetch(`${API_URL}/create-customer`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: email,
-          name: `${firstName} ${lastName}`,
-          firebaseId: user.uid,
-        }),
-      });
-
-      if (!stripeCustomerResponse.ok) {
-        console.error(
-          "Failed to create Stripe customer. Status:",
-          stripeCustomerResponse.status
-        );
-        const errorMessage = await stripeCustomerResponse.text();
-        console.error("Error Message:", errorMessage);
-        throw new Error("Failed to create Stripe customer");
-      }
-
-      const stripeCustomerData = await stripeCustomerResponse.json();
-
-      // Log the Stripe customer data for debugging
-      console.log("Stripe customer data:", stripeCustomerData);
-
-      // Add fallback for undefined stripeCustomerId
-      const stripeCustomerId = stripeCustomerData.id || "undefined-customer-id";
-
-      // Update both databases with Stripe customer ID
-      await Promise.all([
-        set(ref(rtdb, `users/${user.uid}/stripeCustomerId`), stripeCustomerId),
-        setDoc(
-          doc(db, "customers", user.uid),
-          { stripeCustomerId: stripeCustomerId },
-          { merge: true }
-        ),
-      ]);
+      // TODO(Stripe): Create Stripe customer server-side (callable or Auth trigger)
+      // For now, skip direct client call to a non-existent endpoint.
 
       // Handle authentication state
       dispatch(
@@ -192,70 +150,69 @@ export default function CreateAccount() {
           email: user.email,
           idToken: user.stsTokenManager.accessToken,
           refreshToken: user.stsTokenManager.refreshToken,
-        })
+        }),
       );
 
       // Save user data to local storage
-      localStorage.setItem("idToken", user.stsTokenManager.accessToken);
-      localStorage.setItem("refreshToken", user.stsTokenManager.refreshToken);
-      localStorage.setItem("email", email);
-      localStorage.setItem("userId", user.uid);
-      localStorage.setItem("name", `${firstName} ${lastName}`);
+      localStorage.setItem('idToken', user.stsTokenManager.accessToken);
+      localStorage.setItem('refreshToken', user.stsTokenManager.refreshToken);
+      localStorage.setItem('email', email);
+      localStorage.setItem('userId', user.uid);
+      localStorage.setItem('name', `${firstName} ${lastName}`);
+
+      // Send email verification and guide user to verify page
+      try {
+        if (auth.currentUser) {
+          await sendEmailVerification(auth.currentUser);
+        }
+      } catch (e) {
+        console.warn('Failed to send verification email immediately:', e);
+      }
 
       // Reset form and navigate
       cancelCreateHandler();
       setIsAuthenticating(false);
       setIsLoading(false);
-      router.push("/account");
+      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch (error) {
       const errorMessage = handleAuthError(error);
       setFormError(errorMessage);
-      console.error("Error creating user:", error);
+      console.error('Error creating user:', error);
       setIsAuthenticating(false);
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="bg-black min-h-screen">
+    <div className="min-h-screen bg-black">
       <Header />
-      <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8 max-w-4xl mx-auto">
+      <div className="mx-auto flex min-h-full max-w-4xl flex-1 flex-col justify-center px-6 py-12 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           {/* Add a logo or brand element */}
-          <div className="flex justify-center mt-10 mb-6">
-            <img
-              src="/assets/RSLogo2.png"
-              alt="RAGESTATE"
-              className="h-16 w-auto"
-            />
+          <div className="mb-6 mt-10 flex justify-center">
+            <Image src="/assets/RSLogo2.png" alt="RAGESTATE" width={128} height={64} priority />
           </div>
 
           <h2 className="text-center text-2xl font-bold leading-9 tracking-tight text-gray-100">
             CREATE YOUR ACCOUNT
           </h2>
           <p className="mt-2 text-center text-sm text-gray-400">
-            Already have an account?{" "}
-            <Link
-              href="/login"
-              className="font-semibold leading-6 text-red-500 hover:text-red-400"
-            >
+            Already have an account?{' '}
+            <Link href="/login" className="font-semibold leading-6 text-red-500 hover:text-red-400">
               Sign in here
             </Link>
           </p>
         </div>
 
         {/* Two-column layout on larger screens */}
-        <div className="mt-10 sm:mt-16 sm:mx-auto w-full max-w-4xl grid grid-cols-1 md:grid-cols-5 gap-8 items-start">
+        <div className="mt-10 grid w-full max-w-4xl grid-cols-1 items-start gap-8 sm:mx-auto sm:mt-16 md:grid-cols-5">
           {/* Form column */}
-          <div className="md:col-span-3 bg-gray-900/30 p-6 rounded-lg border border-gray-800 shadow-xl">
+          <div className="rounded-lg border border-gray-800 bg-gray-900/30 p-6 shadow-xl md:col-span-3">
             <form className="space-y-6" onSubmit={handleSignUp}>
               {/* Grid layout for form fields */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div>
-                  <label
-                    htmlFor="firstName"
-                    className="block text-sm font-medium text-gray-300"
-                  >
+                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-300">
                     First Name
                   </label>
                   <input
@@ -271,10 +228,7 @@ export default function CreateAccount() {
                   />
                 </div>
                 <div>
-                  <label
-                    htmlFor="lastName"
-                    className="block text-sm font-medium text-gray-300"
-                  >
+                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-300">
                     Last Name
                   </label>
                   <input
@@ -293,10 +247,7 @@ export default function CreateAccount() {
 
               {/* Single column fields */}
               <div>
-                <label
-                  htmlFor="phoneNumber"
-                  className="block text-sm font-medium text-gray-300"
-                >
+                <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-300">
                   Phone Number
                 </label>
                 <input
@@ -313,10 +264,7 @@ export default function CreateAccount() {
               </div>
 
               <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-gray-300"
-                >
+                <label htmlFor="email" className="block text-sm font-medium text-gray-300">
                   Email Address
                 </label>
                 <input
@@ -333,12 +281,9 @@ export default function CreateAccount() {
               </div>
 
               {/* Password fields */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div>
-                  <label
-                    htmlFor="password"
-                    className="block text-sm font-medium text-gray-300"
-                  >
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-300">
                     Password
                   </label>
                   <input
@@ -370,37 +315,40 @@ export default function CreateAccount() {
                     value={confirmPassword}
                     onChange={handleConfirmPasswordChange}
                     className={`${inputStyling} mt-1 ${
-                      passwordMatchError ? "border-red-500 ring-red-500" : ""
+                      passwordMatchError ? 'border-red-500 ring-red-500' : ''
                     }`}
                   />
                   {passwordMatchError && (
-                    <p className="text-red-500 text-sm mt-1">
-                      {passwordMatchError}
-                    </p>
+                    <p className="mt-1 text-sm text-red-500">{passwordMatchError}</p>
                   )}
                 </div>
               </div>
 
-              {/* Form error message */}
+              {/* Validation and form error messages */}
+              {passwordError && (
+                <div className="rounded-md border border-red-500 bg-red-500/10 p-3">
+                  <p className="text-sm text-red-500">{passwordError}</p>
+                </div>
+              )}
               {formError && (
-                <div className="rounded-md bg-red-500/10 border border-red-500 p-3">
+                <div className="rounded-md border border-red-500 bg-red-500/10 p-3">
                   <p className="text-sm text-red-500">{formError}</p>
                 </div>
               )}
 
               {/* Form actions */}
-              <div className="flex flex-col sm:flex-row sm:justify-between gap-4 pt-4">
+              <div className="flex flex-col gap-4 pt-4 sm:flex-row sm:justify-between">
                 <button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={isLoading || isAuthenticating}
                   className={`${buttonStyling} sm:flex-1 ${
-                    isLoading ? "opacity-70 cursor-not-allowed" : ""
+                    isLoading || isAuthenticating ? 'cursor-not-allowed opacity-70' : ''
                   }`}
                 >
-                  {isLoading ? (
+                  {isLoading || isAuthenticating ? (
                     <span className="flex items-center justify-center">
                       <svg
-                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                        className="-ml-1 mr-3 h-5 w-5 animate-spin text-white"
                         viewBox="0 0 24 24"
                       >
                         <circle
@@ -421,13 +369,13 @@ export default function CreateAccount() {
                       Creating Account...
                     </span>
                   ) : (
-                    "CREATE ACCOUNT"
+                    'CREATE ACCOUNT'
                   )}
                 </button>
                 <button
                   type="button"
                   onClick={cancelCreateHandler}
-                  className="text-gray-300 hover:text-red-500 text-sm font-medium"
+                  className="text-sm font-medium text-gray-300 hover:text-red-500"
                 >
                   Cancel
                 </button>
@@ -438,27 +386,25 @@ export default function CreateAccount() {
           {/* Information column */}
           <div className="md:col-span-2">
             {/* Password requirements box */}
-            <div className="bg-gray-900/30 p-5 rounded-lg border border-gray-800 shadow-md mb-6">
-              <h3 className="text-lg font-medium text-gray-100 mb-4">
-                Password Requirements
-              </h3>
+            <div className="mb-6 rounded-lg border border-gray-800 bg-gray-900/30 p-5 shadow-md">
+              <h3 className="mb-4 text-lg font-medium text-gray-100">Password Requirements</h3>
               <ul className="space-y-3">
                 {[
-                  { test: password.length >= 8, text: "At least 8 characters" },
+                  { test: password.length >= 8, text: 'At least 8 characters' },
                   {
                     test: /[A-Z]/.test(password),
-                    text: "One uppercase letter",
+                    text: 'One uppercase letter',
                   },
                   {
                     test: /[a-z]/.test(password),
-                    text: "One lowercase letter",
+                    text: 'One lowercase letter',
                   },
-                  { test: /[0-9]/.test(password), text: "One number" },
+                  { test: /[0-9]/.test(password), text: 'One number' },
                 ].map((req, index) => (
                   <li key={index} className="flex items-center">
                     <span
-                      className={`flex-shrink-0 h-5 w-5 mr-2 rounded flex items-center justify-center ${
-                        req.test ? "bg-green-500/20" : "bg-gray-700/50"
+                      className={`mr-2 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded ${
+                        req.test ? 'bg-green-500/20' : 'bg-gray-700/50'
                       }`}
                     >
                       {req.test ? (
@@ -491,11 +437,7 @@ export default function CreateAccount() {
                         </svg>
                       )}
                     </span>
-                    <span
-                      className={`text-sm ${
-                        req.test ? "text-green-500" : "text-gray-400"
-                      }`}
-                    >
+                    <span className={`text-sm ${req.test ? 'text-green-500' : 'text-gray-400'}`}>
                       {req.text}
                     </span>
                   </li>
@@ -504,21 +446,19 @@ export default function CreateAccount() {
             </div>
 
             {/* Benefits box */}
-            <div className="bg-gray-900/30 p-5 rounded-lg border border-gray-800 shadow-md">
-              <h3 className="text-lg font-medium text-gray-100 mb-4">
-                Account Benefits
-              </h3>
+            <div className="rounded-lg border border-gray-800 bg-gray-900/30 p-5 shadow-md">
+              <h3 className="mb-4 text-lg font-medium text-gray-100">Account Benefits</h3>
               <ul className="space-y-2">
                 {[
-                  "Faster checkout",
-                  "Order history tracking",
-                  "Access to exclusive merchandise",
-                  "Early access to ticket sales",
-                  "Special promoter opportunities",
+                  'Faster checkout',
+                  'Order history tracking',
+                  'Access to exclusive merchandise',
+                  'Early access to ticket sales',
+                  'Special promoter opportunities',
                 ].map((benefit, i) => (
                   <li key={i} className="flex items-center">
                     <svg
-                      className="h-5 w-5 text-red-500 mr-2"
+                      className="mr-2 h-5 w-5 text-red-500"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -538,12 +478,12 @@ export default function CreateAccount() {
           </div>
         </div>
 
-        <p className="text-center text-xs text-gray-500 mb-4 mt-12">
-          By creating an account, you agree to the{" "}
+        <p className="mb-4 mt-12 text-center text-xs text-gray-500">
+          By creating an account, you agree to the{' '}
           <a href="#" className="text-red-500 hover:text-red-400">
             Terms of Service
-          </a>{" "}
-          and{" "}
+          </a>{' '}
+          and{' '}
           <a href="#" className="text-red-500 hover:text-red-400">
             Privacy Policy
           </a>

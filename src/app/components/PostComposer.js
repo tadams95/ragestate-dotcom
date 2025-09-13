@@ -93,6 +93,14 @@ export default function PostComposer() {
       alert('Please sign in to post.');
       return;
     }
+    if (!currentUser.emailVerified) {
+      try {
+        window.location.assign(
+          `/verify-email?email=${encodeURIComponent(currentUser.email || '')}`,
+        );
+      } catch {}
+      return;
+    }
     if (!canSubmit) return;
     setSubmitting(true);
     setError('');

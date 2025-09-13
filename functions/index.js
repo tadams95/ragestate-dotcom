@@ -1,4 +1,4 @@
 module.exports = {
-  ...require("./feed"),
-  // ...require('./stripe'),
+  ...require('./feed'),
+  ...require('./stripe'),
 };

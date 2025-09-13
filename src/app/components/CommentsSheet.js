@@ -79,6 +79,14 @@ export default function CommentsSheet({ postId, onClose }) {
       alert('Please sign in to comment.');
       return;
     }
+    if (!currentUser.emailVerified) {
+      try {
+        window.location.assign(
+          `/verify-email?email=${encodeURIComponent(currentUser.email || '')}`,
+        );
+      } catch {}
+      return;
+    }
     try {
       setNewComment('');
       // Optimistic prepend (we display in asc order; append makes sense)

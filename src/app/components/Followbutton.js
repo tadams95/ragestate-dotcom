@@ -47,6 +47,14 @@ export default function Followbutton({ targetUserId, onChange, variant = 'defaul
       } catch {}
       return;
     }
+    if (!currentUser.emailVerified) {
+      try {
+        window.location.assign(
+          `/verify-email?email=${encodeURIComponent(currentUser.email || '')}`,
+        );
+      } catch {}
+      return;
+    }
     if (!targetUserId || currentUser.uid === targetUserId) return;
 
     const id = `${currentUser.uid}_${targetUserId}`;
