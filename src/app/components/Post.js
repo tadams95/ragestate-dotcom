@@ -9,7 +9,7 @@ import PostActions from './PostActions';
 import PostContent from './PostContent';
 import PostHeader from './PostHeader';
 
-export default function Post({ postData }) {
+export default function Post({ postData, hideFollow = false }) {
   // Use dummy data if postData is not provided
   const data = postData || {
     author: 'Default User',
@@ -56,6 +56,7 @@ export default function Post({ postData }) {
         avatarUrl={liveData?.avatarUrl ?? postData?.avatarUrl}
         usernameLower={postData?.usernameLower}
         authorUserId={postData?.userId}
+        hideFollow={hideFollow}
       />
       <PostContent content={liveData?.content ?? data.content} />
       <PostActions

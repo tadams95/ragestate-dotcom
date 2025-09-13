@@ -1,3 +1,4 @@
+/* eslint-disable */
 'use strict';
 
 const { onRequest, onCall, HttpsError } = require('firebase-functions/v2/https');
@@ -50,54 +51,60 @@ app.post('/create-payment-intent', async (req, res) => {
 exports.stripePayment = onRequest({ secrets: [STRIPE_SECRET] }, app);
 
 // Callable function to create a Stripe customer for the authenticated, verified user
-exports.createStripeCustomer = onCall({ enforceAppCheck: true }, async (request) => {
-  if (!request.app) {
-    throw new HttpsError('failed-precondition', 'App Check required');
-  }
-  if (!request.auth) {
-    throw new HttpsError('unauthenticated', 'Authentication required');
-  }
-
-  const stripe = getStripe();
-  if (!stripe) {
-    throw new HttpsError('unavailable', 'Stripe is not configured. Set the STRIPE_SECRET secret.');
-  }
-
-  const uid = request.auth.uid;
-  const email = request.auth.token.email || undefined;
-  const emailVerified = request.auth.token.email_verified === true;
-  if (!emailVerified) {
-    throw new HttpsError('permission-denied', 'Email verification required');
-  }
-
-  try {
-    const custRef = db.collection('customers').doc(uid);
-    const existing = await custRef.get();
-    if (existing.exists && existing.data() && existing.data().stripeCustomerId) {
-      return { id: existing.data().stripeCustomerId, ok: true, reused: true };
+exports.createStripeCustomer = onCall(
+  { enforceAppCheck: true, secrets: [STRIPE_SECRET] },
+  async (request) => {
+    if (!request.app) {
+      throw new HttpsError('failed-precondition', 'App Check required');
+    }
+    if (!request.auth) {
+      throw new HttpsError('unauthenticated', 'Authentication required');
     }
 
-    const name = request.data && request.data.name ? request.data.name : undefined;
-    const customer = await stripe.customers.create({ email, name, metadata: { uid } });
+    const stripe = getStripe();
+    if (!stripe) {
+      throw new HttpsError(
+        'unavailable',
+        'Stripe is not configured. Set the STRIPE_SECRET secret.',
+      );
+    }
 
-    await Promise.all([
-      custRef.set(
-        { stripeCustomerId: customer.id, lastUpdated: new Date().toISOString() },
-        { merge: true },
-      ),
-      // Best-effort RTDB write; ignore if RTDB is not enabled
-      (async () => {
-        try {
-          await admin.database().ref(`users/${uid}/stripeCustomerId`).set(customer.id);
-        } catch (e) {
-          logger.warn('RTDB write failed (non-fatal)', e);
-        }
-      })(),
-    ]);
+    const uid = request.auth.uid;
+    const email = request.auth.token.email || undefined;
+    const emailVerified = request.auth.token.email_verified === true;
+    if (!emailVerified) {
+      throw new HttpsError('permission-denied', 'Email verification required');
+    }
 
-    return { id: customer.id, ok: true };
-  } catch (err) {
-    logger.error('createStripeCustomer failed', err);
-    throw new HttpsError('internal', 'Failed to create Stripe customer');
-  }
-});
+    try {
+      const custRef = db.collection('customers').doc(uid);
+      const existing = await custRef.get();
+      if (existing.exists && existing.data() && existing.data().stripeCustomerId) {
+        return { id: existing.data().stripeCustomerId, ok: true, reused: true };
+      }
+
+      const name = request.data && request.data.name ? request.data.name : undefined;
+      const customer = await stripe.customers.create({ email, name, metadata: { uid } });
+
+      await Promise.all([
+        custRef.set(
+          { stripeCustomerId: customer.id, lastUpdated: new Date().toISOString() },
+          { merge: true },
+        ),
+        // Best-effort RTDB write; ignore if RTDB is not enabled
+        (async () => {
+          try {
+            await admin.database().ref(`users/${uid}/stripeCustomerId`).set(customer.id);
+          } catch (e) {
+            logger.warn('RTDB write failed (non-fatal)', e);
+          }
+        })(),
+      ]);
+
+      return { id: customer.id, ok: true };
+    } catch (err) {
+      logger.error('createStripeCustomer failed', err);
+      throw new HttpsError('internal', 'Failed to create Stripe customer');
+    }
+  },
+);

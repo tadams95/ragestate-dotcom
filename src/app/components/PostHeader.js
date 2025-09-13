@@ -4,7 +4,14 @@ import Link from 'next/link';
 import { useAuth } from '../../../firebase/context/FirebaseContext';
 import Followbutton from './Followbutton';
 
-export default function PostHeader({ author, timestamp, avatarUrl, usernameLower, authorUserId }) {
+export default function PostHeader({
+  author,
+  timestamp,
+  avatarUrl,
+  usernameLower,
+  authorUserId,
+  hideFollow = false,
+}) {
   const { currentUser } = useAuth();
   const displayName =
     author ||
@@ -64,7 +71,7 @@ export default function PostHeader({ author, timestamp, avatarUrl, usernameLower
           <p className="text-xs text-gray-400">{timestamp || 'Time ago'}</p>
         </div>
       </div>
-      {authorUserId && currentUser?.uid !== authorUserId && (
+      {authorUserId && currentUser?.uid !== authorUserId && !hideFollow && (
         <Followbutton targetUserId={authorUserId} variant="compact" />
       )}
     </div>
