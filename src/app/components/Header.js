@@ -1,20 +1,20 @@
-"use client";
+'use client';
 
-import { Dialog, DialogPanel } from "@headlessui/react";
-import Bars3Icon from "@heroicons/react/24/outline/Bars3Icon";
-import XMarkIcon from "@heroicons/react/24/outline/XMarkIcon";
-import ShoppingBagIcon from "@heroicons/react/24/outline/ShoppingBagIcon";
-import UserIcon from "@heroicons/react/24/outline/UserIcon";
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import storage from "@/utils/storage";
+import storage from '@/utils/storage';
+import { Dialog, DialogPanel } from '@headlessui/react';
+import Bars3Icon from '@heroicons/react/24/outline/Bars3Icon';
+import ShoppingBagIcon from '@heroicons/react/24/outline/ShoppingBagIcon';
+import UserIcon from '@heroicons/react/24/outline/UserIcon';
+import XMarkIcon from '@heroicons/react/24/outline/XMarkIcon';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 const navigation = [
-  { name: "SHOP", href: "/shop" },
-  { name: "EVENTS", href: "/events" },
+  { name: 'SHOP', href: '/shop' },
+  { name: 'EVENTS', href: '/events' },
   // { name: "ABOUT", href: "/about" },
-  { name: "PRODUCTS", href: "/products" },
+  // { name: "PRODUCTS", href: "/products" },
   // { name: "BLOG", href: "/blog" },
 ];
 
@@ -22,7 +22,7 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [idToken, setIdToken] = useState(null);
   const [refreshToken, setRefreshToken] = useState(null);
-  const [profilePicture, setProfilePicture] = useState("");
+  const [profilePicture, setProfilePicture] = useState('');
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -30,20 +30,17 @@ export default function Header() {
       idToken: idTok,
       refreshToken: refTok,
       profilePicture: pic,
-    } = storage.readKeys(["idToken", "refreshToken", "profilePicture"]);
+    } = storage.readKeys(['idToken', 'refreshToken', 'profilePicture']);
     setIdToken(idTok || null);
     setRefreshToken(refTok || null);
-    setProfilePicture(pic || "");
+    setProfilePicture(pic || '');
     setHydrated(true);
   }, []);
 
   return (
     <div className="bg-black">
       <header className="absolute inset-x-0 top-0 z-50">
-        <nav
-          className="flex items-center justify-between p-6 lg:px-8"
-          aria-label="Global"
-        >
+        <nav className="flex items-center justify-between p-6 lg:px-8" aria-label="Global">
           <div className="flex lg:flex-1">
             <Link href="/" className="-m-1.5 p-1.5">
               <span className="sr-only">RAGESTATE</span>
@@ -61,7 +58,7 @@ export default function Header() {
           <div className="flex lg:hidden">
             <button
               type="button"
-              className="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-100 h-11 w-11 active:opacity-80"
+              className="-m-2.5 inline-flex h-11 w-11 items-center justify-center rounded-md p-2.5 text-gray-100 active:opacity-80"
               onClick={() => setMobileMenuOpen(true)}
             >
               <span className="sr-only">Open main menu</span>
@@ -80,25 +77,19 @@ export default function Header() {
             ))}
           </div>
           <div className="hidden lg:flex lg:flex-1 lg:justify-end">
-            <Link
-              href="/cart"
-              className="text-sm font-semibold leading-6 text-gray-100 px-20"
-            >
-              <span className="inline-flex h-11 w-11 items-center justify-center -m-2 active:opacity-80">
+            <Link href="/cart" className="px-20 text-sm font-semibold leading-6 text-gray-100">
+              <span className="-m-2 inline-flex h-11 w-11 items-center justify-center active:opacity-80">
                 <ShoppingBagIcon className="h-6 w-6" aria-hidden="true" />
               </span>
               <span aria-hidden="true"></span>
             </Link>
-            <div className="inline-flex items-center justify-center h-11 w-11 -m-2">
+            <div className="-m-2 inline-flex h-11 w-11 items-center justify-center">
               {!hydrated ? (
-                <div
-                  aria-hidden
-                  className="h-6 w-6 rounded-md bg-zinc-800/60"
-                />
+                <div aria-hidden className="h-6 w-6 rounded-md bg-zinc-800/60" />
               ) : idToken && refreshToken ? (
                 <Link
                   href="/account"
-                  className="text-sm font-semibold leading-6 text-gray-100 inline-flex h-11 w-11 items-center justify-center active:opacity-80"
+                  className="inline-flex h-11 w-11 items-center justify-center text-sm font-semibold leading-6 text-gray-100 active:opacity-80"
                   aria-label="Account"
                 >
                   {profilePicture ? (
@@ -118,7 +109,7 @@ export default function Header() {
               ) : (
                 <Link
                   href="/login"
-                  className="text-sm font-semibold leading-6 text-gray-100 inline-flex h-11 w-11 items-center justify-center active:opacity-80"
+                  className="inline-flex h-11 w-11 items-center justify-center text-sm font-semibold leading-6 text-gray-100 active:opacity-80"
                   aria-label="Login"
                 >
                   <UserIcon className="h-6 w-6" aria-hidden="true" />
@@ -128,11 +119,7 @@ export default function Header() {
             </div>
           </div>
         </nav>
-        <Dialog
-          className="lg:hidden"
-          open={mobileMenuOpen}
-          onClose={setMobileMenuOpen}
-        >
+        <Dialog className="lg:hidden" open={mobileMenuOpen} onClose={setMobileMenuOpen}>
           <div className="fixed inset-0 z-50" />
           <DialogPanel className="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto bg-black px-6 py-6 sm:max-w-sm sm:ring-1 sm:ring-gray-900/10">
             <div className="flex items-center justify-between">
@@ -149,7 +136,7 @@ export default function Header() {
               </Link>
               <button
                 type="button"
-                className="-m-2.5 rounded-md p-2.5 text-gray-700 h-11 w-11 active:opacity-80"
+                className="-m-2.5 h-11 w-11 rounded-md p-2.5 text-gray-700 active:opacity-80"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <span className="sr-only">Close menu</span>
