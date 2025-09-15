@@ -6,6 +6,7 @@ const {
   onDocumentDeleted,
   onDocumentUpdated,
 } = require('firebase-functions/v2/firestore');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 const logger = require('firebase-functions/logger');
 const { db } = require('./admin');
 const admin = require('firebase-admin');
@@ -20,6 +21,29 @@ async function updatePostCounter(postId, field, delta) {
     const next = Math.max(0, current + delta);
     tx.update(postRef, { [field]: next });
   });
+}
+
+// Paginated deletion with safety cap to avoid runaway loops / timeouts.
+async function deleteQueryInChunks(queryRef, label, options = {}) {
+  const batchSize = options.batchSize || 400;
+  const maxChunks = options.maxChunks || 50; // ~20k docs worst-case
+  const perChunkDelayMs = options.perChunkDelayMs || 0;
+  let total = 0;
+  let chunks = 0;
+  while (chunks < maxChunks) {
+    const snap = await queryRef.limit(batchSize).get();
+    if (snap.empty) break;
+    const batch = db.batch();
+    snap.docs.forEach((d) => batch.delete(d.ref));
+    await batch.commit();
+    total += snap.size;
+    chunks++;
+    if (snap.size < batchSize) break; // last page
+    if (perChunkDelayMs) await new Promise((r) => setTimeout(r, perChunkDelayMs));
+  }
+  const truncated = chunks >= maxChunks;
+  logger.info('deleteQueryInChunks complete', { label, total, chunks, truncated });
+  return { total, chunks, truncated };
 }
 
 exports.onPostLikeCreate = onDocumentCreated('postLikes/{likeId}', async (event) => {
@@ -97,6 +121,7 @@ exports.onPostCreated = onDocumentCreated('posts/{postId}', async (event) => {
   if (!authorId || !postId) return null;
 
   try {
+    logger.info('onPostCreated fan-out start', { postId, authorId, isPublic: post.isPublic });
     // Fetch followers of author
     const followersSnap = await db.collection('follows').where('followedId', '==', authorId).get();
 
@@ -127,6 +152,7 @@ exports.onPostCreated = onDocumentCreated('posts/{postId}', async (event) => {
       );
     }
     await commitInChunks(writes);
+    logger.info('onPostCreated fan-out complete', { postId, authorId, recipients: writes.length });
   } catch (err) {
     logger.error('onPostCreated fan-out failed', { postId, authorId, err });
   }
@@ -140,6 +166,19 @@ exports.onPostDeleted = onDocumentDeleted('posts/{postId}', async (event) => {
   if (!authorId || !postId) return null;
 
   try {
+    // Idempotency guard via deletion tombstone
+    const tombstoneRef = db.collection('postDeletions').doc(postId);
+    const tombstoneSnap = await tombstoneRef.get();
+    if (tombstoneSnap.exists && tombstoneSnap.data()?.completed) {
+      logger.info('onPostDeleted already processed (tombstone present)', { postId, authorId });
+      return null;
+    }
+    await tombstoneRef.set(
+      { startedAt: admin.firestore.FieldValue.serverTimestamp(), completed: false },
+      { merge: true },
+    );
+
+    logger.info('onPostDeleted cleanup start', { postId, authorId });
     const followersSnap = await db.collection('follows').where('followedId', '==', authorId).get();
 
     const recipients = new Set([authorId]);
@@ -155,14 +194,17 @@ exports.onPostDeleted = onDocumentDeleted('posts/{postId}', async (event) => {
     }
     await commitInChunks(writes);
 
-    // Cleanup likes and comments for this post
-    const likesSnap = await db.collection('postLikes').where('postId', '==', postId).get();
-    const commentsSnap = await db.collection('postComments').where('postId', '==', postId).get();
-
-    const cleanupWrites = [];
-    likesSnap.forEach((doc) => cleanupWrites.push((batch) => batch.delete(doc.ref)));
-    commentsSnap.forEach((doc) => cleanupWrites.push((batch) => batch.delete(doc.ref)));
-    await commitInChunks(cleanupWrites);
+    // Cleanup likes and comments for this post with safeguards (higher cap for comments)
+    const likeDel = await deleteQueryInChunks(
+      db.collection('postLikes').where('postId', '==', postId),
+      'delete_post_likes',
+      { maxChunks: 100 },
+    );
+    const commentDel = await deleteQueryInChunks(
+      db.collection('postComments').where('postId', '==', postId),
+      'delete_post_comments',
+      { maxChunks: 200 },
+    );
 
     // Delete any Storage media for this post
     try {
@@ -171,6 +213,20 @@ exports.onPostDeleted = onDocumentDeleted('posts/{postId}', async (event) => {
     } catch (storageErr) {
       logger.warn('Storage cleanup failed (non-fatal)', { postId, storageErr });
     }
+    // Mark tombstone completed
+    await tombstoneRef.set(
+      { completed: true, finishedAt: admin.firestore.FieldValue.serverTimestamp() },
+      { merge: true },
+    );
+
+    logger.info('onPostDeleted cleanup complete', {
+      postId,
+      authorId,
+      likeDocsDeleted: likeDel.total,
+      commentDocsDeleted: commentDel.total,
+      likesTruncated: likeDel.truncated,
+      commentsTruncated: commentDel.truncated,
+    });
   } catch (err) {
     logger.error('onPostDeleted fan-out cleanup failed', {
       postId,
@@ -193,8 +249,27 @@ exports.onPostUpdated = onDocumentUpdated('posts/{postId}', async (event) => {
   const visBefore = !!before.isPublic;
   const visAfter = !!after.isPublic;
 
+  // Early exit if no relevant changes (avoid unnecessary work)
+  const contentChanged = before.content !== after.content;
+  const mediaChanged =
+    JSON.stringify(before.mediaUrls || []) !== JSON.stringify(after.mediaUrls || []);
+  const visibilityChanged = visBefore !== visAfter;
+  if (!contentChanged && !mediaChanged && !visibilityChanged) {
+    logger.info('onPostUpdated early-exit (non-material changes only)', {
+      postId,
+      changedKeys: Object.keys(after).filter((k) => before[k] !== after[k]),
+    });
+    return null;
+  }
+
   try {
     if (visBefore !== visAfter) {
+      logger.info('onPostUpdated visibility toggle start', {
+        postId,
+        authorId,
+        from: visBefore,
+        to: visAfter,
+      });
       // Fetch followers once when needed
       const followersSnap = await db
         .collection('follows')
@@ -245,13 +320,16 @@ exports.onPostUpdated = onDocumentUpdated('posts/{postId}', async (event) => {
         }
       }
       await commitInChunks(writes);
+      logger.info('onPostUpdated visibility toggle applied', {
+        postId,
+        authorId,
+        to: visAfter,
+        recipientOps: writes.length,
+      });
     }
 
     // If fields edited (content/media), ensure audit flags present
-    const editedFieldsChanged =
-      before.content !== after.content ||
-      JSON.stringify(before.mediaUrls || []) !== JSON.stringify(after.mediaUrls || []) ||
-      visBefore !== visAfter;
+    const editedFieldsChanged = contentChanged || mediaChanged || visibilityChanged;
     if (editedFieldsChanged && !after.edited) {
       await db.collection('posts').doc(postId).set(
         {
@@ -260,6 +338,7 @@ exports.onPostUpdated = onDocumentUpdated('posts/{postId}', async (event) => {
         },
         { merge: true },
       );
+      logger.info('onPostUpdated audit flags applied', { postId });
     }
   } catch (err) {
     logger.error('onPostUpdated failed', { postId, authorId, err });
@@ -275,6 +354,7 @@ exports.onFollowCreate = onDocumentCreated('follows/{edgeId}', async (event) => 
   if (!followerId || !followedId) return null;
 
   try {
+    logger.info('onFollowCreate backfill start', { followerId, followedId });
     // Backfill latest public posts from followed user into follower's feed
     const postsSnap = await db
       .collection('posts')
@@ -308,6 +388,11 @@ exports.onFollowCreate = onDocumentCreated('follows/{edgeId}', async (event) => 
       );
     });
     await commitInChunks(writes);
+    logger.info('onFollowCreate backfill complete', {
+      followerId,
+      followedId,
+      count: writes.length,
+    });
   } catch (err) {
     logger.error('onFollowCreate backfill failed', {
       followerId,
@@ -325,6 +410,7 @@ exports.onFollowDelete = onDocumentDeleted('follows/{edgeId}', async (event) => 
   if (!followerId || !followedId) return null;
 
   try {
+    logger.info('onFollowDelete cleanup start', { followerId, followedId });
     // Remove items from follower's feed authored by followedId
     const feedSnap = await db
       .collection('userFeeds')
@@ -338,12 +424,85 @@ exports.onFollowDelete = onDocumentDeleted('follows/{edgeId}', async (event) => 
       writes.push((batch) => batch.delete(doc.ref));
     });
     await commitInChunks(writes);
+    logger.info('onFollowDelete cleanup complete', {
+      followerId,
+      followedId,
+      count: writes.length,
+    });
   } catch (err) {
     logger.error('onFollowDelete cleanup failed', {
       followerId,
       followedId,
       err,
     });
+  }
+  return null;
+});
+
+// --- Scheduled Feed Trim ---
+
+const MAX_FEED_ITEMS = 500; // Keep most recent N
+const PROCESS_USERS_LIMIT = 200; // Safety cap per run
+const MAX_FEED_ITEM_AGE_DAYS = 30; // Age-based pruning enabled (days)
+
+exports.scheduledFeedTrim = onSchedule('every 60 minutes', async (event) => {
+  const start = Date.now();
+  let processedUsers = 0;
+  let trimmedDocs = 0;
+  try {
+    logger.info('scheduledFeedTrim start', { max: MAX_FEED_ITEMS });
+    const userFeedsSnap = await db.collection('userFeeds').limit(PROCESS_USERS_LIMIT).get();
+    const agePruneThreshold = MAX_FEED_ITEM_AGE_DAYS
+      ? Date.now() - MAX_FEED_ITEM_AGE_DAYS * 24 * 60 * 60 * 1000
+      : null;
+    for (const uf of userFeedsSnap.docs) {
+      processedUsers++;
+      const userId = uf.id;
+      const feedItemsCol = uf.ref.collection('feedItems');
+      // Get the Nth document (the last one we will keep)
+      const keepSnap = await feedItemsCol.orderBy('timestamp', 'desc').limit(MAX_FEED_ITEMS).get();
+      if (keepSnap.size < MAX_FEED_ITEMS) continue; // Nothing to trim
+      const lastKeepDoc = keepSnap.docs[keepSnap.docs.length - 1];
+      if (!lastKeepDoc) continue;
+      // Fetch older items after that doc (paged)
+      let pageCursor = lastKeepDoc;
+      while (true) {
+        const olderSnap = await feedItemsCol
+          .orderBy('timestamp', 'desc')
+          .startAfter(pageCursor)
+          .limit(400)
+          .get();
+        if (olderSnap.empty) break;
+        let batch = db.batch();
+        olderSnap.docs.forEach((d) => batch.delete(d.ref));
+        await batch.commit();
+        trimmedDocs += olderSnap.size;
+        if (olderSnap.size < 400) break; // last page
+        pageCursor = olderSnap.docs[olderSnap.docs.length - 1];
+      }
+      // Optional age-based pruning separate from size trimming
+      if (agePruneThreshold) {
+        const oldByAgeSnap = await feedItemsCol
+          .where('timestamp', '<', new Date(agePruneThreshold))
+          .limit(400)
+          .get();
+        if (!oldByAgeSnap.empty) {
+          let batch = db.batch();
+          oldByAgeSnap.docs.forEach((d) => batch.delete(d.ref));
+          await batch.commit();
+          trimmedDocs += oldByAgeSnap.size;
+        }
+      }
+    }
+    logger.info('scheduledFeedTrim complete', {
+      processedUsers,
+      trimmedDocs,
+      ms: Date.now() - start,
+      sizePrune: true,
+      agePruneDays: MAX_FEED_ITEM_AGE_DAYS,
+    });
+  } catch (err) {
+    logger.error('scheduledFeedTrim failed', { err, processedUsers, trimmedDocs });
   }
   return null;
 });

@@ -16,12 +16,12 @@ STATUS CHECKLIST
 - [x] Client: like toggle (optimistic)
 - [x] Client: comments UI + pagination
 - [x] Post composer (text + single image)
-- [ ] Follow graph UI (FollowButton)
-- [ ] UX polish + tests/metrics
-- [ ] Privacy toggle (Public/Private) end-to-end
-- [ ] Post edit (author-only) with audit fields
-- [ ] Post delete (author-only) with cleanup
-- [ ] Functions onUpdate/onDelete for posts visibility & cleanup
+- [x] Follow graph UI (FollowButton)
+- [x] Privacy toggle (Public/Private) end-to-end
+- [x] Post edit (author-only) with audit fields
+- [x] Post delete (author-only) with cleanup
+- [x] Functions onUpdate/onDelete for posts visibility & cleanup
+- [ ] UX polish + extended tests/metrics (see Remaining Enhancements)
 
 1. FIRESTORE DATABASE STRUCTURE
 -------------------------------
@@ -61,9 +61,13 @@ Create the following collections in Firestore:
     - likeCount: number (optional for comment likes)
 
 - userFeeds
-  - userId (document)
-    - postIds: array (references to posts to show in feed)
-    - lastUpdated: timestamp
+   - userId (document)
+      - (DEPRECATED) postIds: array (legacy; replaced by feedItems subcollection)
+      - lastUpdated: timestamp (optional; may be removed)
+   - feedItems (subcollection under userFeeds/{userId}/feedItems/{postId})
+      - createdAt: timestamp
+      - rank (future): number
+      - (optional) reason: string (e.g., "followed_author", "suggested")
 
 2. FIREBASE SECURITY RULES
 --------------------------
@@ -497,12 +501,12 @@ Step 2 — Harden Security Rules (see Section 14)
 Deploy rules.
 
 Step 2.5 — Privacy + Edit/Delete
-- [ ] Add `edited` (bool) and `updatedAt` (timestamp|null) fields to posts; default edited=false.
-- [ ] Update composer to include Public/Private toggle; default Public.
-- [ ] Add EditPostModal from PostCard overflow for author; supports content and visibility.
-- [ ] Add Delete action with confirm.
-- [ ] Deploy updated rules preventing counter/userId tampering.
-- [ ] Add/Deploy `onUpdatePost` and `onDeletePost` functions and validate fan-out changes and cleanup.
+- [x] Add `edited` (bool) and `updatedAt` (timestamp|null) fields to posts; default edited=false.
+- [x] Update composer to include Public/Private toggle; default Public.
+- [x] Add EditPostModal from PostCard overflow for author; supports content and visibility.
+- [x] Add Delete action with confirm.
+- [x] Deploy updated rules preventing counter/userId tampering.
+- [x] Add/Deploy `onUpdatePost` and `onDeletePost` functions and validate fan-out changes and cleanup.
 
 Step 3 — Cloud Functions: Counters
 - [x] Implement onCreate/onDelete for postLikes to inc/dec posts.likeCount atomically.
@@ -517,7 +521,7 @@ Deploy and test with a new post.
 
 Step 5 — Data Model Tweak (avoid large arrays)
 - [x] Migrate from userFeeds.postIds array → userFeeds/{userId}/feedItems subcollection.
-- [ ] Backfill dev data (optional) by copying existing postIds into feedItems.
+- [ ] Backfill any lingering legacy `postIds` arrays into feedItems (optional if only dev data).
 
 Step 6 — Client: Personalized feed pagination
 - [x] Page feedItems by createdAt desc; hydrate posts by documentId() in ≤10-id chunks with startAfter cursor.
@@ -559,3 +563,52 @@ Done when
 - Users can create a text post (and with a single image), like/unlike, and comment.
 - Counts update accurately via Cloud Functions; rules enforce client cannot write userFeeds.
 - Basic UX polish and metrics are in place.
+
+19. REMAINING ENHANCEMENTS (FEED PRIORITY COMPLETION)
+-----------------------------------
+Open items to fully consider Feed Enhancements “complete” before moving primary focus to Notifications.
+
+Data Consistency & Migration
+- [ ] Run one-time script to backfill: ensure all existing posts have `isPublic` (default true), `edited=false` if undefined, and add missing `updatedAt=null`.
+- [ ] (Optional) Backfill legacy `userFeeds.postIds` arrays into `feedItems` then remove arrays to reduce confusion.
+
+Cloud Functions Hardening
+- [x] Ensure `onUpdatePost` early-exits when only non-material fields change (avoid redundant fan-out work).
+- [x] Add structured logging (info/error) to visibility toggle and delete cleanup for observability.
+- [x] Add batch pagination safeguards for very large like/comment cleanup (>500 docs) in `onDeletePost` (currently assumes modest volume).
+- [x] Schedule periodic feed trim (enabled) to enforce max feed length + remove posts older than 30 days (age pruning enabled). Also added deletion tombstone for idempotency.
+
+Security & Abuse Prevention (ties into bot-prevention plan)
+- [ ] Add lightweight rate limits (e.g., max posts per user per 5 minutes) via a `recentPosts` check or Firestore rule with aggregate doc.
+- [ ] Prepare a simple profanity / banned content filter hook on post create/edit (client-side preflight + optional server validation).
+
+UI / UX Polish
+- [ ] Consistent skeletons for avatar + text in feed while hydrations load.
+- [ ] Refine empty state logic: distinguish "no follows yet" (suggest people or surface global latest) vs. "all caught up".
+- [ ] Improve accessibility: aria labels for reaction buttons, ellipsis menu, and comment sheet close control.
+- [ ] Mobile spacing audit (padding normalization between posts, ensure tap targets ≥44px).
+- [ ] Add subtle animation for newly inserted posts (respect prefers-reduced-motion).
+- [ ] Confirm Private badge styling across dark/light variants (future theme).
+
+Performance
+- [ ] Consider virtualization/windowing (e.g., react-virtualized or simple manual window) if typical feed pages exceed ~50 rendered posts.
+- [ ] Defer offscreen image decoding using `loading="lazy"` (already partial via next/image) + ensure proper `sizes` for common breakpoints.
+- [ ] Add a small client cache (e.g., sessionStorage with LRU) for recently loaded posts to accelerate back navigation.
+
+Testing & Metrics
+- [ ] Add test: visibility toggle removes post from a follower’s feedItems (integration / mocked function result).
+- [ ] Add test: edit sets `edited=true` and preserves counters.
+- [ ] Add test: delete removes post card locally and does not break scroll pagination.
+- [ ] Track events: `post_toggle_privacy`, `post_delete_confirm`, `post_edit_save` (some partially present—verify in metrics util).
+- [ ] Add error boundary or toast surfacing if edit/delete fails (currently alert-based; upgrade to consistent UI component).
+
+Future (Can Defer)
+- [ ] Mentions parsing + mention highlight (prereq for mention notifications).
+- [ ] Followers-only visibility level (requires follow-aware read rules + fan-out adaptation).
+- [ ] Hashtag extraction service + trending aggregation job.
+
+Completion Criteria (Feed Priority)
+- All above unchecked core items (excluding clearly marked future/defer) are addressed.
+- No legacy array-based feeds in active environments.
+- Visibility, edit, delete flows are instrumented and covered by at least smoke tests.
+- Feed performance remains acceptable (<60ms average render per post cluster in dev profiling; scroll jitter minimal).
