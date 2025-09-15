@@ -579,7 +579,7 @@ Cloud Functions Hardening
 - [x] Schedule periodic feed trim (enabled) to enforce max feed length + remove posts older than 30 days (age pruning enabled). Also added deletion tombstone for idempotency.
 
 Security & Abuse Prevention (ties into bot-prevention plan)
-- [ ] Add lightweight rate limits (e.g., max posts per user per 5 minutes) via a `recentPosts` check or Firestore rule with aggregate doc.
+- [x] Add lightweight rate limits (max posts per user per 5 minutes) via server-side check on create with safe early deletion.
 - [ ] Prepare a simple profanity / banned content filter hook on post create/edit (client-side preflight + optional server validation).
 
 UI / UX Polish

@@ -11,6 +11,10 @@ const logger = require('firebase-functions/logger');
 const { db } = require('./admin');
 const admin = require('firebase-admin');
 
+// --- Lightweight Rate Limiting Config ---
+const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+const RATE_LIMIT_MAX_POSTS = 3; // max posts allowed in window
+
 async function updatePostCounter(postId, field, delta) {
   const postRef = db.collection('posts').doc(postId);
   await db.runTransaction(async (tx) => {
@@ -121,6 +125,27 @@ exports.onPostCreated = onDocumentCreated('posts/{postId}', async (event) => {
   if (!authorId || !postId) return null;
 
   try {
+    // Lightweight server-side rate limit: delete if over limit to avoid fan-out
+    const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS);
+    const recentSnap = await db
+      .collection('posts')
+      .where('userId', '==', authorId)
+      .where('timestamp', '>', windowStart)
+      .orderBy('timestamp', 'desc')
+      .limit(RATE_LIMIT_MAX_POSTS + 1)
+      .get();
+    if (recentSnap.size > RATE_LIMIT_MAX_POSTS) {
+      await db.collection('posts').doc(postId).delete();
+      logger.info('onPostCreated rate-limit: post deleted', {
+        postId,
+        authorId,
+        windowMs: RATE_LIMIT_WINDOW_MS,
+        maxPosts: RATE_LIMIT_MAX_POSTS,
+        recentCount: recentSnap.size,
+      });
+      return null;
+    }
+
     logger.info('onPostCreated fan-out start', { postId, authorId, isPublic: post.isPublic });
     // Fetch followers of author
     const followersSnap = await db.collection('follows').where('followedId', '==', authorId).get();
