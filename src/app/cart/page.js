@@ -4,9 +4,6 @@ import { loadStripe } from '@stripe/stripe-js';
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
-//REMOVE AFTER MOJO PIN
-import { doc, getDoc, getFirestore } from 'firebase/firestore';
-
 import XMarkIcon from '@heroicons/react/20/solid/XMarkIcon';
 
 import {
@@ -24,7 +21,7 @@ import Header from '../components/Header';
 // Import new components
 import CartItemDisplay from './components/CartItemDisplay';
 import OrderSummaryDisplay from './components/OrderSummaryDisplay';
-import PromoCodeInput from './components/PromoCodeInput';
+// Promo code functionality removed
 
 // Call our Next.js API proxy to avoid CORS/redirects
 const API_PROXY = '/api/payments';
@@ -32,16 +29,11 @@ const API_PROXY = '/api/payments';
 export default function Cart() {
   const dispatch = useDispatch();
   const cartItems = useSelector(selectCartItems);
-  const firestore = getFirestore();
-  const [code, setCode] = useState('');
-  const [_validCode, setValidCode] = useState(false);
-  const [codeError, setCodeError] = useState('');
+  // Promo code functionality removed
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [addressDetails, setAddressDetails] = useState(null);
-  const [discountAmount, setDiscountAmount] = useState(0);
-  const [promoApplied, setPromoApplied] = useState(false);
-  const [appliedPromoCodeData, setAppliedPromoCodeData] = useState(null); // Store details of the applied promo code
+  // Discount and promo-related state removed
 
   const [state, setState] = useState({
     cartSubtotal: 0,
@@ -55,61 +47,7 @@ export default function Cart() {
     refreshToken: null,
   });
 
-  const validatePromoCode = async (inputCode) => {
-    const upperCaseCode = inputCode.toUpperCase();
-
-    if (!upperCaseCode || upperCaseCode.trim() === '') {
-      setValidCode(false);
-      setCodeError('Please enter a promo code');
-      return { isValid: false, data: null };
-    }
-    if (promoApplied) {
-      setCodeError('A promo code has already been applied.');
-      return { isValid: false, data: null };
-    }
-
-    try {
-      setIsLoading(true);
-      setErrorMessage('');
-
-      const codeRef = doc(firestore, 'promoterCodes', upperCaseCode);
-      const codeSnap = await getDoc(codeRef);
-
-      if (codeSnap.exists()) {
-        const promoData = codeSnap.data();
-        if (!promoData.active) {
-          setValidCode(false);
-          setCodeError('This promo code is no longer active.');
-          return { isValid: false, data: null };
-        }
-        if (promoData.expiresAt && promoData.expiresAt.toDate() < new Date()) {
-          setValidCode(false);
-          setCodeError('This promo code has expired.');
-          return { isValid: false, data: null };
-        }
-        if (promoData.currentUses >= promoData.maxUses) {
-          setValidCode(false);
-          setCodeError('This promo code has reached its maximum usage limit.');
-          return { isValid: false, data: null };
-        }
-
-        setValidCode(true);
-        setCodeError('');
-        return { isValid: true, data: { id: codeSnap.id, ...promoData } };
-      } else {
-        setValidCode(false);
-        setCodeError('Invalid promo code');
-        return { isValid: false, data: null };
-      }
-    } catch (error) {
-      console.error('Error validating code:', error);
-      setCodeError(`Error validating code: ${error.message}`);
-      setValidCode(false);
-      return { isValid: false, data: null };
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Promo code validation removed
 
   const handleRemoveFromCart = (productId, selectedColor, selectedSize) => {
     dispatch(removeFromCart({ productId, selectedColor, selectedSize }));
@@ -130,39 +68,7 @@ export default function Cart() {
       addressDetails: address,
     }));
   };
-
-  const handleApplyPromoCode = async () => {
-    if (!code || promoApplied || isLoading) return;
-    const upperCaseCode = code.toUpperCase();
-
-    setIsLoading(true);
-    const validationResult = await validatePromoCode(upperCaseCode);
-    setIsLoading(false);
-
-    if (validationResult.isValid && validationResult.data) {
-      const promoData = validationResult.data;
-      setDiscountAmount(promoData.discountValue);
-      setAppliedPromoCodeData(promoData);
-      setPromoApplied(true);
-      setCodeError('');
-
-      setState((prevState) => {
-        const taxRate = 0.075;
-        const shipping = cartItems.some((item) => !item.isDigital) ? 0.0 : 0.0;
-        const newTotalPrice =
-          prevState.cartSubtotal +
-          prevState.cartSubtotal * taxRate +
-          shipping -
-          promoData.discountValue;
-        return {
-          ...prevState,
-          totalPrice: Math.max(0, newTotalPrice),
-        };
-      });
-    } else {
-      setAppliedPromoCodeData(null);
-    }
-  };
+  // Promo code application removed
 
   useEffect(() => {
     const newCartSubtotal = cartItems.reduce((accumulator, item) => {
@@ -173,7 +79,7 @@ export default function Cart() {
     const taxRate = 0.075;
     const taxTotal = newCartSubtotal * taxRate;
     const shipping = cartItems.some((item) => !item.isDigital) ? 0.0 : 0.0;
-    const newTotalPrice = newCartSubtotal + taxTotal + shipping - discountAmount;
+    const newTotalPrice = newCartSubtotal + taxTotal + shipping;
 
     setState((prevState) => ({
       ...prevState,
@@ -182,7 +88,7 @@ export default function Cart() {
     }));
 
     dispatch(setCheckoutPrice(Math.max(0, newTotalPrice * 100)));
-  }, [cartItems, dispatch, discountAmount]);
+  }, [cartItems, dispatch]);
 
   useEffect(() => {
     const publishableKey =
@@ -214,12 +120,7 @@ export default function Cart() {
   const taxRate = 0.075;
   const taxTotal = (state.cartSubtotal * taxRate).toFixed(2);
   const shipping = cartItems.some((item) => !item.isDigital) ? 0.0 : 0.0;
-  const total = (
-    parseFloat(state.cartSubtotal) +
-    parseFloat(taxTotal) +
-    shipping -
-    discountAmount
-  ).toFixed(2);
+  const total = (parseFloat(state.cartSubtotal) + parseFloat(taxTotal) + shipping).toFixed(2);
   const finalTotal = Math.max(0, parseFloat(total)).toFixed(2);
   const stripeTotal = Math.round(Math.max(0, parseFloat(finalTotal) * 100));
 
@@ -240,11 +141,11 @@ export default function Cart() {
             `Stripe total amount ${stripeTotal} cents is below minimum ${MIN_STRIPE_AMOUNT} cents. Payment intent not created.`,
           );
           setErrorMessage(
-            `Order total after discount ($${(stripeTotal / 100).toFixed(
+            `Order total ($${(stripeTotal / 100).toFixed(
               2,
             )}) is below the minimum processing amount of $${(MIN_STRIPE_AMOUNT / 100).toFixed(
               2,
-            )}. Please adjust your cart or promo code.`,
+            )}. Please adjust your cart.`,
           );
           setState((prevState) =>
             prevState.clientSecret ? { ...prevState, clientSecret: '' } : prevState,
@@ -373,34 +274,6 @@ export default function Cart() {
                     handleIncrement={handleIncrement}
                     handleDecrement={handleDecrement}
                     handleRemoveFromCart={handleRemoveFromCart}
-                    renderPromoComponent={
-                      item.isDigital &&
-                      state.idToken &&
-                      state.refreshToken &&
-                      state.clientSecret &&
-                      state.stripePromise
-                        ? () => (
-                            <PromoCodeInput
-                              code={code}
-                              setCode={setCode}
-                              handleApplyPromoCode={handleApplyPromoCode}
-                              promoApplied={promoApplied}
-                              isLoading={isLoading}
-                              codeError={codeError}
-                              setValidCode={setValidCode}
-                              setCodeError={setCodeError}
-                            />
-                          )
-                        : item.isDigital && !state.idToken && !state.refreshToken
-                          ? () => (
-                              <div className="mt-4 border-t border-gray-700 pt-4">
-                                <span className="text-xs text-gray-400">
-                                  Log in to use promo codes.
-                                </span>
-                              </div>
-                            )
-                          : null
-                    }
                   />
                 ))}
               </ul>
@@ -410,7 +283,6 @@ export default function Cart() {
               cartSubtotal={state.cartSubtotal}
               shipping={shipping}
               taxTotal={taxTotal}
-              discountAmount={discountAmount}
               finalTotal={finalTotal}
               idToken={state.idToken}
               refreshToken={state.refreshToken}
@@ -424,7 +296,6 @@ export default function Cart() {
               userId={state.userId}
               userName={state.userName}
               userEmail={state.userEmail}
-              appliedPromoCode={appliedPromoCodeData} // Pass applied promo code data
             />
           </div>
         </div>
