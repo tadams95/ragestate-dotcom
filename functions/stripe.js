@@ -202,6 +202,138 @@ app.post('/create-customer', async (req, res) => {
   }
 });
 
+// Finalize order: verify payment succeeded, then create tickets (ragers) and decrement inventory
+app.post('/finalize-order', async (req, res) => {
+  try {
+    const stripe = getStripe();
+    if (!stripe) return res.status(503).json({ error: 'Stripe disabled' });
+
+    const expectedProxyKey = PROXY_KEY.value() || process.env.PROXY_KEY;
+    if (expectedProxyKey) {
+      const provided = req.get('x-proxy-key');
+      if (!provided || provided !== expectedProxyKey) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+    }
+
+    const { paymentIntentId, firebaseId, userEmail, userName, cartItems } = req.body || {};
+    if (!paymentIntentId || !firebaseId) {
+      return res.status(400).json({ error: 'paymentIntentId and firebaseId are required' });
+    }
+
+    let pi;
+    try {
+      pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+    } catch (e) {
+      logger.error('Failed to retrieve PaymentIntent', e);
+      return res.status(400).json({ error: 'Invalid paymentIntentId' });
+    }
+
+    if (!pi || pi.status !== 'succeeded') {
+      return res.status(409).json({ error: 'Payment not in succeeded state' });
+    }
+
+    if (
+      pi.metadata &&
+      pi.metadata.firebaseId &&
+      String(pi.metadata.firebaseId) !== String(firebaseId)
+    ) {
+      return res.status(403).json({ error: 'Payment does not belong to this user' });
+    }
+
+    // Idempotency guard: ensure we only fulfill once per PaymentIntent
+    const fulfillRef = db.collection('fulfillments').doc(pi.id);
+    let alreadyFulfilled = false;
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(fulfillRef);
+      if (snap.exists) {
+        alreadyFulfilled = true;
+        return;
+      }
+      tx.set(fulfillRef, {
+        status: 'processing',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        firebaseId,
+        userEmail: userEmail || pi.receipt_email || '',
+        amount: pi.amount,
+        currency: pi.currency,
+      });
+    });
+
+    if (alreadyFulfilled) {
+      return res.json({ ok: true, idempotent: true, message: 'Already fulfilled' });
+    }
+
+    const items = Array.isArray(cartItems) ? cartItems : [];
+    const eventItems = items.filter((it) => it && it.eventDetails);
+
+    const created = [];
+    for (const item of eventItems) {
+      const eventId = String(item.productId || '').trim();
+      const qty = Math.max(1, parseInt(item.quantity || 1, 10));
+      if (!eventId) continue;
+
+      const eventRef = db.collection('events').doc(eventId);
+      try {
+        await db.runTransaction(async (tx) => {
+          const snap = await tx.get(eventRef);
+          if (!snap.exists) {
+            throw new Error(`Event ${eventId} not found`);
+          }
+          const data = snap.data() || {};
+          const currentQty = typeof data.quantity === 'number' ? data.quantity : 0;
+          const newQty = Math.max(0, currentQty - qty);
+          tx.update(eventRef, { quantity: newQty });
+
+          const ragersRef = eventRef.collection('ragers');
+          const rager = {
+            active: true,
+            email: userEmail || pi.receipt_email || '',
+            firebaseId: firebaseId,
+            owner: userName || '',
+            purchaseDate: admin.firestore.FieldValue.serverTimestamp(),
+            orderNumber: generateOrderNumber(),
+            ticketQuantity: qty,
+            paymentIntentId: pi.id,
+          };
+          const ragerDoc = ragersRef.doc();
+          tx.set(ragerDoc, rager);
+          created.push({ eventId, ragerId: ragerDoc.id, qty, newQty });
+        });
+      } catch (e) {
+        logger.warn(`Finalize order: failed for event ${eventId}`, e);
+      }
+    }
+
+    try {
+      await fulfillRef.set(
+        {
+          status: 'completed',
+          completedAt: admin.firestore.FieldValue.serverTimestamp(),
+          createdTickets: created.length,
+          details: created,
+        },
+        { merge: true },
+      );
+    } catch (e) {
+      logger.warn('Failed to update fulfillments record', e);
+    }
+
+    return res.json({ ok: true, createdTickets: created.length, details: created });
+  } catch (err) {
+    logger.error('finalize-order error', err);
+    res.status(500).json({ error: 'Failed to finalize order' });
+  }
+});
+
+function generateOrderNumber() {
+  const prefix = 'ORDER';
+  const d = new Date();
+  const datePart = d.toISOString().slice(0, 10).replace(/-/g, '');
+  const rand = Math.floor(1000 + Math.random() * 9000);
+  return `${prefix}-${datePart}-${rand}`;
+}
+
 exports.stripePayment = onRequest({ secrets: [STRIPE_SECRET, PROXY_KEY], invoker: 'public' }, app);
 
 // Callable function to create a Stripe customer for the authenticated, verified user
