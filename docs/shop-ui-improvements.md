@@ -78,23 +78,23 @@ Acceptance:
 
 ### Phase 2 — Filters & Sort
 
-- Build filter panel (collapsible on mobile); wire to URL state and apply client‑side filtering.
-- Add basic sort (price asc/desc, newest). Persist to URL.
-- Add reset and result counts; graceful empty state.
+- [x] Build filter panel (collapsible on mobile); wire to URL state and apply client‑side filtering. (UI commented while catalog is 1 item; logic retained)
+- [x] Add basic sort (price asc/desc, newest). Persist to URL.
+- [x] Add reset and result counts; graceful empty state.
 
 Acceptance:
 
-- Changing filters updates URL and results; reload preserves state.
+- [x] Changing filters updates URL and results; reload preserves state.
 
 ### Phase 3 — PDP Enhancements
 
-- Variant pills with availability; price updates per selection; sticky ATC (desktop) and bottom bar (mobile).
-- Gallery slider with thumbnails and lightbox.
-- Product JSON‑LD and improved OG/Twitter metadata.
+- [x] Variant pills with availability; price updates per selection; sticky ATC (desktop) and bottom bar (mobile).
+- [x] Gallery slider with thumbnails and lightbox.
+- [x] Product JSON‑LD and improved OG/Twitter metadata.
 
 Acceptance:
 
-- Selecting a variant updates price/availability; keyboard accessible.
+- [x] Selecting a variant updates price/availability; keyboard accessible.
 
 ### Phase 4 — Quick View & Recommendations
 

@@ -3,10 +3,10 @@
 import { Squares2X2Icon as GridIcon, ListBulletIcon } from '@heroicons/react/24/outline';
 import { motion, useReducedMotion } from 'framer-motion';
 import dynamic from 'next/dynamic';
-import { useCallback, useEffect, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import ProductTile from '../../../components/ProductTile';
 import { fetchShopifyProducts } from '../../../shopify/shopifyService';
-import Footer from '../components/Footer';
 import Header from '../components/Header';
 const AutoSliderBanner = dynamic(() => import('../../../components/AutoSliderBanner'), {
   ssr: false,
@@ -21,6 +21,18 @@ export default function Shop() {
   const [viewMode, setViewMode] = useState('grid'); // Keep the view mode state
   const setGrid = useCallback(() => setViewMode('grid'), []);
   const setList = useCallback(() => setViewMode('list'), []);
+
+  // Router + URL state for Filters & Sort
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [category, setCategory] = useState('');
+  const [size, setSize] = useState('');
+  const [color, setColor] = useState('');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [inStockOnly, setInStockOnly] = useState(false);
+  const [sort, setSort] = useState(''); // '', 'price_asc', 'price_desc', 'newest'
 
   useEffect(() => {
     let isMounted = true;
@@ -76,12 +88,144 @@ export default function Shop() {
       }
     };
 
+    // Initialize filters from URL
+    const fromParams = () => {
+      const get = (k) => searchParams?.get(k) || '';
+      setCategory(get('category'));
+      setSize(get('size'));
+      setColor(get('color'));
+      setMinPrice(get('min'));
+      setMaxPrice(get('max'));
+      setInStockOnly(get('avail') === '1');
+      setSort(get('sort'));
+    };
+
+    fromParams();
     fetchData();
 
     return () => {
       isMounted = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Write filters to URL on change
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams?.toString());
+    const setOrDel = (key, val) => {
+      if (val && String(val).length > 0) params.set(key, String(val));
+      else params.delete(key);
+    };
+    setOrDel('category', category);
+    setOrDel('size', size);
+    setOrDel('color', color);
+    setOrDel('min', minPrice);
+    setOrDel('max', maxPrice);
+    if (inStockOnly) params.set('avail', '1');
+    else params.delete('avail');
+    setOrDel('sort', sort);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category, size, color, minPrice, maxPrice, inStockOnly, sort]);
+
+  // Derive filter option lists
+  const { categories, sizes, colors } = useMemo(() => {
+    const cat = new Set();
+    const sz = new Set();
+    const col = new Set();
+    for (const p of productsWithHref) {
+      if (p?.productType) cat.add(p.productType);
+      if (Array.isArray(p?.variants)) {
+        for (const v of p.variants) {
+          const opts = v?.selectedOptions || [];
+          for (const o of opts) {
+            if (o?.name === 'Size' && o?.value) sz.add(o.value);
+            if (o?.name === 'Color' && o?.value) col.add(o.value);
+          }
+        }
+      }
+    }
+    return {
+      categories: Array.from(cat).sort(),
+      sizes: Array.from(sz).sort(),
+      colors: Array.from(col).sort(),
+    };
+  }, [productsWithHref]);
+
+  // Helpers for price/stock
+  const getMinPrice = (p) => {
+    const variants = Array.isArray(p?.variants) ? p.variants : [];
+    const vals = variants
+      .map(
+        (v) =>
+          parseFloat((v?.priceV2 && v.priceV2.amount) || v?.price?.amount || v?.price || 0) || 0,
+      )
+      .filter((n) => !Number.isNaN(n));
+    return vals.length ? Math.min(...vals) : 0;
+  };
+  const isAnyInStock = (p) => {
+    const variants = Array.isArray(p?.variants) ? p.variants : [];
+    return variants.some((v) => {
+      const available =
+        (typeof v?.availableForSale === 'boolean' && v.availableForSale) ||
+        (typeof v?.available === 'boolean' && v.available) ||
+        (v?.availableForSale == null && v?.available == null);
+      const qtyOk = v?.quantityAvailable == null || v.quantityAvailable > 0;
+      return available && qtyOk;
+    });
+  };
+
+  // Apply filters
+  const filteredProducts = useMemo(() => {
+    let list = productsWithHref.slice();
+    if (category) list = list.filter((p) => p?.productType === category);
+    if (size)
+      list = list.filter((p) =>
+        (p?.variants || []).some((v) =>
+          (v?.selectedOptions || []).some((o) => o?.name === 'Size' && o?.value === size),
+        ),
+      );
+    if (color)
+      list = list.filter((p) =>
+        (p?.variants || []).some((v) =>
+          (v?.selectedOptions || []).some((o) => o?.name === 'Color' && o?.value === color),
+        ),
+      );
+    const min = parseFloat(minPrice);
+    if (!Number.isNaN(min)) list = list.filter((p) => getMinPrice(p) >= (min || 0));
+    const max = parseFloat(maxPrice);
+    if (!Number.isNaN(max) && max > 0) list = list.filter((p) => getMinPrice(p) <= max);
+    if (inStockOnly) list = list.filter((p) => isAnyInStock(p));
+
+    // Sort
+    if (sort === 'price_asc') list.sort((a, b) => getMinPrice(a) - getMinPrice(b));
+    else if (sort === 'price_desc') list.sort((a, b) => getMinPrice(b) - getMinPrice(a));
+    else if (sort === 'newest')
+      list.sort(
+        (a, b) =>
+          new Date(b?.publishedAt || b?.createdAt || 0) -
+          new Date(a?.publishedAt || a?.createdAt || 0),
+      );
+    return list;
+  }, [productsWithHref, category, size, color, minPrice, maxPrice, inStockOnly, sort]);
+
+  const _resultsCount = filteredProducts.length;
+
+  const _resetFilters = () => {
+    setCategory('');
+    setSize('');
+    setColor('');
+    setMinPrice('');
+    setMaxPrice('');
+    setInStockOnly(false);
+    setSort('');
+  };
+
+  const _showFilters = useMemo(() => {
+    if ((productsWithHref || []).length > 1) return true;
+    const optionsCount = (categories?.length || 0) + (sizes?.length || 0) + (colors?.length || 0);
+    return optionsCount > 1;
+  }, [productsWithHref, categories, sizes, colors]);
 
   return (
     <div className="isolate min-h-screen bg-black">
@@ -114,6 +258,20 @@ export default function Shop() {
             </button>
           </div>
         </div>
+
+        {/* Filters & Sort (commented out while catalog is small)
+        {_showFilters && (
+          <div className="mb-6">
+            <details className="rounded-lg border border-gray-800 bg-black/40 p-4 [&_summary]:cursor-pointer">
+              <summary className="text-sm font-medium text-white">Filters & Sort</summary>
+              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6">
+                ...
+              </div>
+              <div className="mt-3 text-xs text-gray-400">{_resultsCount} results</div>
+            </details>
+          </div>
+        )}
+        */}
 
         {/* Loading and Error States */}
         {loading && (
@@ -185,7 +343,7 @@ export default function Shop() {
         )}
       </div>
 
-      <Footer />
+      {/* Footer is rendered globally in RootLayout */}
       {/* <ShopStyling /> */}
     </div>
   );

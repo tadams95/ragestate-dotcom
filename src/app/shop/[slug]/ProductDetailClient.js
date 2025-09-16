@@ -2,18 +2,26 @@
 
 import Header from '@/app/components/Header';
 import storage from '@/utils/storage';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ProductDetails from '../../../../components/ProductDetail';
 
 export default function ProductDetailClient({ product: initialProduct }) {
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState(initialProduct);
+  const restoreFocusEl = useRef(null);
 
   // console.log("askdljfalksdfj:", initialProduct);
 
   //I should work on this more and make more tweaks
 
   useEffect(() => {
+    // Measure header height for sticky offset CSS var
+    try {
+      const hdr = document.querySelector('header, [role="banner"]');
+      const h = hdr?.getBoundingClientRect?.().height || 96;
+      document.documentElement.style.setProperty('--header-h', `${Math.round(h)}px`);
+    } catch (_) {}
+
     if (!initialProduct && typeof window !== 'undefined') {
       const product = storage.getJSON('selectedProduct');
       setSelectedProduct(product);
@@ -61,7 +69,7 @@ export default function ProductDetailClient({ product: initialProduct }) {
       <div
         className={`transition-opacity ${loading ? 'opacity-0' : 'opacity-100 duration-1000'} px-4 py-20 lg:px-8`}
       >
-        <ProductDetails product={selectedProduct} />
+        <ProductDetails product={selectedProduct} focusRestoreRef={restoreFocusEl} />
       </div>
     </>
   );

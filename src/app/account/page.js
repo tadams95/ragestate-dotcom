@@ -12,7 +12,6 @@ import Image from 'next/image';
 import OrderHistory from '../../../components/OrderHistory';
 import { getUserFromFirestore } from '../../../firebase/util/getUserData';
 import { logoutUser } from '../../../lib/utils/auth';
-import Footer from '../components/Footer';
 import Header from '../components/Header';
 import styles from './account.module.css';
 
@@ -337,7 +336,7 @@ export default function Account() {
         )}
       </main>
 
-      <Footer />
+      {/* Footer is rendered globally in RootLayout */}
     </div>
   );
 }

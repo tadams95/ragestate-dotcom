@@ -1,8 +1,9 @@
+import Script from 'next/script';
 import {
-  fetchShopifyProductBySlug,
   fetchAllProductSlugs,
-} from "../../../../shopify/shopifyService";
-import ProductDetailClient from "./ProductDetailClient";
+  fetchShopifyProductBySlug,
+} from '../../../../shopify/shopifyService';
+import ProductDetailClient from './ProductDetailClient';
 
 export async function generateStaticParams() {
   // console.log("generateStaticParams: Start");
@@ -15,7 +16,7 @@ export async function generateStaticParams() {
       slug,
     }));
   } catch (error) {
-    console.error("Error in generateStaticParams:", error);
+    console.error('Error in generateStaticParams:', error);
     // If Shopify is unavailable, return no params to avoid build failure
     return [];
   } finally {
@@ -39,16 +40,30 @@ export async function generateMetadata({ params }) {
 
     // console.log("Product Data:", product);
 
+    const firstImage =
+      product?.images?.[0]?.src || product?.images?.[0]?.transformedSrc || undefined;
     return {
       title: product.title,
       description: product.description,
+      openGraph: {
+        title: product.title,
+        description: product.description,
+        type: 'website',
+        images: firstImage ? [{ url: firstImage }] : undefined,
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: product.title,
+        description: product.description,
+        images: firstImage ? [firstImage] : undefined,
+      },
     };
   } catch (error) {
-    console.error("Error in generateMetadata:", error);
+    console.error('Error in generateMetadata:', error);
     // Fallback metadata when product can't be fetched
     return {
-      title: "Product",
-      description: "Product not available",
+      title: 'Product',
+      description: 'Product not available',
     };
   } finally {
     // console.log("generateMetadata: End");
@@ -74,9 +89,40 @@ export default async function ProductDetailPage({ params }) {
     // Convert product to a plain object
     const plainProduct = JSON.parse(JSON.stringify(product));
 
-    return <ProductDetailClient product={plainProduct} />;
+    // Product JSON-LD
+    const priceAmount = parseFloat(plainProduct?.variants?.[0]?.price?.amount || '0').toFixed(2);
+    const currency = plainProduct?.variants?.[0]?.price?.currencyCode || 'USD';
+    const firstImage = plainProduct?.images?.[0]?.src || plainProduct?.images?.[0]?.transformedSrc;
+    const sku = plainProduct?.variants?.[0]?.sku || plainProduct?.id;
+    const jsonLd = {
+      '@context': 'https://schema.org/',
+      '@type': 'Product',
+      name: plainProduct?.title,
+      image: firstImage ? [firstImage] : undefined,
+      description: plainProduct?.description,
+      sku,
+      brand: plainProduct?.vendor ? { '@type': 'Brand', name: plainProduct.vendor } : undefined,
+      offers: {
+        '@type': 'Offer',
+        priceCurrency: currency,
+        price: priceAmount,
+        availability: 'https://schema.org/InStock',
+        url: `https://www.ragestate.com/shop/${slug}`,
+      },
+    };
+
+    return (
+      <>
+        <Script
+          id="product-json-ld"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+        <ProductDetailClient product={plainProduct} />
+      </>
+    );
   } catch (error) {
-    console.error("Error in ProductDetailPage:", error);
+    console.error('Error in ProductDetailPage:', error);
     // Render a minimal not-found fragment if product cannot be loaded
     return {
       notFound: true,

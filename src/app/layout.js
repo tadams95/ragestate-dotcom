@@ -1,19 +1,18 @@
-import "./globals.css";
-import { Inter } from "next/font/google";
-import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/next";
-import StoreProvider from "./StoreProvider";
-import AuthCheck from "./auth/AuthCheck";
-import { FirebaseProvider } from "../../firebase/context/FirebaseContext";
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
+import { Inter } from 'next/font/google';
+import { FirebaseProvider } from '../../firebase/context/FirebaseContext';
+import StoreProvider from './StoreProvider';
+import AuthCheck from './auth/AuthCheck';
+import Footer from './components/Footer';
+import './globals.css';
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-  title: "RAGESTATE",
-  description: "Welcome to RAGESTATE",
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL || "https://ragestate.com"
-  ),
+  title: 'RAGESTATE',
+  description: 'Welcome to RAGESTATE',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://ragestate.com'),
 };
 
 export default function RootLayout({ children }) {
@@ -21,11 +20,12 @@ export default function RootLayout({ children }) {
     <StoreProvider>
       <AuthCheck />
       <html lang="en" className="h-full">
-        <body className="h-full">
-          <div className="flex flex-col min-h-screen">
+        <body className={`${inter.className} h-full`}>
+          <div className="flex min-h-screen flex-col">
             <div className="flex-grow">
               <FirebaseProvider>{children}</FirebaseProvider>
             </div>
+            <Footer />
             <SpeedInsights />
             <Analytics />
           </div>

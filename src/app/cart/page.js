@@ -1,47 +1,40 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useMemo } from "react";
-import { loadStripe } from "@stripe/stripe-js";
-import { Elements } from "@stripe/react-stripe-js";
-import { useSelector, useDispatch } from "react-redux";
+import { loadStripe } from '@stripe/stripe-js';
+import { useEffect, useMemo, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 
 //REMOVE AFTER MOJO PIN
-import { doc, getFirestore, getDoc } from "firebase/firestore";
+import { doc, getDoc, getFirestore } from 'firebase/firestore';
 
-import XMarkIcon from "@heroicons/react/20/solid/XMarkIcon";
+import XMarkIcon from '@heroicons/react/20/solid/XMarkIcon';
 
 import {
-  selectCartItems,
-  removeFromCart,
-  setCheckoutPrice,
-  setPaymentIntent,
-  incrementQuantity,
   decrementQuantity,
-} from "../../../lib/features/todos/cartSlice";
+  incrementQuantity,
+  removeFromCart,
+  selectCartItems,
+  setCheckoutPrice,
+} from '../../../lib/features/todos/cartSlice';
 
-import Header from "../components/Header";
-import Footer from "../components/Footer";
-import Link from "next/link";
-import EmptyCart from "../../../components/EmptyCart";
-import RandomDetailStyling from "../components/styling/RandomDetailStyling";
-import CheckoutForm from "../../../components/CheckoutForm";
-import AddressForm from "../../../components/AddressForm";
-import storage from "@/utils/storage";
+import storage from '@/utils/storage';
+import EmptyCart from '../../../components/EmptyCart';
+import Header from '../components/Header';
 
 // Import new components
-import PromoCodeInput from "./components/PromoCodeInput";
-import CartItemDisplay from "./components/CartItemDisplay";
-import OrderSummaryDisplay from "./components/OrderSummaryDisplay";
+import CartItemDisplay from './components/CartItemDisplay';
+import OrderSummaryDisplay from './components/OrderSummaryDisplay';
+import PromoCodeInput from './components/PromoCodeInput';
 
 export default function Cart() {
   const dispatch = useDispatch();
   const cartItems = useSelector(selectCartItems);
   const firestore = getFirestore();
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState('');
   const [validCode, setValidCode] = useState(false);
-  const [codeError, setCodeError] = useState("");
+  const [codeError, setCodeError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState('');
   const [addressDetails, setAddressDetails] = useState(null);
   const [discountAmount, setDiscountAmount] = useState(0);
   const [promoApplied, setPromoApplied] = useState(false);
@@ -51,10 +44,10 @@ export default function Cart() {
     cartSubtotal: 0,
     totalPrice: 0,
     stripePromise: null,
-    clientSecret: "",
-    userName: "",
-    userEmail: "",
-    userId: "",
+    clientSecret: '',
+    userName: '',
+    userEmail: '',
+    userId: '',
     idToken: null,
     refreshToken: null,
   });
@@ -62,51 +55,51 @@ export default function Cart() {
   const validatePromoCode = async (inputCode) => {
     const upperCaseCode = inputCode.toUpperCase();
 
-    if (!upperCaseCode || upperCaseCode.trim() === "") {
+    if (!upperCaseCode || upperCaseCode.trim() === '') {
       setValidCode(false);
-      setCodeError("Please enter a promo code");
+      setCodeError('Please enter a promo code');
       return { isValid: false, data: null };
     }
     if (promoApplied) {
-      setCodeError("A promo code has already been applied.");
+      setCodeError('A promo code has already been applied.');
       return { isValid: false, data: null };
     }
 
     try {
       setIsLoading(true);
-      setErrorMessage("");
+      setErrorMessage('');
 
-      const codeRef = doc(firestore, "promoterCodes", upperCaseCode);
+      const codeRef = doc(firestore, 'promoterCodes', upperCaseCode);
       const codeSnap = await getDoc(codeRef);
 
       if (codeSnap.exists()) {
         const promoData = codeSnap.data();
         if (!promoData.active) {
           setValidCode(false);
-          setCodeError("This promo code is no longer active.");
+          setCodeError('This promo code is no longer active.');
           return { isValid: false, data: null };
         }
         if (promoData.expiresAt && promoData.expiresAt.toDate() < new Date()) {
           setValidCode(false);
-          setCodeError("This promo code has expired.");
+          setCodeError('This promo code has expired.');
           return { isValid: false, data: null };
         }
         if (promoData.currentUses >= promoData.maxUses) {
           setValidCode(false);
-          setCodeError("This promo code has reached its maximum usage limit.");
+          setCodeError('This promo code has reached its maximum usage limit.');
           return { isValid: false, data: null };
         }
 
         setValidCode(true);
-        setCodeError("");
+        setCodeError('');
         return { isValid: true, data: { id: codeSnap.id, ...promoData } };
       } else {
         setValidCode(false);
-        setCodeError("Invalid promo code");
+        setCodeError('Invalid promo code');
         return { isValid: false, data: null };
       }
     } catch (error) {
-      console.error("Error validating code:", error);
+      console.error('Error validating code:', error);
       setCodeError(`Error validating code: ${error.message}`);
       setValidCode(false);
       return { isValid: false, data: null };
@@ -115,8 +108,7 @@ export default function Cart() {
     }
   };
 
-  const API_URL =
-    "https://us-central1-ragestate-app.cloudfunctions.net/stripePayment";
+  const API_URL = 'https://us-central1-ragestate-app.cloudfunctions.net/stripePayment';
 
   const handleRemoveFromCart = (productId, selectedColor, selectedSize) => {
     dispatch(removeFromCart({ productId, selectedColor, selectedSize }));
@@ -151,7 +143,7 @@ export default function Cart() {
       setDiscountAmount(promoData.discountValue);
       setAppliedPromoCodeData(promoData);
       setPromoApplied(true);
-      setCodeError("");
+      setCodeError('');
 
       setState((prevState) => {
         const taxRate = 0.075;
@@ -173,18 +165,14 @@ export default function Cart() {
 
   useEffect(() => {
     const newCartSubtotal = cartItems.reduce((accumulator, item) => {
-      const quantity =
-        typeof item.quantity === "number" && item.quantity > 0
-          ? item.quantity
-          : 1;
+      const quantity = typeof item.quantity === 'number' && item.quantity > 0 ? item.quantity : 1;
       return accumulator + parseFloat(item.price) * quantity;
     }, 0);
 
     const taxRate = 0.075;
     const taxTotal = newCartSubtotal * taxRate;
     const shipping = cartItems.some((item) => !item.isDigital) ? 0.0 : 0.0;
-    const newTotalPrice =
-      newCartSubtotal + taxTotal + shipping - discountAmount;
+    const newTotalPrice = newCartSubtotal + taxTotal + shipping - discountAmount;
 
     setState((prevState) => ({
       ...prevState,
@@ -197,7 +185,7 @@ export default function Cart() {
 
   useEffect(() => {
     const publishableKey =
-      "pk_live_51NFhuOHnXmOBmfaDu16tJEuppfYKPUivMapB9XLXaBpiOLqiPRz2uoPAiifxqiLT49dyPCHOSKs74wjBspzJ8zo600yGYluqUe";
+      'pk_live_51NFhuOHnXmOBmfaDu16tJEuppfYKPUivMapB9XLXaBpiOLqiPRz2uoPAiifxqiLT49dyPCHOSKs74wjBspzJ8zo600yGYluqUe';
     setState((prevState) => ({
       ...prevState,
       stripePromise: loadStripe(publishableKey),
@@ -206,19 +194,19 @@ export default function Cart() {
 
   useEffect(() => {
     const { idToken, refreshToken, name, email, userId } = storage.readKeys([
-      "idToken",
-      "refreshToken",
-      "name",
-      "email",
-      "userId",
+      'idToken',
+      'refreshToken',
+      'name',
+      'email',
+      'userId',
     ]);
     setState((prevState) => ({
       ...prevState,
       idToken,
       refreshToken,
-      userName: name || "",
-      userEmail: email || "",
-      userId: userId || "",
+      userName: name || '',
+      userEmail: email || '',
+      userId: userId || '',
     }));
   }, []);
 
@@ -239,8 +227,8 @@ export default function Cart() {
       try {
         if (!cartItems.length || stripeTotal <= 0) {
           if (state.clientSecret) {
-            setState((prevState) => ({ ...prevState, clientSecret: "" }));
-            storage.remove("clientSecret");
+            setState((prevState) => ({ ...prevState, clientSecret: '' }));
+            storage.remove('clientSecret');
           }
           return;
         }
@@ -248,30 +236,30 @@ export default function Cart() {
         const MIN_STRIPE_AMOUNT = 50; // 50 cents, Stripe's typical minimum
         if (stripeTotal < MIN_STRIPE_AMOUNT) {
           console.warn(
-            `Stripe total amount ${stripeTotal} cents is below minimum ${MIN_STRIPE_AMOUNT} cents. Payment intent not created.`
+            `Stripe total amount ${stripeTotal} cents is below minimum ${MIN_STRIPE_AMOUNT} cents. Payment intent not created.`,
           );
           setErrorMessage(
             `Order total after discount ($${(stripeTotal / 100).toFixed(
-              2
-            )}) is below the minimum processing amount of $${(
-              MIN_STRIPE_AMOUNT / 100
-            ).toFixed(2)}. Please adjust your cart or promo code.`
+              2,
+            )}) is below the minimum processing amount of $${(MIN_STRIPE_AMOUNT / 100).toFixed(
+              2,
+            )}. Please adjust your cart or promo code.`,
           );
           if (state.clientSecret) {
-            setState((prevState) => ({ ...prevState, clientSecret: "" }));
-            storage.remove("clientSecret");
+            setState((prevState) => ({ ...prevState, clientSecret: '' }));
+            storage.remove('clientSecret');
           }
           setIsLoading(false);
           return;
         }
 
         setIsLoading(true);
-        setErrorMessage("");
+        setErrorMessage('');
 
         const response = await fetch(`${API_URL}/web-payment`, {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             amount: stripeTotal,
@@ -283,9 +271,7 @@ export default function Cart() {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(
-            errorData.message || `Error: HTTP status ${response.status}`
-          );
+          throw new Error(errorData.message || `Error: HTTP status ${response.status}`);
         }
 
         const { client_secret } = await response.json();
@@ -294,14 +280,14 @@ export default function Cart() {
           ...prevState,
           clientSecret: client_secret,
         }));
-        storage.set("clientSecret", client_secret);
+        storage.set('clientSecret', client_secret);
       } catch (error) {
-        console.error("Error fetching payment intent:", error.message);
+        console.error('Error fetching payment intent:', error.message);
         setErrorMessage(
-          `Payment setup failed: ${error.message}. Please refresh the page or try again later.`
+          `Payment setup failed: ${error.message}. Please refresh the page or try again later.`,
         );
-        setState((prevState) => ({ ...prevState, clientSecret: "" }));
-        storage.remove("clientSecret");
+        setState((prevState) => ({ ...prevState, clientSecret: '' }));
+        storage.remove('clientSecret');
       } finally {
         setIsLoading(false);
       }
@@ -312,24 +298,17 @@ export default function Cart() {
     } else {
       setIsLoading(false);
       if (state.clientSecret) {
-        setState((prevState) => ({ ...prevState, clientSecret: "" }));
-        storage.remove("clientSecret");
+        setState((prevState) => ({ ...prevState, clientSecret: '' }));
+        storage.remove('clientSecret');
       }
     }
-  }, [
-    state.userName,
-    state.userEmail,
-    state.userId,
-    cartItems,
-    stripeTotal,
-    API_URL,
-  ]);
+  }, [state.userName, state.userEmail, state.userId, cartItems, stripeTotal, API_URL]);
 
   const appearance = {
-    theme: "stripe",
+    theme: 'stripe',
     variables: {
-      colorText: "#ffffff",
-      colorBackground: "#000000",
+      colorText: '#ffffff',
+      colorBackground: '#000000',
     },
   };
 
@@ -338,23 +317,23 @@ export default function Cart() {
       clientSecret: state.clientSecret,
       appearance: appearance,
     }),
-    [state.clientSecret]
+    [state.clientSecret],
   );
 
   const hasPhysicalItems = cartItems.some((item) => !item.isDigital);
 
   return (
-    <div className="bg-black isolate">
+    <div className="isolate bg-black">
       <Header />
       {errorMessage && (
         <div
-          className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mt-16 mx-auto max-w-7xl"
+          className="relative mx-auto mt-16 max-w-7xl rounded border border-red-400 bg-red-100 px-4 py-3 text-red-700"
           role="alert"
         >
           <span className="block sm:inline">{errorMessage}</span>
           <button
-            className="absolute top-0 bottom-0 right-0 px-4 py-3"
-            onClick={() => setErrorMessage("")}
+            className="absolute bottom-0 right-0 top-0 px-4 py-3"
+            onClick={() => setErrorMessage('')}
           >
             <XMarkIcon className="h-5 w-5" aria-hidden="true" />
           </button>
@@ -402,17 +381,15 @@ export default function Cart() {
                               setCodeError={setCodeError}
                             />
                           )
-                        : item.isDigital &&
-                          !state.idToken &&
-                          !state.refreshToken
-                        ? () => (
-                            <div className="mt-4 pt-4 border-t border-gray-700">
-                              <span className="text-gray-400 text-xs">
-                                Log in to use promo codes.
-                              </span>
-                            </div>
-                          )
-                        : null
+                        : item.isDigital && !state.idToken && !state.refreshToken
+                          ? () => (
+                              <div className="mt-4 border-t border-gray-700 pt-4">
+                                <span className="text-xs text-gray-400">
+                                  Log in to use promo codes.
+                                </span>
+                              </div>
+                            )
+                          : null
                     }
                   />
                 ))}
@@ -443,7 +420,7 @@ export default function Cart() {
         </div>
       )}
 
-      <Footer />
+      {/* Footer is rendered globally in RootLayout */}
     </div>
   );
 }
