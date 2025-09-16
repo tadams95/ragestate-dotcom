@@ -47,9 +47,15 @@ export async function POST(request) {
 
     const payload = await request.json().catch(() => ({}));
 
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+    const proxyKey = process.env.PROXY_KEY;
+    if (proxyKey) headers['x-proxy-key'] = proxyKey;
+
     const res = await fetch(FN_ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(payload),
       cache: 'no-store',
     });

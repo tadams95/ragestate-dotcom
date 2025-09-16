@@ -139,8 +139,17 @@ export default function CreateAccount() {
         dispatch,
       );
 
-      // TODO(Stripe): Create Stripe customer server-side (callable or Auth trigger)
-      // For now, skip direct client call to a non-existent endpoint.
+      // Create or reuse a Stripe Customer via our server-side proxy (non-blocking)
+      try {
+        const fullName = `${firstName} ${lastName}`.trim();
+        await fetch('/api/payments/create-customer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uid: user.uid, email: user.email, name: fullName }),
+        });
+      } catch (e) {
+        console.warn('Stripe customer creation skipped:', e);
+      }
 
       // Handle authentication state
       dispatch(
