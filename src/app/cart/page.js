@@ -257,7 +257,10 @@ export default function Cart() {
         setIsLoading(true);
         setErrorMessage('');
 
-        console.log('[Cart] Creating payment intent via proxy:', `${API_PROXY}/create-payment-intent`);
+        console.log(
+          '[Cart] Creating payment intent via proxy:',
+          `${API_PROXY}/create-payment-intent`,
+        );
         const response = await fetch(`${API_PROXY}/create-payment-intent`, {
           method: 'POST',
           headers: {
