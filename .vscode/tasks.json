@@ -11,6 +11,13 @@
 				"$eslint-stylish"
 			],
 			"group": "build"
+		},
+		{
+			"label": "Deploy Firestore Rules",
+			"type": "shell",
+			"command": "firebase deploy --only firestore:rules",
+			"isBackground": false,
+			"group": "build"
 		}
 	]
 }
