@@ -96,12 +96,12 @@ Acceptance:
 
 ### Phase 4 — Accessibility & Map Links
 
-- Audit focus states and headings; add map link when address present.
-- Add aria-live region for fetch errors.
+- [x] Audit focus states and headings; add map link when address present.
+- [x] Add aria-live region for fetch errors.
 
 Acceptance:
 
-- Keyboard flows pass; copying and CTAs are operable with visible focus.
+- [x] Keyboard flows pass; copying and CTAs are operable with visible focus.
 
 ---
 
