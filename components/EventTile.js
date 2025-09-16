@@ -1,7 +1,11 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
+import { useState } from 'react';
 
 export default function EventTile({ event }) {
+  const [isPortrait, setIsPortrait] = useState(false);
   // Function to format slug
   const formatSlug = (title) => {
     return title
@@ -44,14 +48,22 @@ export default function EventTile({ event }) {
           className="group"
           onClick={handleLinkClick}
         >
-          <div className="relative h-60 w-full overflow-hidden sm:h-64 lg:h-72">
+          <div className="relative h-60 w-full overflow-hidden bg-black sm:h-64 lg:h-72">
             <Image
               priority
               src={imgSrc}
               alt={event?.name || 'Event image'}
               fill
               sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw"
-              className="object-cover object-center transition-opacity duration-300 group-hover:opacity-75"
+              className={`transition-opacity duration-300 group-hover:opacity-75 ${
+                isPortrait ? 'object-contain object-center' : 'object-cover object-center'
+              }`}
+              onLoadingComplete={({ naturalWidth, naturalHeight }) => {
+                try {
+                  const portrait = naturalHeight > naturalWidth * 1.1;
+                  setIsPortrait(portrait);
+                } catch (_) {}
+              }}
             />
             {/* {event.category && (
               <span className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium">

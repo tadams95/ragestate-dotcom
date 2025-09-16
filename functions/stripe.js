@@ -115,27 +115,73 @@ app.post('/create-customer', async (req, res) => {
     }
 
     if (existingId) {
-      return res.json({ id: existingId, ok: true, reused: true });
+      const description =
+        uid && String(uid).trim() ? `${email} — ${uid}` : `${email} — ${existingId}`;
+      // Best-effort enrich existing mapping and Stripe record
+      try {
+        await stripe.customers.update(existingId, {
+          description,
+          metadata: Object.assign({}, uid ? { uid } : {}, {
+            app: 'ragestate',
+            source: 'firebase-functions-v2',
+          }),
+        });
+      } catch (e) {
+        logger.warn('Stripe customer update (reuse) failed (non-fatal)', e);
+      }
+      if (uid && typeof uid === 'string' && uid.trim()) {
+        try {
+          await db
+            .collection('customers')
+            .doc(uid)
+            .set(
+              { email, name, description, lastUpdated: new Date().toISOString() },
+              { merge: true },
+            );
+        } catch (e) {
+          logger.warn('Failed to update customer doc on reuse (non-fatal)', e);
+        }
+      }
+      return res.json({ id: existingId, ok: true, reused: true, description });
     }
 
-    // Create a new customer
+    // Create a new customer (metadata will be enriched after we have the id)
     const customer = await stripe.customers.create({
       email,
       name,
       metadata: uid ? { uid } : undefined,
     });
 
+    // Add a helpful description and enrich metadata (uid/app/source). Include uid if available, else customer id.
+    const description =
+      uid && String(uid).trim() ? `${email} — ${uid}` : `${email} — ${customer.id}`;
+    try {
+      await stripe.customers.update(customer.id, {
+        description,
+        metadata: Object.assign({}, uid ? { uid } : {}, {
+          app: 'ragestate',
+          source: 'firebase-functions-v2',
+        }),
+      });
+    } catch (e) {
+      logger.warn('Stripe customer update (description/metadata) failed (non-fatal)', e);
+    }
+
     // Persist mapping in Firestore (and best-effort RTDB) when uid is available
     if (uid && typeof uid === 'string' && uid.trim()) {
       try {
         await Promise.all([
-          db
-            .collection('customers')
-            .doc(uid)
-            .set(
-              { stripeCustomerId: customer.id, lastUpdated: new Date().toISOString() },
-              { merge: true },
-            ),
+          db.collection('customers').doc(uid).set(
+            {
+              stripeCustomerId: customer.id,
+              email,
+              name,
+              description,
+              createdAt: new Date().toISOString(),
+              lastUpdated: new Date().toISOString(),
+            },
+            { merge: true },
+          ),
           (async () => {
             try {
               await admin.database().ref(`users/${uid}/stripeCustomerId`).set(customer.id);
@@ -149,7 +195,7 @@ app.post('/create-customer', async (req, res) => {
       }
     }
 
-    return res.json({ id: customer.id, ok: true });
+    return res.json({ id: customer.id, ok: true, description });
   } catch (err) {
     logger.error('create-customer error', err);
     res.status(500).json({ error: 'Failed to create customer' });

@@ -4,7 +4,6 @@ import { applyActionCode, onAuthStateChanged, reload, sendEmailVerification } fr
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { auth } from '../../../firebase/firebase';
-import Header from '../components/Header';
 
 export default function VerifyEmailClient() {
   const router = useRouter();
@@ -118,7 +117,6 @@ export default function VerifyEmailClient() {
 
   return (
     <div className="flex min-h-screen flex-col bg-black text-white">
-      <Header />
       <main className="flex flex-1 items-center justify-center px-4 py-12 sm:px-6">
         <div className="w-full max-w-xl">
           <div className="relative overflow-hidden rounded-[14px] border border-white/10 bg-white/5 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.6)] backdrop-blur-md">

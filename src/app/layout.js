@@ -6,6 +6,7 @@ import { FirebaseProvider } from '../../firebase/context/FirebaseContext';
 import StoreProvider from './StoreProvider';
 import AuthCheck from './auth/AuthCheck';
 import Footer from './components/Footer';
+import Header from './components/Header';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -23,9 +24,10 @@ export default function RootLayout({ children }) {
       <html lang="en" className="h-full">
         <body className={`${inter.className} h-full`}>
           <div className="flex min-h-screen flex-col">
-            <div className="flex-grow">
-              <FirebaseProvider>{children}</FirebaseProvider>
-            </div>
+            <FirebaseProvider>
+              <Header />
+              <div className="flex-grow">{children}</div>
+            </FirebaseProvider>
             <Toaster
               position="bottom-center"
               gutter={8}
