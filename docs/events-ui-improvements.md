@@ -77,13 +77,13 @@ Acceptance:
 
 ### Phase 2 — Detail Polishing
 
-- Add breadcrumbs and copy-to-clipboard share.
-- Add prominent hero with title/date/location and primary CTA.
-- Ensure graceful fallbacks for missing fields.
+- [x] Add breadcrumbs and copy-to-clipboard share.
+- [x] Add prominent hero with title/date/location and primary CTA.
+- [x] Ensure graceful fallbacks for missing fields.
 
 Acceptance:
 
-- Detail page reads clearly at a glance; Share copies URL reliably.
+- [x] Detail page reads clearly at a glance; Share copies URL reliably.
 
 ### Phase 3 — Filters & Pagination
 

@@ -4,14 +4,14 @@ import Header from '../components/Header';
 
 import { collection, getDocs, limit, orderBy, query, Timestamp, where } from 'firebase/firestore';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import EventSkeleton from '../../../components/EventSkeleton';
 import EventTile from '../../../components/EventTile';
 import NoEventTile from '../../../components/NoEventTile';
 import { db } from '../../../firebase/firebase';
 import EventStyling1 from '../components/styling/EventStyling1';
 
-export default function Events() {
+function EventsPageContent() {
   const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const searchParams = useSearchParams();
@@ -113,5 +113,13 @@ export default function Events() {
       </div>
       {/* Footer is rendered globally in RootLayout */}
     </div>
+  );
+}
+
+export default function Events() {
+  return (
+    <Suspense fallback={null}>
+      <EventsPageContent />
+    </Suspense>
   );
 }
