@@ -24,12 +24,13 @@ service cloud.firestore {
       return data.keys().hasOnly(keys);
     }
 
-    // Improved admin check that combines both methods
+    // Optimized admin check: prefer custom auth claim, fall back to documents
     function isAdmin() {
       return request.auth != null && (
-        // Check adminUsers collection
+        // Fast path via custom claims set by backend/admin SDK
+        request.auth.token.admin == true ||
+        // Backward-compatible checks
         exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid)) ||
-        // Check if document exists and has isAdmin = true
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true)
       );
@@ -126,12 +127,21 @@ service cloud.firestore {
     match /events/{eventId} {
       allow read: if true;  // Allow all users to read events
       
-      // Allow reading and updating specific ragers (tickets)
+      // Ragers (tickets) should be private to the owner and admins
       match /ragers/{ragerId} {
-        allow read: if true;
-        // Allow update if the user is the current owner of the ticket
-        allow update: if isAuthenticated() && 
-                      resource.data.firebaseId == request.auth.uid;
+        // Readable by owner or admin only
+        allow read: if isAuthenticated() && (
+          resource.data.firebaseId == request.auth.uid || isAdmin()
+        );
+
+        // Updates: owner only, firebaseId immutable, and no new fields may be added
+        allow update: if isAuthenticated()
+          && resource.data.firebaseId == request.auth.uid
+          && request.resource.data.firebaseId == resource.data.firebaseId
+          && request.resource.data.keys().hasOnly(resource.data.keys());
+
+        // Disallow client-side creates/deletes by default; use backend/CFs
+        allow create, delete: if false;
       }
     }
 

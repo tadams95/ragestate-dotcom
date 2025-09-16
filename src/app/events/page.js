@@ -1,12 +1,9 @@
 'use client';
-
-import Link from 'next/link';
 import Header from '../components/Header';
 
 import { collection, getDocs, limit, orderBy, query, Timestamp, where } from 'firebase/firestore';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-import toast, { Toaster } from 'react-hot-toast';
 import EventSkeleton from '../../../components/EventSkeleton';
 import EventTile from '../../../components/EventTile';
 import NoEventTile from '../../../components/NoEventTile';
@@ -42,39 +39,29 @@ function EventsPageContent() {
       console.error('Error fetching event data:', error);
       setError("We couldn't load events. Please try again.");
     } finally {
-      // Set a small delay to make the transition smoother
-      if (typeof window !== 'undefined') {
-        const id = setTimeout(() => {
-          setIsLoading(false);
-        }, 300);
-        // Return a no-op for call site; caller handles cleanup in effect
-        return () => clearTimeout(id);
-      } else {
-        setIsLoading(false);
-      }
+      setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    let cleanup = null;
-    (async () => {
-      const maybeCleanup = await fetchEventData();
-      if (typeof maybeCleanup === 'function') cleanup = maybeCleanup;
-    })();
-
-    return () => {
-      if (cleanup) cleanup();
-    };
+    fetchEventData();
   }, [fetchEventData]);
 
-  // Minimal sort via URL param (?date=asc|desc)
   const sortDir = (searchParams?.get('date') || 'asc').toLowerCase() === 'desc' ? 'desc' : 'asc';
   const sortedEvents = useMemo(() => {
     const list = events.slice();
     list.sort((a, b) => {
-      const da = a?.dateTime?.toDate?.() || 0;
-      const db = b?.dateTime?.toDate?.() || 0;
-      return sortDir === 'asc' ? da - db : db - da;
+      const da =
+        a?.dateTime?.toDate?.() ||
+        (typeof a?.dateTime?.seconds === 'number'
+          ? new Date(a.dateTime.seconds * 1000 + (a.dateTime.nanoseconds || 0) / 1e6)
+          : 0);
+      const dbv =
+        b?.dateTime?.toDate?.() ||
+        (typeof b?.dateTime?.seconds === 'number'
+          ? new Date(b.dateTime.seconds * 1000 + (b.dateTime.nanoseconds || 0) / 1e6)
+          : 0);
+      return sortDir === 'asc' ? da - dbv : dbv - da;
     });
     return list;
   }, [events, sortDir]);
@@ -88,55 +75,8 @@ function EventsPageContent() {
 
       <div className="flex-grow">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <Toaster />
-
-          {/* Breadcrumbs + Share */}
-          <div className="mt-8 flex items-center justify-between">
-            <nav aria-label="Breadcrumb" className="text-sm text-gray-400">
-              <ol className="flex items-center gap-2">
-                <li>
-                  <Link
-                    href="/"
-                    className="rounded hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-                  >
-                    Home
-                  </Link>
-                </li>
-                <li className="text-gray-600">/</li>
-                <li aria-current="page" className="text-gray-300">
-                  Events
-                </li>
-              </ol>
-            </nav>
-            <button
-              type="button"
-              onClick={async () => {
-                const url = typeof window !== 'undefined' ? window.location.href : '';
-                if (!url) return;
-                try {
-                  await navigator.clipboard.writeText(url);
-                  toast.success('Link copied');
-                  return;
-                } catch (_) {}
-                try {
-                  const ta = document.createElement('textarea');
-                  ta.value = url;
-                  ta.setAttribute('readonly', '');
-                  ta.style.position = 'fixed';
-                  ta.style.opacity = '0';
-                  document.body.appendChild(ta);
-                  ta.select();
-                  document.execCommand('copy');
-                  document.body.removeChild(ta);
-                  toast.success('Link copied');
-                } catch (_) {}
-              }}
-              className="rounded border border-gray-700 px-3 py-1 text-sm text-gray-200 hover:border-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-              aria-label="Share this page"
-            >
-              Share
-            </button>
-          </div>
+          {/* Top spacer to balance layout */}
+          <div className="mt-16" />
 
           <h1 className="mb-6 mt-6 pt-4 text-center text-3xl font-bold tracking-tight text-gray-100">
             {events.length > 0 ? 'UPCOMING EVENTS' : 'NO EVENTS AT THIS TIME, PLEASE STAY TUNED!'}
@@ -215,19 +155,7 @@ function EventsFallback() {
 
       <div className="flex-grow">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mt-8 flex items-center justify-between">
-            <nav aria-label="Breadcrumb" className="text-sm text-gray-400">
-              <ol className="flex items-center gap-2">
-                <li>
-                  <span className="text-gray-300">Events</span>
-                </li>
-              </ol>
-            </nav>
-            <div
-              className="h-8 w-16 rounded border border-gray-800 bg-gray-800/50"
-              aria-hidden="true"
-            />
-          </div>
+          <div className="mt-8" />
 
           <h1 className="mb-6 mt-6 pt-4 text-center text-3xl font-bold tracking-tight text-gray-100">
             UPCOMING EVENTS
