@@ -21,6 +21,14 @@ export default function ProductDetailClient({ product: initialProduct }) {
       const h = hdr?.getBoundingClientRect?.().height || 96;
       document.documentElement.style.setProperty('--header-h', `${Math.round(h)}px`);
     } catch (_) {}
+    const onResize = () => {
+      try {
+        const hdr = document.querySelector('header, [role="banner"]');
+        const h = hdr?.getBoundingClientRect?.().height || 96;
+        document.documentElement.style.setProperty('--header-h', `${Math.round(h)}px`);
+      } catch (_) {}
+    };
+    window.addEventListener('resize', onResize);
 
     if (!initialProduct && typeof window !== 'undefined') {
       const product = storage.getJSON('selectedProduct');
@@ -31,7 +39,10 @@ export default function ProductDetailClient({ product: initialProduct }) {
       setLoading(false);
     }, 100);
 
-    return () => clearTimeout(timer);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      clearTimeout(timer);
+    };
   }, [initialProduct]);
 
   if (!selectedProduct) {

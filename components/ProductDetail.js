@@ -7,7 +7,7 @@ import {
 } from '@heroicons/react/24/outline';
 import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 
 import { useDispatch } from 'react-redux';
 import { addToCart } from '../lib/features/todos/cartSlice';
@@ -36,6 +36,7 @@ export default function ProductDetails({ product, focusRestoreRef }) {
   const dispatch = useDispatch();
   const [selectedColor, setSelectedColor] = useState('');
   const [selectedSize, setSelectedSize] = useState('');
+  const [liveMsg, setLiveMsg] = useState('');
   // const [productPrice, setProductPrice] = useState(0);
 
   const basePrice = useMemo(() => {
@@ -59,6 +60,15 @@ export default function ProductDetails({ product, focusRestoreRef }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const closeBtnRef = useRef(null);
+  const containerRef = useRef(null);
+  const setWrapperRef = useCallback(
+    (node) => {
+      containerRef.current = node;
+      if (focusRestoreRef) focusRestoreRef.current = node;
+    },
+    [focusRestoreRef],
+  );
+  const lightboxRef = useRef(null);
 
   const totalImages = productImages.length;
   const goPrev = useCallback(() => {
@@ -107,8 +117,19 @@ export default function ProductDetails({ product, focusRestoreRef }) {
       const dx = t.clientX - tLastX;
       const dy = t.clientY - tLastY;
       if (zoomed) {
-        setPanX((x) => x + dx);
-        setPanY((y) => y + dy);
+        const el = containerRef.current;
+        const w = el?.clientWidth || 0;
+        const h = el?.clientHeight || 0;
+        const maxX = Math.max(0, (w * (zoomScale - 1)) / 2);
+        const maxY = Math.max(0, (h * (zoomScale - 1)) / 2);
+        setPanX((x) => {
+          const nx = x + dx;
+          return Math.max(-maxX, Math.min(maxX, nx));
+        });
+        setPanY((y) => {
+          const ny = y + dy;
+          return Math.max(-maxY, Math.min(maxY, ny));
+        });
         e.preventDefault();
       } else {
         if (Math.abs(t.clientX - tStartX) > 10 || Math.abs(t.clientY - tStartY) > 10)
@@ -117,7 +138,7 @@ export default function ProductDetails({ product, focusRestoreRef }) {
       setTLastX(t.clientX);
       setTLastY(t.clientY);
     },
-    [tLastX, tLastY, tStartX, tStartY, zoomed],
+    [tLastX, tLastY, tStartX, tStartY, zoomed, zoomScale],
   );
 
   const onTouchEnd = useCallback(
@@ -156,8 +177,19 @@ export default function ProductDetails({ product, focusRestoreRef }) {
         const dy = ev.clientY - lastY;
         lastX = ev.clientX;
         lastY = ev.clientY;
-        setPanX((x) => x + dx);
-        setPanY((y) => y + dy);
+        const el = containerRef.current;
+        const w = el?.clientWidth || 0;
+        const h = el?.clientHeight || 0;
+        const maxX = Math.max(0, (w * (zoomScale - 1)) / 2);
+        const maxY = Math.max(0, (h * (zoomScale - 1)) / 2);
+        setPanX((x) => {
+          const nx = x + dx;
+          return Math.max(-maxX, Math.min(maxX, nx));
+        });
+        setPanY((y) => {
+          const ny = y + dy;
+          return Math.max(-maxY, Math.min(maxY, ny));
+        });
       };
       const up = () => {
         window.removeEventListener('mousemove', move);
@@ -166,11 +198,15 @@ export default function ProductDetails({ product, focusRestoreRef }) {
       window.addEventListener('mousemove', move);
       window.addEventListener('mouseup', up);
     },
-    [zoomed],
+    [zoomed, zoomScale],
   );
 
   const onImageClick = useCallback(() => {
     if (Date.now() < clickSuppressUntilRef.current) return;
+    if (!zoomed) setLightboxOpen(true);
+  }, [zoomed]);
+
+  const onOpenLightbox = useCallback(() => {
     if (!zoomed) setLightboxOpen(true);
   }, [zoomed]);
 
@@ -180,6 +216,26 @@ export default function ProductDetails({ product, focusRestoreRef }) {
       if (e.key === 'Escape') setLightboxOpen(false);
       if (e.key === 'ArrowLeft') goPrev();
       if (e.key === 'ArrowRight') goNext();
+      if (e.key === 'Tab') {
+        const container = lightboxRef.current;
+        const focusables = container?.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        );
+        if (!focusables || focusables.length === 0) {
+          e.preventDefault();
+          closeBtnRef.current?.focus?.();
+          return;
+        }
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     const prevOverflow = document.body.style.overflow;
     const restoreEl = focusRestoreRef?.current || null;
@@ -258,11 +314,18 @@ export default function ProductDetails({ product, focusRestoreRef }) {
     if (selectedSize && selectedColor) {
       const leadImage =
         images && images.length > 0 ? images[0]?.src || images[0]?.transformedSrc || null : null;
+      const variantId = currentVariant?.id || null;
+      const variantPrice = parseFloat(
+        currentVariant?.price?.amount ?? currentVariant?.priceV2?.amount ?? basePrice,
+      );
+      const price = Number.isFinite(variantPrice) ? variantPrice : parseFloat(displayPrice);
       const productToAdd = {
         productId: id,
         productImageSrc: leadImage,
         title,
-        price: parseFloat(displayPrice),
+        price,
+        variantId,
+        quantity: 1,
         selectedSize,
         selectedColor,
         isDigital: false,
@@ -271,8 +334,7 @@ export default function ProductDetails({ product, focusRestoreRef }) {
       console.log('Product Added: ', productToAdd);
       // Implement dispatch or function to add to cart
       dispatch(addToCart(productToAdd));
-      setSelectedSize(''); // Reset selectedSize
-      setSelectedColor(''); // Reset selectedColor
+      setLiveMsg(`${title} added to cart`);
       toast.success('Added to cart!', {
         duration: 3000,
         position: 'bottom-center',
@@ -285,6 +347,7 @@ export default function ProductDetails({ product, focusRestoreRef }) {
     } else {
       // Handle the case where not all required selections are made
       if (!selectedSize) {
+        setLiveMsg('Please select a size');
         toast.error('Please select a size', {
           duration: 3000,
           position: 'bottom-center',
@@ -296,6 +359,7 @@ export default function ProductDetails({ product, focusRestoreRef }) {
         });
       }
       if (!selectedColor) {
+        setLiveMsg('Please select a color');
         toast.error('Please select a color', {
           duration: 3000,
           position: 'bottom-center',
@@ -338,7 +402,10 @@ export default function ProductDetails({ product, focusRestoreRef }) {
 
   return (
     <div className="isolate bg-black">
-      <Toaster />
+      {/* Screen reader live region for ATC and validation messages */}
+      <div aria-live="polite" role="status" className="sr-only">
+        {liveMsg}
+      </div>
       <EventStyling1 />
       <EventStyling2 />
       <div className="scroll-pb-24 pb-20 pt-6 sm:pb-10 lg:pb-8">
@@ -347,7 +414,16 @@ export default function ProductDetails({ product, focusRestoreRef }) {
             <div className="lg:col-span-5 lg:col-start-8">
               <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold tracking-tight text-gray-100">{product.title}</h1>
-                <p className="text-2xl font-bold text-white">${displayPrice}</p>
+                <p className="flex items-center text-2xl font-bold text-white">
+                  ${displayPrice}
+                  {currentVariant?.quantityAvailable != null &&
+                    currentVariant.quantityAvailable > 0 &&
+                    currentVariant.quantityAvailable <= 5 && (
+                      <span className="ml-3 inline-flex items-center rounded bg-yellow-600/20 px-2 py-1 text-xs font-medium text-yellow-300">
+                        Low stock
+                      </span>
+                    )}
+                </p>
               </div>
             </div>
 
@@ -356,7 +432,7 @@ export default function ProductDetails({ product, focusRestoreRef }) {
               <h2 className="sr-only">Images</h2>
               {/* Main slider */}
               <div
-                ref={focusRestoreRef}
+                ref={setWrapperRef}
                 tabIndex={-1}
                 className="group relative h-[28rem] overflow-hidden rounded-lg sm:h-[32rem]"
                 onTouchStart={onTouchStart}
@@ -395,6 +471,16 @@ export default function ProductDetails({ product, focusRestoreRef }) {
                                 }
                               : undefined
                           }
+                        />
+                        {/* Keyboard-accessible open button overlay */}
+                        <button
+                          type="button"
+                          aria-label="Open image in lightbox"
+                          onClick={onOpenLightbox}
+                          className={classNames(
+                            'absolute inset-0 z-10 focus:outline-none focus:ring-2 focus:ring-red-500/70 focus:ring-offset-2 focus:ring-offset-black/50',
+                            zoomed ? 'pointer-events-none' : 'pointer-events-auto',
+                          )}
                         />
                         {/* Prev/Next controls */}
                         {totalImages > 1 && (
@@ -460,7 +546,15 @@ export default function ProductDetails({ product, focusRestoreRef }) {
 
             {/* Lightbox overlay */}
             {lightboxOpen && (
-              <div className="fixed inset-0 z-50 bg-black/90" role="dialog" aria-modal="true">
+              <div
+                ref={lightboxRef}
+                className="fixed inset-0 z-50 bg-black/90"
+                role="dialog"
+                aria-modal="true"
+                onMouseDown={(e) => {
+                  if (e.target === lightboxRef.current) setLightboxOpen(false);
+                }}
+              >
                 <button
                   ref={closeBtnRef}
                   aria-label="Close image"

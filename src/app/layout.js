@@ -1,6 +1,7 @@
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Inter } from 'next/font/google';
+import { Toaster } from 'react-hot-toast';
 import { FirebaseProvider } from '../../firebase/context/FirebaseContext';
 import StoreProvider from './StoreProvider';
 import AuthCheck from './auth/AuthCheck';
@@ -25,6 +26,13 @@ export default function RootLayout({ children }) {
             <div className="flex-grow">
               <FirebaseProvider>{children}</FirebaseProvider>
             </div>
+            <Toaster
+              position="bottom-center"
+              gutter={8}
+              toastOptions={{
+                style: { background: '#333', color: '#fff', border: '1px solid #444' },
+              }}
+            />
             <Footer />
             <SpeedInsights />
             <Analytics />
