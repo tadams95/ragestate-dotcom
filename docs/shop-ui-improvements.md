@@ -98,17 +98,18 @@ Acceptance:
 
 ### Phase 4 — Quick View & Recommendations
 
-- Quick View modal on grid tiles with basic variant selection and ATC.
-- "Related products" rail on PDP (collection/tags).
+- [x] Quick View modal on grid tiles with basic variant selection and ATC.
+- [x] "Related products" rail on PDP (collection/tags).
 
 Acceptance:
 
-- Quick View works via mouse/keyboard; PDP shows related items.
+- [x] Quick View works via mouse/keyboard; PDP shows related items.
 
 ### Phase 5 — Accessibility & Polish
 
-- Alt/focus/ARIA audit and fixes.
-- Share buttons and breadcrumbs.
+- [x] Share button and breadcrumbs on PDP.
+- [x] Quick View modal focus trap + ARIA polish (aria-labelledby, initial focus, restore focus).
+- Alt/focus/ARIA audit and remaining fixes.
 
 Acceptance:
 

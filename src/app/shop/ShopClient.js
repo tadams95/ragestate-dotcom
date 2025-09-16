@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import ProductTile from '../../../components/ProductTile';
+import QuickViewModal from '../../../components/QuickViewModal';
 import { fetchShopifyProducts } from '../../../shopify/shopifyService';
 import Header from '../components/Header';
 
@@ -20,6 +21,7 @@ export default function ShopClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [viewMode, setViewMode] = useState('grid');
+  const [quickViewProduct, setQuickViewProduct] = useState(null);
   const setGrid = useCallback(() => setViewMode('grid'), []);
   const setList = useCallback(() => setViewMode('list'), []);
 
@@ -318,7 +320,20 @@ export default function ShopClient() {
                   animate={{ opacity: 1 }}
                   exit={prefersReducedMotion ? undefined : { opacity: 0 }}
                 >
-                  <ProductTile product={product} viewMode={viewMode} />
+                  <div className="relative">
+                    <ProductTile product={product} viewMode={viewMode} />
+                    {/* Quick View button overlays only in grid view */}
+                    {viewMode === 'grid' && isAnyInStock(product) && (
+                      <button
+                        type="button"
+                        aria-label={`Quick view ${product.title}`}
+                        onClick={() => setQuickViewProduct(product)}
+                        className="absolute right-2 top-2 rounded bg-black/60 px-2 py-1 text-xs text-white hover:bg-black/80"
+                      >
+                        Quick View
+                      </button>
+                    )}
+                  </div>
                 </motion.div>
               ))}
             </motion.div>
@@ -331,6 +346,11 @@ export default function ShopClient() {
         )}
       </div>
 
+      <QuickViewModal
+        open={Boolean(quickViewProduct)}
+        onClose={() => setQuickViewProduct(null)}
+        product={quickViewProduct}
+      />
       {/* Footer is rendered globally in RootLayout */}
       {/* <ShopStyling /> */}
     </div>

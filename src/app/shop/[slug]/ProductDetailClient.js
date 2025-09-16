@@ -2,8 +2,11 @@
 
 import Header from '@/app/components/Header';
 import storage from '@/utils/storage';
+import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 import ProductDetails from '../../../../components/ProductDetail';
+import RelatedProducts from '../../../../components/RelatedProducts';
 
 export default function ProductDetailClient({ product: initialProduct }) {
   const [loading, setLoading] = useState(true);
@@ -78,9 +81,72 @@ export default function ProductDetailClient({ product: initialProduct }) {
     <>
       <Header />
       <div
-        className={`transition-opacity ${loading ? 'opacity-0' : 'opacity-100 duration-1000'} px-4 py-20 lg:px-8`}
+        className={`transition-opacity ${loading ? 'opacity-0' : 'opacity-100 duration-1000'} px-4 pb-20 lg:px-8`}
+        style={{ paddingTop: 'calc(var(--header-h, 96px) + 16px)' }}
       >
+        {/* Share handler */}
+        {(() => {
+          // no-op wrapper to keep handler close by without re-creating per render
+          // eslint-disable-next-line no-unused-vars
+          const _ = null;
+        })()}
+        {/* Breadcrumbs + Share */}
+        <div className="pointer-events-auto relative isolate z-50 mx-auto mb-4 flex max-w-7xl items-center justify-between">
+          <nav aria-label="Breadcrumb" className="text-sm text-gray-400">
+            <ol className="flex items-center gap-2">
+              <li>
+                <Link href="/" className="hover:text-white">
+                  Home
+                </Link>
+              </li>
+              <li className="text-gray-600">/</li>
+              <li>
+                <Link href="/shop" className="hover:text-white">
+                  Shop
+                </Link>
+              </li>
+              <li className="text-gray-600">/</li>
+              <li aria-current="page" className="line-clamp-1 max-w-[50vw] text-gray-300">
+                {selectedProduct?.title}
+              </li>
+            </ol>
+          </nav>
+          <button
+            type="button"
+            onClick={async () => {
+              const url = typeof window !== 'undefined' ? window.location.href : '';
+              if (!url) return;
+              // Preferred: Clipboard API
+              try {
+                await navigator.clipboard.writeText(url);
+                toast.success('Link copied');
+                return;
+              } catch (_) {}
+              // Fallback: legacy copy via hidden textarea
+              try {
+                const ta = document.createElement('textarea');
+                ta.value = url;
+                ta.setAttribute('readonly', '');
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                toast.success('Link copied');
+              } catch (_) {}
+            }}
+            className="relative z-20 rounded border border-gray-700 px-3 py-1 text-sm text-gray-200 hover:border-gray-500"
+            aria-label="Share this product"
+          >
+            Share
+          </button>
+        </div>
         <ProductDetails product={selectedProduct} focusRestoreRef={restoreFocusEl} />
+        <RelatedProducts
+          currentId={selectedProduct?.id}
+          productType={selectedProduct?.productType}
+        />
       </div>
     </>
   );
