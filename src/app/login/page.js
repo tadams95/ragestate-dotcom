@@ -69,12 +69,12 @@ export default function Login() {
         localStorage.setItem('profilePicture', userData?.profilePicture || '/assets/user.png');
       }
 
-      // Immediately route to the Feed so the Header remounts with up-to-date auth/avatar state
+      // Immediately route to the Home Page so the Header remounts with up-to-date auth/avatar state
       setEmail('');
       setPassword('');
       dispatch(setAuthenticated(true));
       setIsAuthenticating(false);
-      router.push('/feed');
+      router.push('/');
     } catch (error) {
       console.error('Error signing in:', error.message);
       setError(error.message);
