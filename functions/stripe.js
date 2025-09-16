@@ -39,12 +39,31 @@ app.post('/create-payment-intent', async (req, res) => {
   try {
     const stripe = getStripe();
     if (!stripe) return res.status(503).json({ error: 'Stripe disabled' });
-    const { amount, currency = 'usd' } = req.body || {};
-    const pi = await stripe.paymentIntents.create({
-      amount,
-      currency,
-      automatic_payment_methods: { enabled: true },
-    });
+    const { amount, currency = 'usd', customerEmail, name, firebaseId, cartItems } = req.body || {};
+
+    // Basic input validation (server-side)
+    const parsedAmount = Number.isFinite(amount) ? Math.floor(Number(amount)) : 0;
+    const MIN_AMOUNT = 50; // 50 cents
+    if (!parsedAmount || parsedAmount < MIN_AMOUNT) {
+      return res.status(400).json({ error: 'Invalid amount' });
+    }
+
+    const idempotencyKey = req.get('x-idempotency-key') || undefined;
+
+    const pi = await stripe.paymentIntents.create(
+      {
+        amount: parsedAmount,
+        currency,
+        automatic_payment_methods: { enabled: true },
+        metadata: {
+          firebaseId: firebaseId || '',
+          email: customerEmail || '',
+          name: name || '',
+          cartSize: Array.isArray(cartItems) ? String(cartItems.length) : '0',
+        },
+      },
+      idempotencyKey ? { idempotencyKey } : undefined,
+    );
     res.json({ client_secret: pi.client_secret });
   } catch (err) {
     logger.error('create-payment-intent error', err);
@@ -52,7 +71,7 @@ app.post('/create-payment-intent', async (req, res) => {
   }
 });
 
-exports.stripePayment = onRequest({ secrets: [STRIPE_SECRET] }, app);
+exports.stripePayment = onRequest({ secrets: [STRIPE_SECRET], invoker: 'public' }, app);
 
 // Callable function to create a Stripe customer for the authenticated, verified user
 exports.createStripeCustomer = onCall(

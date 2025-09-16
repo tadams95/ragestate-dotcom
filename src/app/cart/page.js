@@ -261,16 +261,21 @@ export default function Cart() {
           '[Cart] Creating payment intent via proxy:',
           `${API_PROXY}/create-payment-intent`,
         );
+        const idemKey = btoa(
+          [state.userId, state.userEmail, String(stripeTotal), String(cartItems.length)].join('|'),
+        );
         const response = await fetch(`${API_PROXY}/create-payment-intent`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'x-idempotency-key': idemKey,
           },
           body: JSON.stringify({
             amount: stripeTotal,
             customerEmail: state.userEmail,
             name: state.userName,
             firebaseId: state.userId,
+            cartItems,
           }),
         });
 
