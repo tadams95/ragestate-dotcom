@@ -26,12 +26,15 @@ import CartItemDisplay from './components/CartItemDisplay';
 import OrderSummaryDisplay from './components/OrderSummaryDisplay';
 import PromoCodeInput from './components/PromoCodeInput';
 
+// Call our Next.js API proxy to avoid CORS/redirects
+const API_PROXY = '/api/payments';
+
 export default function Cart() {
   const dispatch = useDispatch();
   const cartItems = useSelector(selectCartItems);
   const firestore = getFirestore();
   const [code, setCode] = useState('');
-  const [validCode, setValidCode] = useState(false);
+  const [_validCode, setValidCode] = useState(false);
   const [codeError, setCodeError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -107,8 +110,6 @@ export default function Cart() {
       setIsLoading(false);
     }
   };
-
-  const API_URL = 'https://us-central1-ragestate-app.cloudfunctions.net/stripePayment';
 
   const handleRemoveFromCart = (productId, selectedColor, selectedSize) => {
     dispatch(removeFromCart({ productId, selectedColor, selectedSize }));
@@ -226,10 +227,10 @@ export default function Cart() {
     const fetchClientSecret = async () => {
       try {
         if (!cartItems.length || stripeTotal <= 0) {
-          if (state.clientSecret) {
-            setState((prevState) => ({ ...prevState, clientSecret: '' }));
-            storage.remove('clientSecret');
-          }
+          setState((prevState) =>
+            prevState.clientSecret ? { ...prevState, clientSecret: '' } : prevState,
+          );
+          storage.remove('clientSecret');
           return;
         }
 
@@ -245,10 +246,10 @@ export default function Cart() {
               2,
             )}. Please adjust your cart or promo code.`,
           );
-          if (state.clientSecret) {
-            setState((prevState) => ({ ...prevState, clientSecret: '' }));
-            storage.remove('clientSecret');
-          }
+          setState((prevState) =>
+            prevState.clientSecret ? { ...prevState, clientSecret: '' } : prevState,
+          );
+          storage.remove('clientSecret');
           setIsLoading(false);
           return;
         }
@@ -256,7 +257,8 @@ export default function Cart() {
         setIsLoading(true);
         setErrorMessage('');
 
-        const response = await fetch(`${API_URL}/web-payment`, {
+        console.log('[Cart] Creating payment intent via proxy:', `${API_PROXY}/create-payment-intent`);
+        const response = await fetch(`${API_PROXY}/create-payment-intent`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -297,27 +299,27 @@ export default function Cart() {
       fetchClientSecret();
     } else {
       setIsLoading(false);
-      if (state.clientSecret) {
-        setState((prevState) => ({ ...prevState, clientSecret: '' }));
-        storage.remove('clientSecret');
-      }
+      setState((prevState) =>
+        prevState.clientSecret ? { ...prevState, clientSecret: '' } : prevState,
+      );
+      storage.remove('clientSecret');
     }
-  }, [state.userName, state.userEmail, state.userId, cartItems, stripeTotal, API_URL]);
+  }, [state.userName, state.userEmail, state.userId, cartItems, stripeTotal]);
 
-  const appearance = {
-    theme: 'stripe',
-    variables: {
-      colorText: '#ffffff',
-      colorBackground: '#000000',
-    },
-  };
+  const appearance = useMemo(
+    () => ({
+      theme: 'stripe',
+      variables: {
+        colorText: '#ffffff',
+        colorBackground: '#000000',
+      },
+    }),
+    [],
+  );
 
   const options = useMemo(
-    () => ({
-      clientSecret: state.clientSecret,
-      appearance: appearance,
-    }),
-    [state.clientSecret],
+    () => ({ clientSecret: state.clientSecret, appearance }),
+    [state.clientSecret, appearance],
   );
 
   const hasPhysicalItems = cartItems.some((item) => !item.isDigital);

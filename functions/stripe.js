@@ -22,7 +22,11 @@ function getStripe() {
 }
 
 const app = express();
-app.use(cors({ origin: true }));
+// CORS: allow all origins in development and valid origins in prod via Firebase hosting/proxy.
+const corsMiddleware = cors({ origin: true });
+app.use(corsMiddleware);
+// Respond to preflight requests so the browser receives CORS headers
+app.options('*', corsMiddleware);
 app.use(express.json());
 
 app.get('/health', (_req, res) => {

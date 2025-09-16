@@ -10,12 +10,10 @@ import { setAuthenticated, setUserName } from '../../../lib/features/todos/userS
 import { loginUser } from '../../../lib/utils/auth';
 import Header from '../components/Header';
 
-const API_URL = 'https://us-central1-ragestate-app.cloudfunctions.net/stripePayment';
-
 export default function Login() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const [error, setError] = useState(null);
+  const [_error, setError] = useState(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
@@ -77,33 +75,6 @@ export default function Login() {
       dispatch(setAuthenticated(true));
       setIsAuthenticating(false);
       router.push('/feed');
-
-      // Fire-and-forget: Create or get Stripe customer (do not block login or navigation)
-      fetch(`${API_URL}/create-customer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: user.email,
-          name: userData?.displayName || '',
-          firebaseId: user.uid,
-        }),
-      })
-        .then(async (res) => {
-          if (!res.ok) {
-            console.error('Failed to create Stripe customer. Status:', res.status);
-            const msg = await res.text().catch(() => '');
-            if (msg) console.error('Error Message:', msg);
-            return;
-          }
-          const stripeCustomerData = await res.json().catch(() => null);
-          if (stripeCustomerData) {
-            localStorage.setItem('stripeCustomerData', JSON.stringify(stripeCustomerData));
-          }
-        })
-        .catch((e) => {
-          // Likely CORS during local dev; don't block login
-          console.warn('Stripe create-customer request failed:', e?.message || e);
-        });
     } catch (error) {
       console.error('Error signing in:', error.message);
       setError(error.message);
