@@ -10,6 +10,7 @@ const { admin, db } = require('./admin');
 
 // Secret Manager: define STRIPE_SECRET. Also support process.env for local dev.
 const STRIPE_SECRET = defineSecret('STRIPE_SECRET');
+const PROXY_KEY = defineSecret('PROXY_KEY');
 let stripeClient;
 function getStripe() {
   const key = STRIPE_SECRET.value() || process.env.STRIPE_SECRET;
@@ -39,6 +40,14 @@ app.post('/create-payment-intent', async (req, res) => {
   try {
     const stripe = getStripe();
     if (!stripe) return res.status(503).json({ error: 'Stripe disabled' });
+    // Enforce that requests come via our Next.js proxy when configured
+    const expectedProxyKey = PROXY_KEY.value() || process.env.PROXY_KEY;
+    if (expectedProxyKey) {
+      const provided = req.get('x-proxy-key');
+      if (!provided || provided !== expectedProxyKey) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+    }
     const { amount, currency = 'usd', customerEmail, name, firebaseId, cartItems } = req.body || {};
 
     // Basic input validation (server-side)
@@ -71,7 +80,7 @@ app.post('/create-payment-intent', async (req, res) => {
   }
 });
 
-exports.stripePayment = onRequest({ secrets: [STRIPE_SECRET], invoker: 'public' }, app);
+exports.stripePayment = onRequest({ secrets: [STRIPE_SECRET, PROXY_KEY], invoker: 'public' }, app);
 
 // Callable function to create a Stripe customer for the authenticated, verified user
 exports.createStripeCustomer = onCall(

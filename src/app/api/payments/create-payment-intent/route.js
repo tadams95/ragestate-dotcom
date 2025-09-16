@@ -65,6 +65,7 @@ export async function POST(request) {
       })();
 
     let lastError = null;
+    const proxyKey = process.env.PROXY_KEY;
     for (const base of bases) {
       const endpoint = base.replace(/\/$/, '') + '/create-payment-intent';
       try {
@@ -73,6 +74,7 @@ export async function POST(request) {
           headers: {
             'Content-Type': 'application/json',
             ...(idempotencyKey ? { 'x-idempotency-key': idempotencyKey } : {}),
+            ...(proxyKey ? { 'x-proxy-key': proxyKey } : {}),
           },
           body: JSON.stringify(payload),
           cache: 'no-store',
