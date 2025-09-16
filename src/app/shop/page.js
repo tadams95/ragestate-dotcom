@@ -1,30 +1,26 @@
-"use client";
+'use client';
 
-import { useEffect, useState, useCallback, useMemo } from "react";
-import { fetchShopifyProducts } from "../../../shopify/shopifyService";
-import Footer from "../components/Footer";
-import ProductTile from "../../../components/ProductTile";
-import Header from "../components/Header";
-import ShopStyling from "../components/styling/ShopStyling";
-import { motion, useReducedMotion } from "framer-motion";
-import {
-  Squares2X2Icon as GridIcon,
-  ListBulletIcon,
-} from "@heroicons/react/24/outline";
-import dynamic from "next/dynamic";
-const AutoSliderBanner = dynamic(
-  () => import("../../../components/AutoSliderBanner"),
-  { ssr: false, loading: () => null }
-);
+import { Squares2X2Icon as GridIcon, ListBulletIcon } from '@heroicons/react/24/outline';
+import { motion, useReducedMotion } from 'framer-motion';
+import dynamic from 'next/dynamic';
+import { useCallback, useEffect, useState } from 'react';
+import ProductTile from '../../../components/ProductTile';
+import { fetchShopifyProducts } from '../../../shopify/shopifyService';
+import Footer from '../components/Footer';
+import Header from '../components/Header';
+const AutoSliderBanner = dynamic(() => import('../../../components/AutoSliderBanner'), {
+  ssr: false,
+  loading: () => null,
+});
 
 export default function Shop() {
   const prefersReducedMotion = useReducedMotion();
   const [productsWithHref, setProductsWithHref] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [viewMode, setViewMode] = useState("grid"); // Keep the view mode state
-  const setGrid = useCallback(() => setViewMode("grid"), []);
-  const setList = useCallback(() => setViewMode("list"), []);
+  const [viewMode, setViewMode] = useState('grid'); // Keep the view mode state
+  const setGrid = useCallback(() => setViewMode('grid'), []);
+  const setList = useCallback(() => setViewMode('list'), []);
 
   useEffect(() => {
     let isMounted = true;
@@ -35,19 +31,43 @@ export default function Shop() {
       try {
         const fetchedProducts = await fetchShopifyProducts();
         if (isMounted) {
-          const products = fetchedProducts.map((product) => ({
-            ...product,
-            href: `/product/${product.id}`,
-            imageSrc: product.images[0]?.src,
-            description: product.descriptionHtml,
-          }));
+          const products = fetchedProducts.map((product) => {
+            const primaryImage =
+              product?.images?.[0] ||
+              product?.featuredImage ||
+              product?.variants?.[0]?.image ||
+              null;
+
+            const imageSrc = primaryImage?.src || primaryImage?.transformedSrc || null;
+
+            const imageAlt = primaryImage?.altText || product?.title || 'Product image';
+
+            if (!imageSrc) {
+              // eslint-disable-next-line no-console
+              console.warn('[Shop] Missing product image URL', {
+                id: product?.id,
+                title: product?.title,
+                images: product?.images,
+                featuredImage: product?.featuredImage,
+                firstVariantImage: product?.variants?.[0]?.image,
+                product,
+              });
+            }
+
+            return {
+              ...product,
+              imageSrc,
+              imageAlt,
+              description: product.descriptionHtml,
+            };
+          });
 
           setProductsWithHref(products);
         }
       } catch (error) {
         if (isMounted) {
-          console.error("Error fetching products:", error);
-          setError("Shop is currently unavailable. Please check back later.");
+          console.error('Error fetching products:', error);
+          setError('Shop is currently unavailable. Please check back later.');
         }
       } finally {
         if (isMounted) {
@@ -64,27 +84,22 @@ export default function Shop() {
   }, []);
 
   return (
-    <div className="bg-black isolate min-h-screen">
+    <div className="isolate min-h-screen bg-black">
       <Header />
 
       {/* Add the AutoSliderBanner */}
       <AutoSliderBanner />
 
-      <div
-        id="product-section"
-        className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8"
-      >
+      <div id="product-section" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
         {/* View Toggle */}
-        <div className="flex justify-end mb-8">
-          <div className="flex gap-2 bg-black p-1 rounded-md">
+        <div className="mb-8 flex justify-end">
+          <div className="flex gap-2 rounded-md bg-black p-1">
             <button
               onClick={setGrid}
               data-testid="grid-view-button"
               aria-label="Grid view"
-              aria-pressed={viewMode === "grid"}
-              className={`p-2 rounded ${
-                viewMode === "grid" ? "bg-red-700" : ""
-              }`}
+              aria-pressed={viewMode === 'grid'}
+              className={`rounded p-2 ${viewMode === 'grid' ? 'bg-red-700' : ''}`}
             >
               <GridIcon className="h-5 w-5 text-white" />
             </button>
@@ -92,10 +107,8 @@ export default function Shop() {
               onClick={setList}
               data-testid="list-view-button"
               aria-label="List view"
-              aria-pressed={viewMode === "list"}
-              className={`p-2 rounded ${
-                viewMode === "list" ? "bg-red-700" : ""
-              }`}
+              aria-pressed={viewMode === 'list'}
+              className={`rounded p-2 ${viewMode === 'list' ? 'bg-red-700' : ''}`}
             >
               <ListBulletIcon className="h-5 w-5 text-white" />
             </button>
@@ -104,12 +117,37 @@ export default function Shop() {
 
         {/* Loading and Error States */}
         {loading && (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+          <div
+            className={
+              viewMode === 'grid'
+                ? 'grid gap-y-10 sm:grid-cols-2 sm:gap-x-6 lg:grid-cols-3 lg:gap-x-8'
+                : 'flex flex-col gap-y-4'
+            }
+          >
+            {Array.from({ length: 6 }).map((_, idx) => (
+              <div key={idx} className="animate-pulse">
+                {viewMode === 'grid' ? (
+                  <div>
+                    <div className="h-64 w-full rounded-lg bg-gray-800 sm:h-72 lg:h-80" />
+                    <div className="mt-4 h-4 w-2/3 rounded bg-gray-800" />
+                    <div className="mt-2 h-4 w-1/3 rounded bg-gray-800" />
+                  </div>
+                ) : (
+                  <div className="relative flex gap-x-6 rounded-lg bg-gray-900/30 p-4">
+                    <div className="h-24 w-24 rounded-md bg-gray-800" />
+                    <div className="flex-1">
+                      <div className="h-4 w-1/2 rounded bg-gray-800" />
+                      <div className="mt-2 h-4 w-full rounded bg-gray-800" />
+                      <div className="mt-2 h-4 w-2/5 rounded bg-gray-800" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
 
-        {error && <div className="text-red-500 text-center py-8">{error}</div>}
+        {error && <div className="py-8 text-center text-red-500">{error}</div>}
 
         {/* Products Grid/List */}
         {!loading && !error && (
@@ -120,13 +158,11 @@ export default function Shop() {
               whileInView={{ opacity: 1 }}
               viewport={{ once: true, amount: 0.2 }}
               exit={prefersReducedMotion ? undefined : { opacity: 0 }}
-              className={`
-                ${
-                  viewMode === "grid"
-                    ? "grid gap-y-10 lg:grid-cols-3 sm:grid-cols-2 sm:gap-x-6 lg:gap-x-8"
-                    : "flex flex-col gap-y-4"
-                }
-              `}
+              className={` ${
+                viewMode === 'grid'
+                  ? 'grid gap-y-10 sm:grid-cols-2 sm:gap-x-6 lg:grid-cols-3 lg:gap-x-8'
+                  : 'flex flex-col gap-y-4'
+              } `}
             >
               {productsWithHref.map((product) => (
                 <motion.div
@@ -145,9 +181,7 @@ export default function Shop() {
 
         {/* No Products Message */}
         {!loading && !error && productsWithHref.length === 0 && (
-          <div className="text-center py-8 text-gray-400">
-            No products available
-          </div>
+          <div className="py-8 text-center text-gray-400">No products available</div>
         )}
       </div>
 
