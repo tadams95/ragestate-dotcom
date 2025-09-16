@@ -2,7 +2,7 @@
 
 import storage from '@/utils/storage';
 import Image from 'next/image';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { addToCart } from '../lib/features/todos/cartSlice';
 
@@ -101,8 +101,6 @@ export default function EventDetails({ event }) {
   return (
     <>
       <div className="isolate">
-        <Toaster />
-
         {/* Product - using a similar grid to account page sections */}
         <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-5">
           {/* Product image - takes up more space on larger screens */}

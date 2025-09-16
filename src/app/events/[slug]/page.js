@@ -71,7 +71,7 @@ export default function EventDetail() {
         ) : (
           <div className="mx-auto max-w-7xl px-4 pb-24 pt-16 sm:px-6 lg:px-8">
             {/* Breadcrumbs + Share */}
-            <div className="mx-auto mb-4 flex items-center justify-between">
+            <div className="mx-auto mb-4 mt-4 flex items-center justify-between">
               <nav aria-label="Breadcrumb" className="text-sm text-gray-400">
                 <ol className="flex items-center gap-2">
                   <li>
@@ -96,23 +96,26 @@ export default function EventDetail() {
                 onClick={async () => {
                   const url = typeof window !== 'undefined' ? window.location.href : '';
                   if (!url) return;
+                  let copied = false;
                   try {
                     await navigator.clipboard.writeText(url);
-                    toast.success('Link copied');
-                    return;
+                    copied = true;
                   } catch (_) {}
-                  try {
-                    const ta = document.createElement('textarea');
-                    ta.value = url;
-                    ta.setAttribute('readonly', '');
-                    ta.style.position = 'fixed';
-                    ta.style.opacity = '0';
-                    document.body.appendChild(ta);
-                    ta.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(ta);
-                    toast.success('Link copied');
-                  } catch (_) {}
+                  if (!copied) {
+                    try {
+                      const ta = document.createElement('textarea');
+                      ta.value = url;
+                      ta.setAttribute('readonly', '');
+                      ta.style.position = 'fixed';
+                      ta.style.opacity = '0';
+                      document.body.appendChild(ta);
+                      ta.select();
+                      document.execCommand('copy');
+                      document.body.removeChild(ta);
+                      copied = true;
+                    } catch (_) {}
+                  }
+                  if (copied) toast.success('Link copied');
                 }}
                 className="rounded border border-gray-700 px-3 py-1 text-sm text-gray-200 hover:border-gray-500"
                 aria-label="Share this event"
