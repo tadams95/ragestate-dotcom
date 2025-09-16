@@ -167,14 +167,6 @@ export default function EventDetail() {
                     return [dateStr && `${dateStr} • ${timeStr}`, loc].filter(Boolean).join(' — ');
                   })()}
                 </p>
-                <div className="mt-4">
-                  <a
-                    href="#tickets"
-                    className="inline-flex items-center rounded-md bg-red-700 px-6 py-3 text-base font-medium text-white hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-500"
-                  >
-                    Get Tickets
-                  </a>
-                </div>
               </div>
 
               {/* Main content area with consistent border/shadow styling */}
