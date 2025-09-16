@@ -171,7 +171,20 @@ export default function CreateAccount() {
       // Send email verification and guide user to verify page
       try {
         if (auth.currentUser) {
-          await sendEmailVerification(auth.currentUser);
+          const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+          const actionCodeSettings = { url: `${siteUrl}/verify-email`, handleCodeInApp: true };
+          try {
+            await sendEmailVerification(auth.currentUser, actionCodeSettings);
+          } catch (err) {
+            if (
+              err?.code === 'auth/invalid-continue-uri' ||
+              err?.code === 'auth/unauthorized-continue-uri'
+            ) {
+              await sendEmailVerification(auth.currentUser);
+            } else {
+              throw err;
+            }
+          }
         }
       } catch (e) {
         console.warn('Failed to send verification email immediately:', e);

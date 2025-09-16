@@ -11,19 +11,30 @@ import { api, key } from '../lib/features/todos/userSlice';
 
 const firebaseConfig = {
   apiKey: api + key,
-  authDomain: process.env.authDomain,
-  databaseURL: process.env.databaseURL,
+  authDomain:
+    process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ||
+    process.env.authDomain ||
+    'ragestate-app.firebaseapp.com',
+  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL || process.env.databaseURL,
   projectId: 'ragestate-app',
   storageBucket: 'ragestate-app.appspot.com',
-  messagingSenderId: process.env.messagingSenderId,
-  appId: process.env.appId,
-  measurementId: process.env.measurementId,
+  messagingSenderId:
+    process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || process.env.messagingSenderId,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || process.env.appId,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || process.env.measurementId,
 };
 
 // Initialize Firebase app
 const app = initializeApp(firebaseConfig);
 
 const auth = getAuth(app);
+// Prefer device language for auth emails/flows
+try {
+  auth.languageCode =
+    typeof navigator !== 'undefined' && navigator.language ? navigator.language : 'en';
+} catch (_) {
+  // no-op
+}
 
 // Set persistence to local (survives browser refresh)
 setPersistence(auth, browserLocalPersistence).catch((error) => {
