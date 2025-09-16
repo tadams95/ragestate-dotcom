@@ -3,7 +3,8 @@
 import Header from '../components/Header';
 
 import { collection, getDocs, limit, orderBy, query, Timestamp, where } from 'firebase/firestore';
-import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import EventSkeleton from '../../../components/EventSkeleton';
 import EventTile from '../../../components/EventTile';
 import NoEventTile from '../../../components/NoEventTile';
@@ -13,6 +14,7 @@ import EventStyling1 from '../components/styling/EventStyling1';
 export default function Events() {
   const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const searchParams = useSearchParams();
 
   const fetchEventData = useCallback(async () => {
     try {
@@ -60,6 +62,18 @@ export default function Events() {
     };
   }, [fetchEventData]);
 
+  // Minimal sort via URL param (?date=asc|desc)
+  const sortDir = (searchParams?.get('date') || 'asc').toLowerCase() === 'desc' ? 'desc' : 'asc';
+  const sortedEvents = useMemo(() => {
+    const list = events.slice();
+    list.sort((a, b) => {
+      const da = a?.dateTime?.toDate?.() || 0;
+      const db = b?.dateTime?.toDate?.() || 0;
+      return sortDir === 'asc' ? da - db : db - da;
+    });
+    return list;
+  }, [events, sortDir]);
+
   return (
     <div className="flex min-h-screen flex-col">
       <div className="isolate bg-black">
@@ -83,11 +97,11 @@ export default function Events() {
               </div>
             ) : (
               <div className="opacity-100 transition-opacity duration-700">
-                {events.length === 0 ? (
+                {sortedEvents.length === 0 ? (
                   <NoEventTile />
                 ) : (
                   <div className="mb-8 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-                    {events.map((event) => (
+                    {sortedEvents.map((event) => (
                       <EventTile key={event.id} event={event} />
                     ))}
                   </div>
