@@ -195,9 +195,9 @@ export default function CreateAccount() {
       cancelCreateHandler();
       setIsAuthenticating(false);
       setIsLoading(false);
-  const next = searchParams?.get('next');
-  const verifyUrl = `/verify-email?email=${encodeURIComponent(email)}${next ? `&next=${encodeURIComponent(next)}` : ''}`;
-  router.push(verifyUrl);
+      const next = searchParams?.get('next');
+      const verifyUrl = `/verify-email?email=${encodeURIComponent(email)}${next ? `&next=${encodeURIComponent(next)}` : ''}`;
+      router.push(verifyUrl);
     } catch (error) {
       const errorMessage = handleAuthError(error);
       setFormError(errorMessage);

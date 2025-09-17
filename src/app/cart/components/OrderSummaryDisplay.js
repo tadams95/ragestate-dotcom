@@ -1,12 +1,11 @@
-
 'use client';
 
 import { Elements } from '@stripe/react-stripe-js';
 import Link from 'next/link';
-import { useState } from 'react';
-import AuthGateModal from '../../../../components/AuthGateModal';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 import AddressForm from '../../../../components/AddressForm'; // Adjusted path
+import AuthGateModal from '../../../../components/AuthGateModal';
 import CheckoutForm from '../../../../components/CheckoutForm'; // Adjusted path
 
 export default function OrderSummaryDisplay({

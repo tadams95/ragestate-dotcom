@@ -2,12 +2,12 @@
 
 import storage from '@/utils/storage';
 import Image from 'next/image';
-import toast from 'react-hot-toast';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { addToCart } from '../lib/features/todos/cartSlice';
 import AuthGateModal from './AuthGateModal';
-import { usePathname, useSearchParams } from 'next/navigation';
 
 export default function EventDetails({ event }) {
   const dispatch = useDispatch();
@@ -49,7 +49,9 @@ export default function EventDetails({ event }) {
   // Check auth presence in local storage for gentle reminders
   useEffect(() => {
     try {
-      const { idToken, userId } = storage.readKeys ? storage.readKeys(['idToken', 'userId']) : { idToken: null, userId: null };
+      const { idToken, userId } = storage.readKeys
+        ? storage.readKeys(['idToken', 'userId'])
+        : { idToken: null, userId: null };
       setIsLoggedIn(Boolean(idToken && userId));
     } catch (_) {}
   }, []);
