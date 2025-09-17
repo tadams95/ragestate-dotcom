@@ -4,7 +4,7 @@ import Header from '../components/Header';
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { loginSuccess } from '../../../lib/features/todos/authSlice';
@@ -16,7 +16,6 @@ import { handleAuthError } from '../../../lib/utils/authUtils'; // You may need 
 
 export default function CreateAccount() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -195,7 +194,10 @@ export default function CreateAccount() {
       cancelCreateHandler();
       setIsAuthenticating(false);
       setIsLoading(false);
-      const next = searchParams?.get('next');
+      const next =
+        typeof window !== 'undefined'
+          ? new URLSearchParams(window.location.search).get('next')
+          : null;
       const verifyUrl = `/verify-email?email=${encodeURIComponent(email)}${next ? `&next=${encodeURIComponent(next)}` : ''}`;
       router.push(verifyUrl);
     } catch (error) {

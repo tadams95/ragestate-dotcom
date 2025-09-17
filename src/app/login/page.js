@@ -2,7 +2,7 @@
 
 import { doc, getDoc, getFirestore } from 'firebase/firestore';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { loginSuccess } from '../../../lib/features/todos/authSlice';
@@ -12,7 +12,6 @@ import Header from '../components/Header';
 
 export default function Login() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const dispatch = useDispatch();
   const [_error, setError] = useState(null);
   const [email, setEmail] = useState('');
@@ -75,7 +74,10 @@ export default function Login() {
       setPassword('');
       dispatch(setAuthenticated(true));
       setIsAuthenticating(false);
-      const next = searchParams?.get('next');
+      const next =
+        typeof window !== 'undefined'
+          ? new URLSearchParams(window.location.search).get('next')
+          : null;
       if (next) {
         router.push(next);
       } else {

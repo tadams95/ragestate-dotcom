@@ -2,7 +2,7 @@
 
 import storage from '@/utils/storage';
 import Image from 'next/image';
-import { usePathname, useSearchParams } from 'next/navigation';
+// Avoid useSearchParams/usePathname to prevent Suspense requirements in some pages
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
@@ -13,8 +13,11 @@ export default function EventDetails({ event }) {
   const dispatch = useDispatch();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showAuthGate, setShowAuthGate] = useState(false);
-  const pathname = usePathname?.() || '';
-  const searchParams = useSearchParams?.();
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+  const getSearchParam = (key) => {
+    if (typeof window === 'undefined') return null;
+    return new URLSearchParams(window.location.search).get(key);
+  };
 
   const selectedEvent = typeof window !== 'undefined' ? storage.getJSON('selectedEvent') : null;
 
@@ -60,7 +63,7 @@ export default function EventDetails({ event }) {
   useEffect(() => {
     try {
       if (!event) return;
-      const autoAdd = searchParams?.get('autoAdd') === 'true';
+      const autoAdd = getSearchParam('autoAdd') === 'true';
       const addedKey = `autoAdded:${event.name}`;
       if (isLoggedIn && autoAdd && !sessionStorage.getItem(addedKey)) {
         // Create cart item and add once
@@ -84,7 +87,7 @@ export default function EventDetails({ event }) {
         }
       }
     } catch (_) {}
-  }, [isLoggedIn, searchParams, event, dispatch, selectedEvent]);
+  }, [isLoggedIn, event, dispatch, selectedEvent]);
 
   // Function to generate Google Maps link
   const generateGoogleMapsLink = (location) => {
