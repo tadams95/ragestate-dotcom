@@ -1,7 +1,11 @@
+
 'use client';
 
 import { Elements } from '@stripe/react-stripe-js';
 import Link from 'next/link';
+import { useState } from 'react';
+import AuthGateModal from '../../../../components/AuthGateModal';
+import { usePathname } from 'next/navigation';
 import AddressForm from '../../../../components/AddressForm'; // Adjusted path
 import CheckoutForm from '../../../../components/CheckoutForm'; // Adjusted path
 
@@ -20,6 +24,8 @@ export default function OrderSummaryDisplay({
   addressDetails,
   isLoading, // General loading state from parent
 }) {
+  const [showAuthGate, setShowAuthGate] = useState(false);
+  const pathname = usePathname?.() || '/cart';
   return (
     <section
       aria-labelledby="summary-heading"
@@ -74,24 +80,14 @@ export default function OrderSummaryDisplay({
             <span className="ml-2 text-white">Updating payment details...</span>
           </div>
         ) : (
-          <div>
-            <p className="mb-2 text-center text-sm text-gray-100">
-              Please log in or create an account to checkout.
-            </p>
-            <div className="mt-10 flex items-center justify-center gap-x-6">
-              <Link
-                href="/login"
-                className="flex items-center justify-center rounded-md border border-gray-100 px-8 py-2 text-base font-medium text-white hover:bg-red-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-              >
-                Login
-              </Link>
-              <Link
-                href="/create-account"
-                className="flex items-center justify-center rounded-md border border-gray-100 px-8 py-2 text-base font-medium text-white hover:bg-red-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-              >
-                Create Account
-              </Link>
-            </div>
+          <div className="flex flex-col items-center">
+            <button
+              type="button"
+              onClick={() => setShowAuthGate(true)}
+              className="w-full rounded-md bg-red-700 px-8 py-3 text-base font-medium text-white hover:bg-red-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
+            >
+              Log in to Checkout
+            </button>
           </div>
         )}
       </div>
@@ -104,6 +100,15 @@ export default function OrderSummaryDisplay({
           </Link>
         </p>
       </div>
+
+      <AuthGateModal
+        open={showAuthGate}
+        onClose={() => setShowAuthGate(false)}
+        title="Log in to checkout"
+        message="Create an account or log in to complete your purchase."
+        loginHref={`/login?next=${encodeURIComponent(pathname)}`}
+        createHref={`/create-account?next=${encodeURIComponent(pathname)}`}
+      />
     </section>
   );
 }

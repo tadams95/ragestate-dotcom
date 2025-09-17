@@ -2,7 +2,7 @@
 
 import { doc, getDoc, getFirestore } from 'firebase/firestore';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { loginSuccess } from '../../../lib/features/todos/authSlice';
@@ -12,6 +12,7 @@ import Header from '../components/Header';
 
 export default function Login() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const dispatch = useDispatch();
   const [_error, setError] = useState(null);
   const [email, setEmail] = useState('');
@@ -69,12 +70,17 @@ export default function Login() {
         localStorage.setItem('profilePicture', userData?.profilePicture || '/assets/user.png');
       }
 
-      // Immediately route to the Home Page so the Header remounts with up-to-date auth/avatar state
+      // Redirect to intended destination if provided
       setEmail('');
       setPassword('');
       dispatch(setAuthenticated(true));
       setIsAuthenticating(false);
-      router.push('/');
+      const next = searchParams?.get('next');
+      if (next) {
+        router.push(next);
+      } else {
+        router.push('/');
+      }
     } catch (error) {
       console.error('Error signing in:', error.message);
       setError(error.message);

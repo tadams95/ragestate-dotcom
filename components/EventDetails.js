@@ -3,11 +3,18 @@
 import storage from '@/utils/storage';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
+import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { addToCart } from '../lib/features/todos/cartSlice';
+import AuthGateModal from './AuthGateModal';
+import { usePathname, useSearchParams } from 'next/navigation';
 
 export default function EventDetails({ event }) {
   const dispatch = useDispatch();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showAuthGate, setShowAuthGate] = useState(false);
+  const pathname = usePathname?.() || '';
+  const searchParams = useSearchParams?.();
 
   const selectedEvent = typeof window !== 'undefined' ? storage.getJSON('selectedEvent') : null;
 
@@ -39,6 +46,44 @@ export default function EventDetails({ event }) {
 
   const location = event?.location || 'Location TBA';
 
+  // Check auth presence in local storage for gentle reminders
+  useEffect(() => {
+    try {
+      const { idToken, userId } = storage.readKeys ? storage.readKeys(['idToken', 'userId']) : { idToken: null, userId: null };
+      setIsLoggedIn(Boolean(idToken && userId));
+    } catch (_) {}
+  }, []);
+
+  // Auto-add support after returning from auth with ?autoAdd=true
+  useEffect(() => {
+    try {
+      if (!event) return;
+      const autoAdd = searchParams?.get('autoAdd') === 'true';
+      const addedKey = `autoAdded:${event.name}`;
+      if (isLoggedIn && autoAdd && !sessionStorage.getItem(addedKey)) {
+        // Create cart item and add once
+        if (selectedEvent && selectedEvent.quantity > 0) {
+          const cartItem = {
+            productId: selectedEvent.name,
+            title: selectedEvent.name,
+            productImageSrc: selectedEvent.imgURL,
+            selectedQuantity: 1,
+            price: selectedEvent.price,
+            eventDetails: { location: selectedEvent.location },
+            isDigital: selectedEvent.isDigital,
+          };
+          dispatch(addToCart(cartItem));
+          sessionStorage.setItem(addedKey, '1');
+          toast.success('Event added to cart!', {
+            duration: 3000,
+            position: 'bottom-center',
+            style: { background: '#333', color: '#fff', border: '1px solid #444' },
+          });
+        }
+      }
+    } catch (_) {}
+  }, [isLoggedIn, searchParams, event, dispatch, selectedEvent]);
+
   // Function to generate Google Maps link
   const generateGoogleMapsLink = (location) => {
     const encodedLocation = encodeURIComponent(location);
@@ -53,6 +98,10 @@ export default function EventDetails({ event }) {
 
   const handleAddToCart = () => {
     if (selectedEvent && selectedEvent.quantity > 0) {
+      if (!isLoggedIn) {
+        setShowAuthGate(true);
+        return;
+      }
       const cartItem = {
         productId: selectedEvent.name,
         title: selectedEvent.name,
@@ -97,6 +146,8 @@ export default function EventDetails({ event }) {
   // Common card styling with hover effects matching about page
   const cardStyling =
     'bg-gray-900/50 p-5 rounded-lg border border-gray-800 shadow-md hover:border-red-500/30 transition-all duration-300';
+
+  const nextParam = encodeURIComponent(`${pathname}?autoAdd=true`);
 
   return (
     <>
@@ -166,7 +217,7 @@ export default function EventDetails({ event }) {
 
               <div className="mt-6">
                 <button type="button" className={buttonStyling} onClick={handleAddToCart}>
-                  Add to Cart
+                  {isLoggedIn ? 'Add to Cart' : 'Log in to add'}
                 </button>
               </div>
             </div>
@@ -211,6 +262,14 @@ export default function EventDetails({ event }) {
           </div>
         </div>
       </div>
+      <AuthGateModal
+        open={showAuthGate}
+        onClose={() => setShowAuthGate(false)}
+        title="Log in to add this event"
+        message="Create an account or log in to add to your cart and checkout."
+        loginHref={`/login?next=${nextParam}`}
+        createHref={`/create-account?next=${nextParam}`}
+      />
     </>
   );
 }
