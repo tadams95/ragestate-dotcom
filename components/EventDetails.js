@@ -176,7 +176,7 @@ export default function EventDetails({ event }) {
             {/* Event description section - add border consistent with account page */}
             <div className={`mt-8 ${cardStyling}`}>
               <h3 className="mb-4 text-xl font-medium text-white">About This Event</h3>
-              <p className="text-gray-300">{event.description}</p>
+              <p className="whitespace-pre-line text-gray-300">{event.description}</p>
             </div>
           </div>
 
