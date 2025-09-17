@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import SaveToFirestore from '../firebase/util/saveToFirestore';
 import { clearCart, selectCartItems } from '../lib/features/todos/cartSlice';
 import { selectLocalId, selectUserEmail, selectUserName } from '../lib/features/todos/userSlice'; // Import selectors
+import SuccessModal from './SuccessModal';
 
 export default function CheckoutForm({
   addressDetails,
@@ -18,6 +19,8 @@ export default function CheckoutForm({
 
   const [message, setMessage] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [orderNumber, setOrderNumber] = useState(null);
 
   // Fetch user and cart data from Redux
   const cartItems = useSelector(selectCartItems);
@@ -90,8 +93,10 @@ export default function CheckoutForm({
     );
 
     if (saveResult && saveResult.success) {
+      setOrderNumber(saveResult.orderNumber || null);
       setMessage('Payment succeeded! Your order has been saved.');
       dispatch(clearCart());
+      setShowSuccess(true);
     } else {
       setMessage('Payment succeeded, but there was an issue saving your order.');
     }
@@ -170,6 +175,9 @@ export default function CheckoutForm({
 
   return (
     <form id="payment-form" onSubmit={handleSubmit}>
+      {showSuccess && (
+        <SuccessModal orderNumber={orderNumber} onClose={() => setShowSuccess(false)} />
+      )}
       <PaymentElement id="payment-element" options={paymentElementOptions} />
       <button
         disabled={isButtonDisabled}
