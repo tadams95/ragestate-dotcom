@@ -1,17 +1,5 @@
-import {
-  doc,
-  getFirestore,
-  setDoc,
-  getDoc,
-  updateDoc,
-  collection,
-  addDoc,
-  serverTimestamp,
-  query,
-  where,
-  getDocs,
-} from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { getAuth } from 'firebase/auth';
+import { doc, getDoc, getFirestore, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 
 export default async function SaveToFirestore(
   userName,
@@ -20,22 +8,20 @@ export default async function SaveToFirestore(
   cartItems,
   paymentIntentPrefix,
   addressDetails,
-  appliedPromoCode // Add appliedPromoCode as a new parameter
+  appliedPromoCode, // Add appliedPromoCode as a new parameter
 ) {
   // Improved logging for easier debugging
-  console.log("--------- SaveToFirestore Start ---------");
-  console.log("SaveToFirestore parameters:", {
-    userName: userName || "not provided",
-    userEmail: userEmail || "not provided",
-    firebaseId: firebaseId
-      ? `${firebaseId.substring(0, 5)}...`
-      : "not provided", // Only show part of ID for privacy
+  console.log('--------- SaveToFirestore Start ---------');
+  console.log('SaveToFirestore parameters:', {
+    userName: userName || 'not provided',
+    userEmail: userEmail || 'not provided',
+    firebaseId: firebaseId ? `${firebaseId.substring(0, 5)}...` : 'not provided', // Only show part of ID for privacy
     cartItemsCount: cartItems?.length || 0,
     paymentIntentPrefix: paymentIntentPrefix
       ? `${paymentIntentPrefix.substring(0, 10)}...`
-      : "not provided",
+      : 'not provided',
     hasAddressDetails: Boolean(addressDetails),
-    appliedPromoCodeId: appliedPromoCode ? appliedPromoCode.id : "none", // Log promo code ID if present
+    appliedPromoCodeId: appliedPromoCode ? appliedPromoCode.id : 'none', // Log promo code ID if present
   });
 
   const firestore = getFirestore();
@@ -45,24 +31,24 @@ export default async function SaveToFirestore(
   // Input validation with better error handling
   if (!firebaseId || !paymentIntentPrefix) {
     const missingParams = [];
-    if (!firebaseId) missingParams.push("firebaseId");
-    if (!paymentIntentPrefix) missingParams.push("paymentIntentPrefix");
+    if (!firebaseId) missingParams.push('firebaseId');
+    if (!paymentIntentPrefix) missingParams.push('paymentIntentPrefix');
 
-    console.error(`Required parameters missing: ${missingParams.join(", ")}`);
+    console.error(`Required parameters missing: ${missingParams.join(', ')}`);
     return {
       success: false,
-      error: `Required parameters missing: ${missingParams.join(", ")}`,
+      error: `Required parameters missing: ${missingParams.join(', ')}`,
     };
   }
 
   // Better cart items validation
   if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
-    console.error("Invalid cart items:", {
+    console.error('Invalid cart items:', {
       type: typeof cartItems,
       isArray: Array.isArray(cartItems),
       length: cartItems?.length,
     });
-    return { success: false, error: "Cart items invalid or empty" };
+    return { success: false, error: 'Cart items invalid or empty' };
   }
 
   // Verify authentication before proceeding
@@ -70,12 +56,12 @@ export default async function SaveToFirestore(
   let authWarning = null;
 
   if (!auth.currentUser) {
-    authWarning = "No authenticated user found, using provided firebaseId";
+    authWarning = 'No authenticated user found, using provided firebaseId';
     console.warn(authWarning);
   } else if (auth.currentUser.uid !== firebaseId) {
     authWarning = `Auth mismatch: current user (${auth.currentUser.uid.substring(
       0,
-      5
+      5,
     )}...) doesn't match provided ID (${firebaseId.substring(0, 5)}...)`;
     console.warn(authWarning);
   }
@@ -84,12 +70,12 @@ export default async function SaveToFirestore(
     try {
       // Generate order number and prepare purchase data
       const orderNumber = generateOrderNumber();
-      console.log("Generated order number:", orderNumber);
+      console.log('Generated order number:', orderNumber);
 
       // Sanitize cart items to ensure all required fields
       const sanitizedCartItems = cartItems.map((item) => ({
-        productId: item.productId || item.id || "unknown-product",
-        title: item.title || item.name || "Unnamed Product",
+        productId: item.productId || item.id || 'unknown-product',
+        title: item.title || item.name || 'Unnamed Product',
         price: parseFloat(item.price) || 0,
         quantity: parseInt(item.quantity) || 1,
         productImageSrc: item.productImageSrc || item.imageSrc || null,
@@ -100,100 +86,40 @@ export default async function SaveToFirestore(
 
       const purchaseData = preparePurchaseData(
         orderNumber,
-        userName || "Guest",
-        userEmail || "no-email@provided.com",
+        userName || 'Guest',
+        userEmail || 'no-email@provided.com',
         firebaseId,
         sanitizedCartItems,
         paymentIntentPrefix,
         addressDetails,
-        appliedPromoCode // Pass to preparePurchaseData
+        appliedPromoCode, // Pass to preparePurchaseData
       );
 
-      console.log("Purchase data prepared for", orderNumber);
+      console.log('Purchase data prepared for', orderNumber);
 
-      // Process event tickets and update inventory
-      console.log("Checking for event tickets in cart...");
-      try {
-        for (const item of sanitizedCartItems) {
-          // Find the event ID for the current item
-          const eventId = item.eventDetails ? item.productId : null;
-
-          // Proceed only if the event ID is valid
-          if (eventId) {
-            console.log(`Processing event ticket for event ID: ${eventId}`);
-
-            // Get the current quantity of the event
-            const eventDocRef = doc(firestore, "events", eventId);
-            const eventDocSnap = await getDoc(eventDocRef);
-
-            if (eventDocSnap.exists()) {
-              const currentQuantity = eventDocSnap.data().quantity;
-              console.log(`Current event quantity: ${currentQuantity}`);
-
-              // Update the quantity by decrementing
-              await updateDoc(eventDocRef, {
-                quantity: Math.max(0, currentQuantity - item.quantity),
-              });
-              console.log(
-                `Updated event quantity to: ${Math.max(
-                  0,
-                  currentQuantity - item.quantity
-                )}`
-              );
-
-              // Create Firestore document for the user's ticket
-              const userData = {
-                active: true,
-                email: userEmail || "no-email@provided.com",
-                firebaseId: firebaseId,
-                owner: userName || "Guest",
-                purchaseDate: serverTimestamp(),
-                orderNumber: orderNumber,
-                ticketQuantity: item.quantity || 1,
-              };
-
-              const eventRef = doc(firestore, "events", eventId);
-              const eventRagersRef = collection(eventRef, "ragers");
-
-              await addDoc(eventRagersRef, userData);
-              console.log(`✓ Added user to event's ragers collection`);
-            } else {
-              console.warn(`Event with ID ${eventId} not found in Firestore`);
-            }
-          }
-        }
-      } catch (eventError) {
-        console.error("Error processing event tickets:", eventError);
-        // Continue with the purchase process even if event processing fails
-      }
+      // Ticket creation and inventory updates now handled server-side by finalize-order
 
       // Add transaction metadata
       const metadata = {
         createdAt: serverTimestamp(),
-        transactionId: `${Date.now()}-${Math.random()
-          .toString(36)
-          .substring(2, 10)}`,
+        transactionId: `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`,
         authWarning,
         saveAttemptTime: new Date().toISOString(),
       };
 
       // Save to main purchases collection
-      console.log("Saving to main purchases collection...");
-      const purchaseRef = doc(firestore, "purchases", orderNumber);
+      console.log('Saving to main purchases collection...');
+      const purchaseRef = doc(firestore, 'purchases', orderNumber);
       await setDoc(purchaseRef, {
         ...purchaseData, // purchaseData now includes promo details if any
         ...metadata,
       });
-      console.log("✓ Saved to main purchases collection:", purchaseRef.path);
+      console.log('✓ Saved to main purchases collection:', purchaseRef.path);
 
       // If a promo code was applied, update its usage in Firestore
       if (appliedPromoCode && appliedPromoCode.id) {
         console.log(`Attempting to update promo code: ${appliedPromoCode.id}`);
-        const promoCodeRef = doc(
-          firestore,
-          "promoterCodes",
-          appliedPromoCode.id
-        );
+        const promoCodeRef = doc(firestore, 'promoterCodes', appliedPromoCode.id);
         try {
           const promoCodeSnap = await getDoc(promoCodeRef);
           if (promoCodeSnap.exists()) {
@@ -204,42 +130,29 @@ export default async function SaveToFirestore(
               lastUsed: serverTimestamp(),
               lastOrderNumber: orderNumber,
             });
-            console.log(
-              `✓ Promo code ${appliedPromoCode.id} updated successfully.`
-            );
+            console.log(`✓ Promo code ${appliedPromoCode.id} updated successfully.`);
           } else {
-            console.warn(
-              `Promo code ${appliedPromoCode.id} not found for update.`
-            );
+            console.warn(`Promo code ${appliedPromoCode.id} not found for update.`);
           }
         } catch (promoUpdateError) {
-          console.error(
-            `× Error updating promo code ${appliedPromoCode.id}:`,
-            promoUpdateError
-          );
+          console.error(`× Error updating promo code ${appliedPromoCode.id}:`, promoUpdateError);
         }
       }
 
       // Calculate total amount properly
       const totalAmount = sanitizedCartItems
         .reduce(
-          (sum, item) =>
-            sum +
-            (parseFloat(item.price) || 0) * (parseInt(item.quantity) || 1),
-          0
+          (sum, item) => sum + (parseFloat(item.price) || 0) * (parseInt(item.quantity) || 1),
+          0,
         )
         .toFixed(2);
 
       // Try saving to user's purchases subcollection with error handling
       try {
         console.log(
-          `Saving to user subcollection: customers/${firebaseId}/purchases/${orderNumber}`
+          `Saving to user subcollection: customers/${firebaseId}/purchases/${orderNumber}`,
         );
-        const userPurchaseRef = doc(
-          firestore,
-          `customers/${firebaseId}/purchases`,
-          orderNumber
-        );
+        const userPurchaseRef = doc(firestore, `customers/${firebaseId}/purchases`, orderNumber);
 
         // Enhanced user purchase data
         const userPurchaseData = {
@@ -248,15 +161,15 @@ export default async function SaveToFirestore(
           createdAt: serverTimestamp(),
           orderDate: serverTimestamp(),
           lastUpdated: serverTimestamp(),
-          status: "pending",
+          status: 'pending',
           itemCount: sanitizedCartItems.length,
           totalAmount,
           transactionId: metadata.transactionId,
 
           // Legacy fields for compatibility
           dateTime: serverTimestamp(),
-          name: userName || "Guest",
-          email: userEmail || "no-email@provided.com",
+          name: userName || 'Guest',
+          email: userEmail || 'no-email@provided.com',
           stripeId: paymentIntentPrefix,
           cartItems: sanitizedCartItems,
           addressDetails,
@@ -270,39 +183,29 @@ export default async function SaveToFirestore(
 
         // Try saving to users collection as a fallback (in case we're using the wrong collection)
         try {
-          const usersFallbackRef = doc(
-            firestore,
-            `users/${firebaseId}/purchases`,
-            orderNumber
-          );
+          const usersFallbackRef = doc(firestore, `users/${firebaseId}/purchases`, orderNumber);
           await setDoc(usersFallbackRef, userPurchaseData);
-          console.log("✓ (Fallback) Saved to users collection as well");
+          console.log('✓ (Fallback) Saved to users collection as well');
         } catch (fallbackError) {
           console.log(
-            "× Fallback save to users collection failed (this is okay):",
-            fallbackError.message
+            '× Fallback save to users collection failed (this is okay):',
+            fallbackError.message,
           );
         }
       } catch (userSaveError) {
-        console.error(
-          "× Failed to save to user subcollection:",
-          userSaveError.message
-        );
+        console.error('× Failed to save to user subcollection:', userSaveError.message);
         // Still return success since the main purchase was saved
         return {
           success: true,
           orderNumber,
-          warning: "Saved to main purchases but not to user subcollection",
+          warning: 'Saved to main purchases but not to user subcollection',
         };
       }
 
-      console.log("--------- SaveToFirestore Complete ---------");
+      console.log('--------- SaveToFirestore Complete ---------');
       return { success: true, orderNumber };
     } catch (error) {
-      console.error(
-        `Error in saveWithRetry (attempt ${retryCount + 1}/${MAX_RETRIES}):`,
-        error
-      );
+      console.error(`Error in saveWithRetry (attempt ${retryCount + 1}/${MAX_RETRIES}):`, error);
       retryCount++;
 
       if (retryCount < MAX_RETRIES) {
@@ -316,18 +219,16 @@ export default async function SaveToFirestore(
 
   try {
     const result = await saveWithRetry();
-    console.log("Final result:", result);
+    console.log('Final result:', result);
     return result;
   } catch (error) {
-    console.error("Fatal error in SaveToFirestore:", error);
-    let errorMessage = "Unknown error saving purchase";
+    console.error('Fatal error in SaveToFirestore:', error);
+    let errorMessage = 'Unknown error saving purchase';
 
-    if (error.code === "permission-denied") {
-      errorMessage =
-        "Permission denied. Please ensure you are properly authenticated.";
-    } else if (error.code === "not-found") {
-      errorMessage =
-        "Collection or document not found. Database path may be incorrect.";
+    if (error.code === 'permission-denied') {
+      errorMessage = 'Permission denied. Please ensure you are properly authenticated.';
+    } else if (error.code === 'not-found') {
+      errorMessage = 'Collection or document not found. Database path may be incorrect.';
     } else if (error.message) {
       errorMessage = error.message;
     }
@@ -338,9 +239,9 @@ export default async function SaveToFirestore(
 
 // Helper function to generate order number
 function generateOrderNumber() {
-  const prefix = "ORDER";
+  const prefix = 'ORDER';
   const timestamp = new Date();
-  const datePart = timestamp.toISOString().slice(0, 10).replace(/-/g, "");
+  const datePart = timestamp.toISOString().slice(0, 10).replace(/-/g, '');
   const randomSuffix = Math.floor(1000 + Math.random() * 9000);
   return `${prefix}-${datePart}-${randomSuffix}`;
 }
@@ -354,28 +255,28 @@ function preparePurchaseData(
   cartItems,
   paymentIntentPrefix,
   addressDetails,
-  appliedPromoCode // Add appliedPromoCode here
+  appliedPromoCode, // Add appliedPromoCode here
 ) {
   const totalAmountBeforeDiscount = cartItems
     .reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0)
     .toFixed(2);
 
   const discount = appliedPromoCode ? appliedPromoCode.discountValue || 0 : 0;
-  const finalTotalAmount = (
-    parseFloat(totalAmountBeforeDiscount) - parseFloat(discount)
-  ).toFixed(2);
+  const finalTotalAmount = (parseFloat(totalAmountBeforeDiscount) - parseFloat(discount)).toFixed(
+    2,
+  );
 
   return {
     addressDetails: addressDetails || null,
     customerEmail: userEmail,
     customerId: firebaseId,
-    customerName: userName || "Anonymous",
+    customerName: userName || 'Anonymous',
     itemCount: cartItems.length,
     items: cartItems,
     orderDate: serverTimestamp(),
     orderNumber,
     paymentIntentId: paymentIntentPrefix,
-    status: "pending",
+    status: 'pending',
     totalAmount: finalTotalAmount, // Use the final amount after discount
     discountAmount: discount,
     promoCodeUsed: appliedPromoCode ? appliedPromoCode.id : null,
@@ -383,34 +284,4 @@ function preparePurchaseData(
 }
 
 // Helper function to generate searchable keywords
-function generateSearchKeywords(name, email, orderNumber) {
-  const keywords = [];
-
-  // Add name parts
-  if (name) {
-    const nameParts = name.toLowerCase().split(" ");
-    keywords.push(...nameParts);
-  }
-
-  // Add email parts
-  if (email) {
-    const emailLower = email.toLowerCase();
-    keywords.push(emailLower);
-
-    // Add username part of email
-    const atIndex = emailLower.indexOf("@");
-    if (atIndex > 0) {
-      keywords.push(emailLower.substring(0, atIndex));
-    }
-  }
-
-  // Add order number and its parts
-  if (orderNumber) {
-    keywords.push(orderNumber.toLowerCase());
-    const orderParts = orderNumber.split("-");
-    keywords.push(...orderParts);
-  }
-
-  // Remove duplicates and empty strings
-  return [...new Set(keywords)].filter((keyword) => keyword.trim() !== "");
-}
+// generateSearchKeywords helper was unused; removed for cleanliness.

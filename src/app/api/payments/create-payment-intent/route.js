@@ -50,19 +50,9 @@ export async function POST(request) {
     }
 
     const payload = await request.json().catch(() => ({}));
-    const idempotencyKey =
-      request.headers.get('x-idempotency-key') ||
-      (() => {
-        try {
-          const user = `${payload.firebaseId || ''}|${payload.customerEmail || ''}`;
-          const amt = String(payload.amount || '');
-          const cartLen = Array.isArray(payload.cartItems) ? String(payload.cartItems.length) : '0';
-          // Base64-encode a simple stable key; Stripe expects a string
-          return Buffer.from(`${user}|${amt}|${cartLen}`).toString('base64');
-        } catch (_) {
-          return undefined;
-        }
-      })();
+    // Do not auto-generate a long-lived idempotency key.
+    // Only pass through an explicit key if the caller provides one for retry safety.
+    const idempotencyKey = request.headers.get('x-idempotency-key') || undefined;
 
     let lastError = null;
     const proxyKey = process.env.PROXY_KEY;

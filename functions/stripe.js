@@ -265,15 +265,25 @@ app.post('/finalize-order', async (req, res) => {
     }
 
     const items = Array.isArray(cartItems) ? cartItems : [];
-    const eventItems = items.filter((it) => it && it.eventDetails);
+    logger.info('Finalize-order: received items', {
+      count: items.length,
+      example: items[0]
+        ? {
+            productId: items[0].productId,
+            quantity: items[0].quantity,
+            hasEventDetails: !!items[0].eventDetails,
+          }
+        : null,
+    });
 
     const created = [];
-    for (const item of eventItems) {
-      const eventId = String(item.productId || '').trim();
+    for (const item of items) {
+      const eventId = String(item?.productId || '').trim();
       const qty = Math.max(1, parseInt(item.quantity || 1, 10));
       if (!eventId) continue;
 
       const eventRef = db.collection('events').doc(eventId);
+      logger.info('Finalize-order: processing potential event', { eventId, qty });
       try {
         await db.runTransaction(async (tx) => {
           const snap = await tx.get(eventRef);
@@ -301,7 +311,7 @@ app.post('/finalize-order', async (req, res) => {
           created.push({ eventId, ragerId: ragerDoc.id, qty, newQty });
         });
       } catch (e) {
-        logger.warn(`Finalize order: failed for event ${eventId}`, e);
+        logger.warn(`Finalize order: failed for productId=${eventId}`, e);
       }
     }
 
@@ -319,6 +329,7 @@ app.post('/finalize-order', async (req, res) => {
       logger.warn('Failed to update fulfillments record', e);
     }
 
+    logger.info('Finalize-order: completed', { createdTickets: created.length });
     return res.json({ ok: true, createdTickets: created.length, details: created });
   } catch (err) {
     logger.error('finalize-order error', err);

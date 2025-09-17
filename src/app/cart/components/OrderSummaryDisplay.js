@@ -64,6 +64,7 @@ export default function OrderSummaryDisplay({
               <CheckoutForm
                 addressDetails={addressDetails}
                 isLoading={isLoading} // Pass the general loading state
+                clientSecret={clientSecret}
               />
             </Elements>
           </>

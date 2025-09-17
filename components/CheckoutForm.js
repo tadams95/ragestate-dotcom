@@ -6,14 +6,18 @@ import SaveToFirestore from '../firebase/util/saveToFirestore';
 import { clearCart, selectCartItems } from '../lib/features/todos/cartSlice';
 import { selectLocalId, selectUserEmail, selectUserName } from '../lib/features/todos/userSlice'; // Import selectors
 
-export default function CheckoutForm({ addressDetails, isLoading, appliedPromoCode }) {
+export default function CheckoutForm({
+  addressDetails,
+  isLoading,
+  appliedPromoCode,
+  clientSecret,
+}) {
   const stripe = useStripe();
   const elements = useElements();
   const dispatch = useDispatch();
 
   const [message, setMessage] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  // removed unused orderSaved state
 
   // Fetch user and cart data from Redux
   const cartItems = useSelector(selectCartItems);
@@ -22,35 +26,78 @@ export default function CheckoutForm({ addressDetails, isLoading, appliedPromoCo
   const userId = useSelector(selectLocalId);
 
   useEffect(() => {
-    if (!stripe) {
-      return;
-    }
-
-    const clientSecret = new URLSearchParams(window.location.search).get(
-      'payment_intent_client_secret',
-    );
-
-    if (!clientSecret) {
-      return;
-    }
-
+    if (!stripe || !clientSecret) return;
+    // Do not set any success message on mount; only used for recovery flows
     stripe.retrievePaymentIntent(clientSecret).then(({ paymentIntent }) => {
-      switch (paymentIntent.status) {
-        case 'succeeded':
-          setMessage('Payment succeeded!');
-          break;
-        case 'processing':
-          setMessage('Your payment is processing.');
-          break;
-        case 'requires_payment_method':
-          setMessage('Your payment was not successful, please try again.');
-          break;
-        default:
-          setMessage('Something went wrong.');
-          break;
+      if (!paymentIntent) return;
+      if (paymentIntent.status === 'requires_payment_method') {
+        setMessage(null);
       }
     });
-  }, [stripe]);
+  }, [stripe, clientSecret]);
+
+  const tryFinalizeIfSucceeded = async (pi) => {
+    if (!pi || pi.status !== 'succeeded') return false;
+
+    const auth = getAuth();
+    const firebaseId = userId || auth.currentUser?.uid;
+    if (!firebaseId) {
+      console.error('Firebase ID is missing. Cannot save order.');
+      setMessage('Payment succeeded, but there was an issue saving your order.');
+      return true; // stop further processing
+    }
+
+    try {
+      console.log('Finalizing order (server):', {
+        paymentIntentId: pi.id,
+        itemCount: cartItems?.length || 0,
+      });
+      const resp = await fetch('/api/payments/finalize-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentIntentId: pi.id,
+          firebaseId,
+          userEmail,
+          userName,
+          cartItems,
+        }),
+      });
+      const text = await resp.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (_) {
+        data = { raw: text };
+      }
+      if (!resp.ok) {
+        console.error('Finalize order failed:', { status: resp.status, data });
+      } else {
+        console.log('Finalize order success:', data);
+      }
+    } catch (e) {
+      console.error('Finalize order error:', e);
+    }
+
+    const saveResult = await SaveToFirestore(
+      userName,
+      userEmail,
+      firebaseId,
+      cartItems,
+      pi.id,
+      addressDetails,
+      appliedPromoCode,
+    );
+
+    if (saveResult && saveResult.success) {
+      setMessage('Payment succeeded! Your order has been saved.');
+      dispatch(clearCart());
+    } else {
+      setMessage('Payment succeeded, but there was an issue saving your order.');
+    }
+
+    return true;
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -74,7 +121,7 @@ export default function CheckoutForm({ addressDetails, isLoading, appliedPromoCo
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: return_url,
+          return_url,
           shipping: addressDetails
             ? {
                 name: addressDetails.name,
@@ -92,63 +139,20 @@ export default function CheckoutForm({ addressDetails, isLoading, appliedPromoCo
         redirect: 'if_required',
       });
 
+      if (paymentIntent && (await tryFinalizeIfSucceeded(paymentIntent))) return;
+
       if (error) {
+        // Handle cases where Stripe returns unexpected_state; re-fetch PI and finalize if already succeeded
+        if (error.code === 'payment_intent_unexpected_state' && clientSecret) {
+          const res = await stripe.retrievePaymentIntent(clientSecret);
+          if (res && res.paymentIntent && (await tryFinalizeIfSucceeded(res.paymentIntent))) return;
+        }
+
         if (error.type === 'card_error' || error.type === 'validation_error') {
           setMessage(error.message);
         } else {
           setMessage('An unexpected error occurred.');
           console.error('Stripe confirmation error:', error);
-        }
-      } else if (paymentIntent && paymentIntent.status === 'succeeded') {
-        console.log('Payment succeeded:', paymentIntent.id);
-
-        const auth = getAuth();
-        const firebaseId = userId || auth.currentUser?.uid;
-
-        if (!firebaseId) {
-          console.error('Firebase ID is missing. Cannot save order.');
-          setMessage('Payment succeeded, but there was an issue saving your order.');
-          return;
-        }
-
-        // 1) Finalize order on server: create tickets and decrement inventory
-        try {
-          const resp = await fetch('/api/payments/finalize-order', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              paymentIntentId: paymentIntent.id,
-              firebaseId,
-              userEmail,
-              userName,
-              cartItems,
-            }),
-          });
-          if (!resp.ok) {
-            const text = await resp.text();
-            console.error('Finalize order failed:', text);
-          }
-        } catch (e) {
-          console.error('Finalize order error:', e);
-        }
-
-        // 2) Save purchase records (client-side convenience copy)
-        const saveResult = await SaveToFirestore(
-          userName,
-          userEmail,
-          firebaseId,
-          cartItems,
-          paymentIntent.id,
-          addressDetails,
-          appliedPromoCode,
-        );
-
-        if (saveResult && saveResult.success) {
-          setMessage('Payment succeeded! Your order has been saved.');
-          // Clear cart now that everything is processed
-          dispatch(clearCart());
-        } else {
-          setMessage('Payment succeeded, but there was an issue saving your order.');
         }
       } else {
         setMessage('Payment processing...');
@@ -161,10 +165,7 @@ export default function CheckoutForm({ addressDetails, isLoading, appliedPromoCo
     }
   };
 
-  const paymentElementOptions = {
-    layout: 'tabs',
-  };
-
+  const paymentElementOptions = { layout: 'tabs' };
   const isButtonDisabled = !stripe || !elements || isLoading || isProcessing;
 
   return (
@@ -186,9 +187,7 @@ export default function CheckoutForm({ addressDetails, isLoading, appliedPromoCo
       {message && (
         <div
           id="payment-message"
-          className={`mt-4 text-sm ${
-            message.includes('success') ? 'text-green-500' : 'text-red-500'
-          }`}
+          className={`mt-4 text-sm ${message.includes('success') ? 'text-green-500' : 'text-red-500'}`}
         >
           {message}
         </div>

@@ -162,14 +162,10 @@ export default function Cart() {
           '[Cart] Creating payment intent via proxy:',
           `${API_PROXY}/create-payment-intent`,
         );
-        const idemKey = btoa(
-          [state.userId, state.userEmail, String(stripeTotal), String(cartItems.length)].join('|'),
-        );
         const response = await fetch(`${API_PROXY}/create-payment-intent`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-idempotency-key': idemKey,
           },
           body: JSON.stringify({
             amount: stripeTotal,
@@ -186,12 +182,8 @@ export default function Cart() {
         }
 
         const { client_secret } = await response.json();
-
-        setState((prevState) => ({
-          ...prevState,
-          clientSecret: client_secret,
-        }));
-        storage.set('clientSecret', client_secret);
+        setState((prevState) => ({ ...prevState, clientSecret: client_secret }));
+        // Do not persist clientSecret; avoid accidentally reusing a succeeded intent
       } catch (error) {
         console.error('Error fetching payment intent:', error.message);
         setErrorMessage(
@@ -211,7 +203,6 @@ export default function Cart() {
       setState((prevState) =>
         prevState.clientSecret ? { ...prevState, clientSecret: '' } : prevState,
       );
-      storage.remove('clientSecret');
     }
   }, [state.userName, state.userEmail, state.userId, cartItems, stripeTotal]);
 
