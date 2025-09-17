@@ -250,11 +250,17 @@ app.post('/finalize-order', async (req, res) => {
         alreadyFulfilled = true;
         return;
       }
+      // Derive a recipient email from request payload or PI metadata as a fallback
+      const derivedEmail =
+        (userEmail && String(userEmail).trim()) ||
+        (pi.receipt_email && String(pi.receipt_email).trim()) ||
+        (pi.metadata && String(pi.metadata.email || '').trim()) ||
+        '';
       tx.set(fulfillRef, {
         status: 'processing',
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         firebaseId,
-        userEmail: userEmail || pi.receipt_email || '',
+        userEmail: derivedEmail,
         amount: pi.amount,
         currency: pi.currency,
       });
@@ -265,6 +271,7 @@ app.post('/finalize-order', async (req, res) => {
     }
 
     const items = Array.isArray(cartItems) ? cartItems : [];
+    const orderNumber = generateOrderNumber();
     logger.info('Finalize-order: received items', {
       count: items.length,
       example: items[0]
@@ -302,7 +309,7 @@ app.post('/finalize-order', async (req, res) => {
             firebaseId: firebaseId,
             owner: userName || '',
             purchaseDate: admin.firestore.FieldValue.serverTimestamp(),
-            orderNumber: generateOrderNumber(),
+            orderNumber,
             ticketQuantity: qty,
             paymentIntentId: pi.id,
           };
@@ -322,6 +329,14 @@ app.post('/finalize-order', async (req, res) => {
           completedAt: admin.firestore.FieldValue.serverTimestamp(),
           createdTickets: created.length,
           details: created,
+          orderNumber,
+          // backfill summary fields for triggers
+          email: (userEmail && String(userEmail).trim()) || pi.receipt_email || '',
+          items: items.map((i) => ({
+            title: i.title || i.productId,
+            productId: i.productId,
+            quantity: Math.max(1, parseInt(i.quantity || 1, 10)),
+          })),
         },
         { merge: true },
       );
@@ -334,6 +349,58 @@ app.post('/finalize-order', async (req, res) => {
   } catch (err) {
     logger.error('finalize-order error', err);
     res.status(500).json({ error: 'Failed to finalize order' });
+  }
+});
+
+// Test utility: create a completed fulfillment to trigger email
+app.post('/test-send-purchase-email', async (req, res) => {
+  try {
+    const expectedProxyKey = PROXY_KEY.value() || process.env.PROXY_KEY;
+    if (expectedProxyKey) {
+      const provided = req.get('x-proxy-key');
+      if (!provided || provided !== expectedProxyKey) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+    }
+
+    const { email, piId, items } = req.body || {};
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ error: 'email is required' });
+    }
+
+    const id = piId && String(piId).trim() ? String(piId).trim() : `test-${Date.now()}`;
+    const payloadItems =
+      Array.isArray(items) && items.length ? items : [{ title: 'Test Ticket', quantity: 1 }];
+
+    const fulfillRef = db.collection('fulfillments').doc(id);
+    const cleanedItems = payloadItems.map((i) => {
+      const base = {
+        title: i.title || i.name || 'Item',
+        quantity: Math.max(1, parseInt(i.quantity || 1, 10)),
+      };
+      if (i.productId) base.productId = i.productId;
+      return base;
+    });
+
+    await fulfillRef.set(
+      {
+        status: 'completed',
+        email,
+        items: cleanedItems,
+        orderNumber: `ORDER-TEST-${Date.now()}`,
+        amount: 500,
+        currency: 'usd',
+        completedAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+
+    logger.info('Test fulfillment created for email trigger', { id, email });
+    return res.json({ ok: true, id });
+  } catch (err) {
+    logger.error('test-send-purchase-email error', err);
+    return res.status(500).json({ error: 'Failed to create test fulfillment' });
   }
 });
 
