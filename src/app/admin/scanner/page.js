@@ -21,6 +21,8 @@ export default function ScannerPage() {
   const lastTokenRef = useRef({ token: '', ts: 0 });
   const flashTimeoutRef = useRef(null);
   const toastTimeoutRef = useRef(null);
+  const [manualStartNeeded, setManualStartNeeded] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
 
   // Feedback helpers
   const vibrate = useCallback(
@@ -168,6 +170,33 @@ export default function ScannerPage() {
   );
 
   useEffect(() => {
+    if (typeof navigator !== 'undefined') {
+      const ua = navigator.userAgent || '';
+      setIsIOS(/iPad|iPhone|iPod/.test(ua));
+    }
+  }, []);
+
+  const attemptStart = useCallback(async () => {
+    const scanner = scannerRef.current;
+    if (!scanner) return;
+    try {
+      setScanning(true);
+      await scanner.start();
+      if (selectedDeviceId) {
+        await scanner.setCamera(selectedDeviceId);
+      } else {
+        await scanner.setCamera('environment').catch(() => {});
+      }
+      setManualStartNeeded(false);
+      setError('');
+    } catch (e) {
+      setError('Camera access failed. Check permissions and HTTPS, or try another camera/browser.');
+    } finally {
+      setScanning(false);
+    }
+  }, [selectedDeviceId]);
+
+  useEffect(() => {
     // Lazy-load scanner lib on client; setup camera + device list
     let disposed = false;
     let localScanner = null;
@@ -175,21 +204,7 @@ export default function ScannerPage() {
       try {
         setScanning(true);
         const { default: QrScanner } = await import('qr-scanner');
-
-        // List cameras for selection
-        try {
-          const cams = await QrScanner.listCameras(true);
-          if (!disposed) {
-            setDevices(cams || []);
-            if (cams?.length && !selectedDeviceId) {
-              // Prefer a back/environ camera on mobile if available
-              const preferred =
-                cams.find((c) => /back|rear|environment/i.test(c.label || ''))?.id || cams[0].id;
-              setSelectedDeviceId(preferred);
-            }
-          }
-        } catch {}
-
+        // Create scanner
         const video = videoRef.current;
         if (!video) return;
         const scanner = new QrScanner(
@@ -204,10 +219,33 @@ export default function ScannerPage() {
         );
         scannerRef.current = scanner;
         localScanner = scanner;
-        await scanner.start();
-        if (selectedDeviceId) {
-          await scanner.setCamera(selectedDeviceId);
+        // Try to start immediately; on iOS or permission errors, fall back to manual start
+        try {
+          await scanner.start();
+          if (selectedDeviceId) {
+            await scanner.setCamera(selectedDeviceId);
+          } else {
+            await scanner.setCamera('environment').catch(() => {});
+          }
+        } catch (e) {
+          // Some browsers (iOS) require a user gesture to start camera or explicit permission first
+          if (!disposed) {
+            setManualStartNeeded(true);
+          }
         }
+
+        // List cameras for selection (may require permission first on some browsers)
+        try {
+          const cams = await QrScanner.listCameras(true);
+          if (!disposed) {
+            setDevices(cams || []);
+            if (cams?.length && !selectedDeviceId) {
+              const preferred =
+                cams.find((c) => /back|rear|environment/i.test(c.label || ''))?.id || cams[0].id;
+              setSelectedDeviceId(preferred);
+            }
+          }
+        } catch {}
       } catch (e) {
         if (!disposed)
           setError(
@@ -371,6 +409,28 @@ export default function ScannerPage() {
                 flash === 'success' ? 'bg-emerald-500/30' : 'bg-red-500/30'
               } animate-pulse`}
             />
+          )}
+          {manualStartNeeded && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50">
+              <div className="text-center">
+                <p className="mb-3 text-sm text-gray-200">
+                  {isIOS
+                    ? 'Tap Enable Camera and allow access in the prompt.'
+                    : 'Tap to enable camera and grant permission.'}
+                </p>
+                <button
+                  className="rounded-md border border-[#ff1f42] bg-[#1a1b1e] px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-[#241b1e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff1f42]"
+                  onClick={attemptStart}
+                >
+                  Enable Camera
+                </button>
+                {isIOS && (
+                  <p className="mt-2 text-[11px] text-gray-400">
+                    iOS Chrome: Settings → Chrome → Camera → Allow
+                  </p>
+                )}
+              </div>
+            </div>
           )}
         </div>
 
