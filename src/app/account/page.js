@@ -199,12 +199,7 @@ export default function Account() {
         />
       ),
       qrcode: (
-        <QrCodeTab
-          userId={userId}
-          buttonStyling={buttonStyling}
-          cardStyling={cardStyling}
-          containerStyling={containerStyling}
-        />
+        <QrCodeTab userId={userId} cardStyling={cardStyling} containerStyling={containerStyling} />
       ),
       settings: (
         <SettingsTab
@@ -282,17 +277,6 @@ export default function Account() {
                         Profile
                       </button>
                       <button
-                        onClick={() => setActiveTab('orders')}
-                        className={`${
-                          activeTab === 'orders'
-                            ? 'border-red-700 text-red-500'
-                            : 'border-transparent text-gray-400 hover:border-gray-300 hover:text-gray-300'
-                        } flex flex-shrink-0 items-center whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium`}
-                      >
-                        <ShoppingBagIcon className="mr-2 h-5 w-5" aria-hidden="true" />
-                        Order History
-                      </button>
-                      <button
                         onClick={() => setActiveTab('tickets')}
                         className={`${
                           activeTab === 'tickets'
@@ -313,6 +297,17 @@ export default function Account() {
                       >
                         <QrCodeIcon className="mr-2 h-5 w-5" aria-hidden="true" />
                         QR Code
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('orders')}
+                        className={`${
+                          activeTab === 'orders'
+                            ? 'border-red-700 text-red-500'
+                            : 'border-transparent text-gray-400 hover:border-gray-300 hover:text-gray-300'
+                        } flex flex-shrink-0 items-center whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium`}
+                      >
+                        <ShoppingBagIcon className="mr-2 h-5 w-5" aria-hidden="true" />
+                        Order History
                       </button>
                       <button
                         onClick={() => setActiveTab('settings')}

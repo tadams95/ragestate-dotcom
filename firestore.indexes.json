@@ -96,21 +96,13 @@
         { "fieldPath": "firebaseId", "order": "ASCENDING" },
         { "fieldPath": "active", "order": "ASCENDING" }
       ]
-    },
-    {
-      "collectionGroup": "ragers",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        { "fieldPath": "ticketToken", "order": "ASCENDING" },
-        { "fieldPath": "__name__", "order": "ASCENDING" }
-      ]
     }
   ],
   "fieldOverrides": [
     {
       "collectionGroup": "ragers",
       "fieldPath": "ticketToken",
-      "indexes": [{ "order": "ASCENDING" }]
+      "indexes": [{ "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }]
     }
   ]
 }

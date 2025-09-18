@@ -1,62 +1,57 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import QRCode from "qrcode.react";
+import QRCode from 'qrcode.react';
+import { useState } from 'react';
 
-export default function QrCodeTab({
-  userId,
-  buttonStyling,
-  cardStyling,
-  containerStyling,
-}) {
+export default function QrCodeTab({ userId, cardStyling, containerStyling }) {
   const [isQrBlurred, setIsQrBlurred] = useState(true);
 
   return (
     <div className={containerStyling}>
-      <h2 className="text-2xl font-bold text-white mb-6">Your QR Code</h2>
+      <h2 className="mb-6 text-2xl font-bold text-white">Your QR Code</h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-8 items-center">
-        <div className="md:col-span-3 flex flex-col items-center">
-          <div className="p-4 bg-white rounded-lg shadow-xl relative hover:shadow-red-500/10 transition-all duration-300">
-            <div
-              className={`transition-all duration-300 ${
-                isQrBlurred ? "blur-md" : ""
-              }`}
-            >
-              <QRCode value={userId || "ragestate-user"} size={260} />
+      <div className="grid grid-cols-1 items-center gap-8 md:grid-cols-5">
+        <div className="flex flex-col items-center md:col-span-3">
+          <div
+            className="relative cursor-pointer rounded-lg bg-white p-4 shadow-xl transition-all duration-300 hover:shadow-red-500/10"
+            role="button"
+            tabIndex={0}
+            aria-pressed={!isQrBlurred}
+            onClick={() => setIsQrBlurred((v) => !v)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setIsQrBlurred((v) => !v);
+              }
+            }}
+          >
+            <div className={`transition-all duration-300 ${isQrBlurred ? 'blur-md' : ''}`}>
+              <QRCode value={userId || 'ragestate-user'} size={260} />
             </div>
             {isQrBlurred && (
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-gray-800 font-medium bg-white/40 px-3 py-1 rounded">
+                <span className="rounded bg-white/40 px-3 py-1 font-medium text-gray-800">
                   Tap to reveal
                 </span>
               </div>
             )}
           </div>
-          <button
-            className={`${buttonStyling} mt-6 px-8`}
-            onClick={() => setIsQrBlurred(!isQrBlurred)}
-          >
-            {isQrBlurred ? "Reveal QR Code" : "Hide QR Code"}
-          </button>
         </div>
 
-        <div className="md:col-span-2 space-y-6">
+        <div className="space-y-6 md:col-span-2">
           <div className={cardStyling}>
-            <h3 className="text-lg font-medium text-gray-100 mb-4">
-              How To Use Your QR Code
-            </h3>
+            <h3 className="mb-4 text-lg font-medium text-gray-100">How To Use Your QR Code</h3>
             <ul className="space-y-3">
               {[
-                "Present this QR code at RAGESTATE events for quick check-in",
-                "Access exclusive areas and VIP experiences",
-                "Redeem special offers and promotions",
-                "Link your digital ticket purchases to your account",
-                "Share your attendance with friends",
+                'Present this QR code at RAGESTATE events for quick check-in',
+                'Access exclusive areas and VIP experiences',
+                'Redeem special offers and promotions',
+                'Link your digital ticket purchases to your account',
+                'Share your attendance with friends',
               ].map((item, i) => (
                 <li key={i} className="flex items-center">
                   <svg
-                    className="h-5 w-5 text-red-500 mr-2"
+                    className="mr-2 h-5 w-5 text-red-500"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -75,14 +70,11 @@ export default function QrCodeTab({
           </div>
 
           <div className={cardStyling}>
-            <h3 className="text-lg font-medium text-gray-100 mb-3">
-              Security Notice
-            </h3>
+            <h3 className="mb-3 text-lg font-medium text-gray-100">Security Notice</h3>
             <p className="text-sm text-gray-300">
-              Your QR code contains a unique identifier linked to your account.
-              Keep it hidden when not in use and don't share screenshots of your
-              code with others to prevent unauthorized access to your account
-              benefits.
+              Your QR code contains a unique identifier linked to your account. Keep it hidden when
+              not in use and don't share screenshots of your code with others to prevent
+              unauthorized access to your account benefits.
             </p>
           </div>
         </div>
