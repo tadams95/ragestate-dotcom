@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:all": "PROXY_KEY=${PROXY_KEY:-dev-proxy} STRIPE_FN_URL=${STRIPE_FN_URL:-http://127.0.0.1:5001/ragestate-app/us-central1/stripePayment} sh -c 'npm --prefix functions run serve & FN_PID=$!; trap \"kill $FN_PID 2>/dev/null\" EXIT INT TERM; sleep 2; PROXY_KEY=$PROXY_KEY STRIPE_FN_URL=$STRIPE_FN_URL next dev'",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

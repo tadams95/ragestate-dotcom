@@ -1,23 +1,49 @@
 {
-	"version": "2.0.0",
-	"tasks": [
-		{
-			"label": "Deploy Firestore Indexes",
-			"type": "shell",
-			"command": "firebase deploy --only firestore:indexes",
-			"args": [],
-			"isBackground": false,
-			"problemMatcher": [
-				"$eslint-stylish"
-			],
-			"group": "build"
-		},
-		{
-			"label": "Deploy Firestore Rules",
-			"type": "shell",
-			"command": "firebase deploy --only firestore:rules",
-			"isBackground": false,
-			"group": "build"
-		}
-	]
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Deploy Firestore Indexes",
+      "type": "shell",
+      "command": "firebase deploy --only firestore:indexes",
+      "args": [],
+      "isBackground": false,
+      "problemMatcher": ["$eslint-stylish"],
+      "group": "build"
+    },
+    {
+      "label": "Deploy Firestore Rules",
+      "type": "shell",
+      "command": "firebase deploy --only firestore:rules",
+      "isBackground": false,
+      "group": "build"
+    },
+    {
+      "label": "Functions: Emulator",
+      "type": "shell",
+      "command": "npm --prefix functions run serve",
+      "isBackground": true,
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Next: Dev",
+      "type": "shell",
+      "command": "next dev",
+      "options": {
+        "env": {
+          "PROXY_KEY": "${env:PROXY_KEY}",
+          "STRIPE_FN_URL": "${env:STRIPE_FN_URL}",
+          "STRIPE_FN_REGION": "${env:STRIPE_FN_REGION:us-central1}"
+        }
+      },
+      "isBackground": true,
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Dev: All",
+      "dependsOn": ["Functions: Emulator", "Next: Dev"],
+      "dependsOrder": "sequence"
+    }
+  ]
 }

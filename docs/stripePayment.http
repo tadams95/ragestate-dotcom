@@ -1,0 +1,70 @@
+### Health
+GET http://127.0.0.1:5001/ragestate-app/us-central1/stripePayment/health
+
+### Create Payment Intent (via Next proxy)
+POST http://localhost:3000/api/payments/create-payment-intent
+Content-Type: application/json
+
+{
+  "amount": 1500,
+  "currency": "usd",
+  "firebaseId": "UID123",
+  "cartItems": [{
+    "productId": "EVENT123",
+    "quantity": 2
+  }]
+}
+
+### Finalize Order (via Next proxy)
+POST http://localhost:3000/api/payments/finalize-order
+Content-Type: application/json
+
+{
+  "paymentIntentId": "pi_123",
+  "firebaseId": "UID123",
+  "userEmail": "u@example.com",
+  "userName": "User",
+  "cartItems": [{
+    "productId": "EVENT123",
+    "quantity": 2
+  }]
+}
+
+### Scan Ticket by Token (direct to emulator)
+POST http://127.0.0.1:5001/ragestate-app/us-central1/stripePayment/scan-ticket
+Content-Type: application/json
+x-proxy-key: dev-proxy
+
+{
+  "token": "<ticketToken>"
+}
+
+### Scan by User + Event (direct to emulator)
+POST http://127.0.0.1:5001/ragestate-app/us-central1/stripePayment/scan-ticket
+Content-Type: application/json
+x-proxy-key: dev-proxy
+
+{
+  "userId": "UID123",
+  "eventId": "EVENT123"
+}
+
+### Backfill Ticket Tokens (admin)
+POST http://127.0.0.1:5001/ragestate-app/us-central1/stripePayment/backfill-ticket-tokens
+Content-Type: application/json
+x-proxy-key: dev-proxy
+
+{
+  "eventId": "EVENT123",
+  "dryRun": false
+}
+
+### Test Purchase Email (admin)
+POST http://127.0.0.1:5001/ragestate-app/us-central1/stripePayment/test-send-purchase-email
+Content-Type: application/json
+x-proxy-key: dev-proxy
+
+{
+  "email": "u@example.com",
+  "items": [{ "title": "Test Ticket", "quantity": 1 }]
+}
