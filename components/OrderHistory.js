@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useMemo } from "react";
-import { getFirestore, collection, getDocs } from "firebase/firestore";
-import Image from "next/image";
-import storage from "@/utils/storage";
+import storage from '@/utils/storage';
+import { collection, getDocs, getFirestore } from 'firebase/firestore';
+import Image from 'next/image';
+import { useEffect, useMemo, useState } from 'react';
 
 const fetchUserPurchases = async (firestore, userId) => {
   try {
@@ -14,20 +14,20 @@ const fetchUserPurchases = async (firestore, userId) => {
       ...doc.data(),
     }));
   } catch (error) {
-    console.error("Error fetching user purchases: ", error);
+    console.error('Error fetching user purchases: ', error);
     return [];
   }
 };
 
 export default function OrderHistory() {
   const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState("");
+  const [userId, setUserId] = useState('');
   const [orders, setOrders] = useState([]);
 
   const firestore = useMemo(() => getFirestore(), []);
 
   useEffect(() => {
-    const { userId: uid } = storage.readKeys(["userId"]);
+    const { userId: uid } = storage.readKeys(['userId']);
     if (uid) setUserId(uid);
   }, []);
 
@@ -41,27 +41,26 @@ export default function OrderHistory() {
             let dateObj;
             try {
               // Try to use dateTime (legacy) or orderDate/createdAt (new format)
-              const dateField =
-                purchase.dateTime || purchase.orderDate || purchase.createdAt;
+              const dateField = purchase.dateTime || purchase.orderDate || purchase.createdAt;
 
               // Handle Firestore timestamp objects
-              if (dateField && typeof dateField.toDate === "function") {
+              if (dateField && typeof dateField.toDate === 'function') {
                 dateObj = dateField.toDate();
               } else if (dateField) {
                 // Handle if it's already a Date or can be parsed as one
                 dateObj = new Date(dateField);
               } else {
-                console.warn("No valid date found for purchase:", purchase);
+                console.warn('No valid date found for purchase:', purchase);
                 dateObj = new Date(); // Use current date as fallback
               }
 
               // Verify it's a valid date object
               if (isNaN(dateObj.getTime())) {
-                console.warn("Invalid date from purchase:", purchase);
+                console.warn('Invalid date from purchase:', purchase);
                 dateObj = new Date();
               }
             } catch (e) {
-              console.error("Error converting date field to Date:", e);
+              console.error('Error converting date field to Date:', e);
               dateObj = new Date();
             }
 
@@ -69,8 +68,7 @@ export default function OrderHistory() {
             const itemsArray = purchase.cartItems || purchase.items || [];
 
             // Use order number if available, otherwise fallback to legacy ID format
-            const orderId =
-              purchase.orderNumber || purchase.id || `ORDER-${index + 1}`;
+            const orderId = purchase.orderNumber || purchase.id || `ORDER-${index + 1}`;
 
             return {
               id: orderId,
@@ -80,25 +78,20 @@ export default function OrderHistory() {
               total:
                 purchase.total || purchase.totalAmount
                   ? `$${
-                      typeof purchase.total === "string"
+                      typeof purchase.total === 'string'
                         ? purchase.total
-                        : typeof purchase.totalAmount === "string"
-                        ? purchase.totalAmount
-                        : parseFloat(
-                            purchase.total || purchase.totalAmount || 0
-                          ).toFixed(2)
+                        : typeof purchase.totalAmount === 'string'
+                          ? purchase.totalAmount
+                          : parseFloat(purchase.total || purchase.totalAmount || 0).toFixed(2)
                     }`
-                  : "N/A",
-              status: purchase.status || "Completed",
+                  : 'N/A',
+              status: purchase.status || 'Completed',
               items: itemsArray.map((item, itemIdx) => ({
                 id: `ITEM-${orderId}-${itemIdx}`,
                 name: item.title,
                 price: `$${parseFloat(item.price || 0).toFixed(2)}`,
                 quantity: item.quantity || 1,
-                image:
-                  item.productImageSrc ||
-                  item.image ||
-                  "/assets/placeholder-product.jpg",
+                image: item.productImageSrc || item.image || '/assets/placeholder-product.jpg',
                 color: item.color,
                 size: item.size,
               })),
@@ -106,15 +99,13 @@ export default function OrderHistory() {
           });
 
           // Sort by timestamp (most recent first)
-          const sortedOrders = [...formattedOrders].sort(
-            (a, b) => b.timestamp - a.timestamp
-          );
+          const sortedOrders = [...formattedOrders].sort((a, b) => b.timestamp - a.timestamp);
 
           setOrders(sortedOrders);
           setLoading(false);
         })
         .catch((error) => {
-          console.error("Error fetching orders:", error);
+          console.error('Error fetching orders:', error);
           setLoading(false);
         });
     } else {
@@ -124,9 +115,9 @@ export default function OrderHistory() {
 
   if (loading) {
     return (
-      <div className="bg-gray-900/30 border border-gray-800 rounded-lg p-6 min-h-[500px] flex items-center justify-center">
+      <div className="flex min-h-[500px] items-center justify-center rounded-lg border border-gray-800 bg-gray-900/30 p-6">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-700 mx-auto"></div>
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-red-700"></div>
           <p className="mt-4 text-gray-300">Loading your order history...</p>
         </div>
       </div>
@@ -135,8 +126,8 @@ export default function OrderHistory() {
 
   if (orders.length === 0) {
     return (
-      <div className="bg-gray-900/30 border border-gray-800 rounded-lg p-8 min-h-[500px] flex flex-col items-center justify-center">
-        <div className="h-24 w-24 text-gray-400 mb-4">
+      <div className="flex min-h-[500px] flex-col items-center justify-center rounded-lg border border-gray-800 bg-gray-900/30 p-8">
+        <div className="mb-4 h-24 w-24 text-gray-400">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -152,16 +143,16 @@ export default function OrderHistory() {
           </svg>
         </div>
         <h3 className="text-xl font-medium text-white">No orders yet</h3>
-        <p className="mt-2 text-gray-400 text-center max-w-md">
+        <p className="mt-2 max-w-md text-center text-gray-400">
           Once you make a purchase, your order history will appear here.
         </p>
-        <p className="mt-2 text-xs text-gray-400 text-center max-w-md">
-          If you have any questions or concerns, email contact@ragestate.com or
-          DM @ragestate on Instagram
+        <p className="mt-2 max-w-md text-center text-xs text-gray-400">
+          If you have any questions or concerns, email contact@ragestate.com or DM @ragestate on
+          Instagram
         </p>
         <a
           href="/shop"
-          className="mt-6 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-700"
+          className="mt-6 inline-flex items-center rounded-md border border-transparent bg-red-700 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-700 focus:ring-offset-2"
         >
           Start Shopping
         </a>
@@ -170,12 +161,11 @@ export default function OrderHistory() {
   }
 
   return (
-    <div className="bg-gray-900/30 ring-1 ring-white/10 hover:ring-red-500/30 transition-all duration-300 rounded-lg p-6 min-h-[500px] ">
-      <h2 className="text-2xl font-bold text-white mb-6">Order History</h2>
-      <p className="mt-2 mb-6 text-sm text-gray-300">
-        View your order history below, with most recent orders shown first. If
-        you have any questions or concerns, email contact@ragestate.com or DM
-        @ragestate on Instagram.
+    <div className="min-h-[500px] rounded-lg bg-gray-900/30 p-6 ring-1 ring-white/10 transition-all duration-300 hover:ring-red-500/30">
+      <h2 className="mb-6 text-2xl font-bold text-white">Order History</h2>
+      <p className="mb-6 mt-2 text-sm text-gray-300">
+        View your order history below, with most recent orders shown first. If you have any
+        questions or concerns, email contact@ragestate.com or DM @ragestate on Instagram.
       </p>
 
       {/* Grid layout for orders */}
@@ -183,25 +173,24 @@ export default function OrderHistory() {
         {orders.map((order) => (
           <div
             key={order.id}
-            className="relative rounded-xl overflow-hidden bg-gray-900/20 shadow-lg hover:shadow-xl ring-1 ring-white/10 hover:ring-red-500/30 transition-all duration-300 backdrop-blur-sm"
+            className="relative overflow-hidden rounded-xl bg-gray-900/20 shadow-lg ring-1 ring-white/10 backdrop-blur-sm transition-all duration-300 hover:shadow-xl hover:ring-red-500/30"
           >
             {/* Add gradient effect from About page */}
-            <div className="absolute -inset-px bg-gradient-to-r from-red-500/0 to-purple-500/0 rounded-2xl [mask-image:linear-gradient(black,transparent)] group-hover:from-red-500/10 group-hover:to-purple-500/10" />
+            <div className="absolute -inset-px rounded-2xl bg-gradient-to-r from-red-500/0 to-purple-500/0 [mask-image:linear-gradient(black,transparent)] group-hover:from-red-500/10 group-hover:to-purple-500/10" />
 
             {/* Order header */}
-            <div className="relative bg-gray-900/20 px-4 py-3 border-b border-gray-700">
-              <div className="flex justify-between items-center">
+            <div className="relative border-b border-gray-700 bg-gray-900/20 px-4 py-3">
+              <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-white">
-                    Order Date:{" "}
-                    <span className="text-gray-300">{order.date}</span>
+                    Order Date: <span className="text-gray-300">{order.date}</span>
                   </p>
                 </div>
-                <span
+                {/* <span
                   className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium `}
                 >
                   {order.status}
-                </span>
+                </span> */}
               </div>
             </div>
 
@@ -211,11 +200,11 @@ export default function OrderHistory() {
                 {order.items.map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center bg-gray-900/20 p-3 rounded-lg ring-1 ring-white/10 "
+                    className="flex items-center rounded-lg bg-gray-900/20 p-3 ring-1 ring-white/10"
                   >
                     <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-700">
                       <Image
-                        src={item.image || "/assets/placeholder-product.jpg"}
+                        src={item.image || '/assets/placeholder-product.jpg'}
                         alt={item.name}
                         width={64}
                         height={64}
@@ -223,19 +212,15 @@ export default function OrderHistory() {
                       />
                     </div>
                     <div className="ml-3 flex-1 pl-2">
-                      <h3 className="text-sm font-medium text-white line-clamp-1">
-                        {item.name}
-                      </h3>
-                      <div className="mt-1 flex items-center text-xs text-gray-400 space-x-2">
+                      <h3 className="line-clamp-1 text-sm font-medium text-white">{item.name}</h3>
+                      <div className="mt-1 flex items-center space-x-2 text-xs text-gray-400">
                         <span>Qty: {item.quantity}</span>
                         {item.size && <span>• Size: {item.size}</span>}
                         {item.color && <span>• Color: {item.color}</span>}
                       </div>
                     </div>
                     <div className="ml-4">
-                      <p className="text-sm font-semibold text-white">
-                        {item.price}
-                      </p>
+                      <p className="text-sm font-semibold text-white">{item.price}</p>
                     </div>
                   </div>
                 ))}
