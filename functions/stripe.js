@@ -30,6 +30,21 @@ app.use(corsMiddleware);
 app.options('*', corsMiddleware);
 app.use(express.json());
 
+// Lightweight request logger to help debug routing vs. handler logic
+app.use((req, _res, next) => {
+  try {
+    logger.info('incoming request', {
+      method: req.method,
+      path: req.path,
+      origin: req.get('origin') || '',
+      ua: req.get('user-agent') || '',
+    });
+  } catch (_e) {
+    // no-op
+  }
+  next();
+});
+
 app.get('/health', (_req, res) => {
   const configured = Boolean(STRIPE_SECRET.value() || process.env.STRIPE_SECRET);
   res.json({ ok: true, stripeConfigured: configured });
@@ -305,6 +320,7 @@ app.post('/finalize-order', async (req, res) => {
           tx.update(eventRef, { quantity: newQty });
 
           const ragersRef = eventRef.collection('ragers');
+          const token = generateTicketToken();
           const rager = {
             active: true,
             email: userEmail || pi.receipt_email || '',
@@ -314,11 +330,18 @@ app.post('/finalize-order', async (req, res) => {
             orderNumber,
             ticketQuantity: qty,
             paymentIntentId: pi.id,
-            ticketToken: generateTicketToken(),
+            ticketToken: token,
             usedCount: 0,
           };
           const ragerDoc = ragersRef.doc();
           tx.set(ragerDoc, rager);
+          // Map token → eventId/ragerId for fast lookup during scanning
+          const mapRef = db.collection('ticketTokens').doc(token);
+          tx.set(mapRef, {
+            eventId,
+            ragerId: ragerDoc.id,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
           created.push({ eventId, ragerId: ragerDoc.id, qty, newQty });
         });
       } catch (e) {
@@ -419,24 +442,108 @@ app.post('/scan-ticket', async (req, res) => {
       }
     }
 
-    const { token, scannerId, eventId: expectedEventId } = req.body || {};
-    if (!token || typeof token !== 'string') {
-      return res.status(400).json({ error: 'token required' });
-    }
+    const { token, userId, scannerId, eventId: expectedEventId } = req.body || {};
 
-    // Lookup rager by token via collectionGroup
-    const q = db.collectionGroup('ragers').where('ticketToken', '==', token).limit(1);
-    const snap = await q.get();
-    if (snap.empty) {
-      return res.status(404).json({ error: 'Ticket not found' });
-    }
+    let ragerRef;
+    let parentEventId = '';
 
-    const ragerDoc = snap.docs[0];
-    const ragerRef = ragerDoc.ref;
-    const parentEventId = ragerRef.parent?.parent?.id || '';
+    if (token && typeof token === 'string') {
+      // Fast lookup via token mapping
+      let eventIdFromMap = '';
+      let ragerIdFromMap = '';
+      try {
+        const mapSnap = await db.collection('ticketTokens').doc(token).get();
+        if (!mapSnap.exists) {
+          try {
+            logger.info('scan-ticket: token mapping not found', {
+              tokenPrefix: typeof token === 'string' ? token.slice(0, 8) : '',
+              tokenLength: typeof token === 'string' ? token.length : 0,
+            });
+          } catch (_e) {}
+          return res
+            .status(404)
+            .json({ error: 'Ticket not found', message: 'No mapping for token' });
+        }
+        const m = mapSnap.data() || {};
+        eventIdFromMap = String(m.eventId || '');
+        ragerIdFromMap = String(m.ragerId || '');
+        if (!eventIdFromMap || !ragerIdFromMap) {
+          try {
+            logger.warn('scan-ticket: mapping incomplete', {
+              eventId: eventIdFromMap,
+              ragerId: ragerIdFromMap,
+            });
+          } catch (_e) {}
+          return res.status(404).json({
+            error: 'Ticket mapping incomplete',
+            message: 'Mapping missing eventId or ragerId',
+          });
+        }
+      } catch (e) {
+        logger.error('scan-ticket map lookup error', { message: e?.message, code: e?.code });
+        return res.status(500).json({ error: 'Lookup failed', message: e?.message, code: e?.code });
+      }
 
-    if (expectedEventId && expectedEventId !== parentEventId) {
-      return res.status(409).json({ error: 'Wrong event for ticket' });
+      ragerRef = db
+        .collection('events')
+        .doc(eventIdFromMap)
+        .collection('ragers')
+        .doc(ragerIdFromMap);
+      parentEventId = eventIdFromMap;
+
+      if (expectedEventId && expectedEventId !== parentEventId) {
+        return res.status(409).json({ error: 'Wrong event for ticket' });
+      }
+    } else if (userId && typeof userId === 'string') {
+      // Scan by firebaseId requires explicit eventId to avoid collection group indexes
+      if (!expectedEventId || typeof expectedEventId !== 'string') {
+        return res.status(400).json({
+          error: 'eventId required',
+          message: 'Provide eventId when scanning by userId',
+        });
+      }
+
+      parentEventId = expectedEventId;
+      try {
+        const ragersRef = db.collection('events').doc(parentEventId).collection('ragers');
+        const qs = await ragersRef.where('firebaseId', '==', userId).get();
+        if (qs.empty) {
+          return res.status(404).json({
+            error: 'Ticket not found',
+            message: 'No rager found for user at event',
+          });
+        }
+        // Choose the first active doc with remaining uses; if none remain, use the first for conflict response
+        let chosenDoc = null;
+        let fallbackDoc = qs.docs[0];
+        for (const d of qs.docs) {
+          const data = d.data() || {};
+          const qty = Math.max(1, parseInt(data.ticketQuantity || 1, 10));
+          const used = Math.max(0, parseInt(data.usedCount || 0, 10));
+          const active = data.active !== false && used < qty;
+          if (active) {
+            chosenDoc = d;
+            break;
+          }
+        }
+        if (!chosenDoc) {
+          // None available to use
+          const data = fallbackDoc.data() || {};
+          const qty = Math.max(1, parseInt(data.ticketQuantity || 1, 10));
+          const used = Math.max(0, parseInt(data.usedCount || 0, 10));
+          const remaining = Math.max(0, qty - used);
+          return res.status(409).json({ error: 'Ticket already used', remaining });
+        }
+        ragerRef = chosenDoc.ref;
+      } catch (e) {
+        logger.error('scan-ticket query by userId failed', { message: e?.message, code: e?.code });
+        return res.status(500).json({ error: 'Lookup failed', message: e?.message, code: e?.code });
+      }
+    } else {
+      return res.status(400).json({
+        error: 'input required',
+        message: 'Provide either token or userId in JSON body',
+      });
     }
 
     let result;
@@ -479,12 +586,18 @@ app.post('/scan-ticket', async (req, res) => {
     }
     return res.status(result.status).json(result.body);
   } catch (err) {
-    logger.error('scan-ticket error', err);
-    return res.status(500).json({ error: 'Failed to scan ticket' });
+    logger.error('scan-ticket error', {
+      message: err?.message,
+      code: err?.code,
+      stack: err?.stack,
+    });
+    return res
+      .status(500)
+      .json({ error: 'Failed to scan ticket', message: err?.message, code: err?.code });
   }
 });
 
-// Admin: backfill ticketToken/usedCount for an event's ragers
+// Admin: backfill ticketToken/usedCount for an event's ragers and ensure token mapping
 app.post('/backfill-ticket-tokens', async (req, res) => {
   try {
     const expectedProxyKey = PROXY_KEY.value() || process.env.PROXY_KEY;
@@ -512,6 +625,7 @@ app.post('/backfill-ticket-tokens', async (req, res) => {
 
     let processed = 0;
     let updated = 0;
+    let mappingsCreated = 0;
     const samples = [];
     let batch = db.batch();
     let batchCount = 0;
@@ -533,13 +647,17 @@ app.post('/backfill-ticket-tokens', async (req, res) => {
         updates.active = used < qty;
       }
 
+      const finalToken = updates.ticketToken || data.ticketToken;
+      const eventId = doc.ref.parent.parent.id;
+      const needsMap = !!finalToken;
+
       if (Object.keys(updates).length > 0) {
         updated += 1;
         if (samples.length < 5) {
           samples.push({
             ragerId: doc.id,
             updates: Object.assign({}, updates, {
-              ticketToken: updates.ticketToken || data.ticketToken,
+              ticketToken: finalToken,
             }),
           });
         }
@@ -554,13 +672,42 @@ app.post('/backfill-ticket-tokens', async (req, res) => {
           }
         }
       }
+
+      // Ensure token mapping exists
+      if (needsMap && !dryRun) {
+        const mapRef = db.collection('ticketTokens').doc(finalToken);
+        batch.set(
+          mapRef,
+          {
+            eventId,
+            ragerId: doc.id,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true },
+        );
+        mappingsCreated += 1;
+        batchCount += 1;
+        if (batchCount >= 400) {
+          batch.commit();
+          batch = db.batch();
+          batchCount = 0;
+        }
+      }
     });
 
     if (!dryRun && batchCount > 0) {
       await batch.commit();
     }
 
-    return res.json({ ok: true, eventId, processed, updated, dryRun: !!dryRun, samples });
+    return res.json({
+      ok: true,
+      eventId,
+      processed,
+      updated,
+      mappingsCreated,
+      dryRun: !!dryRun,
+      samples,
+    });
   } catch (err) {
     logger.error('backfill-ticket-tokens error', err);
     return res.status(500).json({ error: 'Failed to backfill' });

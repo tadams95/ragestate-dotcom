@@ -1,25 +1,90 @@
 'use client';
 
+import { collection, getDocs } from 'firebase/firestore';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { db } from '../../../../firebase/firebase';
 
 export default function ScannerPage() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
-  const [manualToken, setManualToken] = useState('');
+  const [eventId, setEventId] = useState('');
+  const [prefs, setPrefs] = useState({ sound: true, haptics: true });
+  const [flash, setFlash] = useState(null); // 'success' | 'error' | null
+  const [toast, setToast] = useState(null); // { type, message } | null
   const videoRef = useRef(null);
   const [scanning, setScanning] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [devices, setDevices] = useState([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState('');
+  const [events, setEvents] = useState([]);
+  const [loadingEvents, setLoadingEvents] = useState(false);
   const scannerRef = useRef(null);
   const lastTokenRef = useRef({ token: '', ts: 0 });
+  const flashTimeoutRef = useRef(null);
+  const toastTimeoutRef = useRef(null);
+
+  // Feedback helpers
+  const vibrate = useCallback(
+    (pattern) => {
+      try {
+        if (typeof navigator !== 'undefined' && prefs.haptics && 'vibrate' in navigator) {
+          navigator.vibrate(pattern);
+        }
+      } catch {}
+    },
+    [prefs.haptics],
+  );
+  const beep = useCallback(
+    (kind = 'success') => {
+      try {
+        if (!prefs.sound || typeof window === 'undefined') return;
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        const ctx = new AC();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.value = kind === 'success' ? 880 : 220;
+        o.connect(g);
+        g.connect(ctx.destination);
+        const now = ctx.currentTime;
+        g.gain.setValueAtTime(0.0001, now);
+        g.gain.exponentialRampToValueAtTime(0.2, now + 0.01);
+        o.start(now);
+        const dur = kind === 'success' ? 0.14 : 0.28;
+        g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+        o.stop(now + dur);
+        setTimeout(() => ctx.close(), 350);
+      } catch {}
+    },
+    [prefs.sound],
+  );
+  const showFeedback = useCallback(
+    (kind, message) => {
+      try {
+        setFlash(kind);
+        setToast({ type: kind, message });
+        if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
+        if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+        flashTimeoutRef.current = setTimeout(() => setFlash(null), 900);
+        toastTimeoutRef.current = setTimeout(() => setToast(null), 1600);
+        if (kind === 'success') {
+          vibrate([30]);
+          beep('success');
+        } else {
+          vibrate([20, 60, 20]);
+          beep('error');
+        }
+      } catch {}
+    },
+    [beep, vibrate],
+  );
 
   const submitToken = useCallback(
     async (token) => {
       try {
         setError('');
         setResult(null);
-        const cleaned = String(token || manualToken || '').trim();
+        const cleaned = String(token || '').trim();
         if (!cleaned) {
           setError('No token provided');
           return;
@@ -29,6 +94,11 @@ export default function ScannerPage() {
           : cleaned.includes('tk=')
             ? new URL(cleaned).searchParams.get('tk')
             : cleaned;
+
+        // Heuristic: if clearly a token (rtk:/?tk=/hex-like), use token; else treat as userId
+        const isHexLike = /^[a-f0-9]{32,}$/i.test(extracted);
+        const hasTokenMarker = /(^rtk:)|([?&]tk=)/i.test(cleaned);
+        const useUserId = !hasTokenMarker && !isHexLike;
 
         // Throttle duplicate scans of the same token within a short window
         const now = Date.now();
@@ -48,7 +118,14 @@ export default function ScannerPage() {
           return;
         }
         const url = `${baseUrl}/scan-ticket`;
-        setIsSubmitting(true);
+        // Build body based on detection
+        if (useUserId && !eventId) {
+          setError('Event ID required to scan by user ID');
+          return;
+        }
+        const reqBody = useUserId
+          ? { userId: extracted, eventId: eventId || undefined, scannerId: 'admin-scanner' }
+          : { token: extracted, scannerId: 'admin-scanner' };
         const resp = await fetch(url, {
           method: 'POST',
           headers: {
@@ -57,7 +134,7 @@ export default function ScannerPage() {
           },
           cache: 'no-store',
           credentials: 'omit',
-          body: JSON.stringify({ token: extracted, scannerId: 'admin-scanner' }),
+          body: JSON.stringify(reqBody),
         });
         let data;
         try {
@@ -66,27 +143,28 @@ export default function ScannerPage() {
           const text = await resp.text();
           if (!resp.ok) {
             setError(text || `Scan failed (HTTP ${resp.status})`);
-            setIsSubmitting(false);
             return;
           }
           // Non-JSON success is unexpected; treat as error
           setError('Unexpected response from server');
-          setIsSubmitting(false);
           return;
         }
         if (!resp.ok) {
-          setError(data?.error || `Scan failed (HTTP ${resp.status})`);
-          setIsSubmitting(false);
+          const msg = data?.message || data?.error || `Scan failed (HTTP ${resp.status})`;
+          setError(msg);
+          showFeedback('error', msg);
           return;
         }
         setResult(data);
-        setIsSubmitting(false);
+        showFeedback(
+          'success',
+          `Valid — ${typeof data.remaining === 'number' ? `${data.remaining} remaining` : 'scanned'}`,
+        );
       } catch (e) {
         setError('Scan error');
-        setIsSubmitting(false);
       }
     },
-    [manualToken],
+    [eventId, showFeedback],
   );
 
   useEffect(() => {
@@ -131,7 +209,10 @@ export default function ScannerPage() {
           await scanner.setCamera(selectedDeviceId);
         }
       } catch (e) {
-        if (!disposed) setError('Camera scanner unavailable. Use manual input.');
+        if (!disposed)
+          setError(
+            'Camera access failed. Check permissions and HTTPS, or try another camera/browser.',
+          );
       } finally {
         if (!disposed) setScanning(false);
       }
@@ -140,8 +221,47 @@ export default function ScannerPage() {
     return () => {
       disposed = true;
       if (localScanner) localScanner.stop();
+      if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
     };
   }, [submitToken, selectedDeviceId]);
+
+  // Load events for dropdown
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        setLoadingEvents(true);
+        const snap = await getDocs(collection(db, 'events'));
+        if (cancelled) return;
+        const list = snap.docs.map((d) => ({ id: d.id, ...(d.data() || {}) }));
+        // Simple alphabetical by id to keep stable order
+        list.sort((a, b) => String(a.id).localeCompare(String(b.id)));
+        setEvents(list);
+        // If no saved eventId, preselect the first available (without capturing eventId)
+        if (list.length > 0) {
+          const saved =
+            (typeof window !== 'undefined' && localStorage.getItem('scannerEventId')) || '';
+          const initial = saved && list.some((e) => e.id === saved) ? saved : list[0].id;
+          setEventId((prev) => {
+            if (prev) return prev;
+            try {
+              localStorage.setItem('scannerEventId', initial);
+            } catch {}
+            return initial;
+          });
+        }
+      } catch (e) {
+        if (!cancelled) setError('Failed to load events');
+      } finally {
+        if (!cancelled) setLoadingEvents(false);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Warn if not in a secure context when not on localhost
   useEffect(() => {
@@ -153,8 +273,25 @@ export default function ScannerPage() {
           'Camera requires HTTPS or localhost. Use https://localhost via proxy/tunnel or a Vercel preview.',
         );
       }
+      // Restore last used eventId
+      try {
+        const saved = localStorage.getItem('scannerEventId');
+        if (saved) setEventId(saved);
+        const p = localStorage.getItem('scannerPrefs');
+        if (p) {
+          const parsed = JSON.parse(p);
+          setPrefs((prev) => ({ ...prev, ...parsed }));
+        }
+      } catch {}
     }
   }, []);
+
+  // Persist prefs when changed
+  useEffect(() => {
+    try {
+      localStorage.setItem('scannerPrefs', JSON.stringify(prefs));
+    } catch {}
+  }, [prefs]);
 
   const onChangeCamera = async (deviceId) => {
     setSelectedDeviceId(deviceId);
@@ -197,7 +334,7 @@ export default function ScannerPage() {
       <header className="mb-5 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Ticket Scanner</h1>
-          <p className="mt-1 text-sm text-gray-400">Point camera at QR or paste a token below</p>
+          <p className="mt-1 text-sm text-gray-400">Scan account QR (user ID)</p>
         </div>
         <div className="flex items-center gap-2">
           <span className="rounded-full bg-[#ff1f42] px-2.5 py-1 text-xs font-semibold text-white">
@@ -206,7 +343,16 @@ export default function ScannerPage() {
         </div>
       </header>
 
-      <section className="mb-4 rounded-2xl border border-[#242528] bg-[#0d0d0f] p-3">
+      <section className="relative mb-4 rounded-2xl border border-[#242528] bg-[#0d0d0f] p-3">
+        {toast && (
+          <div
+            className={`pointer-events-none absolute left-1/2 top-2 z-10 -translate-x-1/2 rounded-md px-3 py-1 text-sm shadow ${
+              toast.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
+            }`}
+          >
+            {toast.message}
+          </div>
+        )}
         <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-[#34363a] bg-black">
           <video ref={videoRef} className="h-full w-full object-cover" muted playsInline />
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(transparent,transparent,rgba(0,0,0,0.4))]" />
@@ -219,37 +365,45 @@ export default function ScannerPage() {
             <span>Align the QR within the frame</span>
             <span className="opacity-80">Auto-detect • 150–220ms</span>
           </div>
+          {flash && (
+            <div
+              className={`pointer-events-none absolute inset-0 ${
+                flash === 'success' ? 'bg-emerald-500/30' : 'bg-red-500/30'
+              } animate-pulse`}
+            />
+          )}
         </div>
 
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="flex-1">
-            <label className="mb-1 block text-xs font-medium text-gray-400">Manual token</label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={manualToken}
-                onChange={(e) => setManualToken(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') submitToken();
-                }}
-                placeholder="Paste token or URL (rtk:... or ?tk=...)"
-                className="w-full rounded-lg border border-[#34363a] bg-[#16171a] p-2 text-sm placeholder:text-gray-500 focus:border-[#ff1f42] focus:outline-none focus:ring-1 focus:ring-[#ff1f42]"
-              />
-              <button
-                onClick={() => submitToken()}
-                disabled={isSubmitting}
-                className="rounded-lg bg-[#ff1f42] px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#ff415f] disabled:opacity-60"
-              >
-                {isSubmitting ? 'Scanning…' : 'Submit'}
-              </button>
-            </div>
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="rounded-lg border border-[#34363a] bg-[#16171a] p-3">
+            <label className="mb-1 block text-xs font-medium text-gray-400">Event</label>
+            <select
+              value={eventId}
+              onChange={(e) => {
+                setEventId(e.target.value);
+                try {
+                  localStorage.setItem('scannerEventId', e.target.value || '');
+                } catch {}
+              }}
+              className="w-full rounded-md border border-[#34363a] bg-[#0d0d0f] p-2 text-sm focus:border-[#ff1f42] focus:outline-none focus:ring-1 focus:ring-[#ff1f42]"
+            >
+              {!eventId && (
+                <option value="">{loadingEvents ? 'Loading events…' : 'Select event'}</option>
+              )}
+              {events.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.title || e.name || e.id}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-[11px] text-gray-500">Required for UID scans</p>
           </div>
-          <div className="sm:w-56">
+          <div className="rounded-lg border border-[#34363a] bg-[#16171a] p-3">
             <label className="mb-1 block text-xs font-medium text-gray-400">Camera</label>
             <select
               value={selectedDeviceId}
               onChange={(e) => onChangeCamera(e.target.value)}
-              className="w-full rounded-lg border border-[#34363a] bg-[#16171a] p-2 text-sm focus:border-[#ff1f42] focus:outline-none focus:ring-1 focus:ring-[#ff1f42]"
+              className="w-full rounded-md border border-[#34363a] bg-[#0d0d0f] p-2 text-sm focus:border-[#ff1f42] focus:outline-none focus:ring-1 focus:ring-[#ff1f42]"
             >
               {devices.length === 0 && <option value="">Default</option>}
               {devices.map((d) => (
@@ -258,6 +412,29 @@ export default function ScannerPage() {
                 </option>
               ))}
             </select>
+            <p className="mt-1 text-[11px] text-gray-500">Switch if needed</p>
+          </div>
+          <div className="rounded-lg border border-[#34363a] bg-[#16171a] p-3">
+            <label className="mb-1 block text-xs font-medium text-gray-400">Feedback</label>
+            <div className="flex items-center justify-between gap-4">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={prefs.sound}
+                  onChange={(e) => setPrefs((p) => ({ ...p, sound: e.target.checked }))}
+                />
+                <span className="text-sm text-gray-300">Sound</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={prefs.haptics}
+                  onChange={(e) => setPrefs((p) => ({ ...p, haptics: e.target.checked }))}
+                />
+                <span className="text-sm text-gray-300">Haptics</span>
+              </label>
+            </div>
+            <p className="mt-1 text-[11px] text-gray-500">Operator prefs</p>
           </div>
         </div>
         {scanning && <p className="mt-2 text-xs text-gray-400">Starting camera…</p>}
