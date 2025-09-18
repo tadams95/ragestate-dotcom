@@ -64,6 +64,8 @@ export default function CheckoutForm({
           userEmail,
           userName,
           cartItems,
+          addressDetails,
+          appliedPromoCode,
         }),
       });
       const text = await resp.text();
@@ -77,6 +79,14 @@ export default function CheckoutForm({
         console.error('Finalize order failed:', { status: resp.status, data });
       } else {
         console.log('Finalize order success:', data);
+        // If server persisted purchases successfully, prefer its orderNumber and skip client save
+        if (data && data.ok && data.orderNumber) {
+          setOrderNumber(data.orderNumber);
+          setMessage('Payment succeeded! Your order has been saved.');
+          dispatch(clearCart());
+          setShowSuccess(true);
+          return true; // handled
+        }
       }
     } catch (e) {
       console.error('Finalize order error:', e);

@@ -231,7 +231,15 @@ app.post('/finalize-order', async (req, res) => {
       }
     }
 
-    const { paymentIntentId, firebaseId, userEmail, userName, cartItems } = req.body || {};
+    const {
+      paymentIntentId,
+      firebaseId,
+      userEmail,
+      userName,
+      cartItems,
+      addressDetails,
+      appliedPromoCode,
+    } = req.body || {};
     if (!paymentIntentId || !firebaseId) {
       return res.status(400).json({ error: 'paymentIntentId and firebaseId are required' });
     }
@@ -259,10 +267,12 @@ app.post('/finalize-order', async (req, res) => {
     // Idempotency guard: ensure we only fulfill once per PaymentIntent
     const fulfillRef = db.collection('fulfillments').doc(pi.id);
     let alreadyFulfilled = false;
+    let existingFulfillment = null;
     await db.runTransaction(async (tx) => {
       const snap = await tx.get(fulfillRef);
       if (snap.exists) {
         alreadyFulfilled = true;
+        existingFulfillment = snap.data() || null;
         return;
       }
       // Derive a recipient email from request payload or PI metadata as a fallback
@@ -282,7 +292,17 @@ app.post('/finalize-order', async (req, res) => {
     });
 
     if (alreadyFulfilled) {
-      return res.json({ ok: true, idempotent: true, message: 'Already fulfilled' });
+      const orderNumber = existingFulfillment?.orderNumber || null;
+      const createdTickets = existingFulfillment?.createdTickets || 0;
+      const details = existingFulfillment?.details || [];
+      return res.json({
+        ok: true,
+        idempotent: true,
+        message: 'Already fulfilled',
+        orderNumber,
+        createdTickets,
+        details,
+      });
     }
 
     const items = Array.isArray(cartItems) ? cartItems : [];
@@ -349,6 +369,93 @@ app.post('/finalize-order', async (req, res) => {
       }
     }
 
+    // Build purchase payloads (server-side mirror of client SaveToFirestore)
+    const amountTotal = typeof pi.amount === 'number' ? pi.amount : 0;
+    const amountStr = (amountTotal / 100).toFixed(2);
+    const sanitizedItems = items.map((i) => ({
+      productId: i.productId,
+      title: i.title || i.name || i.productId,
+      price:
+        typeof i.price === 'number'
+          ? i.price
+          : typeof i.price === 'string'
+            ? parseFloat(i.price)
+            : null,
+      quantity: Math.max(1, parseInt(i.quantity || 1, 10)),
+      productImageSrc: i.productImageSrc || i.imageSrc || null,
+      color: i.color || i.selectedColor || null,
+      size: i.size || i.selectedSize || null,
+      eventDetails: i.eventDetails || null,
+    }));
+
+    const purchaseDoc = {
+      addressDetails: addressDetails || null,
+      customerEmail: userEmail || pi.receipt_email || (pi.metadata && pi.metadata.email) || null,
+      customerId: firebaseId,
+      customerName: userName || (pi.metadata && pi.metadata.name) || null,
+      itemCount: sanitizedItems.length,
+      items: sanitizedItems,
+      orderDate: admin.firestore.FieldValue.serverTimestamp(),
+      orderNumber,
+      paymentIntentId: pi.id,
+      status: 'completed',
+      totalAmount: amountStr,
+      currency: pi.currency || 'usd',
+      discountAmount:
+        appliedPromoCode && appliedPromoCode.discountValue ? appliedPromoCode.discountValue : 0,
+      promoCodeUsed: appliedPromoCode && appliedPromoCode.id ? appliedPromoCode.id : null,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    // Write purchases in both collections
+    try {
+      const purchaseRef = db.collection('purchases').doc(orderNumber);
+      await purchaseRef.set(purchaseDoc, { merge: true });
+
+      const userPurchaseRef = db
+        .collection('customers')
+        .doc(firebaseId)
+        .collection('purchases')
+        .doc(orderNumber);
+      await userPurchaseRef.set(
+        Object.assign({}, purchaseDoc, {
+          // Legacy compatibility fields used by OrderHistory
+          dateTime: admin.firestore.FieldValue.serverTimestamp(),
+          name: purchaseDoc.customerName,
+          email: purchaseDoc.customerEmail,
+          stripeId: pi.id,
+          cartItems: sanitizedItems,
+          total: amountStr,
+        }),
+        { merge: true },
+      );
+    } catch (e) {
+      logger.warn('Failed to write purchase documents', e);
+    }
+
+    // If promo code applied, update its usage counters (best-effort)
+    if (appliedPromoCode && appliedPromoCode.id) {
+      try {
+        const promoRef = db.collection('promoterCodes').doc(appliedPromoCode.id);
+        await db.runTransaction(async (tx) => {
+          const snap = await tx.get(promoRef);
+          const data = snap.exists ? snap.data() || {} : {};
+          const newUses = Number(data.currentUses || 0) + 1;
+          tx.set(
+            promoRef,
+            {
+              currentUses: newUses,
+              lastUsed: admin.firestore.FieldValue.serverTimestamp(),
+              lastOrderNumber: orderNumber,
+            },
+            { merge: true },
+          );
+        });
+      } catch (e) {
+        logger.warn('Promo code update failed (non-fatal)', e);
+      }
+    }
+
     try {
       await fulfillRef.set(
         {
@@ -371,8 +478,8 @@ app.post('/finalize-order', async (req, res) => {
       logger.warn('Failed to update fulfillments record', e);
     }
 
-    logger.info('Finalize-order: completed', { createdTickets: created.length });
-    return res.json({ ok: true, createdTickets: created.length, details: created });
+    logger.info('Finalize-order: completed', { createdTickets: created.length, orderNumber });
+    return res.json({ ok: true, orderNumber, createdTickets: created.length, details: created });
   } catch (err) {
     logger.error('finalize-order error', err);
     res.status(500).json({ error: 'Failed to finalize order' });
