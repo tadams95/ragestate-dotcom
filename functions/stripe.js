@@ -284,6 +284,8 @@ app.post('/finalize-order', async (req, res) => {
     });
 
     const created = [];
+    const crypto = require('crypto');
+    const generateTicketToken = () => crypto.randomBytes(16).toString('hex');
     for (const item of items) {
       const eventId = String(item?.productId || '').trim();
       const qty = Math.max(1, parseInt(item.quantity || 1, 10));
@@ -312,6 +314,8 @@ app.post('/finalize-order', async (req, res) => {
             orderNumber,
             ticketQuantity: qty,
             paymentIntentId: pi.id,
+            ticketToken: generateTicketToken(),
+            usedCount: 0,
           };
           const ragerDoc = ragersRef.doc();
           tx.set(ragerDoc, rager);
@@ -401,6 +405,165 @@ app.post('/test-send-purchase-email', async (req, res) => {
   } catch (err) {
     logger.error('test-send-purchase-email error', err);
     return res.status(500).json({ error: 'Failed to create test fulfillment' });
+  }
+});
+
+// Scan ticket: atomically consume one use for a rager identified by ticketToken
+app.post('/scan-ticket', async (req, res) => {
+  try {
+    const expectedProxyKey = PROXY_KEY.value() || process.env.PROXY_KEY;
+    if (expectedProxyKey) {
+      const provided = req.get('x-proxy-key');
+      if (!provided || provided !== expectedProxyKey) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+    }
+
+    const { token, scannerId, eventId: expectedEventId } = req.body || {};
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({ error: 'token required' });
+    }
+
+    // Lookup rager by token via collectionGroup
+    const q = db.collectionGroup('ragers').where('ticketToken', '==', token).limit(1);
+    const snap = await q.get();
+    if (snap.empty) {
+      return res.status(404).json({ error: 'Ticket not found' });
+    }
+
+    const ragerDoc = snap.docs[0];
+    const ragerRef = ragerDoc.ref;
+    const parentEventId = ragerRef.parent?.parent?.id || '';
+
+    if (expectedEventId && expectedEventId !== parentEventId) {
+      return res.status(409).json({ error: 'Wrong event for ticket' });
+    }
+
+    let result;
+    await db.runTransaction(async (tx) => {
+      const fresh = await tx.get(ragerRef);
+      if (!fresh.exists) throw new Error('Ticket missing');
+      const data = fresh.data() || {};
+      const quantity = Math.max(1, parseInt(data.ticketQuantity || 1, 10));
+      const usedCount = Math.max(0, parseInt(data.usedCount || 0, 10));
+      const active = data.active !== false && usedCount < quantity;
+      if (!active) {
+        result = { status: 409, body: { error: 'Ticket already used', remaining: 0 } };
+        return;
+      }
+      const nextUsed = usedCount + 1;
+      const nextActive = nextUsed < quantity;
+      const update = {
+        usedCount: nextUsed,
+        active: nextActive,
+        lastScanAt: admin.firestore.FieldValue.serverTimestamp(),
+      };
+      if (scannerId && typeof scannerId === 'string') {
+        update.lastScannedBy = scannerId;
+      }
+      tx.update(ragerRef, update);
+      result = {
+        status: 200,
+        body: {
+          ok: true,
+          eventId: parentEventId,
+          ragerId: ragerRef.id,
+          remaining: Math.max(0, quantity - nextUsed),
+          status: nextActive ? 'active' : 'inactive',
+        },
+      };
+    });
+
+    if (!result) {
+      return res.status(500).json({ error: 'Unknown scan error' });
+    }
+    return res.status(result.status).json(result.body);
+  } catch (err) {
+    logger.error('scan-ticket error', err);
+    return res.status(500).json({ error: 'Failed to scan ticket' });
+  }
+});
+
+// Admin: backfill ticketToken/usedCount for an event's ragers
+app.post('/backfill-ticket-tokens', async (req, res) => {
+  try {
+    const expectedProxyKey = PROXY_KEY.value() || process.env.PROXY_KEY;
+    if (expectedProxyKey) {
+      const provided = req.get('x-proxy-key');
+      if (!provided || provided !== expectedProxyKey) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+    }
+
+    const { eventId, dryRun } = req.body || {};
+    if (!eventId || typeof eventId !== 'string') {
+      return res.status(400).json({ error: 'eventId required' });
+    }
+
+    const eventRef = db.collection('events').doc(eventId);
+    const ragersRef = eventRef.collection('ragers');
+    const snap = await ragersRef.get();
+    if (snap.empty) {
+      return res.json({ ok: true, eventId, processed: 0, updated: 0 });
+    }
+
+    const crypto = require('crypto');
+    const gen = () => crypto.randomBytes(16).toString('hex');
+
+    let processed = 0;
+    let updated = 0;
+    const samples = [];
+    let batch = db.batch();
+    let batchCount = 0;
+
+    snap.docs.forEach((doc) => {
+      processed += 1;
+      const data = doc.data() || {};
+      const updates = {};
+      if (!data.ticketToken || typeof data.ticketToken !== 'string') {
+        updates.ticketToken = gen();
+      }
+      if (typeof data.usedCount !== 'number') {
+        updates.usedCount = 0;
+      }
+      // If active is missing, derive from usedCount/ticketQuantity; else leave as-is
+      if (typeof data.active !== 'boolean') {
+        const qty = Math.max(1, parseInt(data.ticketQuantity || 1, 10));
+        const used = Math.max(0, parseInt(data.usedCount || 0, 10));
+        updates.active = used < qty;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        updated += 1;
+        if (samples.length < 5) {
+          samples.push({
+            ragerId: doc.id,
+            updates: Object.assign({}, updates, {
+              ticketToken: updates.ticketToken || data.ticketToken,
+            }),
+          });
+        }
+        if (!dryRun) {
+          batch.update(doc.ref, updates);
+          batchCount += 1;
+          if (batchCount >= 400) {
+            // Commit and reset batch to avoid limits
+            batch.commit();
+            batch = db.batch();
+            batchCount = 0;
+          }
+        }
+      }
+    });
+
+    if (!dryRun && batchCount > 0) {
+      await batch.commit();
+    }
+
+    return res.json({ ok: true, eventId, processed, updated, dryRun: !!dryRun, samples });
+  } catch (err) {
+    logger.error('backfill-ticket-tokens error', err);
+    return res.status(500).json({ error: 'Failed to backfill' });
   }
 });
 
