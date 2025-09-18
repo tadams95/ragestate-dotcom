@@ -1,25 +1,20 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { TicketIcon } from "@heroicons/react/24/outline";
+import { TicketIcon } from '@heroicons/react/24/outline';
 import {
   collection,
   collectionGroup,
+  documentId,
   getDocs,
   getFirestore,
   query,
   where,
-  documentId,
-} from "firebase/firestore";
+} from 'firebase/firestore';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useCallback, useEffect, useState } from 'react';
 
-export default function TicketsTab({
-  userId,
-  cardStyling,
-  eventCardStyling,
-  containerStyling,
-}) {
+export default function TicketsTab({ userId, cardStyling, eventCardStyling, containerStyling }) {
   const [tickets, setTickets] = useState([]);
   const [loadingTickets, setLoadingTickets] = useState(false);
 
@@ -33,9 +28,9 @@ export default function TicketsTab({
 
       // Single collectionGroup query across all events' ragers
       const ragersQ = query(
-        collectionGroup(firestore, "ragers"),
-        where("firebaseId", "==", userId),
-        where("active", "==", true)
+        collectionGroup(firestore, 'ragers'),
+        where('firebaseId', '==', userId),
+        where('active', '==', true),
       );
       const ragersSnapshot = await getDocs(ragersQ);
 
@@ -50,12 +45,12 @@ export default function TicketsTab({
         new Set(
           ragerDocs
             .map((d) => d.ref.parent?.parent?.id)
-            .filter((id) => typeof id === "string" && id.length > 0)
-        )
+            .filter((id) => typeof id === 'string' && id.length > 0),
+        ),
       );
 
       // Batch fetch event docs in chunks of 10 for documentId() IN queries
-      const eventsCol = collection(firestore, "events");
+      const eventsCol = collection(firestore, 'events');
       const chunks = [];
       for (let i = 0; i < eventIds.length; i += 10) {
         chunks.push(eventIds.slice(i, i + 10));
@@ -63,7 +58,7 @@ export default function TicketsTab({
 
       const eventMap = new Map();
       for (const chunk of chunks) {
-        const q = query(eventsCol, where(documentId(), "in", chunk));
+        const q = query(eventsCol, where(documentId(), 'in', chunk));
         const snap = await getDocs(q);
         snap.forEach((doc) => eventMap.set(doc.id, doc.data()));
       }
@@ -77,24 +72,39 @@ export default function TicketsTab({
         return {
           id: ragerDoc.id,
           eventId,
-          eventName: eventData.name || "Unnamed Event",
+          eventName: eventData.name || 'Unnamed Event',
           eventDate: eventData.date || new Date().toISOString(),
-          eventTime: eventData.time || "TBA",
-          location: eventData.location || "TBA",
-          ticketType: ticketData.ticketType || "General Admission",
-          status: ticketData.active ? "active" : "inactive",
+          eventTime: eventData.time || 'TBA',
+          location: eventData.location || 'TBA',
+          ticketType: ticketData.ticketType || 'General Admission',
+          status: ticketData.active ? 'active' : 'inactive',
           imageUrl: eventData.imgURL || null,
           purchaseDate: ticketData.purchaseTimestamp
             ? new Date(ticketData.purchaseTimestamp).toISOString()
             : new Date().toISOString(),
-          price: ticketData.price ? `$${ticketData.price.toFixed(2)}` : "N/A",
+          price: ticketData.price ? `$${ticketData.price.toFixed(2)}` : 'N/A',
           ...ticketData,
         };
       });
 
-      setTickets(allTickets);
+      // Expand multi-quantity ragers into individual ticket entries (minimal, non-breaking)
+      const expandedTickets = allTickets.flatMap((t) => {
+        const qty = Math.max(
+          1,
+          parseInt(t.ticketQuantity ?? t.quantity ?? t.qty ?? t.selectedQuantity ?? 1, 10),
+        );
+        if (qty <= 1) return [t];
+        return Array.from({ length: qty }, (_, idx) => ({
+          ...t,
+          id: `${t.id}-${idx + 1}`,
+          ticketIndex: idx + 1,
+          ticketCount: qty,
+        }));
+      });
+
+      setTickets(expandedTickets);
     } catch (error) {
-      console.error("Error fetching user tickets:", error);
+      console.error('Error fetching user tickets:', error);
     } finally {
       setLoadingTickets(false);
     }
@@ -109,20 +119,18 @@ export default function TicketsTab({
 
   return (
     <div className={containerStyling}>
-      <h2 className="text-2xl font-bold text-white mb-6">My Tickets</h2>
+      <h2 className="mb-6 text-2xl font-bold text-white">My Tickets</h2>
 
       {loadingTickets ? (
-        <div className="flex justify-center items-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-500"></div>
+        <div className="flex items-center justify-center py-20">
+          <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-red-500"></div>
         </div>
       ) : tickets.length === 0 ? (
-        <div className="text-center py-10">
+        <div className="py-10 text-center">
           <div className="mx-auto h-12 w-12 text-gray-400">
             <TicketIcon className="h-full w-full" aria-hidden="true" />
           </div>
-          <h3 className="mt-2 text-sm font-medium text-gray-200">
-            No tickets yet
-          </h3>
+          <h3 className="mt-2 text-sm font-medium text-gray-200">No tickets yet</h3>
           <p className="mt-1 text-sm text-gray-500">
             Get started by purchasing tickets to an upcoming event.
           </p>
@@ -136,33 +144,30 @@ export default function TicketsTab({
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {tickets.map((ticket) => (
             <div key={ticket.id} className={`${cardStyling} overflow-hidden`}>
-              <div
-                key={ticket.id}
-                className={`${eventCardStyling} overflow-hidden`}
-              >
+              <div key={ticket.id} className={`${eventCardStyling} overflow-hidden`}>
                 {/* Two-column grid: left for the image, right for event details */}
-                <div className="grid grid-cols-1 md:grid-cols-2 h-full">
+                <div className="grid h-full grid-cols-1 md:grid-cols-2">
                   {/* Left Column: Image */}
                   <div className="relative min-h-[150px] md:min-h-full">
-                    {" "}
+                    {' '}
                     {/* Added min-height */}
                     {ticket.imageUrl ? (
                       <Image
                         src={ticket.imageUrl}
                         alt={ticket.eventName}
                         fill
-                        style={{ objectFit: "cover" }}
-                        className="object-cover rounded-md"
+                        style={{ objectFit: 'cover' }}
+                        className="rounded-md object-cover"
                       />
                     ) : (
-                      <div className="absolute inset-0 flex items-center justify-center bg-gray-800 rounded-md">
+                      <div className="absolute inset-0 flex items-center justify-center rounded-md bg-gray-800">
                         <TicketIcon className="h-16 w-16 text-gray-500" />
                       </div>
                     )}
-                    <div className="absolute top-0 right-0 mt-2 mr-2">
+                    <div className="absolute right-0 top-0 mr-2 mt-2">
                       <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
                         {ticket.status}
                       </span>
@@ -170,39 +175,28 @@ export default function TicketsTab({
                   </div>
 
                   {/* Right Column: Event Details */}
-                  <div className="p-4 flex flex-col gap-4 md:ml-6">
-                    <h3 className="text-lg font-medium text-white">
-                      {ticket.eventName}
-                    </h3>
+                  <div className="flex flex-col gap-4 p-4 md:ml-6">
+                    <h3 className="text-lg font-medium text-white">{ticket.eventName}</h3>
 
                     <div className="grid grid-cols-2 gap-2">
-                      <p className="text-sm text-gray-400 col-span-2">
-                        {new Date(ticket.eventDate).toLocaleDateString(
-                          "en-US",
-                          {
-                            weekday: "long",
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          }
-                        )}
-                        {ticket.eventTime && ticket.eventTime !== "TBA"
+                      <p className="col-span-2 text-sm text-gray-400">
+                        {new Date(ticket.eventDate).toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                        {ticket.eventTime && ticket.eventTime !== 'TBA'
                           ? ` at ${ticket.eventTime}`
-                          : ""}
+                          : ''}
                       </p>
-                      <p className="text-sm text-gray-400 col-span-2">
-                        {ticket.location}
-                      </p>
+                      <p className="col-span-2 text-sm text-gray-400">{ticket.location}</p>
                     </div>
 
                     <div className="mt-auto border-t border-gray-700 pt-3">
                       <div>
-                        <span className="block text-xs text-gray-500">
-                          Ticket Type
-                        </span>
-                        <span className="text-sm text-white">
-                          {ticket.ticketType}
-                        </span>
+                        <span className="block text-xs text-gray-500">Ticket Type</span>
+                        <span className="text-sm text-white">{ticket.ticketType}</span>
                       </div>
                     </div>
                   </div>
