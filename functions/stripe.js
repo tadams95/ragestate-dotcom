@@ -2,6 +2,7 @@
 'use strict';
 
 const { onRequest, onCall, HttpsError } = require('firebase-functions/v2/https');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { defineSecret } = require('firebase-functions/params');
 const logger = require('firebase-functions/logger');
 const express = require('express');
@@ -20,6 +21,28 @@ function getStripe() {
     stripeClient._apiKey = key;
   }
   return stripeClient;
+}
+
+// Metrics helper: increment per-event counters without failing the main path
+async function incrementEventMetrics(eventId, increments) {
+  try {
+    if (!eventId || typeof eventId !== 'string') return;
+    const ref = db.collection('metrics').doc('events').collection('events').doc(eventId);
+    const payload = Object.assign(
+      { lastUpdated: admin.firestore.FieldValue.serverTimestamp() },
+      Object.fromEntries(
+        Object.entries(increments || {}).map(([k, v]) => [
+          k,
+          admin.firestore.FieldValue.increment(v),
+        ]),
+      ),
+    );
+    await ref.set(payload, { merge: true });
+  } catch (e) {
+    try {
+      logger.warn('incrementEventMetrics failed (non-fatal)', { message: e?.message });
+    } catch (_e) {}
+  }
 }
 
 const app = express();
@@ -808,6 +831,9 @@ app.post('/scan-ticket', async (req, res) => {
       parentEventId = eventIdFromMap;
 
       if (expectedEventId && expectedEventId !== parentEventId) {
+        try {
+          await incrementEventMetrics(expectedEventId, { scanDenials: 1 });
+        } catch (_e) {}
         return res.status(409).json({ error: 'Wrong event for ticket' });
       }
     } else if (userId && typeof userId === 'string') {
@@ -824,6 +850,9 @@ app.post('/scan-ticket', async (req, res) => {
         const ragersRef = db.collection('events').doc(parentEventId).collection('ragers');
         const qs = await ragersRef.where('firebaseId', '==', userId).get();
         if (qs.empty) {
+          try {
+            await incrementEventMetrics(parentEventId, { scanDenials: 1 });
+          } catch (_e) {}
           return res.status(404).json({
             error: 'Ticket not found',
             message: 'No rager found for user at event',
@@ -844,6 +873,9 @@ app.post('/scan-ticket', async (req, res) => {
         const remainingTotal = enriched.reduce((acc, e) => acc + e.remaining, 0);
         if (remainingTotal <= 0) {
           const first = enriched[0];
+          try {
+            await incrementEventMetrics(parentEventId, { scanDenials: 1 });
+          } catch (_e) {}
           return res
             .status(409)
             .json({ error: 'Ticket already used', remaining: 0, remainingTotal: 0 });
@@ -927,6 +959,13 @@ app.post('/scan-ticket', async (req, res) => {
     if (!result) {
       return res.status(500).json({ error: 'Unknown scan error' });
     }
+    try {
+      if (result.status === 200) {
+        await incrementEventMetrics(parentEventId, { scansAccepted: 1 });
+      } else if (parentEventId) {
+        await incrementEventMetrics(parentEventId, { scanDenials: 1 });
+      }
+    } catch (_e) {}
     return res.status(result.status).json(result.body);
   } catch (err) {
     logger.error('scan-ticket error', {
@@ -986,6 +1025,13 @@ app.post('/scan-ticket/preview', async (req, res) => {
       return a.ragerId.localeCompare(b.ragerId);
     });
     const next = sorted.find((i) => i.active) || null;
+
+    try {
+      await incrementEventMetrics(eventId, {
+        previewRemainingSum: remainingTotal,
+        previewCount: 1,
+      });
+    } catch (_e) {}
 
     return res.json({ ok: true, eventId, userId, remainingTotal, items, next });
   } catch (err) {
@@ -1311,6 +1357,112 @@ exports.createStripeCustomer = onCall(
     } catch (err) {
       logger.error('createStripeCustomer failed', err);
       throw new HttpsError('internal', 'Failed to create Stripe customer');
+    }
+  },
+);
+
+// Scheduled daily reconcile to keep eventUsers summaries fresh
+exports.reconcileEventUsersDaily = onSchedule(
+  { schedule: 'every day 03:00', timeZone: 'America/Los_Angeles' },
+  async () => {
+    try {
+      const evSnap = await db.collection('events').limit(50).get();
+      if (evSnap.empty) return;
+      for (const ev of evSnap.docs) {
+        const eventId = ev.id;
+        try {
+          const ragersRef = db.collection('events').doc(eventId).collection('ragers');
+          const snap = await ragersRef.get();
+          if (snap.empty) continue;
+
+          const perUser = new Map();
+          snap.docs.forEach((d) => {
+            const v = d.data() || {};
+            const uid = String(v.firebaseId || '').trim();
+            if (!uid) return;
+            const qty = Math.max(1, parseInt(v.ticketQuantity || 1, 10));
+            const used = Math.max(0, parseInt(v.usedCount || 0, 10));
+            const lastScanAt = v.lastScanAt || null;
+            if (!perUser.has(uid)) {
+              perUser.set(uid, { totalTickets: 0, usedCount: 0, lastScanAt });
+            }
+            const agg = perUser.get(uid);
+            agg.totalTickets += qty;
+            agg.usedCount += used;
+            if (
+              lastScanAt &&
+              lastScanAt.toMillis &&
+              (!agg.lastScanAt ||
+                (agg.lastScanAt.toMillis && lastScanAt.toMillis() > agg.lastScanAt.toMillis()))
+            ) {
+              agg.lastScanAt = lastScanAt;
+            }
+          });
+
+          let batch = db.batch();
+          let count = 0;
+          for (const [uid, target] of perUser.entries()) {
+            const summaryRef = db
+              .collection('eventUsers')
+              .doc(eventId)
+              .collection('users')
+              .doc(uid);
+            const s = await summaryRef.get();
+            let prevTotal = null;
+            let prevUsed = null;
+            if (s.exists) {
+              const d = s.data() || {};
+              prevTotal = typeof d.totalTickets === 'number' ? d.totalTickets : null;
+              prevUsed = typeof d.usedCount === 'number' ? d.usedCount : null;
+            }
+            if (prevTotal !== target.totalTickets || prevUsed !== target.usedCount) {
+              batch.set(
+                summaryRef,
+                {
+                  totalTickets: target.totalTickets,
+                  usedCount: target.usedCount,
+                  lastScanAt: target.lastScanAt || admin.firestore.FieldValue.delete(),
+                  lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+                },
+                { merge: true },
+              );
+              count += 1;
+              if (count >= 400) {
+                await batch.commit();
+                batch = db.batch();
+                count = 0;
+              }
+            }
+          }
+          if (count > 0) await batch.commit();
+
+          try {
+            await db
+              .collection('reconciliations')
+              .doc(eventId)
+              .collection('runs')
+              .doc(`auto-${Date.now()}`)
+              .set(
+                {
+                  eventId,
+                  processedUsers: perUser.size,
+                  updatedUsers: admin.firestore.FieldValue.increment(0),
+                  createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                  automated: true,
+                },
+                { merge: true },
+              );
+          } catch (_e) {}
+        } catch (e) {
+          try {
+            logger.warn('scheduled reconcile failed for event', { eventId, message: e?.message });
+          } catch (_e) {}
+        }
+      }
+    } catch (err) {
+      try {
+        logger.error('reconcileEventUsersDaily error', { message: err?.message });
+      } catch (_e) {}
     }
   },
 );

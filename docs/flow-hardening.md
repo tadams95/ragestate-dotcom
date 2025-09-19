@@ -176,8 +176,20 @@ npm run dev
 
 1. Deploy Functions (done).
 2. Wire scanner UI to call `/scan-ticket/preview` and show `remainingTotal` and `nextCandidate` before consuming. (done)
-3. Add admin-only reconcile script/endpoint and schedule a periodic audit. (endpoint done)
+3. Add admin-only reconcile script/endpoint and schedule a periodic audit. (endpoint done; event "Faux Fur House Show" reconciled 2025-09-19)
 4. Monitor for anomalies; expand tests as needed.
+
+## Operational Verification (2025-09-19)
+
+- Reconcile `eventUsers` for `Faux Fur House Show`:
+  - processedUsers: 71
+  - updatedUsers: 71
+  - Result: summaries created/updated at `eventUsers/Faux Fur House Show/users/*`.
+- Preview checks (no mutation):
+  - UID `q7vVnJGmyrgvT8lJwiz0P6dYKZY2`: `remainingTotal=2`, one active rager with `ticketQuantity=2` (matches manual ticket creation).
+  - UID `55d94gqVOMeShTZHosLwETWwNPg2`: `remainingTotal=0`, no ragers for event.
+
+Next: schedule periodic reconcile (daily) and add a small dashboard chart for scan denials and average `remainingTotal` at entry.
 
 ## Next Improvements (Recommended)
 
