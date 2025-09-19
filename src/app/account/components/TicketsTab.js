@@ -30,7 +30,6 @@ export default function TicketsTab({ userId, cardStyling, eventCardStyling, cont
       const ragersQ = query(
         collectionGroup(firestore, 'ragers'),
         where('firebaseId', '==', userId),
-        where('active', '==', true),
       );
       const ragersSnapshot = await getDocs(ragersQ);
 
@@ -87,8 +86,16 @@ export default function TicketsTab({ userId, cardStyling, eventCardStyling, cont
         };
       });
 
+      // Sort tickets: active first, then inactive
+      const orderedTickets = allTickets.slice().sort((a, b) => {
+        const aActive = a.status === 'active';
+        const bActive = b.status === 'active';
+        if (aActive === bActive) return 0;
+        return aActive ? -1 : 1;
+      });
+
       // Expand multi-quantity ragers into individual ticket entries (minimal, non-breaking)
-      const expandedTickets = allTickets.flatMap((t) => {
+      const expandedTickets = orderedTickets.flatMap((t) => {
         const qty = Math.max(
           1,
           parseInt(t.ticketQuantity ?? t.quantity ?? t.qty ?? t.selectedQuantity ?? 1, 10),
@@ -168,7 +175,14 @@ export default function TicketsTab({ userId, cardStyling, eventCardStyling, cont
                       </div>
                     )}
                     <div className="absolute right-0 top-0 mr-2 mt-2">
-                      <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                      <span
+                        className={
+                          `inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ` +
+                          (ticket.status === 'active'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800')
+                        }
+                      >
                         {ticket.status}
                       </span>
                     </div>

@@ -145,6 +145,23 @@ service cloud.firestore {
       }
     }
 
+    // Collection group rule for ragers to support collectionGroup queries
+    match /{path=**}/ragers/{ragerId} {
+      // Readable by owner or admin only
+      allow read: if isAuthenticated() && (
+        resource.data.firebaseId == request.auth.uid || isAdmin()
+      );
+
+      // Updates: owner only, firebaseId immutable, and no new fields may be added
+      allow update: if isAuthenticated()
+        && resource.data.firebaseId == request.auth.uid
+        && request.resource.data.firebaseId == resource.data.firebaseId
+        && request.resource.data.keys().hasOnly(resource.data.keys());
+
+      // Disallow client-side creates/deletes by default; use backend/CFs
+      allow create, delete: if false;
+    }
+
     // Feed: posts
     match /posts/{postId} {
       // Public posts readable by anyone; private posts only by author

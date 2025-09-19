@@ -12,7 +12,9 @@
     "backfill:usernames:dry": "node backfillUsernames.js",
     "backfill:usernames:live": "node backfillUsernames.js --live",
     "manual:create-ticket": "node manualCreateTicket.js",
-    "manual:create-ticket:fulfillment": "node manualCreateTicket.js --createFulfillment"
+    "manual:create-ticket:fulfillment": "node manualCreateTicket.js --createFulfillment",
+    "ragers:inactivate:dry": "node inactivateEventRagers.js",
+    "ragers:inactivate:live": "node inactivateEventRagers.js --live"
   },
   "dependencies": {
     "firebase-admin": "^11.10.1"
