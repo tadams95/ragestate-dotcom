@@ -1,7 +1,7 @@
 'use client';
 import { collection, doc, getDoc, getDocs, getFirestore } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
-import { app } from '../../../firebase/firebase';
+import { app } from '../../../../firebase/firebase';
 
 export default function AdminMetricsPage() {
   const [events, setEvents] = useState([]);
