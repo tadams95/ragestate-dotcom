@@ -1,7 +1,7 @@
 'use client';
 
 import { doc, getDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useAuth } from '../../../../firebase/context/FirebaseContext';
 import { db } from '../../../../firebase/firebase';
@@ -22,6 +22,8 @@ export default function EditProfileForm({ inputStyling, buttonStyling, cardStyli
   const [username, setUsername] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [availability, setAvailability] = useState('unknown'); // unknown | checking | available | taken
+  const debounceRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -50,6 +52,38 @@ export default function EditProfileForm({ inputStyling, buttonStyling, cardStyli
     };
   }, [currentUser]);
 
+  // Debounced availability check as the user types
+  useEffect(() => {
+    if (!currentUser) return;
+    const desired = normalizeUsername(username);
+    // Reset for short inputs
+    if (!desired || desired.length < 3) {
+      setAvailability('unknown');
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      return;
+    }
+    setAvailability('checking');
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const userRef = doc(db, 'usernames', desired);
+        const snap = await getDoc(userRef);
+        if (!snap.exists()) {
+          setAvailability('available');
+        } else {
+          const data = snap.data();
+          if (data && data.uid === currentUser.uid) setAvailability('available');
+          else setAvailability('taken');
+        }
+      } catch (_e) {
+        setAvailability('unknown');
+      }
+    }, 300);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [username, currentUser]);
+
   const onSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -58,6 +92,11 @@ export default function EditProfileForm({ inputStyling, buttonStyling, cardStyli
     const desired = normalizeUsername(username);
     if (!desired || desired.length < 3) {
       setError('Username must be at least 3 characters (a–z, 0–9, . or _)');
+      return;
+    }
+    // Quick UX guard if obviously taken; server transaction still guarantees correctness
+    if (availability === 'taken') {
+      setError('That username is taken.');
       return;
     }
     setSaving(true);
@@ -140,6 +179,15 @@ export default function EditProfileForm({ inputStyling, buttonStyling, cardStyli
             <p className="mt-1 text-xs text-gray-500">
               Lowercase letters, numbers, dot and underscore. 3–20 characters.
             </p>
+            {availability === 'checking' && (
+              <p className="mt-1 text-xs text-gray-400">Checking availability…</p>
+            )}
+            {availability === 'available' && (
+              <p className="mt-1 text-xs text-green-400">Username is available</p>
+            )}
+            {availability === 'taken' && (
+              <p className="mt-1 text-xs text-red-400">That username is taken</p>
+            )}
           </div>
 
           {error && <p className="text-sm text-red-400">{error}</p>}
@@ -161,7 +209,11 @@ export default function EditProfileForm({ inputStyling, buttonStyling, cardStyli
           )}
 
           <div className="pt-2">
-            <button type="submit" disabled={saving} className={buttonStyling}>
+            <button
+              type="submit"
+              disabled={saving || availability === 'taken'}
+              className={buttonStyling}
+            >
               {saving ? 'Saving…' : 'Save'}
             </button>
           </div>
