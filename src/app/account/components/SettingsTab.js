@@ -1,8 +1,5 @@
 'use client';
 
-import EditProfileForm from './EditProfileForm';
-import ProfileSongForm from './ProfileSongForm';
-
 export default function SettingsTab({
   inputStyling,
   buttonStyling,
@@ -33,22 +30,8 @@ export default function SettingsTab({
       <h2 className="mb-6 text-2xl font-bold text-white">Account Settings</h2>
 
       <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-5">
-        {/* Profile Handle & Bio + Password Change */}
+        {/* Password Change */}
         <div className="md:col-span-3">
-          <div className="mb-6">
-            <EditProfileForm
-              inputStyling={inputStyling}
-              buttonStyling={buttonStyling}
-              cardStyling={cardStyling}
-            />
-          </div>
-          <div className="mb-6">
-            <ProfileSongForm
-              inputStyling={inputStyling}
-              buttonStyling={buttonStyling}
-              cardStyling={cardStyling}
-            />
-          </div>
           <div className={`${cardStyling} mb-6`}>
             <h3 className="mb-4 text-xl font-medium text-white">Change Password</h3>
             {/* <form className="space-y-4" onSubmit={handlePasswordUpdate}> */}

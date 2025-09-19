@@ -6,6 +6,9 @@ import toast, { Toaster } from 'react-hot-toast';
 import removeProfileImage from '../../../../firebase/util/removeProfileImage';
 import uploadImage from '../../../../firebase/util/uploadImage';
 import { updateUserData } from '../../../../lib/utils/auth';
+import EditProfileForm from './EditProfileForm';
+import ProfileSongForm from './ProfileSongForm';
+// removed completeness meter Firestore reads
 
 export default function ProfileTab({
   userId,
@@ -174,6 +177,22 @@ export default function ProfileTab({
               </button>
             </div>
           </form>
+
+          {/* Username/Bio and Profile Song */}
+          <div className="mt-6">
+            <EditProfileForm
+              inputStyling={inputStyling}
+              buttonStyling={buttonStyling}
+              cardStyling={cardStyling}
+            />
+          </div>
+          <div className="mt-6">
+            <ProfileSongForm
+              inputStyling={inputStyling}
+              buttonStyling={buttonStyling}
+              cardStyling={cardStyling}
+            />
+          </div>
         </div>
 
         {/* Profile Picture and Account Details */}

@@ -2,7 +2,7 @@
 
 import { doc, getDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { useEffect, useRef, useState } from 'react';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import { useAuth } from '../../../../firebase/context/FirebaseContext';
 import { db } from '../../../../firebase/firebase';
 
@@ -20,6 +20,7 @@ export default function EditProfileForm({ inputStyling, buttonStyling, cardStyli
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
   const [username, setUsername] = useState('');
+  const [initialUsername, setInitialUsername] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [availability, setAvailability] = useState('unknown'); // unknown | checking | available | taken
@@ -38,7 +39,9 @@ export default function EditProfileForm({ inputStyling, buttonStyling, cardStyli
           const data = snap.exists() ? snap.data() : {};
           setDisplayName(data.displayName || currentUser.displayName || '');
           setBio(data.bio || '');
-          setUsername(data.usernameLower || '');
+          const existingUsername = data.usernameLower || '';
+          setUsername(existingUsername);
+          setInitialUsername(existingUsername);
           setLoading(false);
         }
       } catch (e) {
@@ -56,6 +59,12 @@ export default function EditProfileForm({ inputStyling, buttonStyling, cardStyli
   useEffect(() => {
     if (!currentUser) return;
     const desired = normalizeUsername(username);
+    // If unchanged from initial, no need to check and no banner needed
+    if (desired && desired === initialUsername) {
+      setAvailability('unknown');
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      return;
+    }
     // Reset for short inputs
     if (!desired || desired.length < 3) {
       setAvailability('unknown');
@@ -82,7 +91,7 @@ export default function EditProfileForm({ inputStyling, buttonStyling, cardStyli
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [username, currentUser]);
+  }, [username, currentUser, initialUsername]);
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -136,7 +145,7 @@ export default function EditProfileForm({ inputStyling, buttonStyling, cardStyli
 
   return (
     <div className={cardStyling}>
-      <h3 className="mb-4 text-xl font-medium text-white">Profile Handle & Bio</h3>
+      <h3 className="mb-4 text-xl font-medium text-white">Public Profile (Handle & Bio)</h3>
       {loading ? (
         <p className="text-gray-400">Loading…</p>
       ) : (
@@ -182,7 +191,7 @@ export default function EditProfileForm({ inputStyling, buttonStyling, cardStyli
             {availability === 'checking' && (
               <p className="mt-1 text-xs text-gray-400">Checking availability…</p>
             )}
-            {availability === 'available' && (
+            {availability === 'available' && username !== initialUsername && (
               <p className="mt-1 text-xs text-green-400">Username is available</p>
             )}
             {availability === 'taken' && (
@@ -219,7 +228,6 @@ export default function EditProfileForm({ inputStyling, buttonStyling, cardStyli
           </div>
         </form>
       )}
-      <Toaster position="bottom-center" />
     </div>
   );
 }
