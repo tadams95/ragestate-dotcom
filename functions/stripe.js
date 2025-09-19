@@ -538,6 +538,191 @@ app.post('/test-send-purchase-email', async (req, res) => {
   }
 });
 
+// Admin utility: manually create a ticket + purchase for a user and event
+app.post('/manual-create-ticket', async (req, res) => {
+  try {
+    const expectedProxyKey = PROXY_KEY.value() || process.env.PROXY_KEY;
+    if (expectedProxyKey) {
+      const provided = req.get('x-proxy-key');
+      if (!provided || provided !== expectedProxyKey) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+    }
+
+    const {
+      uid,
+      eventId: rawEventId,
+      eventName,
+      email,
+      name,
+      qty,
+      priceCents,
+      title,
+      createFulfillment,
+      paymentIntentId,
+      orderNumber: providedOrderNumber,
+      currency,
+    } = req.body || {};
+
+    if (!uid) return res.status(400).json({ error: 'uid required' });
+
+    const quantity = Math.max(1, parseInt(qty || 1, 10));
+    const amountCents = Math.max(0, parseInt(priceCents || 0, 10));
+    const amountStr = (amountCents / 100).toFixed(2);
+    const orderNumber = providedOrderNumber || generateOrderNumber();
+    const token = require('crypto').randomBytes(16).toString('hex');
+    const nowTs = admin.firestore.FieldValue.serverTimestamp();
+    const cur = (currency || 'usd').toLowerCase();
+
+    // Resolve eventId if not provided
+    let eventId = (rawEventId && String(rawEventId).trim()) || '';
+    if (!eventId && eventName) {
+      const snap = await db
+        .collection('events')
+        .where('name', '==', String(eventName))
+        .limit(2)
+        .get();
+      if (snap.empty) return res.status(404).json({ error: 'event not found by name' });
+      if (snap.size > 1)
+        return res.status(409).json({ error: 'multiple events match name; pass eventId' });
+      eventId = snap.docs[0].id;
+    }
+    if (!eventId) return res.status(400).json({ error: 'eventId or eventName required' });
+
+    const eventRef = db.collection('events').doc(eventId);
+    const ragersCol = eventRef.collection('ragers');
+    const ragerDoc = ragersCol.doc();
+
+    // Resolve email/name from customers/{uid} if missing
+    let resolvedEmail = (email && String(email)) || '';
+    let resolvedName = (name && String(name)) || '';
+    if (!resolvedEmail || !resolvedName) {
+      try {
+        const cust = await db.collection('customers').doc(uid).get();
+        const c = cust.exists ? cust.data() || {} : {};
+        if (!resolvedEmail) resolvedEmail = c.email || c.customerEmail || '';
+        if (!resolvedName) resolvedName = c.name || c.customerName || '';
+      } catch (_e) {}
+    }
+
+    // Ensure event exists and do atomic writes
+    try {
+      await db.runTransaction(async (tx) => {
+        const evt = await tx.get(eventRef);
+        if (!evt.exists) throw new Error('Event not found');
+        const data = evt.data() || {};
+        const currentQty = typeof data.quantity === 'number' ? data.quantity : 0;
+        const newQty = Math.max(0, currentQty - quantity);
+        tx.update(eventRef, { quantity: newQty });
+
+        const rager = {
+          active: true,
+          email: resolvedEmail || '',
+          firebaseId: uid,
+          owner: resolvedName || '',
+          purchaseDate: nowTs,
+          orderNumber,
+          ticketQuantity: quantity,
+          paymentIntentId: paymentIntentId || `pi_manual_${Date.now()}`,
+          ticketToken: token,
+          usedCount: 0,
+        };
+        tx.set(ragerDoc, rager);
+        tx.set(db.collection('ticketTokens').doc(token), {
+          eventId,
+          ragerId: ragerDoc.id,
+          createdAt: nowTs,
+        });
+      });
+    } catch (e) {
+      logger.error('manual-create-ticket transaction failed', { message: e?.message });
+      return res.status(500).json({ error: 'transaction failed', message: e?.message });
+    }
+
+    const purchaseDoc = {
+      addressDetails: null,
+      customerEmail: resolvedEmail || null,
+      customerId: uid,
+      customerName: resolvedName || null,
+      itemCount: 1,
+      items: [
+        {
+          productId: eventId,
+          title: title || eventId,
+          price: amountCents / 100,
+          quantity,
+          productImageSrc: null,
+          color: null,
+          size: null,
+          eventDetails: null,
+        },
+      ],
+      orderDate: nowTs,
+      orderNumber,
+      paymentIntentId: paymentIntentId || `pi_manual_${Date.now()}`,
+      status: 'completed',
+      totalAmount: amountStr,
+      currency: cur,
+      discountAmount: 0,
+      promoCodeUsed: null,
+      createdAt: nowTs,
+    };
+
+    try {
+      await db.collection('purchases').doc(orderNumber).set(purchaseDoc, { merge: true });
+      await db
+        .collection('customers')
+        .doc(uid)
+        .collection('purchases')
+        .doc(orderNumber)
+        .set(
+          Object.assign({}, purchaseDoc, {
+            dateTime: nowTs,
+            name: purchaseDoc.customerName,
+            email: purchaseDoc.customerEmail,
+            stripeId: purchaseDoc.paymentIntentId,
+            cartItems: purchaseDoc.items,
+            total: amountStr,
+          }),
+          { merge: true },
+        );
+    } catch (e) {
+      logger.warn('manual-create-ticket: purchase writes failed', { message: e?.message });
+    }
+
+    if (createFulfillment) {
+      try {
+        await db
+          .collection('fulfillments')
+          .doc(purchaseDoc.paymentIntentId)
+          .set(
+            {
+              status: 'completed',
+              completedAt: admin.firestore.FieldValue.serverTimestamp(),
+              createdTickets: 1,
+              details: [{ eventId, ragerId: ragerDoc.id, qty: quantity, orderNumber }],
+              orderNumber,
+              email: resolvedEmail || '',
+              items: [{ title: title || eventId, productId: eventId, quantity }],
+              amount: amountCents,
+              currency: cur,
+            },
+            { merge: true },
+          );
+      } catch (e) {
+        logger.warn('manual-create-ticket: fulfillment write failed (non-fatal)', {
+          message: e?.message,
+        });
+      }
+    }
+
+    return res.json({ ok: true, orderNumber, eventId, qty: quantity, email: resolvedEmail });
+  } catch (err) {
+    logger.error('manual-create-ticket error', err);
+    return res.status(500).json({ error: 'Failed' });
+  }
+});
+
 // Scan ticket: atomically consume one use for a rager identified by ticketToken
 app.post('/scan-ticket', async (req, res) => {
   try {

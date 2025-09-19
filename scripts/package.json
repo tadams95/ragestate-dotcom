@@ -10,7 +10,9 @@
     "sync:photos:live": "node syncProfilePictures.js --live",
     "sync:photos:overwrite": "node syncProfilePictures.js --live --overwrite",
     "backfill:usernames:dry": "node backfillUsernames.js",
-    "backfill:usernames:live": "node backfillUsernames.js --live"
+    "backfill:usernames:live": "node backfillUsernames.js --live",
+    "manual:create-ticket": "node manualCreateTicket.js",
+    "manual:create-ticket:fulfillment": "node manualCreateTicket.js --createFulfillment"
   },
   "dependencies": {
     "firebase-admin": "^11.10.1"
