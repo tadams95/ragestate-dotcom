@@ -6,6 +6,7 @@ import { db } from '../../../../firebase/firebase';
 
 export default function ScannerPage() {
   const [result, setResult] = useState(null);
+  const [preview, setPreview] = useState(null);
   const [error, setError] = useState('');
   const [eventId, setEventId] = useState('');
   const [prefs, setPrefs] = useState({ sound: true, haptics: true });
@@ -86,6 +87,7 @@ export default function ScannerPage() {
       try {
         setError('');
         setResult(null);
+        setPreview(null);
         const cleaned = String(token || '').trim();
         if (!cleaned) {
           setError('No token provided');
@@ -128,6 +130,30 @@ export default function ScannerPage() {
         const reqBody = useUserId
           ? { userId: extracted, eventId: eventId || undefined, scannerId: 'admin-scanner' }
           : { token: extracted, scannerId: 'admin-scanner' };
+
+        // For userId scans, fetch a non-mutating preview first to display aggregate info
+        if (useUserId) {
+          try {
+            const previewResp = await fetch(`${baseUrl}/scan-ticket/preview`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-proxy-key': proxyKey,
+              },
+              cache: 'no-store',
+              credentials: 'omit',
+              body: JSON.stringify({ userId: extracted, eventId }),
+            });
+            if (previewResp.ok) {
+              const p = await previewResp.json();
+              setPreview(p);
+            } else {
+              setPreview(null);
+            }
+          } catch (_) {
+            setPreview(null);
+          }
+        }
         const resp = await fetch(url, {
           method: 'POST',
           headers: {
@@ -391,7 +417,7 @@ export default function ScannerPage() {
             {toast.message}
           </div>
         )}
-        <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-[#34363a] bg-black">
+        <div className="aspect-video relative w-full overflow-hidden rounded-xl border border-[#34363a] bg-black">
           <video ref={videoRef} className="h-full w-full object-cover" muted playsInline />
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(transparent,transparent,rgba(0,0,0,0.4))]" />
           <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-2">
@@ -531,6 +557,23 @@ export default function ScannerPage() {
               <div className="text-gray-100">{result.remaining}</div>
             </div>
           </div>
+          {preview && (
+            <div className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+              <div className="rounded-lg border border-[#34363a] bg-[#0d0d0f] p-2">
+                <div className="text-xs text-gray-400">Aggregate Remaining (pre-scan)</div>
+                <div className="text-gray-100">{preview.remainingTotal}</div>
+              </div>
+              <div className="rounded-lg border border-[#34363a] bg-[#0d0d0f] p-2">
+                <div className="text-xs text-gray-400">Next Candidate</div>
+                <div className="truncate text-gray-100">
+                  {preview.nextCandidate?.ragerId || '—'}
+                  {typeof preview.nextCandidate?.remaining === 'number'
+                    ? ` · remaining ${preview.nextCandidate.remaining}`
+                    : ''}
+                </div>
+              </div>
+            </div>
+          )}
         </section>
       )}
 

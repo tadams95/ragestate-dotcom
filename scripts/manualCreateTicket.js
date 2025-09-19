@@ -29,7 +29,7 @@ Notes:
 import crypto from 'crypto';
 import admin from 'firebase-admin';
 import fs from 'fs';
-import { dirname } from 'path';
+import path, { dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -46,9 +46,31 @@ if (!admin.apps.length) {
     return out;
   })();
   if (earlyArgs.projectId) opts.projectId = earlyArgs.projectId;
-  if (earlyArgs.credentials) {
+
+  // Resolve credentials path: CLI flag → env var → default .secrets path
+  let credPath = earlyArgs.credentials || '';
+  if (!credPath) {
+    const envCred = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    if (envCred && fs.existsSync(envCred)) credPath = envCred;
+  }
+  if (!credPath) {
+    const defaultCred = path.join(
+      __dirname,
+      '../.secrets/ragestate-app-firebase-adminsdk-en4dj-67ffd1c011.json',
+    );
+    if (fs.existsSync(defaultCred)) credPath = defaultCred;
+    else {
+      const cwdDefault = path.join(
+        process.cwd(),
+        '.secrets/ragestate-app-firebase-adminsdk-en4dj-67ffd1c011.json',
+      );
+      if (fs.existsSync(cwdDefault)) credPath = cwdDefault;
+    }
+  }
+
+  if (credPath) {
     try {
-      const json = fs.readFileSync(earlyArgs.credentials, 'utf8');
+      const json = fs.readFileSync(credPath, 'utf8');
       const serviceAccount = JSON.parse(json);
       admin.initializeApp({ credential: admin.credential.cert(serviceAccount), ...opts });
     } catch (e) {

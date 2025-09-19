@@ -362,6 +362,20 @@ app.post('/finalize-order', async (req, res) => {
             ragerId: ragerDoc.id,
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
           });
+          // Update event-user summary totals (userId-first model)
+          const summaryRef = db
+            .collection('eventUsers')
+            .doc(eventId)
+            .collection('users')
+            .doc(firebaseId);
+          tx.set(
+            summaryRef,
+            {
+              totalTickets: admin.firestore.FieldValue.increment(qty),
+              lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+            },
+            { merge: true },
+          );
           created.push({ eventId, ragerId: ragerDoc.id, qty, newQty });
         });
       } catch (e) {
@@ -633,6 +647,16 @@ app.post('/manual-create-ticket', async (req, res) => {
           ragerId: ragerDoc.id,
           createdAt: nowTs,
         });
+        // Update event-user summary totals (userId-first model)
+        const summaryRef = db.collection('eventUsers').doc(eventId).collection('users').doc(uid);
+        tx.set(
+          summaryRef,
+          {
+            totalTickets: admin.firestore.FieldValue.increment(quantity),
+            lastUpdated: nowTs,
+          },
+          { merge: true },
+        );
       });
     } catch (e) {
       logger.error('manual-create-ticket transaction failed', { message: e?.message });
@@ -805,28 +829,33 @@ app.post('/scan-ticket', async (req, res) => {
             message: 'No rager found for user at event',
           });
         }
-        // Choose the first active doc with remaining uses; if none remain, use the first for conflict response
-        let chosenDoc = null;
-        let fallbackDoc = qs.docs[0];
-        for (const d of qs.docs) {
-          const data = d.data() || {};
-          const qty = Math.max(1, parseInt(data.ticketQuantity || 1, 10));
-          const used = Math.max(0, parseInt(data.usedCount || 0, 10));
-          const active = data.active !== false && used < qty;
-          if (active) {
-            chosenDoc = d;
-            break;
-          }
-        }
-        if (!chosenDoc) {
-          // None available to use
-          const data = fallbackDoc.data() || {};
-          const qty = Math.max(1, parseInt(data.ticketQuantity || 1, 10));
-          const used = Math.max(0, parseInt(data.usedCount || 0, 10));
+        // Deterministic selection: choose doc with greatest remaining; tiebreaker earliest purchaseDate then lexicographic id
+        const enriched = qs.docs.map((d) => {
+          const v = d.data() || {};
+          const qty = Math.max(1, parseInt(v.ticketQuantity || 1, 10));
+          const used = Math.max(0, parseInt(v.usedCount || 0, 10));
           const remaining = Math.max(0, qty - used);
-          return res.status(409).json({ error: 'Ticket already used', remaining });
+          return {
+            doc: d,
+            remaining,
+            purchaseDate: v.purchaseDate && v.purchaseDate.toMillis ? v.purchaseDate.toMillis() : 0,
+          };
+        });
+        const remainingTotal = enriched.reduce((acc, e) => acc + e.remaining, 0);
+        if (remainingTotal <= 0) {
+          const first = enriched[0];
+          return res
+            .status(409)
+            .json({ error: 'Ticket already used', remaining: 0, remainingTotal: 0 });
         }
-        ragerRef = chosenDoc.ref;
+        enriched.sort((a, b) => {
+          if (b.remaining !== a.remaining) return b.remaining - a.remaining;
+          if (a.purchaseDate !== b.purchaseDate) return a.purchaseDate - b.purchaseDate;
+          return a.doc.id.localeCompare(b.doc.id);
+        });
+        ragerRef = enriched[0].doc.ref;
+        // Stash for later response
+        req.__remainingTotalBefore = remainingTotal;
       } catch (e) {
         logger.error('scan-ticket query by userId failed', { message: e?.message, code: e?.code });
         return res.status(500).json({ error: 'Lookup failed', message: e?.message, code: e?.code });
@@ -845,6 +874,7 @@ app.post('/scan-ticket', async (req, res) => {
       const data = fresh.data() || {};
       const quantity = Math.max(1, parseInt(data.ticketQuantity || 1, 10));
       const usedCount = Math.max(0, parseInt(data.usedCount || 0, 10));
+      const uidForSummary = data.firebaseId || userId || '';
       const active = data.active !== false && usedCount < quantity;
       if (!active) {
         result = { status: 409, body: { error: 'Ticket already used', remaining: 0 } };
@@ -861,6 +891,23 @@ app.post('/scan-ticket', async (req, res) => {
         update.lastScannedBy = scannerId;
       }
       tx.update(ragerRef, update);
+      // Update event-user summary if available (no reads; atomic increment)
+      const eventIdForSummary = parentEventId;
+      if (eventIdForSummary && uidForSummary) {
+        const summaryRef = db
+          .collection('eventUsers')
+          .doc(eventIdForSummary)
+          .collection('users')
+          .doc(uidForSummary);
+        tx.set(
+          summaryRef,
+          {
+            usedCount: admin.firestore.FieldValue.increment(1),
+            lastScanAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true },
+        );
+      }
       result = {
         status: 200,
         body: {
@@ -868,6 +915,10 @@ app.post('/scan-ticket', async (req, res) => {
           eventId: parentEventId,
           ragerId: ragerRef.id,
           remaining: Math.max(0, quantity - nextUsed),
+          remainingTotal:
+            typeof req.__remainingTotalBefore === 'number'
+              ? Math.max(0, req.__remainingTotalBefore - 1)
+              : undefined,
           status: nextActive ? 'active' : 'inactive',
         },
       };
@@ -886,6 +937,60 @@ app.post('/scan-ticket', async (req, res) => {
     return res
       .status(500)
       .json({ error: 'Failed to scan ticket', message: err?.message, code: err?.code });
+  }
+});
+
+// Preview tickets for a user at an event (no mutation)
+app.post('/scan-ticket/preview', async (req, res) => {
+  try {
+    const expectedProxyKey = PROXY_KEY.value() || process.env.PROXY_KEY;
+    if (expectedProxyKey) {
+      const provided = req.get('x-proxy-key');
+      if (!provided || provided !== expectedProxyKey) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+    }
+
+    const { userId, eventId } = req.body || {};
+    if (!userId || !eventId) {
+      return res.status(400).json({ error: 'userId and eventId required' });
+    }
+
+    const ragersRef = db.collection('events').doc(eventId).collection('ragers');
+    const qs = await ragersRef.where('firebaseId', '==', userId).get();
+    if (qs.empty) {
+      return res.json({ ok: true, eventId, userId, remainingTotal: 0, items: [], next: null });
+    }
+
+    const items = qs.docs.map((d) => {
+      const v = d.data() || {};
+      const qty = Math.max(1, parseInt(v.ticketQuantity || 1, 10));
+      const used = Math.max(0, parseInt(v.usedCount || 0, 10));
+      const remaining = Math.max(0, qty - used);
+      const ts = v.purchaseDate && v.purchaseDate.toMillis ? v.purchaseDate.toMillis() : 0;
+      return {
+        ragerId: d.id,
+        remaining,
+        ticketQuantity: qty,
+        usedCount: used,
+        active: v.active !== false && remaining > 0,
+        purchaseDate: ts || null,
+      };
+    });
+
+    const remainingTotal = items.reduce((acc, i) => acc + i.remaining, 0);
+    const sorted = items.slice().sort((a, b) => {
+      if (b.remaining !== a.remaining) return b.remaining - a.remaining;
+      if ((a.purchaseDate || 0) !== (b.purchaseDate || 0))
+        return (a.purchaseDate || 0) - (b.purchaseDate || 0);
+      return a.ragerId.localeCompare(b.ragerId);
+    });
+    const next = sorted.find((i) => i.active) || null;
+
+    return res.json({ ok: true, eventId, userId, remainingTotal, items, next });
+  } catch (err) {
+    logger.error('scan-ticket/preview error', { message: err?.message, code: err?.code });
+    return res.status(500).json({ error: 'Failed to preview tickets', message: err?.message });
   }
 });
 
@@ -1003,6 +1108,141 @@ app.post('/backfill-ticket-tokens', async (req, res) => {
   } catch (err) {
     logger.error('backfill-ticket-tokens error', err);
     return res.status(500).json({ error: 'Failed to backfill' });
+  }
+});
+
+// Admin: reconcile eventUsers summaries for a specific event from ragers
+app.post('/reconcile-event-users', async (req, res) => {
+  try {
+    const expectedProxyKey = PROXY_KEY.value() || process.env.PROXY_KEY;
+    if (expectedProxyKey) {
+      const provided = req.get('x-proxy-key');
+      if (!provided || provided !== expectedProxyKey) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+    }
+
+    const { eventId, dryRun } = req.body || {};
+    if (!eventId || typeof eventId !== 'string') {
+      return res.status(400).json({ error: 'eventId required' });
+    }
+
+    // Gather per-user aggregates from ragers
+    const ragersRef = db.collection('events').doc(eventId).collection('ragers');
+    const snap = await ragersRef.get();
+    if (snap.empty) {
+      return res.json({ ok: true, eventId, processedUsers: 0, updatedUsers: 0, dryRun: !!dryRun });
+    }
+
+    const perUser = new Map();
+    snap.docs.forEach((d) => {
+      const v = d.data() || {};
+      const uid = String(v.firebaseId || '').trim();
+      if (!uid) return;
+      const qty = Math.max(1, parseInt(v.ticketQuantity || 1, 10));
+      const used = Math.max(0, parseInt(v.usedCount || 0, 10));
+      const lastScanAt = v.lastScanAt || null;
+      if (!perUser.has(uid)) {
+        perUser.set(uid, {
+          totalTickets: 0,
+          usedCount: 0,
+          lastScanAt: lastScanAt,
+        });
+      }
+      const agg = perUser.get(uid);
+      agg.totalTickets += qty;
+      agg.usedCount += used;
+      if (
+        lastScanAt &&
+        lastScanAt.toMillis &&
+        (!agg.lastScanAt ||
+          (agg.lastScanAt.toMillis && lastScanAt.toMillis() > agg.lastScanAt.toMillis()))
+      ) {
+        agg.lastScanAt = lastScanAt;
+      }
+    });
+
+    const users = Array.from(perUser.keys());
+    let processedUsers = users.length;
+    let updatedUsers = 0;
+    const samples = [];
+
+    let batch = db.batch();
+    let batchCount = 0;
+
+    // For each user, compare with existing summary and write if different
+    for (const uid of users) {
+      const target = perUser.get(uid);
+      const summaryRef = db.collection('eventUsers').doc(eventId).collection('users').doc(uid);
+      let prevTotal = null;
+      let prevUsed = null;
+      try {
+        const s = await summaryRef.get();
+        if (s.exists) {
+          const sd = s.data() || {};
+          prevTotal = typeof sd.totalTickets === 'number' ? sd.totalTickets : null;
+          prevUsed = typeof sd.usedCount === 'number' ? sd.usedCount : null;
+        }
+      } catch (_e) {}
+
+      const needsUpdate = prevTotal !== target.totalTickets || prevUsed !== target.usedCount;
+      if (needsUpdate) {
+        updatedUsers += 1;
+        if (samples.length < 10) {
+          samples.push({
+            uid,
+            prev: { totalTickets: prevTotal, usedCount: prevUsed },
+            next: { totalTickets: target.totalTickets, usedCount: target.usedCount },
+          });
+        }
+        if (!dryRun) {
+          const payload = {
+            totalTickets: target.totalTickets,
+            usedCount: Math.min(target.totalTickets, target.usedCount),
+            lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+          };
+          if (target.lastScanAt) payload.lastScanAt = target.lastScanAt;
+          batch.set(summaryRef, payload, { merge: true });
+          batchCount += 1;
+          if (batchCount >= 400) {
+            await batch.commit();
+            batch = db.batch();
+            batchCount = 0;
+          }
+        }
+      }
+    }
+
+    if (!dryRun && batchCount > 0) {
+      await batch.commit();
+    }
+
+    // Write an audit record for non-dry runs
+    if (!dryRun) {
+      try {
+        const runId = `run-${Date.now()}`;
+        await db.collection('reconciliations').doc(eventId).collection('runs').doc(runId).set(
+          {
+            eventId,
+            processedUsers,
+            updatedUsers,
+            samples,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true },
+        );
+      } catch (e) {
+        logger.warn('reconcile-event-users: failed to write audit record (non-fatal)', {
+          message: e?.message,
+        });
+      }
+    }
+
+    logger.info('reconcile-event-users completed', { eventId, processedUsers, updatedUsers });
+    return res.json({ ok: true, eventId, processedUsers, updatedUsers, dryRun: !!dryRun, samples });
+  } catch (err) {
+    logger.error('reconcile-event-users error', err);
+    return res.status(500).json({ error: 'Failed to reconcile', message: err?.message });
   }
 });
 

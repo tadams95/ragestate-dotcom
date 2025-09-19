@@ -4,7 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useInView } from 'react-intersection-observer';
-import Header from '../components/Header';
+
 const Home3DAnimation = dynamic(() => import('../components/animations/home-3d-animation'), {
   ssr: false,
   loading: () => null,
@@ -88,7 +88,6 @@ export default function Home() {
           scrolled ? 'bg-black/80 backdrop-blur-md' : ''
         }`}
       >
-        <Header /> {/* Added Header component here */}
         {/* Added pt-20 to create space below the header */}
         <div className="container mx-auto flex justify-center px-4 py-4 pt-20">
           <div className="flex items-center space-x-2 sm:space-x-6">
