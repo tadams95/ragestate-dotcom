@@ -233,6 +233,14 @@ export default function ScannerPage() {
         // Create scanner
         const video = videoRef.current;
         if (!video) return;
+        if (scannerRef.current) {
+          // Already initialized (e.g., React StrictMode double-effect) — ensure it's running
+          try {
+            await scannerRef.current.start();
+            await scannerRef.current.setCamera('environment').catch(() => {});
+          } catch {}
+          return;
+        }
         const scanner = new QrScanner(
           video,
           async (scanResult) => {
@@ -248,11 +256,7 @@ export default function ScannerPage() {
         // Try to start immediately; on iOS or permission errors, fall back to manual start
         try {
           await scanner.start();
-          if (selectedDeviceId) {
-            await scanner.setCamera(selectedDeviceId);
-          } else {
-            await scanner.setCamera('environment').catch(() => {});
-          }
+          await scanner.setCamera('environment').catch(() => {});
         } catch (e) {
           // Some browsers (iOS) require a user gesture to start camera or explicit permission first
           if (!disposed) {
@@ -265,10 +269,24 @@ export default function ScannerPage() {
           const cams = await QrScanner.listCameras(true);
           if (!disposed) {
             setDevices(cams || []);
-            if (cams?.length && !selectedDeviceId) {
+            if (cams?.length) {
+              let saved = '';
+              try {
+                saved = localStorage.getItem('scannerCameraId') || '';
+              } catch {}
               const preferred =
                 cams.find((c) => /back|rear|environment/i.test(c.label || ''))?.id || cams[0].id;
-              setSelectedDeviceId(preferred);
+              const initial = saved && cams.some((c) => c.id === saved) ? saved : preferred;
+              setSelectedDeviceId((prev) => prev || initial);
+              try {
+                localStorage.setItem('scannerCameraId', initial);
+              } catch {}
+              // Apply the chosen camera immediately if scanner exists
+              if (scannerRef.current) {
+                try {
+                  await scannerRef.current.setCamera(initial);
+                } catch {}
+              }
             }
           }
         } catch {}
@@ -288,7 +306,53 @@ export default function ScannerPage() {
       if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
       if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
     };
-  }, [submitToken, selectedDeviceId]);
+  }, [submitToken]);
+
+  // On tab visibility changes (iOS/Safari), restart the camera if it was stopped by the browser
+  useEffect(() => {
+    const onVis = async () => {
+      if (typeof document === 'undefined') return;
+      if (document.visibilityState !== 'visible') return;
+      const scanner = scannerRef.current;
+      if (!scanner) return;
+      try {
+        await scanner.start();
+        if (selectedDeviceId) {
+          await scanner.setCamera(selectedDeviceId).catch(() => {});
+        }
+      } catch {}
+    };
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', onVis);
+    }
+    return () => {
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', onVis);
+      }
+    };
+  }, [selectedDeviceId]);
+
+  // Heartbeat: if video tracks stop (browser paused stream), try to restart
+  useEffect(() => {
+    const id = setInterval(async () => {
+      try {
+        const video = videoRef.current;
+        const stream = video && video.srcObject;
+        const tracks = stream?.getVideoTracks ? stream.getVideoTracks() : [];
+        const live = tracks.some((t) => t.readyState === 'live');
+        if (!live) {
+          const scanner = scannerRef.current;
+          if (scanner) {
+            await scanner.start();
+            if (selectedDeviceId) {
+              await scanner.setCamera(selectedDeviceId).catch(() => {});
+            }
+          }
+        }
+      } catch {}
+    }, 7000);
+    return () => clearInterval(id);
+  }, [selectedDeviceId]);
 
   // Load events for dropdown
   useEffect(() => {
@@ -359,6 +423,9 @@ export default function ScannerPage() {
 
   const onChangeCamera = async (deviceId) => {
     setSelectedDeviceId(deviceId);
+    try {
+      localStorage.setItem('scannerCameraId', deviceId || '');
+    } catch {}
     const scanner = scannerRef.current;
     if (scanner) {
       try {
