@@ -104,6 +104,15 @@ export default function ScannerPage() {
         const hasTokenMarker = /(^rtk:)|([?&]tk=)/i.test(cleaned);
         const useUserId = !hasTokenMarker && !isHexLike;
 
+        // Resolve eventId with a fallback to localStorage (avoids stale state during rapid scans)
+        let resolvedEventId = eventId;
+        if (!resolvedEventId && typeof window !== 'undefined') {
+          try {
+            const saved = localStorage.getItem('scannerEventId') || '';
+            if (saved) resolvedEventId = saved;
+          } catch {}
+        }
+
         // Throttle duplicate scans of the same token within a short window
         const now = Date.now();
         if (lastTokenRef.current.token === extracted && now - lastTokenRef.current.ts < 2000) {
@@ -123,12 +132,12 @@ export default function ScannerPage() {
         }
         const url = `${baseUrl}/scan-ticket`;
         // Build body based on detection
-        if (useUserId && !eventId) {
+        if (useUserId && !resolvedEventId) {
           setError('Event ID required to scan by user ID');
           return;
         }
         const reqBody = useUserId
-          ? { userId: extracted, eventId: eventId || undefined, scannerId: 'admin-scanner' }
+          ? { userId: extracted, eventId: resolvedEventId || undefined, scannerId: 'admin-scanner' }
           : { token: extracted, scannerId: 'admin-scanner' };
 
         // For userId scans, fetch a non-mutating preview first to display aggregate info
@@ -142,7 +151,7 @@ export default function ScannerPage() {
               },
               cache: 'no-store',
               credentials: 'omit',
-              body: JSON.stringify({ userId: extracted, eventId }),
+              body: JSON.stringify({ userId: extracted, eventId: resolvedEventId }),
             });
             if (previewResp.ok) {
               const p = await previewResp.json();
