@@ -430,9 +430,9 @@ export default function Feed({ forcePublic = false }) {
           <PostSkeleton />
         </div>
       )}
-      {!loading && !hasMore && posts.length > 0 && (
-        <p className="py-4 text-center text-gray-500">You've reached the end!</p>
-      )}
+      {/* {!loading && !hasMore && posts.length > 0 && (
+        <p className="py-4 text-center text-gray-500">This is the beginning!</p>
+      )} */}
     </div>
   );
 }

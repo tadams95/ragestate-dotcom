@@ -1,23 +1,16 @@
-'use client';
-
-import dynamic from 'next/dynamic';
+import Feed from './components/Feed';
 import Header from './components/Header';
-
-const Home3DAnimation = dynamic(() => import('./components/animations/home-3d-animation'), {
-  ssr: false,
-  loading: () => null,
-});
+import PostComposer from './components/PostComposer';
 
 export default function Home() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-black text-white">
-      <div className="fixed inset-0 z-0">
-        <Home3DAnimation intensity={1} color="#EF4E4E" />
-      </div>
+    <div className="isolate min-h-screen bg-black px-4 pb-12 pt-24 text-white sm:px-6 sm:pb-24 lg:px-8">
       <Header />
-      <main className="relative z-10 flex min-h-screen items-center justify-center pt-20">
-        <h3 className="text-xl font-semibold tracking-wide md:text-xl">tonight</h3>
-      </main>
+      <h1 className="mb-8 text-center text-[clamp(18px,5vw,20px)] font-bold tracking-tight sm:text-4xl">
+        Feed
+      </h1>
+      <PostComposer />
+      <Feed />
     </div>
   );
 }

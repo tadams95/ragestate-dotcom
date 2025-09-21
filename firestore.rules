@@ -181,8 +181,8 @@ service cloud.firestore {
         && (!request.resource.data.keys().hasAny(['likeCount']) || request.resource.data.likeCount == 0)
         && (!request.resource.data.keys().hasAny(['commentCount']) || request.resource.data.commentCount == 0);
 
-      // Update/Delete: only author; lock immutable/counter fields from client edits
-      allow update, delete: if isAuthenticated()
+      // Update: only author; lock immutable/counter fields from client edits
+      allow update: if isAuthenticated()
         && resource.data.userId == request.auth.uid
         && request.resource.data.userId == resource.data.userId
         && request.resource.data.timestamp == resource.data.timestamp
@@ -195,6 +195,11 @@ service cloud.firestore {
         && (!request.resource.data.keys().hasAny(['isPublic']) || isBool(request.resource.data.isPublic))
         && (!request.resource.data.keys().hasAny(['edited']) || isBool(request.resource.data.edited))
         && (!request.resource.data.keys().hasAny(['updatedAt']) || isTimestamp(request.resource.data.updatedAt));
+
+      // Delete: author (or admin) may delete their post
+      allow delete: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
     }
 
     // Feed: postLikes (per user like doc)
