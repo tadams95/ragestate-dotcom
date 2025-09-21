@@ -135,7 +135,7 @@ export default function ProfileView({ params }) {
         return {
           id: d.id,
           userId: p.userId,
-          author: p.userDisplayName || p.userId || 'User',
+          author: p.usernameLower ? p.usernameLower : p.userDisplayName || p.userId || 'User',
           avatarUrl: p.userProfilePicture || null,
           timestamp: formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp),
           content: p.content || '',
@@ -219,7 +219,7 @@ export default function ProfileView({ params }) {
                         {profile.displayName || 'User'}
                       </h1>
                       {profile.usernameLower && (
-                        <p className="text-xs text-gray-500">@{profile.usernameLower}</p>
+                        <p className="text-xs text-gray-500">{profile.usernameLower}</p>
                       )}
                     </>
                   )}

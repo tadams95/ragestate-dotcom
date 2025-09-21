@@ -197,7 +197,7 @@ export default function CommentsSheet({ postId, onClose }) {
                     >
                       {c.userDisplayName ||
                         (c.usernameLower
-                          ? `@${c.usernameLower}`
+                          ? `${c.usernameLower}`
                           : currentUser && c.userId === currentUser.uid
                             ? localUserName || currentUser.displayName || 'You'
                             : `uid:${String(c.userId).slice(0, 8)}`)}

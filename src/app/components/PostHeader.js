@@ -22,11 +22,11 @@ export default function PostHeader({
   const displayName =
     author ||
     (usernameLower
-      ? `@${usernameLower}`
+      ? `${usernameLower}`
       : authorUserId
         ? `uid:${String(authorUserId).slice(0, 8)}`
         : '');
-  const altText = `${usernameLower ? `@${usernameLower}` : author || 'user'} avatar`;
+  const altText = `${usernameLower ? `${usernameLower}` : author || 'user'} avatar`;
   return (
     <div className="mb-2 flex items-center justify-between">
       <div className="flex items-center space-x-2">
@@ -67,7 +67,7 @@ export default function PostHeader({
               prefetch={false}
               className="text-[15px] font-semibold leading-5 text-white hover:underline active:opacity-90"
             >
-              {displayName || `@${usernameLower}`}
+              {displayName || `${usernameLower}`}
             </Link>
           ) : (
             <p className="text-[15px] font-semibold leading-5 text-white">

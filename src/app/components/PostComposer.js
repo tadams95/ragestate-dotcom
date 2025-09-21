@@ -176,7 +176,9 @@ export default function PostComposer() {
       try {
         const newPost = {
           id: postRef.id,
-          author: payload.userDisplayName || payload.userId || 'User',
+          author: payload.usernameLower
+            ? payload.usernameLower
+            : payload.userDisplayName || payload.userId || 'User',
           avatarUrl: payload.userProfilePicture || null,
           timestamp: 'Just now',
           content: payload.content,

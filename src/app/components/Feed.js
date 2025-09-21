@@ -106,7 +106,7 @@ export default function Feed({ forcePublic = false }) {
             const mapped = {
               id: d.id,
               userId: p.userId,
-              author: p.userDisplayName || (p.usernameLower ? `@${p.usernameLower}` : p.userId),
+              author: p.usernameLower ? p.usernameLower : p.userDisplayName || p.userId,
               avatarUrl: p.userProfilePicture || null,
               usernameLower: p.usernameLower || undefined,
               timestamp: formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp),
@@ -140,7 +140,7 @@ export default function Feed({ forcePublic = false }) {
             const mapped = {
               id: d.id,
               userId: p.userId,
-              author: p.userDisplayName || (p.usernameLower ? `@${p.usernameLower}` : p.userId),
+              author: p.usernameLower ? p.usernameLower : p.userDisplayName || p.userId,
               avatarUrl: p.userProfilePicture || null,
               usernameLower: p.usernameLower || undefined,
               timestamp: formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp),
@@ -173,7 +173,7 @@ export default function Feed({ forcePublic = false }) {
                 const mapped = {
                   id: postSnap.id,
                   userId: p.userId,
-                  author: p.userDisplayName || (p.usernameLower ? `@${p.usernameLower}` : p.userId),
+                  author: p.usernameLower ? p.usernameLower : p.userDisplayName || p.userId,
                   avatarUrl: p.userProfilePicture || null,
                   usernameLower: p.usernameLower || undefined,
                   timestamp: formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp),
@@ -257,7 +257,7 @@ export default function Feed({ forcePublic = false }) {
             return {
               id: d.id,
               userId: p.userId,
-              author: p.userDisplayName || (p.usernameLower ? `@${p.usernameLower}` : p.userId),
+              author: p.usernameLower ? p.usernameLower : p.userDisplayName || p.userId,
               avatarUrl: p.userProfilePicture || null,
               usernameLower: p.usernameLower || undefined,
               timestamp: formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp),
@@ -293,7 +293,7 @@ export default function Feed({ forcePublic = false }) {
             .map((p) => ({
               id: p.id,
               userId: p.userId,
-              author: p.userDisplayName || (p.usernameLower ? `@${p.usernameLower}` : p.userId),
+              author: p.usernameLower ? p.usernameLower : p.userDisplayName || p.userId,
               avatarUrl: p.userProfilePicture || null,
               usernameLower: p.usernameLower || undefined,
               timestamp: formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp),

@@ -34,8 +34,8 @@ export default function ProfilePage({ params }) {
     usernameLower: '',
     profileSongUrl: '',
   });
-  const [followersCount, setFollowersCount] = useState(0);
-  const [followingCount, setFollowingCount] = useState(0);
+  const [_followersCount, _setFollowersCount] = useState(0);
+  const [_followingCount, _setFollowingCount] = useState(0);
 
   const [posts, setPosts] = useState([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
@@ -156,7 +156,7 @@ export default function ProfilePage({ params }) {
         const p = d.data();
         return {
           id: d.id,
-          author: p.userDisplayName || p.userId || 'User',
+          author: p.usernameLower ? p.usernameLower : p.userDisplayName || p.userId || 'User',
           avatarUrl: p.userProfilePicture || null,
           timestamp: formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp),
           content: p.content || '',
@@ -192,7 +192,7 @@ export default function ProfilePage({ params }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resolvedUid]);
 
-  const isOwnProfile = currentUser?.uid === resolvedUid;
+  const _isOwnProfile = currentUser?.uid === resolvedUid;
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -232,7 +232,7 @@ export default function ProfilePage({ params }) {
                     {profile.displayName || 'User'}
                   </h1>
                   {profile.usernameLower && (
-                    <p className="text-xs text-gray-500">@{profile.usernameLower}</p>
+                    <p className="text-xs text-gray-500">{profile.usernameLower}</p>
                   )}
                   {/* uncomment to reveal followers/following counts */}
                   {/* <div className="mt-2 flex items-center gap-4 text-sm text-gray-400">

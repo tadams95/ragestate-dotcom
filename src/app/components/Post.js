@@ -42,7 +42,7 @@ export default function Post({ postData, hideFollow = false }) {
       setLiveData({
         likeCount: typeof p.likeCount === 'number' ? p.likeCount : 0,
         commentCount: typeof p.commentCount === 'number' ? p.commentCount : 0,
-        author: p.userDisplayName || p.userId || data.author,
+        author: p.usernameLower ? p.usernameLower : p.userDisplayName || p.userId || data.author,
         avatarUrl: p.userProfilePicture || null,
         usernameLower: p.usernameLower || postData?.usernameLower,
         content: p.content ?? data.content,
