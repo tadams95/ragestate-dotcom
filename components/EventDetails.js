@@ -132,7 +132,7 @@ export default function EventDetails({ event }) {
         },
       });
     } else {
-      toast.error('Unable to add event to cart', {
+      toast.error('Sold Out!', {
         duration: 3000,
         position: 'bottom-center',
         style: {
