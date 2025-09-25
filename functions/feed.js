@@ -10,6 +10,7 @@ const { onSchedule } = require('firebase-functions/v2/scheduler');
 const logger = require('firebase-functions/logger');
 const { db } = require('./admin');
 const admin = require('firebase-admin');
+const { checkContent } = require('./moderation');
 
 // --- Lightweight Rate Limiting Config ---
 const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
@@ -125,6 +126,32 @@ exports.onPostCreated = onDocumentCreated('posts/{postId}', async (event) => {
   if (!authorId || !postId) return null;
 
   try {
+    // --- Moderation Gate (hate / incitement) ---
+    const moderation = checkContent(post.content || '');
+    if (!moderation.allowed) {
+      await db
+        .collection('moderationLog')
+        .doc(postId)
+        .set({
+          postId,
+          authorId,
+          action: 'removed',
+          reasons: moderation.reasons,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          snapshot: {
+            content: post.content || '',
+            isPublic: !!post.isPublic,
+            mediaUrls: post.mediaUrls || [],
+          },
+        });
+      await db.collection('posts').doc(postId).delete();
+      logger.info('onPostCreated moderation removal', {
+        postId,
+        authorId,
+        reasons: moderation.reasons,
+      });
+      return null;
+    }
     // Lightweight server-side rate limit: delete if over limit to avoid fan-out
     const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS);
     const recentSnap = await db

@@ -106,6 +106,26 @@ export default function PostComposer() {
     setSubmitting(true);
     setError('');
     try {
+      // Basic client-side moderation (mirror of server hate/incitement filter). Allows profanity.
+      const lower = content.toLowerCase();
+      const bannedTerms = ['kill yourself', 'kys', 'gas the', 'nazi'];
+      const bannedPatterns = [
+        /(kill|hurt|attack)\s+(all|every|those)\s+(people|immigrants|women|men|gays|jews|muslims)/i,
+        /(wipe|erase|eliminate)\s+them\b/i,
+        /\b(kill)\b.{0,20}\b(yourself|urself|ur self)\b/i,
+      ];
+      let flagged = [];
+      for (const term of bannedTerms) {
+        if (lower.includes(term)) flagged.push(term);
+      }
+      for (const pat of bannedPatterns) {
+        if (pat.test(content)) flagged.push(pat.toString());
+      }
+      if (flagged.length) {
+        setSubmitting(false);
+        setError('Post blocked: contains disallowed hate / incitement language.');
+        return;
+      }
       // Create a new post ref to derive postId for storage path
       const postsCol = collection(db, 'posts');
       const postRef = doc(postsCol);
