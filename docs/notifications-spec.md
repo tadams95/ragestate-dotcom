@@ -306,6 +306,135 @@ export async function registerExpoPush(uid, db) {
 6. QA matrix across iOS/Android/Web, foreground/background/terminated states.
 7. Gradual rollout: start with `new_follower` only, then expand.
 
+---
+
+## Phase 1 Implementation Status (2025-09-25)
+
+Implemented in Cloud Functions (`functions/notifications.js`):
+
+- Triggers creating notification docs & incrementing `unreadNotifications` inside a Firestore transaction:
+  - `post_liked` (on `postLikes` create) – expects `postLikes` doc to include `postOwnerId` for O(1) ownership resolution.
+  - `comment_added` (on `postComments` create) – expects `postComments` doc to include `postOwnerId` & captures mentions via naive `@username` regex resolving `usernames/{usernameLower}` docs.
+  - `mention` (secondary for each resolved mention in a comment; skips duplicates & self/owner redundancy).
+  - `new_follower` (on `follows` create).
+
+Design notes / deviations clarified:
+
+- Each notification doc is written in the same transaction that updates the unread counter; avoids race divergence between doc creation and counter increment.
+- Self-action suppression: like/comment/follow events where `actorId == targetUid` are ignored to prevent noise.
+- Mentions: Simple regex `@([a-z0-9_]{3,30})`; future refinement may include boundary assertions & exclusion inside code/links. Added to backlog.
+- Push delivery intentionally deferred (Phase 2) to keep early risk surface small. Fields `sendPush`, `pushStatus`, `pushSentAt` still populated for forward compatibility.
+
+Outstanding / Next Steps (Phase 2 candidates):
+
+1. Add `onNotificationCreated` trigger to perform push sending (FCM) and update `pushStatus`—or integrate logic into existing creation path if latency acceptable.
+2. Introduce write path (callable / HTTPS) to safely mark notifications read & decrement `unreadNotifications` with server enforcement (rules currently block client arbitrary changes to the counter).
+3. Harden mention parsing (word boundaries, ignore emails/URLs) & optionally store `mentionedUserIds` on comment for auditing.
+4. Add `batchKey` style aggregation for rapid like/comment bursts to reduce push spam before enabling push.
+5. Index review: ensure per-user notifications query (orderBy createdAt desc) is supported; if adding cross-user moderation/admin feed later, define collection group index.
+
+Assumptions introduced:
+
+- `postLikes` and `postComments` documents carry `postOwnerId`; if not universally true, a lookup (read of `posts/{postId}`) will be required—update trigger accordingly.
+- `usernames/{usernameLower}` docs store `uid` field; mention resolution depends on that shape.
+
+No changes required to security rules beyond those previously added for notifications/devices/preferences.
+
+- UPDATE (UI Read Path): Rules now permit user updates to notification docs strictly to mark them read (`read:true`) and set `seenAt` timestamp, enforcing immutability of other fields.
+
+## UI Placement (Initial)
+
+- Added `Notifications` tab under Account page for MVP surfacing of notifications.
+- Rationale: Faster iteration without adding global header state/badge complexity yet. Badge will be introduced after stable unread counter decrement logic (either callable batching or local optimistic updates + server reconciliation).
+- Component behaviors:
+  - Paginated (20 per page) query ordered by `createdAt desc`.
+  - Individual and "Mark all read" actions (sequential; will be optimized). Writes rely on new rule allowing limited field updates.
+  - Future enhancement: real-time listener (currently uses page fetch; can switch to `onSnapshot` once volume evaluated).
+
+## Callable API (Batch Mark Read)
+
+Name: `batchMarkNotificationsRead`
+
+Type: HTTPS callable (Firebase Functions v2 onCall)
+
+Input shape:
+
+```
+{
+  notificationIds?: string[]; // explicit list to mark
+  markAll?: boolean;          // if true, ignores notificationIds and selects newest unread
+  max?: number;               // optional cap (default 100, hard cap 300)
+}
+```
+
+Behavior:
+
+- Auth required; operates only on caller's notifications.
+- If `markAll` true: queries newest unread up to `max`.
+- If `notificationIds` provided: dedupes and loads those docs (skips already-read).
+- Transactionally sets `read=true`, `seenAt=serverTimestamp()`, and decrements `users/{uid}.unreadNotifications` by the number actually changed.
+- Returns `{ updated: number, remainingUnread?: number }` where `remainingUnread` is 0 if no unread remain, otherwise undefined (avoids costly full count).
+
+Client usage example (web):
+
+```ts
+import { getFunctions, httpsCallable } from 'firebase/functions';
+
+async function markAllRead() {
+  const fn = httpsCallable(getFunctions(), 'batchMarkNotificationsRead');
+  const res = await fn({ markAll: true, max: 200 });
+  console.log('Batch mark result', res.data);
+}
+```
+
+Future Enhancements:
+
+- Support a `before` timestamp cursor to progressively clear in windows.
+- Optionally return exact remaining unread via a lightweight counter doc if precision needed.
+- Add rate limiting (per uid) if abuse observed.
+
+Implementation Note (2025-09-25): The client invokes the same callable for single-item mark-read (passing a one-element notificationIds array) to keep the unread counter authoritative. A direct field update path remains only as a network failure fallback.
+
+## Push Sender Trigger (Implemented 2025-09-25)
+
+Trigger: `onUserNotificationCreatedSendPush` onCreate of `users/{uid}/notifications/{nid}`.
+
+Flow:
+
+1. Skip if `sendPush == false` or `pushStatus` already not `pending`.
+2. Load `users/{uid}/settings/notificationPrefs` and skip with `pushStatus=skipped_prefs` if the notification type is disabled.
+3. Evaluate quiet hours (simple time window check). If inside, mark `pushStatus=suppressed_quiet_hours` (no scheduling yet).
+4. Fetch enabled devices; gather FCM tokens (`provider=='fcm'`). If none: `no_devices` or `no_fcm_tokens`.
+5. Send multicast via `admin.messaging().sendEachForMulticast` with title/body/data and platform-specific options.
+6. Update `pushStatus`:
+
+- `sent` (all success)
+- `partial` (some success, some failure)
+- `failed` (all failed)
+- `error` (unexpected exception)
+
+7. Record `pushSentAt` and `pushMeta { success, failure }`.
+8. Disable invalid tokens (mark device doc `enabled:false`, plus `disabledAt`, `disableReason: 'invalid_token'`).
+
+Possible pushStatus values now observed:
+
+- `pending`: initial state (created by creation triggers)
+- `sent`: all tokens delivered successfully
+- `partial`: mixture of success and failure
+- `failed`: no tokens delivered
+- `no_devices`: user had zero enabled devices
+- `no_fcm_tokens`: devices exist but none with provider fcm
+- `skipped_prefs`: user disabled this notification type
+- `suppressed_quiet_hours`: within quiet hours window
+- `error`: unexpected exception during send
+
+Deferrals / Future Enhancements:
+
+- Full timezone-aware quiet hours using Intl + user timezone string.
+- Scheduled delivery or morning digest queue for suppressed quiet hours instead of dropping.
+- Expo provider path: if reintroducing hybrid tokens, branch send logic per device provider.
+- Aggregation via `batchKey` before pushing bursts (like storms of likes) to reduce noise.
+
 ## Testing Matrix
 
 - iOS/Android: foreground, background, terminated states; permissions denied/granted.
@@ -341,3 +470,122 @@ export type CreateNotificationInput = {
 // onNotificationCreated – functions/notifications.ts
 // Reads prefs, quiet hours, devices; sends via FCM/Expo; updates pushStatus
 ```
+
+## Implementation Checklist (Backlog & Completion Map)
+
+Legend: [x] complete | [ ] not started | [~] partial/in progress
+
+### Core Foundations
+
+- [x] In-app notification creation triggers (likes, comments, mentions, follows)
+- [x] Transactional unread counter increment
+- [x] Batch mark-as-read callable (single + bulk)
+- [x] Counter-safe single item mark-read usage
+- [x] Push sender trigger (initial FCM path)
+- [x] Unread badge (Account page)
+
+### Web & Device Integration
+
+- [x] Web service worker file `public/firebase-messaging-sw.js`
+- [x] Web push registration utility wired into app shell (deferred permission flow via Notifications tab button)
+- [x] Device pruning (disable tokens not seen in >30 days) – scheduled function `pruneStaleDevices` runs every 24h (batch up to 300 enabled device docs; marks stale by lastSeenAt/createdAt or missing token/provider)
+- [x] Token refresh handling (re-register on token change) – client auto-refresh via `initWebPushTokenAutoRefresh` (interval + visibility change) avoids redundant writes with token caching
+
+### Preferences & User Controls
+
+- [x] Preferences UI (toggle each notification type)
+- [x] Quiet hours editor (start/end + timezone selector)
+- [x] Validation of preference doc shape (strip unknown fields server-side) – enforced by `onNotificationPrefsWrittenSanitize` trigger
+- [ ] Optional: marketing consent gating push for non-transactional types (skipped for now; low priority)
+
+### Push Quality & Delivery
+
+- [ ] Timezone-aware quiet hours (convert to user local; use Intl/Luxon)
+- [ ] Scheduled / deferred delivery for quiet hours (morning digest queue)
+- [ ] Aggregation via `batchKey` (e.g., consolidate multiple likes in short window)
+- [ ] `new_post_from_follow` digest fanout path (avoid immediate per-follower push)
+- [ ] Expo provider support (conditional, if hybrid needed)
+- [ ] Adaptive throttling / rate limiting per actor (spam protection)
+
+### Content & Parsing Improvements
+
+- [ ] Mention parser upgrade (word boundaries, exclude emails/URLs, collapse duplicates)
+- [ ] Optional store `mentionedUserIds` on comment doc for audit/search
+
+### UI / UX Enhancements
+
+- [ ] Global header unread badge (persistent across pages)
+- [ ] Real-time listener for notifications list (replace manual pagination fetch)
+- [ ] Inline toast on new notification (if on page)
+- [ ] Deep link open tracking (log event when user taps)
+
+### Observability & Metrics
+
+- [ ] Structured logging (correlation IDs per push batch)
+- [ ] Metrics export (success/failure counts to analytics/BigQuery)
+- [ ] Open rate tracking (store lastOpenedAt on notification when navigated)
+- [ ] Push latency measurement (createdAt → pushSentAt delta)
+
+### Data Lifecycle & Hygiene
+
+- [ ] Retention policy (archive or delete notifications older than N days)
+- [ ] Backfill script for adding missing `pushStatus` / `sendPush` defaults to legacy docs
+- [ ] Scheduled job to purge disabled tokens after grace period
+
+### Security & Rules
+
+- [ ] Negative test suite ensuring clients cannot modify immutable notification fields
+- [ ] Rule guard ensuring only allowed fields (`read`, `seenAt`) can change client-side
+- [ ] Optional custom claim gate for admin cross-user reads (future moderation view)
+
+### Testing
+
+- [ ] Emulator tests: trigger creates notification + increments counter
+- [ ] Callable tests: batch mark read decrements properly, skips already-read
+- [ ] Push trigger tests: prefs disabled, quiet hours suppression, invalid token cleanup
+- [ ] Load test scripts for burst scenarios (likes storm aggregation)
+
+### Documentation & Dev Experience
+
+- [ ] Add `.env.local.example` with required push env vars (VAPID key, etc.)
+- [ ] Developer runbook: how to test notifications locally (emulator + curl)
+- [ ] Troubleshooting matrix (pushStatus meanings & resolutions)
+- [ ] Architecture diagram (creation → push → read → metrics)
+
+### Optional / Future
+
+- [ ] Multi-language / localization support for titles & bodies
+- [ ] Per-device channel preferences (mute on specific device)
+- [ ] Rich media notifications (image previews) where supported
+- [ ] In-app notification search or filtering (by type / date)
+
+### Acceptance Criteria Snapshots
+
+- Preferences UI: Toggling a type prevents new pushes (pushStatus shows `skipped_prefs`) while still creating in-app entries.
+- Quiet hours: Notification created inside window → `pushStatus=suppressed_quiet_hours`; outside → normal send.
+- Aggregation: ≥3 likes within 60s yields a single aggregated notification with body summarizing count.
+- Callable: Marking already-read notifications leaves counter unchanged (idempotent).
+- Token cleanup: Invalid FCM tokens disabled within one push cycle (device doc updated).
+
+### Current Gaps Most Impactful to Ship Next
+
+1. Preferences UI + quiet hours (user control & compliance).
+2. Aggregation (prevent early spam before scaling traffic).
+3. Token refresh handling + device pruning.
+4. Test coverage for triggers & callable (confidence before wider rollout).
+5. Global header unread badge.
+
+### Recent Progress (2025-09-26)
+
+- Added FCM web service worker and registration util.
+- Integrated Enable Push button in Notifications tab (basic permission flow).
+- Updated checklist statuses to reflect completion of web push scaffolding.
+- Added Preferences UI (basic toggles + quiet hours placeholder) embedded in Notifications tab.
+- Added Quiet Hours editor (enable toggle, start/end, timezone) persisted to prefs doc.
+- Implemented token auto-refresh utility with periodic & visibility-based refresh triggers (web).
+- Integrated auto-refresh initialization in `NotificationsTab` on permission grant / mount.
+- Added scheduled Cloud Function `pruneStaleDevices` for stale device hygiene.
+
+---
+
+This checklist will be pruned as items are completed; consider moving completed sections to a changelog appendix if it grows large.

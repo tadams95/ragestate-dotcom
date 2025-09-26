@@ -1,5 +1,6 @@
 'use client';
 
+import BellIcon from '@heroicons/react/24/outline/BellIcon';
 import Cog6ToothIcon from '@heroicons/react/24/outline/Cog6ToothIcon';
 import QrCodeIcon from '@heroicons/react/24/outline/QrCodeIcon';
 import ShoppingBagIcon from '@heroicons/react/24/outline/ShoppingBagIcon';
@@ -7,6 +8,7 @@ import TicketIcon from '@heroicons/react/24/outline/TicketIcon';
 import UserCircleIcon from '@heroicons/react/24/outline/UserCircleIcon';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useUnreadNotificationsCount } from '../../../lib/hooks';
 
 import Image from 'next/image';
 import OrderHistory from '../../../components/OrderHistory';
@@ -16,6 +18,7 @@ import Header from '../components/Header';
 import styles from './account.module.css';
 
 import storage from '@/utils/storage';
+import NotificationsTab from './components/NotificationsTab';
 import ProfileTab from './components/ProfileTab';
 import QrCodeTab from './components/QrCodeTab';
 import SettingsTab from './components/SettingsTab';
@@ -32,6 +35,7 @@ export default function Account() {
   const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [unreadCount] = useUnreadNotificationsCount(userId);
 
   const inputStyling =
     'block w-full bg-black pl-2 rounded-md border py-1.5 px-1 text-gray-100 shadow-sm placeholder:text-gray-500 appearance-none focus:outline-none focus:ring-2 focus:ring-red-700 sm:text-sm sm:leading-6';
@@ -210,6 +214,13 @@ export default function Account() {
           onLogout={handleLogout}
         />
       ),
+      notifications: (
+        <NotificationsTab
+          userId={userId}
+          containerStyling={containerStyling}
+          cardStyling={cardStyling}
+        />
+      ),
     }),
     [
       userId,
@@ -308,6 +319,22 @@ export default function Account() {
                       >
                         <ShoppingBagIcon className="mr-2 h-5 w-5" aria-hidden="true" />
                         Order History
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('notifications')}
+                        className={`${
+                          activeTab === 'notifications'
+                            ? 'border-red-700 text-red-500'
+                            : 'border-transparent text-gray-400 hover:border-gray-300 hover:text-gray-300'
+                        } relative flex flex-shrink-0 items-center whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium`}
+                      >
+                        <BellIcon className="mr-2 h-5 w-5" aria-hidden="true" />
+                        Notifications
+                        {unreadCount > 0 && (
+                          <span className="ml-2 inline-flex items-center rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-semibold text-white">
+                            {unreadCount > 99 ? '99+' : unreadCount}
+                          </span>
+                        )}
                       </button>
                       <button
                         onClick={() => setActiveTab('settings')}

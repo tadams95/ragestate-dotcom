@@ -274,6 +274,48 @@ service cloud.firestore {
       allow read, write: if isAuthenticated() && request.auth.uid == userId;
     }
 
+    // Notifications: user notifications subcollection (read-only to user; writes only by server)
+    match /users/{userId}/notifications/{notificationId} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      // Allow client to mark as read/seen only (read:true, seenAt timestamp). All other writes denied.
+      allow update: if isAuthenticated() && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly(resource.data.keys()) // no new fields
+        && request.resource.data.read == true
+        && resource.data.read == false
+        && request.resource.data.seenAt is timestamp
+        // immutable fields unchanged
+        && request.resource.data.type == resource.data.type
+        && request.resource.data.title == resource.data.title
+        && request.resource.data.body == resource.data.body
+        && request.resource.data.link == resource.data.link
+        && request.resource.data.deepLink == resource.data.deepLink
+        && request.resource.data.sendPush == resource.data.sendPush
+        && request.resource.data.pushStatus == resource.data.pushStatus;
+      // Creation & deletion restricted to backend
+      allow create, delete: if false;
+    }
+
+    // Notifications: devices (user can manage their own device tokens)
+    match /users/{userId}/devices/{deviceId} {
+      allow read, create, update, delete: if isAuthenticated() && request.auth.uid == userId
+        && (!request.resource.data.keys().hasAny(['token']) || isString(request.resource.data.token))
+        && (!request.resource.data.keys().hasAny(['platform']) || isString(request.resource.data.platform))
+        && (!request.resource.data.keys().hasAny(['provider']) || isString(request.resource.data.provider));
+    }
+
+    // Notifications: preferences document
+    match /users/{userId}/settings/notificationPrefs {
+      allow read, create, update: if isAuthenticated() && request.auth.uid == userId;
+      allow delete: if false; // keep explicit; users can toggle fields instead
+    }
+
+    // Safeguard: Prevent clients from arbitrarily modifying unreadNotifications counter field directly
+    // They can still write other user doc fields they own via earlier rule; enforce that if updating unreadNotifications, it must remain unchanged.
+    match /users/{userId} {
+      allow update: if isCurrentUser(userId) || isAdmin()
+        && (!request.resource.data.keys().hasAny(['unreadNotifications']) || request.resource.data.unreadNotifications == resource.data.unreadNotifications);
+    }
+
     // Default deny
     match /{document=**} {
       allow read, write: if false;

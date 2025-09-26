@@ -15,7 +15,8 @@
     "manual:create-ticket:fulfillment": "node manualCreateTicket.js --createFulfillment",
     "ragers:inactivate:dry": "node inactivateEventRagers.js",
     "ragers:inactivate:live": "node inactivateEventRagers.js --live",
-    "export:event:emails": "node exportEventEmails.js"
+    "export:event:emails": "node exportEventEmails.js",
+    "seed:notification": "node seedNotification.js"
   },
   "dependencies": {
     "firebase-admin": "^11.10.1"
