@@ -3,12 +3,14 @@
 import storage from '@/utils/storage';
 import { Dialog, DialogPanel } from '@headlessui/react';
 import Bars3Icon from '@heroicons/react/24/outline/Bars3Icon';
+import BellIcon from '@heroicons/react/24/outline/BellIcon';
 import ShoppingBagIcon from '@heroicons/react/24/outline/ShoppingBagIcon';
 import UserIcon from '@heroicons/react/24/outline/UserIcon';
 import XMarkIcon from '@heroicons/react/24/outline/XMarkIcon';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { useUnreadNotificationsCount } from '../../../lib/hooks';
 
 const navigation = [
   { name: 'ABOUT', href: '/about' },
@@ -23,17 +25,21 @@ export default function Header() {
   const [idToken, setIdToken] = useState(null);
   const [refreshToken, setRefreshToken] = useState(null);
   const [profilePicture, setProfilePicture] = useState('');
+  const [userId, setUserId] = useState('');
   const [hydrated, setHydrated] = useState(false);
+  const [unreadCount] = useUnreadNotificationsCount(userId);
 
   useEffect(() => {
     const {
       idToken: idTok,
       refreshToken: refTok,
       profilePicture: pic,
-    } = storage.readKeys(['idToken', 'refreshToken', 'profilePicture']);
+      userId: uid,
+    } = storage.readKeys(['idToken', 'refreshToken', 'profilePicture', 'userId']);
     setIdToken(idTok || null);
     setRefreshToken(refTok || null);
     setProfilePicture(pic || '');
+    setUserId(uid || '');
     setHydrated(true);
   }, []);
 
@@ -76,13 +82,30 @@ export default function Header() {
               </Link>
             ))}
           </div>
-          <div className="hidden lg:flex lg:flex-1 lg:justify-end">
+          <div className="hidden gap-1 lg:flex lg:flex-1 lg:justify-end">
             <Link href="/cart" className="px-20 text-sm font-semibold leading-6 text-gray-100">
               <span className="-m-2 inline-flex h-11 w-11 items-center justify-center active:opacity-80">
                 <ShoppingBagIcon className="h-6 w-6" aria-hidden="true" />
               </span>
               <span aria-hidden="true"></span>
             </Link>
+            {hydrated && idToken && refreshToken && (
+              <Link
+                href="/account"
+                aria-label="Notifications"
+                className="relative -m-2 inline-flex h-11 w-11 items-center justify-center text-gray-100 active:opacity-80"
+              >
+                <BellIcon className="h-6 w-6" aria-hidden="true" />
+                {unreadCount > 0 && (
+                  <span
+                    aria-label={`${unreadCount} unread notifications`}
+                    className="pointer-events-none absolute -right-0.5 -top-0.5 inline-flex min-w-[18px] max-w-[30px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-semibold leading-4 text-white shadow ring-1 ring-black/40"
+                  >
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </Link>
+            )}
             <div className="-m-2 inline-flex h-11 w-11 items-center justify-center">
               {!hydrated ? (
                 <div aria-hidden className="h-6 w-6 rounded-md bg-zinc-800/60" />
@@ -163,6 +186,19 @@ export default function Header() {
                   >
                     CART
                   </Link>
+                  {hydrated && idToken && refreshToken && (
+                    <Link
+                      href="/account"
+                      className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-100 hover:bg-zinc-900"
+                    >
+                      NOTIFICATIONS
+                      {unreadCount > 0 && (
+                        <span className="ml-2 inline-flex items-center rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-semibold text-white">
+                          {unreadCount > 99 ? '99+' : unreadCount}
+                        </span>
+                      )}
+                    </Link>
+                  )}
                   {idToken && refreshToken ? (
                     <Link
                       href="/account"

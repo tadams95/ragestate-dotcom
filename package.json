@@ -10,6 +10,7 @@
     "lint": "next lint",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:rules": "firebase emulators:exec --only firestore 'npx jest __tests__/notifications.rules.test.js'",
     "analyze": "ANALYZE=true next build",
     "seed:feed": "node scripts/seedFeed.cjs"
   },
@@ -52,6 +53,7 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
     "@testing-library/user-event": "^14.6.1",
+    "@firebase/rules-unit-testing": "^3.0.0",
     "@types/dat.gui": "^0.7.13",
     "@types/react": "^18.3.3",
     "@types/shopify-buy": "^2.17.4",

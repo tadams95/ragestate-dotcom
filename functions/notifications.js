@@ -12,6 +12,92 @@ const logger = require('firebase-functions/logger');
 const admin = require('firebase-admin');
 const { db } = require('./admin');
 
+// --- Test Helpers (exposed via module.exports._test) ---
+// These pure functions mirror logic inside the push sender trigger so we can unit test
+// core decision branches (quiet hours suppression & aggregation summarization) without
+// requiring the Firestore emulator or sendEachForMulticast side-effects.
+function evaluateQuietHours(now, quietHours) {
+  if (!quietHours || typeof quietHours !== 'object') return false;
+  const { start, end, timezone } = quietHours;
+  if (!start || !end || !timezone) return false;
+  try {
+    let parts;
+    try {
+      const fmt = new Intl.DateTimeFormat('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: timezone,
+      });
+      parts = fmt.format(now);
+    } catch (_) {
+      parts = now.toISOString().slice(11, 16); // UTC fallback
+    }
+    const [nh, nm] = parts.split(':').map(Number);
+    const nowMinutes = nh * 60 + nm;
+    const [sh, sm] = start.split(':').map(Number);
+    const [eh, em] = end.split(':').map(Number);
+    const startMinutes = sh * 60 + (sm || 0);
+    const endMinutes = eh * 60 + (em || 0);
+    const inQuiet =
+      startMinutes < endMinutes
+        ? nowMinutes >= startMinutes && nowMinutes < endMinutes
+        : nowMinutes >= startMinutes || nowMinutes < endMinutes; // overnight window
+    return inQuiet;
+  } catch (e) {
+    return false; // fail open (no suppression) on unexpected errors
+  }
+}
+
+function aggregateActivity(baseNotification, recentLikeCommentDocs) {
+  // baseNotification: { type, title, body, data: { postId } }
+  // recentLikeCommentDocs: Array<{ type, data: { actorId } }>
+  if (!baseNotification || !baseNotification.data || !baseNotification.data.postId) {
+    return { title: baseNotification?.title, body: baseNotification?.body };
+  }
+  const relevant = recentLikeCommentDocs.filter(
+    (d) => d && ['post_liked', 'comment_added'].includes(d.type),
+  );
+  if (relevant.length <= 1) {
+    return { title: baseNotification.title, body: baseNotification.body };
+  }
+  let likeCount = 0;
+  let commentCount = 0;
+  const actorIds = new Set();
+  relevant.forEach((r) => {
+    if (r.data && r.data.actorId) actorIds.add(r.data.actorId);
+    if (r.type === 'post_liked') likeCount++;
+    if (r.type === 'comment_added') commentCount++;
+  });
+  const actorsPart = actorIds.size > 1 ? `${actorIds.size} people` : 'Someone';
+  let aggregatedTitle;
+  let aggregatedBody;
+  if (likeCount && commentCount) {
+    aggregatedTitle = 'New activity on your post';
+    aggregatedBody = `${actorsPart} added activity (${likeCount} like${
+      likeCount > 1 ? 's' : ''
+    }, ${commentCount} comment${commentCount > 1 ? 's' : ''})`;
+  } else if (likeCount) {
+    aggregatedTitle = 'Post getting likes';
+    aggregatedBody = `${actorsPart} liked your post (${likeCount} like${likeCount > 1 ? 's' : ''})`;
+  } else if (commentCount) {
+    aggregatedTitle = 'New comments on your post';
+    aggregatedBody = `${actorsPart} commented (${commentCount} comment${
+      commentCount > 1 ? 's' : ''
+    })`;
+  }
+  return {
+    title: aggregatedTitle || baseNotification.title,
+    body: aggregatedBody || baseNotification.body,
+  };
+}
+
+// Attach test helpers for Jest (non-enumerable to avoid accidental serialization)
+Object.defineProperty(module.exports, '_test', {
+  value: { evaluateQuietHours, aggregateActivity },
+  enumerable: false,
+});
+
 // Helper: safe increment unreadNotifications
 async function incrementUnread(uid, tx) {
   const userRef = db.collection('users').doc(uid);
@@ -275,6 +361,9 @@ exports.onUserNotificationCreatedSendPush = onDocumentCreated(
     if (!notifSnap) return null;
     const notif = notifSnap.data();
     const uid = event.params.uid;
+    // Correlation ID for this push processing (short random base36 slice)
+    const correlationId = Math.random().toString(36).slice(2, 10);
+    let aggregationApplied = false;
 
     try {
       if (!notif.sendPush) {
@@ -298,23 +387,35 @@ exports.onUserNotificationCreatedSendPush = onDocumentCreated(
         return null;
       }
 
-      // Quiet hours check (simple inline version; future: extracted util)
+      // Quiet hours check (timezone-aware minimal implementation)
       if (prefs.quietHours && typeof prefs.quietHours === 'object') {
         const { start, end, timezone } = prefs.quietHours || {};
-        if (start && end) {
+        if (start && end && timezone && typeof timezone === 'string') {
           try {
             const now = new Date();
-            // Interpret start/end as HH:MM in user's timezone (simplified: ignoring timezone and using local server time)
+            // Format time in user timezone HH:MM (24h). Fallback to UTC on error.
+            let parts;
+            try {
+              const fmt = new Intl.DateTimeFormat('en-GB', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false,
+                timeZone: timezone,
+              });
+              parts = fmt.format(now); // e.g. "07:05"
+            } catch (tzErr) {
+              parts = now.toISOString().slice(11, 16); // UTC fallback
+            }
+            const [nh, nm] = parts.split(':').map(Number);
+            const nowMinutes = nh * 60 + nm;
             const [sh, sm] = start.split(':').map(Number);
             const [eh, em] = end.split(':').map(Number);
             const startMinutes = sh * 60 + (sm || 0);
             const endMinutes = eh * 60 + (em || 0);
-            const nowMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
-            // Basic window: if start < end (same day) else overnight window
             const inQuiet =
               startMinutes < endMinutes
                 ? nowMinutes >= startMinutes && nowMinutes < endMinutes
-                : nowMinutes >= startMinutes || nowMinutes < endMinutes;
+                : nowMinutes >= startMinutes || nowMinutes < endMinutes; // overnight window
             if (inQuiet) {
               await notifSnap.ref.update({ pushStatus: 'suppressed_quiet_hours' });
               return null;
@@ -322,6 +423,62 @@ exports.onUserNotificationCreatedSendPush = onDocumentCreated(
           } catch (qhErr) {
             logger.warn('Quiet hours evaluation failed; continuing', { qhErr });
           }
+        }
+      }
+
+      // Simple aggregation: collapse rapid like/comment bursts on same post into a single push window (5 min)
+      // Only affects push payload; individual notification docs still created.
+      let aggregatedTitle = notif.title;
+      let aggregatedBody = notif.body;
+      if (['post_liked', 'comment_added'].includes(notif.type) && notif.data?.postId) {
+        try {
+          const windowMinutes = 5;
+          const since = new Date(Date.now() - windowMinutes * 60 * 1000);
+          const baseRef = db.collection('users').doc(uid).collection('notifications');
+          const likeOrCommentSnap = await baseRef
+            .where('data.postId', '==', notif.data.postId)
+            .where('createdAt', '>=', since)
+            .orderBy('createdAt', 'desc')
+            .limit(10)
+            .get();
+          const relevant = likeOrCommentSnap.docs.filter((d) => {
+            const dt = d.data();
+            return ['post_liked', 'comment_added'].includes(dt.type);
+          });
+          if (relevant.length > 1) {
+            // Count likes and comments separately for clarity
+            let likeCount = 0;
+            let commentCount = 0;
+            const actorIds = new Set();
+            relevant.forEach((r) => {
+              const rd = r.data();
+              if (rd.data && rd.data.actorId) actorIds.add(rd.data.actorId);
+              if (rd.type === 'post_liked') likeCount++;
+              if (rd.type === 'comment_added') commentCount++;
+            });
+            const actorsPart = actorIds.size > 1 ? `${actorIds.size} people` : 'Someone';
+            if (likeCount && commentCount) {
+              aggregatedTitle = 'New activity on your post';
+              aggregatedBody = `${actorsPart} ${
+                actorIds.size > 1 ? 'added activity' : 'added activity'
+              } (${likeCount} like${likeCount > 1 ? 's' : ''}, ${commentCount} comment${
+                commentCount > 1 ? 's' : ''
+              })`;
+            } else if (likeCount) {
+              aggregatedTitle = 'Post getting likes';
+              aggregatedBody = `${actorsPart} liked your post (${likeCount} like${
+                likeCount > 1 ? 's' : ''
+              })`;
+            } else if (commentCount) {
+              aggregatedTitle = 'New comments on your post';
+              aggregatedBody = `${actorsPart} commented (${commentCount} comment${
+                commentCount > 1 ? 's' : ''
+              })`;
+            }
+            aggregationApplied = true;
+          }
+        } catch (aggErr) {
+          logger.debug('Aggregation window query failed, using single notification', { aggErr });
         }
       }
 
@@ -353,7 +510,10 @@ exports.onUserNotificationCreatedSendPush = onDocumentCreated(
 
       const message = {
         tokens: fcmTokens,
-        notification: { title: notif.title || 'Notification', body: notif.body || '' },
+        notification: {
+          title: aggregatedTitle || notif.title || 'Notification',
+          body: aggregatedBody || notif.body || '',
+        },
         data: Object.fromEntries(
           Object.entries(notif.data || {}).flatMap(([k, v]) =>
             typeof v === 'string' ? [[k, v]] : [],
@@ -407,9 +567,21 @@ exports.onUserNotificationCreatedSendPush = onDocumentCreated(
         pushSentAt: nowTs(),
         pushMeta: { success, failure },
       });
-      logger.info('Push notification sent', { uid, nid: event.params.nid, success, failure });
+      logger.info('Push notification sent', {
+        uid,
+        nid: event.params.nid,
+        success,
+        failure,
+        correlationId,
+        aggregationApplied,
+      });
     } catch (err) {
-      logger.error('onUserNotificationCreatedSendPush failed', { uid, nid: event.params.nid, err });
+      logger.error('onUserNotificationCreatedSendPush failed', {
+        uid,
+        nid: event.params.nid,
+        err,
+        correlationId,
+      });
       try {
         await notifSnap.ref.update({ pushStatus: 'error' });
       } catch (_) {}
