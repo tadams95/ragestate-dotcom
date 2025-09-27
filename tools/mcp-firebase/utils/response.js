@@ -1,12 +1,15 @@
 import crypto from 'crypto';
 
+// Max serialized JSON bytes for a result payload before truncation
+export const MAX_RESULT_BYTES = 40000; // ~40KB
+
 // Generate a request ID (simple nano substitute)
 export function genRequestId() {
   return crypto.randomBytes(6).toString('hex'); // 12-char hex
 }
 
-// Shallow redaction (depth <= 2) of sensitive keys
-const SENSITIVE_KEYS = ['token', 'auth', 'apikey'];
+// Shallow redaction (depth <= 2) of sensitive keys (expanded for consistency with README)
+const SENSITIVE_KEYS = ['token', 'auth', 'apikey', 'password', 'secret'];
 
 export function redactParams(obj, depth = 0) {
   if (!obj || typeof obj !== 'object') return obj;
@@ -53,7 +56,7 @@ function isFirestoreTimestamp(v) {
   );
 }
 
-export function sizeClamp(result, maxBytes = 40000) {
+export function sizeClamp(result, maxBytes = MAX_RESULT_BYTES) {
   const json = JSON.stringify(result);
   if (Buffer.byteLength(json, 'utf8') <= maxBytes) {
     return { clamped: false, result };

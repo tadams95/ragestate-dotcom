@@ -8,6 +8,7 @@ import path from 'path';
 import { z, ZodError } from 'zod';
 import {
   genRequestId,
+  MAX_RESULT_BYTES,
   normalizeTimestamps,
   redactParams,
   sizeClamp,
@@ -94,7 +95,10 @@ app.use(async (req, res, next) => {
   if (!db) {
     return res.status(503).json({ error: 'Firebase not initialized' });
   }
-  if (req.path === '/health' && process.env.MCP_PUBLIC_HEALTH === 'true') {
+  const publicHealth = ['true', '1', 'yes', 'on'].includes(
+    String(process.env.MCP_PUBLIC_HEALTH || '').toLowerCase(),
+  );
+  if (req.path === '/health' && publicHealth) {
     return next();
   }
   const apiKey = req.headers['x-mcp-api-key'];
@@ -201,6 +205,122 @@ const TOOLS = {
     },
     description: 'Queries a top-level collection with simple where/order/limit (max 100 docs).',
   },
+  describeSchema: {
+    schema: z.object({
+      collection: z
+        .string()
+        .min(1)
+        .regex(/^[a-zA-Z0-9_-]+$/, 'Simple top-level collection only'),
+      sample: z.number().int().positive().max(200).default(50),
+      depth: z.number().int().min(1).max(3).default(2),
+      includeExamples: z.boolean().default(true),
+    }),
+    handler: async (params) => {
+      const { collection, sample, depth, includeExamples } = params;
+      const snap = await db.collection(collection).limit(sample).get();
+      const totalSampled = snap.size;
+      const fieldStats = {};
+
+      function isTimestamp(v) {
+        return (
+          v &&
+          typeof v === 'object' &&
+          typeof v.toDate === 'function' &&
+          Object.prototype.hasOwnProperty.call(v, '_seconds')
+        );
+      }
+
+      function detectSemantics(str) {
+        if (typeof str !== 'string') return null;
+        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(str)) return 'date_iso';
+        if (/^[0-9a-fA-F]{24}$/.test(str)) return 'hex24';
+        if (/^[0-9a-fA-F-]{36}$/.test(str)) return 'uuid_like';
+        if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(str)) return 'email';
+        if (/^https?:\/\//.test(str)) return 'url';
+        return null;
+      }
+
+      function ensureField(container, name) {
+        if (!container[name]) {
+          container[name] = {
+            count: 0,
+            types: new Set(),
+            semantics: new Set(),
+            examples: new Set(),
+            fields: null, // for nested objects
+          };
+        }
+        return container[name];
+      }
+
+      function recordValue(node, value, level) {
+        // Determine primitive type bucket
+        let typeLabel;
+        if (value === null) typeLabel = 'null';
+        else if (isTimestamp(value)) typeLabel = 'timestamp';
+        else if (Array.isArray(value)) typeLabel = 'array';
+        else typeLabel = typeof value; // string, number, boolean, object, undefined
+
+        node.types.add(typeLabel);
+
+        if (typeLabel === 'string') {
+          const sem = detectSemantics(value);
+          if (sem) node.semantics.add(sem);
+        } else if (typeLabel === 'timestamp') {
+          node.semantics.add('date');
+        }
+
+        if (includeExamples && typeLabel !== 'object' && typeLabel !== 'undefined') {
+          if (node.examples.size < 3) node.examples.add(value);
+        }
+
+        // Recurse into object (excluding Timestamp) if depth allows
+        if (typeLabel === 'object' && value && !isTimestamp(value) && level < depth) {
+          if (!node.fields) node.fields = {};
+          const keys = Object.keys(value).slice(0, 50); // cap nested keys
+          for (const k of keys) {
+            const childStat = ensureField(node.fields, k);
+            childStat.count++;
+            recordValue(childStat, value[k], level + 1);
+          }
+        }
+      }
+
+      snap.forEach((doc) => {
+        const data = doc.data();
+        Object.keys(data || {}).forEach((field) => {
+          const stat = ensureField(fieldStats, field);
+          stat.count++;
+          recordValue(stat, data[field], 1);
+        });
+      });
+
+      function finalize(container) {
+        const out = {};
+        for (const [name, stat] of Object.entries(container)) {
+          out[name] = {
+            presence: totalSampled ? Number((stat.count / totalSampled).toFixed(3)) : 0,
+            types: Array.from(stat.types).sort(),
+          };
+          if (stat.semantics.size) out[name].semantics = Array.from(stat.semantics).sort();
+          if (includeExamples && stat.examples.size)
+            out[name].examples = Array.from(stat.examples).slice(0, 3);
+          if (stat.fields) out[name].fields = finalize(stat.fields);
+        }
+        return out;
+      }
+
+      return {
+        collection,
+        docCountSampled: totalSampled,
+        sampleLimit: sample,
+        depth,
+        fields: finalize(fieldStats),
+      };
+    },
+    description:
+      'Infers field presence, types, simple semantics (date/email/url), and examples from a sample of documents.',
+  },
 };
 
 // --- API Endpoints ---
@@ -228,7 +348,10 @@ app.get('/health', (req, res) => {
     projectId: process.env.GCP_PROJECT || null,
     emulator: !!process.env.FIRESTORE_EMULATOR_HOST,
     hasApiKey: !!process.env.MCP_API_KEY,
-    public: process.env.MCP_PUBLIC_HEALTH === 'true',
+    public: ['true', '1', 'yes', 'on'].includes(
+      String(process.env.MCP_PUBLIC_HEALTH || '').toLowerCase(),
+    ),
+    maxResultBytes: MAX_RESULT_BYTES,
   };
   res.json(wrapSuccess({ requestId, tool: 'health', startedAt, payload }));
 });
@@ -244,17 +367,15 @@ app.post('/tools/:toolName', async (req, res) => {
     : null;
 
   if (!tool) {
-    return res
-      .status(404)
-      .json(
-        wrapError({
-          requestId,
-          tool: toolName,
-          startedAt,
-          code: 'NOT_FOUND',
-          message: 'Tool not found',
-        }),
-      );
+    return res.status(404).json(
+      wrapError({
+        requestId,
+        tool: toolName,
+        startedAt,
+        code: 'NOT_FOUND',
+        message: 'Tool not found',
+      }),
+    );
   }
 
   // Tool toggle
@@ -288,7 +409,7 @@ app.post('/tools/:toolName', async (req, res) => {
       elapsedMs: envelope.elapsedMs,
       errorCode: null,
       ipHash,
-      sizeBytes: JSON.stringify(envelope).length,
+      sizeBytes: Buffer.byteLength(JSON.stringify(envelope), 'utf8'),
       truncated: !!result.truncated,
       paramsRedacted: redactParams(req.body || {}),
     };
@@ -312,7 +433,7 @@ app.post('/tools/:toolName', async (req, res) => {
         elapsedMs: envelope.elapsedMs,
         errorCode,
         ipHash,
-        sizeBytes: JSON.stringify(envelope).length,
+        sizeBytes: Buffer.byteLength(JSON.stringify(envelope), 'utf8'),
         paramsRedacted: redactParams(req.body || {}),
       };
       return;
@@ -335,12 +456,36 @@ app.post('/tools/:toolName', async (req, res) => {
       elapsedMs: envelope.elapsedMs,
       errorCode,
       ipHash,
-      sizeBytes: JSON.stringify(envelope).length,
+      sizeBytes: Buffer.byteLength(JSON.stringify(envelope), 'utf8'),
       paramsRedacted: redactParams(req.body || {}),
     };
   } finally {
     if (logDoc) logToolCall(logDoc);
   }
+});
+
+// --- Error Handling (malformed JSON) ---
+// This must come after routes so express.json parse errors bubble here.
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  if (err && err instanceof SyntaxError && 'body' in err) {
+    const startedAt = Date.now();
+    const requestId = genRequestId();
+    // Attempt to derive tool name from path if present
+    let tool = 'unknown';
+    const match = req.path && req.path.startsWith('/tools/') ? req.path.split('/')[2] : null;
+    if (match) tool = match;
+    const envelope = wrapError({
+      requestId,
+      tool,
+      startedAt,
+      code: 'INVALID_JSON',
+      message: 'Malformed JSON body',
+      details: err.message,
+    });
+    return res.status(400).json(envelope);
+  }
+  return next(err);
 });
 
 // --- Server Start ---

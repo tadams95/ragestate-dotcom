@@ -24,17 +24,17 @@ Provide a dependable read-only context interface for LLM assistance **with trace
 
 ## MVP Deliverables
 
-| #   | Deliverable                    | Description                                                                                                | Acceptance                                                             |
-| --- | ------------------------------ | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------- |
-| 1   | Standard response envelope     | Wrap all tool responses in `{ requestId, ok, tool, elapsedMs, result                                       | error }`                                                               | All endpoints updated; manual curl shows envelope |
-| 2   | Request ID generation          | Middleware assigns nanoid/uuid per request                                                                 | Each response includes unique `requestId`                              |
-| 3   | Structured logging (Firestore) | Collection: `mcpToolCalls/{requestId}` with `{ ts, tool, success, elapsedMs, errorCode?, paramsRedacted }` | Log doc created for 100% successful calls (best-effort on failures)    |
-| 4   | Param redaction                | Shallow redaction of keys containing: `token`, `auth`, `apiKey`                                            | Logs store `***redacted***` placeholders                               |
-| 5   | Timestamp normalization        | Convert Firestore `Timestamp` values → ISO strings recursively                                             | Query returns ISO date strings instead of `{ _seconds, _nanoseconds }` |
-| 6   | Payload size clamp             | If serialized `result` > 40KB, truncate docs array & attach `truncated: true, originalCount`               | Trigger test with large synthetic data                                 |
-| 7   | Tool enable toggle             | Firestore: `mcpConfig/tools/{toolName}.enabled` (default true when missing)                                | Setting `enabled=false` returns 403 with `TOOL_DISABLED`               |
-| 8   | Public health (optional)       | Allow `/health` without API key (if env `MCP_PUBLIC_HEALTH=true`)                                          | Curl without header returns ok=true                                    |
-| 9   | Basic README update            | New section: “MVP Observability Layer”                                                                     | README diff merged                                                     |
+| #   | Deliverable                    | Description                                                                                                    | Acceptance                                                             |
+| --- | ------------------------------ | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------- |
+| 1   | Standard response envelope     | Wrap all tool responses in `{ requestId, ok, tool, elapsedMs, result                                           | error }`                                                               | All endpoints updated; manual curl shows envelope |
+| 2   | Request ID generation          | Middleware assigns nanoid/uuid per request                                                                     | Each response includes unique `requestId`                              |
+| 3   | Structured logging (Firestore) | Collection: `mcpToolCalls/{requestId}` with `{ ts, tool, success, elapsedMs, errorCode?, paramsRedacted }`     | Log doc created for 100% successful calls (best-effort on failures)    |
+| 4   | Param redaction                | Shallow redaction of keys containing: `token`, `auth`, `apiKey`                                                | Logs store `***redacted***` placeholders                               |
+| 5   | Timestamp normalization        | Convert Firestore `Timestamp` values → ISO strings recursively                                                 | Query returns ISO date strings instead of `{ _seconds, _nanoseconds }` |
+| 6   | Payload size clamp             | If serialized `result` > 40KB (constant MAX_RESULT_BYTES), truncate docs & attach `truncated`, `originalCount` | Trigger test with large synthetic data                                 |
+| 7   | Tool enable toggle             | Firestore: single doc `mcpConfig/tools` with boolean or `{ enabled: false }` per key (default true)            | Setting key false returns 403 with `TOOL_DISABLED`                     |
+| 8   | Public health (optional)       | Allow `/health` without API key (if env `MCP_PUBLIC_HEALTH` in `true,1,yes,on`)                                | Curl without header returns ok=true                                    |
+| 9   | Basic README update            | New section: “MVP Observability Layer”                                                                         | README diff merged                                                     |
 
 ## Data Model Additions
 
@@ -51,8 +51,11 @@ mcpToolCalls/{requestId} {
   truncated?: boolean
 }
 
-mcpConfig/tools/{toolName} {
-  enabled: boolean
+// Tool toggles consolidated in one document example:
+mcpConfig/tools {
+  getFirestoreDoc: true,
+  listCollections: true,
+  queryCollection: { enabled: false }
 }
 ```
 
@@ -69,8 +72,8 @@ mcpConfig/tools/{toolName} {
 
 ## Redaction Rules (MVP Simple)
 
-- If key name lowercased contains any of: `token`, `auth`, `apikey`, replace value with `"***redacted***"`.
-- Do not recurse into nested maps beyond depth 2 for MVP (avoid performance hit). Safe default: treat any nested object containing those keys similarly.
+- If key name lowercased contains any of: `token`, `auth`, `apikey`, `password`, `secret` replace value with `"***redacted***"`.
+- Depth-limited (<=2) recursion; deeper objects replaced with `"[MaxDepth]"`.
 
 ## Error Envelope Examples
 

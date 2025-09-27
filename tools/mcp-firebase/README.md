@@ -131,6 +131,47 @@ Performs a constrained query against a Firestore collection with an operator all
     "limit": 5
   }
   ```
+
+### `describeSchema`
+
+Infers basic schema statistics for a top-level collection using a sampled subset of documents.
+
+- **Endpoint**: `POST /tools/describeSchema`
+- **Body** (defaults shown):
+  ```json
+  {
+    "collection": "events",
+    "sample": 50,
+    "depth": 2,
+    "includeExamples": true
+  }
+  ```
+- **Response** (enveloped):
+  ```json
+  {
+    "requestId": "...",
+    "ok": true,
+    "tool": "describeSchema",
+    "elapsedMs": 73,
+    "result": {
+      "collection": "events",
+      "docCountSampled": 50,
+      "sampleLimit": 50,
+      "depth": 2,
+      "fields": {
+        "name": { "presence": 1, "types": ["string"], "examples": ["Show A", "Show B"] },
+        "price": { "presence": 0.98, "types": ["number"], "examples": [10, 15], "semantics": [] },
+        "dateTime": { "presence": 1, "types": ["string"], "semantics": ["date_iso"] }
+      }
+    }
+  }
+  ```
+- Notes:
+  - `presence` is frequency (0–1) in the sampled documents.
+  - `types` is the set of primitive buckets encountered (e.g., `string`, `number`, `array`, `timestamp`).
+  - `semantics` includes simple recognizers: `date_iso`, `uuid_like`, `hex24`, `email`, `url`, `date` (for Firestore Timestamp).
+  - Nested object fields appear under `fields` recursively up to `depth`.
+  - Examples limited to first 3 unique primitive values.
 - **Body** (with filters):
   ```json
   {
