@@ -1,10 +1,19 @@
 import cors from 'cors';
+import crypto from 'crypto';
 import 'dotenv/config';
 import express from 'express';
 import admin from 'firebase-admin';
 import fs from 'fs';
 import path from 'path';
 import { z, ZodError } from 'zod';
+import {
+  genRequestId,
+  normalizeTimestamps,
+  redactParams,
+  sizeClamp,
+  wrapError,
+  wrapSuccess,
+} from './utils/response.js';
 
 const app = express();
 const port = process.env.PORT || 8765;
@@ -49,14 +58,45 @@ function initializeFirebase() {
 
 const db = initializeFirebase();
 
+// --- In-Memory Tool Toggle Cache ---
+const toolToggleCache = { data: {}, fetchedAt: 0, ttlMs: 30000 };
+async function isToolEnabled(toolName) {
+  const now = Date.now();
+  if (now - toolToggleCache.fetchedAt > toolToggleCache.ttlMs) {
+    toolToggleCache.fetchedAt = now;
+    try {
+      const snap = await db.collection('mcpConfig').doc('tools').get();
+      toolToggleCache.data = snap.exists ? snap.data() : {};
+    } catch (e) {
+      // On failure, keep old cache; assume enabled
+    }
+  }
+  const entry = toolToggleCache.data[toolName];
+  if (entry == null) return true; // default enabled
+  if (typeof entry === 'object' && 'enabled' in entry) return entry.enabled !== false;
+  if (typeof entry === 'boolean') return entry;
+  return true;
+}
+
+// --- Logging Helper ---
+async function logToolCall(doc) {
+  try {
+    await db.collection('mcpToolCalls').doc(doc.requestId).set(doc, { merge: true });
+  } catch (e) {
+    console.warn('(log) failed to write tool call log', e.message);
+  }
+}
+
 // --- Middleware ---
 app.use(cors());
 app.use(express.json());
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
   if (!db) {
     return res.status(503).json({ error: 'Firebase not initialized' });
   }
-  // Simple API Key auth
+  if (req.path === '/health' && process.env.MCP_PUBLIC_HEALTH === 'true') {
+    return next();
+  }
   const apiKey = req.headers['x-mcp-api-key'];
   if (process.env.MCP_API_KEY && apiKey !== process.env.MCP_API_KEY) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -166,41 +206,140 @@ const TOOLS = {
 // --- API Endpoints ---
 
 app.get('/', (req, res) => {
-  res.json({
+  const requestId = genRequestId();
+  const startedAt = Date.now();
+  const payload = {
     message: 'RAGESTATE Firebase MCP Server',
     tools: Object.fromEntries(
       Object.entries(TOOLS).map(([name, { description }]) => [name, { description }]),
     ),
-  });
+  };
+  const { result, clamped } = sizeClamp(payload);
+  const envelope = wrapSuccess({ requestId, tool: 'root', startedAt, payload: result });
+  if (clamped) envelope.result.truncated = true;
+  res.json(envelope);
 });
 
 app.get('/health', (req, res) => {
-  res.json({
+  const requestId = genRequestId();
+  const startedAt = Date.now();
+  const payload = {
     ok: !!db,
     projectId: process.env.GCP_PROJECT || null,
     emulator: !!process.env.FIRESTORE_EMULATOR_HOST,
     hasApiKey: !!process.env.MCP_API_KEY,
-  });
+    public: process.env.MCP_PUBLIC_HEALTH === 'true',
+  };
+  res.json(wrapSuccess({ requestId, tool: 'health', startedAt, payload }));
 });
 
 app.post('/tools/:toolName', async (req, res) => {
+  const startedAt = Date.now();
+  const requestId = genRequestId();
   const { toolName } = req.params;
   const tool = TOOLS[toolName];
+  const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || null;
+  const ipHash = clientIp
+    ? crypto.createHash('sha256').update(String(clientIp)).digest('hex').slice(0, 16)
+    : null;
 
   if (!tool) {
-    return res.status(404).json({ error: `Tool '${toolName}' not found.` });
+    return res
+      .status(404)
+      .json(
+        wrapError({
+          requestId,
+          tool: toolName,
+          startedAt,
+          code: 'NOT_FOUND',
+          message: 'Tool not found',
+        }),
+      );
   }
 
+  // Tool toggle
+  if (!(await isToolEnabled(toolName))) {
+    return res.status(403).json(
+      wrapError({
+        requestId,
+        tool: toolName,
+        startedAt,
+        code: 'TOOL_DISABLED',
+        message: 'Tool is disabled by configuration',
+      }),
+    );
+  }
+
+  let errorCode = null;
+  let logDoc = null;
   try {
     const params = tool.schema.parse(req.body);
-    const result = await tool.handler(params);
-    res.json({ result });
+    const rawResult = await tool.handler(params);
+    const normalized = normalizeTimestamps(rawResult);
+    const { result, clamped } = sizeClamp(normalized);
+    if (clamped) result.truncated = true;
+    const envelope = wrapSuccess({ requestId, tool: toolName, startedAt, payload: result });
+    res.json(envelope);
+    logDoc = {
+      requestId,
+      ts: admin.firestore.FieldValue.serverTimestamp(),
+      tool: toolName,
+      success: true,
+      elapsedMs: envelope.elapsedMs,
+      errorCode: null,
+      ipHash,
+      sizeBytes: JSON.stringify(envelope).length,
+      truncated: !!result.truncated,
+      paramsRedacted: redactParams(req.body || {}),
+    };
   } catch (error) {
     if (error instanceof ZodError) {
-      return res.status(400).json({ error: 'Invalid input', details: error.errors });
+      errorCode = 'VALIDATION_FAILED';
+      const envelope = wrapError({
+        requestId,
+        tool: toolName,
+        startedAt,
+        code: errorCode,
+        message: 'Invalid input',
+        details: error.errors,
+      });
+      res.status(400).json(envelope);
+      logDoc = {
+        requestId,
+        ts: admin.firestore.FieldValue.serverTimestamp(),
+        tool: toolName,
+        success: false,
+        elapsedMs: envelope.elapsedMs,
+        errorCode,
+        ipHash,
+        sizeBytes: JSON.stringify(envelope).length,
+        paramsRedacted: redactParams(req.body || {}),
+      };
+      return;
     }
+    errorCode = 'INTERNAL_ERROR';
     console.error(`Error executing tool '${toolName}':`, error);
-    res.status(500).json({ error: 'Internal Server Error', message: error.message });
+    const envelope = wrapError({
+      requestId,
+      tool: toolName,
+      startedAt,
+      code: errorCode,
+      message: error.message || 'Internal Server Error',
+    });
+    res.status(500).json(envelope);
+    logDoc = {
+      requestId,
+      ts: admin.firestore.FieldValue.serverTimestamp(),
+      tool: toolName,
+      success: false,
+      elapsedMs: envelope.elapsedMs,
+      errorCode,
+      ipHash,
+      sizeBytes: JSON.stringify(envelope).length,
+      paramsRedacted: redactParams(req.body || {}),
+    };
+  } finally {
+    if (logDoc) logToolCall(logDoc);
   }
 });
 
