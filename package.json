@@ -42,7 +42,8 @@
     "seedrandom": "^3.0.5",
     "shopify-buy": "^2.22.0",
     "stripe": "^16.1.0",
-    "three": "^0.168.0"
+    "three": "^0.168.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@babel/core": "^7.26.9",

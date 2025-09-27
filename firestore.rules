@@ -24,6 +24,14 @@ service cloud.firestore {
       return data.keys().hasOnly(keys);
     }
 
+    // Minimal URL host constraint for event hero images
+    function isAllowedImgURL(u) {
+      return u is string && (
+        u.matches('^https://firebasestorage.googleapis.com/.*') ||
+        u.matches('^https://storage.googleapis.com/.*')
+      );
+    }
+
     // Optimized admin check: prefer custom auth claim, fall back to documents
     function isAdmin() {
       return request.auth != null && (
@@ -126,6 +134,13 @@ service cloud.firestore {
     // Events collection with ragers subcollection
     match /events/{eventId} {
       allow read: if true;  // Allow all users to read events
+
+      // Allow only admins to create events; enforce required timestamp fields & img host
+      allow create: if isAdmin()
+        && isString(request.resource.data.name)
+        && isTimestamp(request.resource.data.createdAt)
+        && isTimestamp(request.resource.data.updatedAt)
+        && isAllowedImgURL(request.resource.data.imgURL);
       
       // Ragers (tickets) should be private to the owner and admins
       match /ragers/{ragerId} {

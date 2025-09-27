@@ -45,6 +45,12 @@ service firebase.storage {
       allow write: if isImage() && under(10 * 1024 * 1024);
     }
 
+    // Event hero images: only admins (custom claim) may upload; public read
+    match /events/{slug}/{filename} {
+      allow read: if true;
+      allow write: if isSignedIn() && request.auth.token.admin == true && isImage() && under(5 * 1024 * 1024);
+    }
+
     // Default deny
     match /{path=**} {
       allow read, write: if false;
