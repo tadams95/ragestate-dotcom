@@ -1,0 +1,15 @@
+{
+  // Firebase Multi-project Configuration (MCP)
+  // This file defines aliases for different Firebase projects, allowing you to
+  // easily switch between environments (e.g., development, staging, production)
+  // from within VS Code using the Firebase extension.
+  "projects": {
+    // The default project alias, often used for local development.
+    // The project ID "ragestate-app" is inferred from your provided instructions.
+    "default": "ragestate-app"
+
+    // You can add other project aliases here.
+    // "staging": "your-staging-project-id",
+    // "production": "your-production-project-id"
+  }
+}

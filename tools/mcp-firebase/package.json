@@ -1,0 +1,27 @@
+{
+  "name": "ragestate-mcp-firebase",
+  "version": "0.1.0",
+  "description": "MCP server for Firebase providing structured access for AI tooling.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "mcp",
+    "firebase",
+    "ai"
+  ],
+  "author": "GitHub Copilot",
+  "license": "UNLICENSED",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "firebase-admin": "^12.1.0",
+    "dotenv": "^16.4.5",
+    "zod": "^3.23.8"
+  }
+}
