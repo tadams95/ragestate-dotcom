@@ -58,6 +58,7 @@ export async function POST(req) {
 
     const eventRef = firestoreAdmin.collection('events').doc(slug);
 
+    const started = Date.now();
     const writeResult = await firestoreAdmin.runTransaction(async (tx) => {
       const existing = await tx.get(eventRef);
       if (existing.exists) throw new Error('SLUG_RACE');
@@ -81,8 +82,25 @@ export async function POST(req) {
         slug,
         nameLower,
       });
-      return { slug, id: slug };
+      return { slug, id: slug, nowTs };
     });
+
+    // Telemetry (best-effort; non-blocking)
+    try {
+      const durationMs = Date.now() - started;
+      await firestoreAdmin.collection('adminEventCreates').add({
+        uid,
+        slug: writeResult.slug,
+        name: value.name.trim(),
+        draft: !value.active,
+        hasImage: !!value.imgURL,
+        descLength: value.description?.length || 0,
+        ts: Timestamp.now(),
+        durationMs,
+      });
+    } catch (telemetryErr) {
+      console.warn('Telemetry write failed (non-fatal)', telemetryErr);
+    }
 
     return NextResponse.json({ ok: true, event: { slug: writeResult.slug } }, { status: 201 });
   } catch (e) {

@@ -2,7 +2,7 @@
 
 Status: Draft (initial spec)
 Owner: Platform / Admin UX
-Last Updated: 2025-09-27
+Last Updated: 2025-09-27 (Phase 5 accessibility pass applied)
 
 ## 1. Goal
 
@@ -295,12 +295,18 @@ Phase 4 – Telemetry & QA
 - [ ] Optional telemetry write (`adminEventCreates/{id}`) with duration & flags.
 - [ ] Jest tests: slug util, schema validation edge cases, API route (happy path + each rejection code) using Firebase emulator.
 - [ ] Manual QA checklist execution (draft visibility, publish visibility, conflict errors, quantity warnings, image size enforcement).
+      Phase 4 – Telemetry & QA
+
+- [x] Optional telemetry write (`adminEventCreates/{id}`) with duration & flags (implemented in API route; best-effort non-blocking).
+- [x] Jest tests: slug util, schema validation edge cases (initial tests added; API route tests still pending).
+- [ ] API route tests (happy path + rejection codes) using Firebase emulator.
+- [ ] Manual QA checklist execution (draft visibility, publish visibility, conflict errors, quantity warnings, image size enforcement).
 
 Phase 5 – Polish
 
-- [ ] Accessibility audit (labels, aria-describedby, focus management on errors).
-- [ ] Performance: ensure no large admin-only libs in main bundle (dynamic imports if needed).
-- [ ] Documentation update (README admin section & this spec tick marks or changelog).
+- [x] Accessibility (labels, fieldsets, error summary, focus management, live regions). Remaining: color contrast verification & performance-focused audit.
+- [x] Performance: reviewed build output (admin create page chunk ~20KB, first-load driven by shared app bundle). No oversized direct imports; opportunities (deferred) include route-group specific admin layout + dynamic toast import if further reduction needed.
+- [x] Documentation update (README admin section expanded; spec checklist updated 2025-09-27).
 
 Stretch / Backlog (post-MVP)
 

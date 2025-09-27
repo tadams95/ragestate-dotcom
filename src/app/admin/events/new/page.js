@@ -31,6 +31,7 @@ function NewEventInner() {
   const { currentUser } = useAuth();
   const firebase = useFirebase();
   const fileInputRef = useRef(null);
+  const errorSummaryRef = useRef(null);
 
   const [form, setForm] = useState({
     name: '',
@@ -50,6 +51,7 @@ function NewEventInner() {
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   const [showPreview, setShowPreview] = useState(true);
+  const [statusMessage, setStatusMessage] = useState('');
 
   function updateField(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -105,6 +107,21 @@ function NewEventInner() {
     setErrors(localErrors);
     if (Object.keys(localErrors).length) {
       toast.error('Fix form errors');
+      // focus first invalid
+      requestAnimationFrame(() => {
+        const order = ['name', 'imgURL', 'date', 'time', 'location', 'quantity', 'price'];
+        for (const key of order) {
+          const id = key === 'imgURL' ? 'ev-hero' : `ev-${key}`;
+          if (localErrors[key]) {
+            const el = document.getElementById(id);
+            if (el) {
+              el.focus();
+              return;
+            }
+          }
+        }
+        if (errorSummaryRef.current) errorSummaryRef.current.focus();
+      });
       return;
     }
     if (!currentUser) {
@@ -112,6 +129,7 @@ function NewEventInner() {
       return;
     }
     setSubmitting(true);
+    setStatusMessage('Submitting event');
     let dateTimeISO = null;
     try {
       if (form.date && form.time) {
@@ -154,6 +172,7 @@ function NewEventInner() {
       toast.error('Network error');
     } finally {
       setSubmitting(false);
+      setStatusMessage('');
     }
   }
 
@@ -198,224 +217,266 @@ function NewEventInner() {
               id="event-create-form"
               onSubmit={handleSubmit}
               className="space-y-10 lg:col-span-7 xl:col-span-8"
+              aria-busy={submitting || uploadingImage}
             >
               <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-6 shadow-sm backdrop-blur-sm">
-                <h2 className="mb-6 text-lg font-semibold text-white">Basic Information</h2>
-                <div className="space-y-6">
-                  <div>
-                    <label className={labelClass}>Name *</label>
-                    <input
-                      className={`${inputClass} ${errors.name ? 'border-red-500' : ''}`}
-                      value={form.name}
-                      onChange={(e) => updateField('name', e.target.value)}
-                      maxLength={80}
-                      aria-invalid={!!errors.name}
-                      aria-describedby={errors.name ? 'err-name' : undefined}
-                    />
-                    {errors.name && (
-                      <p id="err-name" className="mt-1 text-xs text-red-500">
-                        {errors.name}
-                      </p>
+                <fieldset>
+                  <legend className="mb-6 text-lg font-semibold text-white">
+                    Basic Information
+                  </legend>
+                  <div className="space-y-6">
+                    {Object.keys(errors).length > 0 && (
+                      <div
+                        ref={errorSummaryRef}
+                        tabIndex={-1}
+                        className="rounded-md border border-red-600 bg-red-950/40 p-3 text-xs text-red-300"
+                        role="alert"
+                        aria-live="assertive"
+                      >
+                        Please fix the highlighted fields below.
+                      </div>
                     )}
-                  </div>
-                  <div>
-                    <label className={labelClass}>Description</label>
-                    <textarea
-                      className={`${inputClass} min-h-[140px] resize-y`}
-                      value={form.description}
-                      onChange={(e) => updateField('description', e.target.value)}
-                      maxLength={5000}
-                      aria-describedby="desc-help"
-                    />
-                    <div className="mt-1 flex justify-between text-xs text-gray-500" id="desc-help">
-                      <span>{form.description.length} / 5000</span>
-                      <span className="text-gray-500">Optional</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-6 shadow-sm backdrop-blur-sm">
-                <h2 className="mb-6 text-lg font-semibold text-white">Hero Image *</h2>
-                <div className="space-y-4">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    accept="image/png,image/jpeg,image/webp"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0] || null;
-                      setImageFile(file);
-                      if (localPreview) {
-                        try {
-                          URL.revokeObjectURL(localPreview);
-                        } catch (_) {}
-                        setLocalPreview(null);
-                      }
-                      if (file) {
-                        // Create immediate local preview (Next Image cannot handle blob: URLs reliably, so we'll fall back to <img>)
-                        const blobUrl = URL.createObjectURL(file);
-                        setLocalPreview(blobUrl);
-                        // Auto-upload in background
-                        handleUploadImage(file);
-                      }
-                    }}
-                    className={inputClass}
-                    aria-describedby={errors.imgURL ? 'err-img' : 'img-help'}
-                  />
-                  {(localPreview || form.imgURL) && (
-                    <div className="relative h-56 w-full overflow-hidden rounded-md border border-zinc-700">
-                      {localPreview ? (
-                        <Image
-                          src={localPreview}
-                          alt="Local image preview"
-                          fill
-                          unoptimized
-                          sizes="(max-width: 768px) 100vw, 800px"
-                          className="object-cover"
-                        />
-                      ) : (
-                        <Image
-                          src={form.imgURL}
-                          alt="Event hero preview"
-                          fill
-                          sizes="(max-width: 768px) 100vw, 800px"
-                          className="object-cover"
-                        />
+                    <div>
+                      <label htmlFor="ev-name" className={labelClass}>
+                        Name *
+                      </label>
+                      <input
+                        id="ev-name"
+                        className={`${inputClass} ${errors.name ? 'border-red-500' : ''}`}
+                        value={form.name}
+                        onChange={(e) => updateField('name', e.target.value)}
+                        maxLength={80}
+                        aria-invalid={!!errors.name}
+                        aria-describedby={errors.name ? 'err-name' : undefined}
+                      />
+                      {errors.name && (
+                        <p id="err-name" className="mt-1 text-xs text-red-500">
+                          {errors.name}
+                        </p>
                       )}
                     </div>
-                  )}
-                  <div className="flex flex-wrap items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => handleUploadImage()}
-                      disabled={!imageFile || uploadingImage}
-                      className={buttonSecondary}
-                    >
-                      {uploadingImage
-                        ? 'Uploading...'
-                        : form.imgURL
-                          ? 'Re-upload'
-                          : 'Upload Manually'}
-                    </button>
-                    <p id="img-help" className="text-xs text-gray-500">
-                      PNG/JPG/WEBP ≤ 5MB. Landscape preferred.
-                    </p>
-                    {errors.imgURL && (
-                      <span id="err-img" className="text-xs text-red-500">
-                        {errors.imgURL}
-                      </span>
-                    )}
+                    <div>
+                      <label htmlFor="ev-description" className={labelClass}>
+                        Description
+                      </label>
+                      <textarea
+                        id="ev-description"
+                        className={`${inputClass} min-h-[140px] resize-y`}
+                        value={form.description}
+                        onChange={(e) => updateField('description', e.target.value)}
+                        maxLength={5000}
+                        aria-describedby="desc-help"
+                      />
+                      <div
+                        className="mt-1 flex justify-between text-xs text-gray-500"
+                        id="desc-help"
+                      >
+                        <span>{form.description.length} / 5000</span>
+                        <span className="text-gray-500">Optional</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                </fieldset>
               </div>
               <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-6 shadow-sm backdrop-blur-sm">
-                <h2 className="mb-6 text-lg font-semibold text-white">Schedule & Tickets</h2>
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className={labelClass}>Date *</label>
+                <fieldset>
+                  <legend className="mb-6 text-lg font-semibold text-white">Hero Image *</legend>
+                  <div className="space-y-4">
                     <input
-                      type="date"
-                      className={`${inputClass} ${errors.date ? 'border-red-500' : ''}`}
-                      value={form.date}
-                      onChange={(e) => updateField('date', e.target.value)}
-                      aria-invalid={!!errors.date}
-                      aria-describedby={errors.date ? 'err-date' : undefined}
-                    />
-                    {errors.date && (
-                      <p id="err-date" className="text-xs text-red-500">
-                        {errors.date}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <label className={labelClass}>Time *</label>
-                    <input
-                      type="time"
-                      className={`${inputClass} ${errors.time ? 'border-red-500' : ''}`}
-                      value={form.time}
-                      onChange={(e) => updateField('time', e.target.value)}
-                      aria-invalid={!!errors.time}
-                      aria-describedby={errors.time ? 'err-time' : undefined}
-                    />
-                    {errors.time && (
-                      <p id="err-time" className="text-xs text-red-500">
-                        {errors.time}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <label className={labelClass}>Location *</label>
-                    <input
-                      className={`${inputClass} ${errors.location ? 'border-red-500' : ''}`}
-                      value={form.location}
-                      onChange={(e) => updateField('location', e.target.value)}
-                      maxLength={140}
-                      aria-invalid={!!errors.location}
-                      aria-describedby={errors.location ? 'err-location' : undefined}
-                    />
-                    {errors.location && (
-                      <p id="err-location" className="text-xs text-red-500">
-                        {errors.location}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <label className={labelClass}>Quantity *</label>
-                    <input
-                      className={`${inputClass} ${errors.quantity ? 'border-red-500' : ''}`}
-                      value={form.quantity}
-                      onChange={(e) => updateField('quantity', e.target.value)}
-                      type="number"
-                      min="0"
-                      aria-invalid={!!errors.quantity}
-                      aria-describedby={errors.quantity ? 'err-quantity' : undefined}
-                    />
-                    {errors.quantity && (
-                      <p id="err-quantity" className="text-xs text-red-500">
-                        {errors.quantity}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <label className={labelClass}>Price (USD) *</label>
-                    <input
-                      className={`${inputClass} ${errors.price ? 'border-red-500' : ''}`}
-                      value={form.price}
-                      onChange={(e) => updateField('price', e.target.value)}
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      aria-invalid={!!errors.price}
-                      aria-describedby={errors.price ? 'err-price' : undefined}
-                    />
-                    {errors.price && (
-                      <p id="err-price" className="text-xs text-red-500">
-                        {errors.price}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <label className={labelClass}>Minimum Age</label>
-                    <input
+                      id="ev-hero"
+                      type="file"
+                      ref={fileInputRef}
+                      accept="image/png,image/jpeg,image/webp"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        setImageFile(file);
+                        if (localPreview) {
+                          try {
+                            URL.revokeObjectURL(localPreview);
+                          } catch (_) {}
+                          setLocalPreview(null);
+                        }
+                        if (file) {
+                          const blobUrl = URL.createObjectURL(file);
+                          setLocalPreview(blobUrl);
+                          handleUploadImage(file);
+                        }
+                      }}
                       className={inputClass}
-                      value={form.age}
-                      onChange={(e) => updateField('age', e.target.value)}
-                      type="number"
-                      min="0"
+                      aria-describedby={errors.imgURL ? 'err-img' : 'img-help'}
                     />
+                    {(localPreview || form.imgURL) && (
+                      <div className="relative h-56 w-full overflow-hidden rounded-md border border-zinc-700">
+                        {localPreview ? (
+                          <Image
+                            src={localPreview}
+                            alt="Local image preview"
+                            fill
+                            unoptimized
+                            loader={({ src }) => src}
+                            sizes="(max-width: 768px) 100vw, 800px"
+                            className="object-cover"
+                          />
+                        ) : (
+                          <Image
+                            src={form.imgURL}
+                            alt="Event hero preview"
+                            fill
+                            sizes="(max-width: 768px) 100vw, 800px"
+                            className="object-cover"
+                          />
+                        )}
+                      </div>
+                    )}
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handleUploadImage()}
+                        disabled={!imageFile || uploadingImage}
+                        className={buttonSecondary}
+                      >
+                        {uploadingImage
+                          ? 'Uploading...'
+                          : form.imgURL
+                            ? 'Re-upload'
+                            : 'Upload Manually'}
+                      </button>
+                      <p id="img-help" className="text-xs text-gray-500">
+                        PNG/JPG/WEBP ≤ 5MB. Landscape preferred.
+                      </p>
+                      {errors.imgURL && (
+                        <span id="err-img" className="text-xs text-red-500">
+                          {errors.imgURL}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 pt-6">
-                    <input
-                      id="active"
-                      type="checkbox"
-                      checked={form.active}
-                      onChange={(e) => updateField('active', e.target.checked)}
-                      className="h-4 w-4 rounded border-zinc-600 text-red-600 focus:ring-red-500"
-                    />
-                    <label htmlFor="active" className="text-sm text-gray-300">
-                      Publish Immediately
-                    </label>
+                </fieldset>
+              </div>
+              <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-6 shadow-sm backdrop-blur-sm">
+                <fieldset>
+                  <legend className="mb-6 text-lg font-semibold text-white">
+                    Schedule & Tickets
+                  </legend>
+                  <div className="grid gap-6 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className={labelClass}>Date *</label>
+                      <input
+                        id="ev-date"
+                        type="date"
+                        className={`${inputClass} ${errors.date ? 'border-red-500' : ''}`}
+                        value={form.date}
+                        onChange={(e) => updateField('date', e.target.value)}
+                        aria-invalid={!!errors.date}
+                        aria-describedby={errors.date ? 'err-date' : undefined}
+                      />
+                      {errors.date && (
+                        <p id="err-date" className="text-xs text-red-500">
+                          {errors.date}
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <label className={labelClass}>Time *</label>
+                      <input
+                        id="ev-time"
+                        type="time"
+                        className={`${inputClass} ${errors.time ? 'border-red-500' : ''}`}
+                        value={form.time}
+                        onChange={(e) => updateField('time', e.target.value)}
+                        aria-invalid={!!errors.time}
+                        aria-describedby={errors.time ? 'err-time' : undefined}
+                      />
+                      {errors.time && (
+                        <p id="err-time" className="text-xs text-red-500">
+                          {errors.time}
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <label className={labelClass}>Location *</label>
+                      <input
+                        id="ev-location"
+                        className={`${inputClass} ${errors.location ? 'border-red-500' : ''}`}
+                        value={form.location}
+                        onChange={(e) => updateField('location', e.target.value)}
+                        maxLength={140}
+                        aria-invalid={!!errors.location}
+                        aria-describedby={errors.location ? 'err-location' : undefined}
+                      />
+                      {errors.location && (
+                        <p id="err-location" className="text-xs text-red-500">
+                          {errors.location}
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <label className={labelClass}>Quantity *</label>
+                      <input
+                        id="ev-quantity"
+                        className={`${inputClass} ${errors.quantity ? 'border-red-500' : ''}`}
+                        value={form.quantity}
+                        onChange={(e) => updateField('quantity', e.target.value)}
+                        type="number"
+                        min="0"
+                        aria-invalid={!!errors.quantity}
+                        aria-describedby={errors.quantity ? 'err-quantity' : undefined}
+                      />
+                      {errors.quantity && (
+                        <p id="err-quantity" className="text-xs text-red-500">
+                          {errors.quantity}
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <label className={labelClass}>Price (USD) *</label>
+                      <input
+                        id="ev-price"
+                        className={`${inputClass} ${errors.price ? 'border-red-500' : ''}`}
+                        value={form.price}
+                        onChange={(e) => updateField('price', e.target.value)}
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        aria-invalid={!!errors.price}
+                        aria-describedby={errors.price ? 'err-price' : undefined}
+                      />
+                      {errors.price && (
+                        <p id="err-price" className="text-xs text-red-500">
+                          {errors.price}
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <label htmlFor="ev-age" className={labelClass}>
+                        Minimum Age
+                      </label>
+                      <input
+                        id="ev-age"
+                        className={inputClass}
+                        value={form.age}
+                        onChange={(e) => updateField('age', e.target.value)}
+                        type="number"
+                        min="0"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 pt-6">
+                      <input
+                        id="active"
+                        type="checkbox"
+                        checked={form.active}
+                        onChange={(e) => updateField('active', e.target.checked)}
+                        className="h-4 w-4 rounded border-zinc-600 text-red-600 focus:ring-red-500"
+                      />
+                      <label htmlFor="active" className="text-sm text-gray-300">
+                        Publish Immediately
+                      </label>
+                    </div>
                   </div>
-                </div>
+                </fieldset>
+              </div>
+              <div aria-live="polite" className="sr-only">
+                {statusMessage}
               </div>
             </form>
             {showPreview && (

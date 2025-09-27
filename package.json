@@ -10,6 +10,8 @@
     "lint": "next lint",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:api": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 jest lib/admin/events/__tests__/createRoute.int.test.js",
+    "test:api:emulated": "firebase emulators:exec --only firestore,auth 'npm run test:api'",
     "test:rules": "firebase emulators:exec --only firestore 'npx jest __tests__/notifications.rules.test.js'",
     "analyze": "ANALYZE=true next build",
     "seed:feed": "node scripts/seedFeed.cjs"
