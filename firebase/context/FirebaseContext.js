@@ -13,6 +13,7 @@ import {
   serverTimestamp,
   setDoc,
 } from 'firebase/firestore';
+import { getDownloadURL, getStorage, ref as storageRef, uploadBytes } from 'firebase/storage';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { auth, db } from '../firebase';
 
@@ -483,6 +484,21 @@ export function FirebaseProvider({ children }) {
     user,
     loading,
     error,
+    // Generic storage helper used by admin event creation to upload an arbitrary file
+    // and return its public download URL. Caller is responsible for any size/type validation.
+    uploadFileAndGetURL: async (file, path) => {
+      if (!file) throw new Error('No file provided');
+      if (!path || typeof path !== 'string') throw new Error('Invalid storage path');
+      try {
+        const storage = getStorage();
+        const fileRef = storageRef(storage, path);
+        await uploadBytes(fileRef, file);
+        return await getDownloadURL(fileRef);
+      } catch (err) {
+        console.error('uploadFileAndGetURL error:', err);
+        throw err;
+      }
+    },
     fetchOrders,
     fetchUsers,
     fetchEvents,

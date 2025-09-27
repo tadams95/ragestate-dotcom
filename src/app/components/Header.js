@@ -82,12 +82,13 @@ export default function Header() {
               </Link>
             ))}
           </div>
-          <div className="hidden gap-1 lg:flex lg:flex-1 lg:justify-end">
-            <Link href="/cart" className="px-20 text-sm font-semibold leading-6 text-gray-100">
-              <span className="-m-2 inline-flex h-11 w-11 items-center justify-center active:opacity-80">
-                <ShoppingBagIcon className="h-6 w-6" aria-hidden="true" />
-              </span>
-              <span aria-hidden="true"></span>
+          <div className="hidden gap-3 lg:flex lg:flex-1 lg:items-center lg:justify-end">
+            <Link
+              href="/cart"
+              aria-label="Cart"
+              className="relative -m-2 inline-flex h-11 w-11 items-center justify-center text-gray-100 active:opacity-80"
+            >
+              <ShoppingBagIcon className="h-6 w-6" aria-hidden="true" />
             </Link>
             {hydrated && idToken && refreshToken && (
               <Link

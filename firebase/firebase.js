@@ -51,23 +51,38 @@ const rtdb = getDatabase(app);
 const storage = getStorage(app);
 
 // Initialize Firebase App Check (reCAPTCHA v3 provider)
-// Requires NEXT_PUBLIC_RECAPTCHA_SITE_KEY to be set in env for the client bundle
+// Optional: disable in local dev via NEXT_PUBLIC_DISABLE_APPCHECK=true
 try {
   if (typeof window !== 'undefined') {
+    const disable = process.env.NEXT_PUBLIC_DISABLE_APPCHECK === 'true';
     const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
-    if (siteKey && siteKey.trim().length > 0) {
+
+    if (disable) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.info('[AppCheck] Disabled via NEXT_PUBLIC_DISABLE_APPCHECK');
+      }
+    } else if (siteKey && siteKey.trim()) {
+      // Debug token support: set NEXT_PUBLIC_APPCHECK_DEBUG=true to emit token for allow‑listing
+      if (process.env.NEXT_PUBLIC_APPCHECK_DEBUG === 'true') {
+        // eslint-disable-next-line no-undef
+        self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+        console.info('[AppCheck] Debug token mode enabled');
+      }
       initializeAppCheck(app, {
-        provider: new ReCaptchaV3Provider(siteKey),
+        provider: new ReCaptchaV3Provider(siteKey.trim()),
         isTokenAutoRefreshEnabled: true,
       });
+      if (process.env.NODE_ENV !== 'production') {
+        console.info('[AppCheck] Initialized with reCAPTCHA v3 site key');
+      }
     } else {
       if (process.env.NODE_ENV !== 'production') {
-        console.warn('App Check not initialized: NEXT_PUBLIC_RECAPTCHA_SITE_KEY is missing.');
+        console.warn('[AppCheck] Not initialized: missing NEXT_PUBLIC_RECAPTCHA_SITE_KEY');
       }
     }
   }
 } catch (err) {
-  console.error('App Check initialization error:', err);
+  console.error('App Check initialization error (non-fatal):', err);
 }
 
 // Export the initialized app, auth, db, rtdb, and storage

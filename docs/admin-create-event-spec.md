@@ -283,12 +283,12 @@ Phase 2 – Firestore & Storage Rules
 
 Phase 3 – Admin UI Page (`/admin/events/new`)
 
-- [ ] Gate route client-side (redirect non-admins).
-- [ ] Build form components (name, description, image upload, price, age, dateTime, location, quantity, capacity, isDigital, category, guests, active switch).
-- [ ] Local validation mirror (fast feedback) + server fallback.
-- [ ] Image upload flow (single upload, progress indicator, preview, error states, reuse on retry).
-- [ ] Prevent double submit (loading state + disable submit).
-- [ ] Inline + toast error presentation (map server error codes to friendly copy).
+- [x] Gate route client-side (redirect non-admins).
+- [x] Build form components (name, description, image upload, price, age, dateTime, location, quantity, capacity, isDigital, category, guests, active switch).
+- [x] Local validation mirror (fast feedback) + server fallback.
+- [x] Image upload flow (single upload, progress indicator, preview, error states, reuse on retry).
+- [x] Prevent double submit (loading state + disable submit).
+- [x] Inline + toast error presentation (map server error codes to friendly copy).
 
 Phase 4 – Telemetry & QA
 

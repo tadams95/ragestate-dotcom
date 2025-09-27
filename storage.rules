@@ -51,6 +51,15 @@ service firebase.storage {
       allow write: if isSignedIn() && request.auth.token.admin == true && isImage() && under(5 * 1024 * 1024);
     }
 
+    // Temporary event hero image uploads before an event slug is finalized.
+    // Structure: temp-events/{uid}/{timestamp-filename}
+    // Allow any signed-in user to upload to THEIR OWN temp folder (uid match) so we don't rely on custom claims here.
+    // Final event creation is still admin-gated server-side, so non-admin uploads remain harmless.
+    match /temp-events/{uid}/{filename} {
+      allow read: if true;
+      allow write: if isSignedIn() && request.auth.uid == uid && isImage() && under(5 * 1024 * 1024);
+    }
+
     // Default deny
     match /{path=**} {
       allow read, write: if false;
