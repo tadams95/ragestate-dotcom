@@ -16,18 +16,26 @@ export async function POST(req) {
     if (!idToken) return error('UNAUTHENTICATED', 'Missing bearer token', 401);
     let decoded;
     try {
+      // Remove revocation check for now to isolate failures (was: verifyIdToken(token, true))
       decoded = await (
         await import('../../../../../../lib/server/firebaseAdmin')
-      ).authAdmin.verifyIdToken(idToken, true);
+      ).authAdmin.verifyIdToken(idToken);
     } catch (e) {
-      console.warn('verifyIdToken failed', e?.code || e?.message || e);
-      if (e?.code === 'auth/id-token-expired')
-        return error('TOKEN_EXPIRED', 'Token expired – refresh and retry', 401);
-      if (e?.code === 'auth/argument-error')
-        return error('UNAUTHENTICATED', 'Malformed token', 401);
-      if (e?.code === 'auth/invalid-id-token')
-        return error('UNAUTHENTICATED', 'Invalid token', 401);
-      return error('UNAUTHENTICATED', 'Invalid token', 401);
+      const rawCode = e?.code || e?.errorInfo?.code || 'unknown';
+      const mapped =
+        rawCode === 'auth/id-token-expired'
+          ? { c: 'TOKEN_EXPIRED', m: 'Token expired – refresh and retry' }
+          : rawCode === 'auth/argument-error'
+            ? { c: 'TOKEN_MALFORMED', m: 'Malformed token' }
+            : rawCode === 'auth/invalid-id-token'
+              ? { c: 'TOKEN_INVALID', m: 'Invalid token' }
+              : { c: 'UNAUTHENTICATED', m: 'Invalid token' };
+      console.warn('verifyIdToken failed', { rawCode, message: e?.message });
+      // Optional debug surface (never send internal stack) – enable by setting EVENT_CREATE_DEBUG=1
+      if (process.env.EVENT_CREATE_DEBUG === '1') {
+        return error(mapped.c, mapped.m, 401, { _debug: { rawCode } });
+      }
+      return error(mapped.c, mapped.m, 401);
     }
     const uid = decoded.uid;
     if (!(await userIsAdmin(uid))) return error('FORBIDDEN', 'Not an admin', 403);
