@@ -18,8 +18,15 @@ export async function POST(req) {
     try {
       decoded = await (
         await import('../../../../../../lib/server/firebaseAdmin')
-      ).authAdmin.verifyIdToken(idToken);
+      ).authAdmin.verifyIdToken(idToken, true);
     } catch (e) {
+      console.warn('verifyIdToken failed', e?.code || e?.message || e);
+      if (e?.code === 'auth/id-token-expired')
+        return error('TOKEN_EXPIRED', 'Token expired – refresh and retry', 401);
+      if (e?.code === 'auth/argument-error')
+        return error('UNAUTHENTICATED', 'Malformed token', 401);
+      if (e?.code === 'auth/invalid-id-token')
+        return error('UNAUTHENTICATED', 'Invalid token', 401);
       return error('UNAUTHENTICATED', 'Invalid token', 401);
     }
     const uid = decoded.uid;

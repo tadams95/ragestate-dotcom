@@ -150,7 +150,8 @@ function NewEventInner() {
       imgURL: form.imgURL,
     };
     try {
-      const idToken = await currentUser.getIdToken();
+      // Force refresh to avoid using an expired cached token (helps with recent claim updates too)
+      const idToken = await currentUser.getIdToken(true);
       const res = await fetch('/api/admin/events/create', {
         method: 'POST',
         headers: {
@@ -485,7 +486,10 @@ function NewEventInner() {
                   <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-5 shadow-sm">
                     <h2 className="mb-4 text-lg font-semibold text-white">Preview</h2>
                     <div className="space-y-4">
-                      <div className="aspect-video relative flex w-full items-center justify-center overflow-hidden rounded-md border border-zinc-700 bg-zinc-900 text-xs text-gray-500">
+                      <div
+                        className="relative flex w-full items-center justify-center overflow-hidden rounded-md border border-zinc-700 bg-zinc-900 text-xs text-gray-500"
+                        style={{ aspectRatio: '16 / 9' }}
+                      >
                         {localPreview ? (
                           <Image
                             src={localPreview}
