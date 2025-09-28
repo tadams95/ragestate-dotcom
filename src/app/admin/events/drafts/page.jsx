@@ -1,7 +1,8 @@
 'use client';
 import { getAuth } from 'firebase/auth';
 import { useCallback, useEffect, useState } from 'react';
-import { app } from '../../../../firebase/firebase';
+// NOTE: path needed five '../' segments to reach repository root from this nested route directory.
+import { app } from '../../../../../firebase/firebase';
 
 export default function DraftEventsPage() {
   const [drafts, setDrafts] = useState([]);
