@@ -54,6 +54,43 @@ RESEND_API_KEY=...
 PROXY_KEY=dev-proxy (must match)
 ```
 
+### Firebase Admin Service Account (Server Token Verification)
+
+Server‑side admin routes (e.g. `/api/admin/events/*`) need Firebase Admin credentials to read privileged collections (`adminUsers`) and manage custom claims. Provide exactly one of these in your hosting provider environment settings:
+
+| Method    | Env Var                         | Notes                                                       |
+| --------- | ------------------------------- | ----------------------------------------------------------- |
+| Base64    | `FIREBASE_SERVICE_ACCOUNT_B64`  | Recommended. Value is base64 of full JSON contents.         |
+| Raw JSON  | `FIREBASE_SERVICE_ACCOUNT`      | Must be a single-line JSON string; escaping can be fragile. |
+| File Path | `FIREBASE_SERVICE_ACCOUNT_FILE` | Absolute path to a mounted/readable JSON key file.          |
+
+Steps (Base64 method):
+
+```bash
+# Generate service account key in Firebase Console (Project Settings → Service Accounts)
+# Save it as .secrets/service-account.json (already gitignored)
+base64 -i .secrets/service-account.json | tr -d '\n' > .secrets/service-account.b64
+pbcopy < .secrets/service-account.b64   # paste value into hosting env var FIREBASE_SERVICE_ACCOUNT_B64
+```
+
+Redeploy, then visit `/admin/events/debug-auth-test` and confirm:
+
+```
+server.hasServiceAccount: true
+adminSources.adminUsersDoc: true
+isAdmin: true
+```
+
+Optional redundancy (custom claim): after credentials are live run:
+
+```bash
+node scripts/grantAdminClaim.js <uid>
+```
+
+User must sign out/in (or refresh token) to receive the claim.
+
+Remove `src/app/admin/events/debug-auth-test/page.jsx` after verification.
+
 ---
 
 ## Firebase Emulators

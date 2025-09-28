@@ -19,17 +19,39 @@ export async function GET(req) {
       });
     }
     const uid = decoded.uid;
-    const { userIsAdmin } = await import('../../../../../../lib/server/isAdmin');
-    const isAdmin = await userIsAdmin(uid);
+    const { userAdminInfo } = await import('../../../../../../lib/server/isAdmin');
+    const adminInfo = await userAdminInfo(uid);
+    // Introspect server project/environment (helps diagnose mismatched project IDs)
+    let serverProject = undefined;
+    try {
+      const app = (await import('firebase-admin/app')).getApps()?.[0];
+      serverProject = app?.options?.projectId;
+    } catch {}
     return NextResponse.json({
       ok: true,
       uid,
-      isAdmin,
+      // high-level admin boolean remains for backwards compatibility
+      isAdmin: adminInfo.isAdmin,
+      adminSources: adminInfo.sources,
+      adminDoc: adminInfo.adminUsersDocData || null,
+      adminErrors: adminInfo.errors,
       decoded: {
         auth_time: decoded.auth_time,
         exp: decoded.exp,
         iat: decoded.iat,
         email: decoded.email,
+        aud: decoded.aud,
+        iss: decoded.iss,
+        sub: decoded.sub,
+      },
+      server: {
+        projectId: serverProject,
+        envProjectId: process.env.FIREBASE_PROJECT_ID || null,
+        envPublicProjectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || null,
+        hasServiceAccount:
+          !!process.env.FIREBASE_SERVICE_ACCOUNT ||
+          !!process.env.FIREBASE_SERVICE_ACCOUNT_B64 ||
+          !!process.env.FIREBASE_SERVICE_ACCOUNT_FILE,
       },
     });
   } catch (e) {
