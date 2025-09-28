@@ -26,22 +26,32 @@ export default function Header() {
   const [refreshToken, setRefreshToken] = useState(null);
   const [profilePicture, setProfilePicture] = useState('');
   const [userId, setUserId] = useState('');
+  // Hydrated stays false for server + first client paint; set true after unified state load to avoid flicker & mismatch.
   const [hydrated, setHydrated] = useState(false);
   const [unreadCount] = useUnreadNotificationsCount(userId);
+  // Removed admin nav surface; no admin state needed here now.
 
+  // Initial unified load after mount + storage listener.
   useEffect(() => {
-    const {
-      idToken: idTok,
-      refreshToken: refTok,
-      profilePicture: pic,
-      userId: uid,
-    } = storage.readKeys(['idToken', 'refreshToken', 'profilePicture', 'userId']);
-    setIdToken(idTok || null);
-    setRefreshToken(refTok || null);
-    setProfilePicture(pic || '');
-    setUserId(uid || '');
-    setHydrated(true);
+    const load = () => {
+      const keys = storage.readKeys(['idToken', 'refreshToken', 'profilePicture', 'userId']);
+      setIdToken(keys.idToken || null);
+      setRefreshToken(keys.refreshToken || null);
+      setProfilePicture(keys.profilePicture || '');
+      setUserId(keys.userId || '');
+      setHydrated(true);
+    };
+    load();
+    const handler = (e) => {
+      if (!e.key) return;
+      if (['idToken', 'refreshToken', 'profilePicture', 'userId'].includes(e.key)) load();
+    };
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
   }, []);
+
+  // Close mobile menu after navigation for better UX
+  const handleNavClick = () => setMobileMenuOpen(false);
 
   return (
     <div className="bg-black">
@@ -81,6 +91,7 @@ export default function Header() {
                 {item.name}
               </Link>
             ))}
+            {/* DRAFTS link intentionally removed from header to reduce discoverability */}
           </div>
           <div className="hidden gap-3 lg:flex lg:flex-1 lg:items-center lg:justify-end">
             <Link
@@ -174,15 +185,18 @@ export default function Header() {
                     <Link
                       key={item.name}
                       href={item.href}
+                      onClick={handleNavClick}
                       className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-100 hover:bg-zinc-900"
                     >
                       {item.name}
                     </Link>
                   ))}
+                  {/* DRAFTS link removed on mobile as well */}
                 </div>
                 <div className="py-6">
                   <Link
                     href="/cart"
+                    onClick={handleNavClick}
                     className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-100 hover:bg-zinc-900"
                   >
                     CART
@@ -190,6 +204,7 @@ export default function Header() {
                   {hydrated && idToken && refreshToken && (
                     <Link
                       href="/account"
+                      onClick={handleNavClick}
                       className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-100 hover:bg-zinc-900"
                     >
                       NOTIFICATIONS
@@ -203,6 +218,7 @@ export default function Header() {
                   {idToken && refreshToken ? (
                     <Link
                       href="/account"
+                      onClick={handleNavClick}
                       className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-100 hover:bg-zinc-900"
                     >
                       ACCOUNT
@@ -210,6 +226,7 @@ export default function Header() {
                   ) : (
                     <Link
                       href="/login"
+                      onClick={handleNavClick}
                       className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-100 hover:bg-zinc-900"
                     >
                       LOGIN

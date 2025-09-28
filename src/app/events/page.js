@@ -21,6 +21,7 @@ function EventsPageContent() {
       // Targeted Firestore query: upcoming events only, sorted ascending, limited
       const q = query(
         eventCollectionRef,
+        where('active', '==', true), // hide drafts
         where('dateTime', '>=', Timestamp.now()),
         orderBy('dateTime', 'asc'),
         limit(24),

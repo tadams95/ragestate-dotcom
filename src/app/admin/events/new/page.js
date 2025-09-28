@@ -226,6 +226,41 @@ function NewEventInner() {
                     Basic Information
                   </legend>
                   <div className="space-y-6">
+                    {/* Publish Status */}
+                    <div>
+                      <span className={labelClass}>Status</span>
+                      <div className="mt-1 flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => updateField('active', false)}
+                          className={`rounded-md border px-3 py-1 text-xs font-medium transition ${
+                            !form.active
+                              ? 'border-zinc-600 bg-zinc-700 text-white'
+                              : 'border-zinc-700 bg-zinc-900 text-gray-400 hover:text-gray-200'
+                          }`}
+                          aria-pressed={!form.active}
+                        >
+                          Draft
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateField('active', true)}
+                          className={`rounded-md border px-3 py-1 text-xs font-medium transition ${
+                            form.active
+                              ? 'border-red-500 bg-red-600 text-white'
+                              : 'border-zinc-700 bg-zinc-900 text-gray-400 hover:text-gray-200'
+                          }`}
+                          aria-pressed={form.active}
+                        >
+                          Publish
+                        </button>
+                        <p className="text-xs text-gray-400">
+                          {form.active
+                            ? 'Event will be publicly visible immediately.'
+                            : 'Draft is hidden from public listings until you publish.'}
+                        </p>
+                      </div>
+                    </div>
                     {Object.keys(errors).length > 0 && (
                       <div
                         ref={errorSummaryRef}
