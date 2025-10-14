@@ -21,6 +21,7 @@ export default function CheckoutForm({
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [orderNumber, setOrderNumber] = useState(null);
+  const [successItems, setSuccessItems] = useState([]);
 
   // Fetch user and cart data from Redux
   const cartItems = useSelector(selectCartItems);
@@ -82,9 +83,11 @@ export default function CheckoutForm({
         // If server persisted purchases successfully, prefer its orderNumber and skip client save
         if (data && data.ok && data.orderNumber) {
           setOrderNumber(data.orderNumber);
+          setSuccessItems(cartItems || []);
           setMessage('Payment succeeded! Your order has been saved.');
-          dispatch(clearCart());
           setShowSuccess(true);
+          // Clear cart after showing success modal state is set
+          dispatch(clearCart());
           return true; // handled
         }
       }
@@ -104,9 +107,10 @@ export default function CheckoutForm({
 
     if (saveResult && saveResult.success) {
       setOrderNumber(saveResult.orderNumber || null);
+      setSuccessItems(cartItems || []);
       setMessage('Payment succeeded! Your order has been saved.');
-      dispatch(clearCart());
       setShowSuccess(true);
+      dispatch(clearCart());
     } else {
       setMessage('Payment succeeded, but there was an issue saving your order.');
     }
@@ -186,7 +190,12 @@ export default function CheckoutForm({
   return (
     <form id="payment-form" onSubmit={handleSubmit}>
       {showSuccess && (
-        <SuccessModal orderNumber={orderNumber} onClose={() => setShowSuccess(false)} />
+        <SuccessModal
+          orderNumber={orderNumber}
+          items={successItems}
+          userEmail={userEmail}
+          onClose={() => setShowSuccess(false)}
+        />
       )}
       <PaymentElement id="payment-element" options={paymentElementOptions} />
       <button
