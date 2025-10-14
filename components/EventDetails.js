@@ -3,7 +3,7 @@
 import storage from '@/utils/storage';
 import Image from 'next/image';
 // Avoid useSearchParams/usePathname to prevent Suspense requirements in some pages
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { addToCart } from '../lib/features/todos/cartSlice';
@@ -21,7 +21,28 @@ export default function EventDetails({ event }) {
 
   const selectedEvent = typeof window !== 'undefined' ? storage.getJSON('selectedEvent') : null;
 
-  const ts = event?.dateTime;
+  const canonicalEvent = useMemo(() => selectedEvent || event || null, [selectedEvent, event]);
+
+  const formatSlug = (value) =>
+    (value || '')
+      .toLowerCase()
+      .trim()
+      .replace(/['`”"“]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/--+/g, '-')
+      .replace(/^-|-$/g, '');
+
+  const eventIdentifier = useMemo(() => {
+    if (!canonicalEvent) return '';
+    return (
+      canonicalEvent.slug ||
+      canonicalEvent.id ||
+      (canonicalEvent.name ? formatSlug(canonicalEvent.name) : '')
+    );
+  }, [canonicalEvent]);
+
+  const ts = canonicalEvent?.dateTime;
   const date = (() => {
     try {
       if (typeof ts?.toDate === 'function') return ts.toDate();
@@ -47,7 +68,7 @@ export default function EventDetails({ event }) {
       hour12: true,
     }) || 'TBA';
 
-  const location = event?.location || 'Location TBA';
+  const location = canonicalEvent?.location || 'Location TBA';
 
   // Check auth presence in local storage for gentle reminders
   useEffect(() => {
@@ -62,20 +83,20 @@ export default function EventDetails({ event }) {
   // Auto-add support after returning from auth with ?autoAdd=true
   useEffect(() => {
     try {
-      if (!event) return;
+      if (!canonicalEvent) return;
       const autoAdd = getSearchParam('autoAdd') === 'true';
-      const addedKey = `autoAdded:${event.name}`;
+      const addedKey = `autoAdded:${eventIdentifier || canonicalEvent.name || 'event'}`;
       if (isLoggedIn && autoAdd && !sessionStorage.getItem(addedKey)) {
         // Create cart item and add once
-        if (selectedEvent && selectedEvent.quantity > 0) {
+        if (canonicalEvent && canonicalEvent.quantity > 0) {
           const cartItem = {
-            productId: selectedEvent.name,
-            title: selectedEvent.name,
-            productImageSrc: selectedEvent.imgURL,
+            productId: eventIdentifier || canonicalEvent.name,
+            title: canonicalEvent.name,
+            productImageSrc: canonicalEvent.imgURL,
             selectedQuantity: 1,
-            price: selectedEvent.price,
-            eventDetails: { location: selectedEvent.location },
-            isDigital: selectedEvent.isDigital,
+            price: canonicalEvent.price,
+            eventDetails: { location: canonicalEvent.location },
+            isDigital: canonicalEvent.isDigital,
           };
           dispatch(addToCart(cartItem));
           sessionStorage.setItem(addedKey, '1');
@@ -87,7 +108,7 @@ export default function EventDetails({ event }) {
         }
       }
     } catch (_) {}
-  }, [isLoggedIn, event, dispatch, selectedEvent]);
+  }, [isLoggedIn, canonicalEvent, dispatch, eventIdentifier]);
 
   // Function to generate Google Maps link
   const generateGoogleMapsLink = (location) => {
@@ -102,21 +123,21 @@ export default function EventDetails({ event }) {
   };
 
   const handleAddToCart = () => {
-    if (selectedEvent && selectedEvent.quantity > 0) {
+    if (canonicalEvent && canonicalEvent.quantity > 0) {
       if (!isLoggedIn) {
         setShowAuthGate(true);
         return;
       }
       const cartItem = {
-        productId: selectedEvent.name,
-        title: selectedEvent.name,
-        productImageSrc: selectedEvent.imgURL,
+        productId: eventIdentifier || canonicalEvent.name,
+        title: canonicalEvent.name,
+        productImageSrc: canonicalEvent.imgURL,
         selectedQuantity: 1,
-        price: selectedEvent.price,
+        price: canonicalEvent.price,
         eventDetails: {
-          location: selectedEvent.location,
+          location: canonicalEvent.location,
         },
-        isDigital: selectedEvent.isDigital,
+        isDigital: canonicalEvent.isDigital,
       };
 
       // Dispatch the addToCart action with the cart item
@@ -164,8 +185,8 @@ export default function EventDetails({ event }) {
             <div className="overflow-hidden rounded-xl border border-gray-800 shadow-2xl transition-all duration-300 hover:border-red-500/30">
               <Image
                 priority
-                src={event?.imgURL || '/assets/EventHero.png'}
-                alt={event?.name || 'Event image'}
+                src={canonicalEvent?.imgURL || '/assets/EventHero.png'}
+                alt={canonicalEvent?.name || 'Event image'}
                 className="object-cover object-center"
                 height={800}
                 width={1200}
@@ -176,7 +197,7 @@ export default function EventDetails({ event }) {
             {/* Event description section - add border consistent with account page */}
             <div className={`mt-8 ${cardStyling}`}>
               <h3 className="mb-4 text-xl font-medium text-white">About This Event</h3>
-              <p className="whitespace-pre-line text-gray-300">{event.description}</p>
+              <p className="whitespace-pre-line text-gray-300">{canonicalEvent?.description}</p>
             </div>
           </div>
 
@@ -184,15 +205,15 @@ export default function EventDetails({ event }) {
           <div className="space-y-6 md:col-span-2">
             {/* Event header in card - matches account page card styling */}
             <div className={cardStyling}>
-              {event.category && (
+              {canonicalEvent?.category && (
                 <div className="mb-4">
                   <span className="inline-flex items-center rounded-full bg-red-500/10 px-3 py-1 text-xs font-medium text-red-400 ring-1 ring-inset ring-red-500/20">
-                    {event.category}
+                    {canonicalEvent.category}
                   </span>
                 </div>
               )}
               <h1 className="text-2xl font-bold tracking-tight text-gray-100 sm:text-3xl">
-                {event.name}
+                {canonicalEvent?.name}
               </h1>
 
               <div className="mt-4 flex items-center">
@@ -209,12 +230,12 @@ export default function EventDetails({ event }) {
               </div>
 
               <div className="mt-6 flex items-center">
-                <p className="text-2xl font-bold text-white">${event.price}</p>
-                {event.capacity && (
+                <p className="text-2xl font-bold text-white">${canonicalEvent?.price}</p>
+                {canonicalEvent?.capacity && (
                   <div className="ml-4 text-sm text-gray-400">
-                    <span className="font-medium">{event.attendees?.length || 0}</span>
+                    <span className="font-medium">{canonicalEvent.attendees?.length || 0}</span>
                     <span className="mx-1">/</span>
-                    <span>{event.capacity}</span>
+                    <span>{canonicalEvent.capacity}</span>
                     <span className="ml-1">spots remaining</span>
                   </div>
                 )}
@@ -258,10 +279,10 @@ export default function EventDetails({ event }) {
             </div>
 
             {/* Age restriction - separate card like in account page */}
-            {event.age && (
+            {canonicalEvent?.age && (
               <div className={cardStyling}>
                 <h3 className="mb-3 text-lg font-medium text-gray-100">Age Restriction</h3>
-                <p className="text-gray-300">{event.age}+ </p>
+                <p className="text-gray-300">{canonicalEvent.age}+ </p>
               </div>
             )}
           </div>

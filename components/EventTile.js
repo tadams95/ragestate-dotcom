@@ -15,9 +15,15 @@ export default function EventTile({ event }) {
       .replace(/\-\-+/g, '-');
   };
 
+  const eventSlug = event?.slug || event?.id || (event?.name ? formatSlug(event.name) : '');
+
   const handleLinkClick = () => {
     // Save product to localStorage or sessionStorage
-    localStorage.setItem('selectedEvent', JSON.stringify(event));
+    if (!event) return;
+    const payload = { ...event };
+    if (eventSlug && !payload.slug) payload.slug = eventSlug;
+    if (!payload.id && eventSlug) payload.id = eventSlug;
+    localStorage.setItem('selectedEvent', JSON.stringify(payload));
   };
 
   // Format date in a more readable way
@@ -44,7 +50,7 @@ export default function EventTile({ event }) {
     <div className="mb-8 transform overflow-hidden rounded-lg border border-gray-800 bg-gray-800/50 shadow-lg backdrop-blur-sm transition duration-300 hover:scale-105 hover:shadow-2xl">
       <div className="mx-auto">
         <Link
-          href={`/events/${formatSlug(event.name)}`}
+          href={eventSlug ? `/events/${eventSlug}` : '/events'}
           className="group"
           onClick={handleLinkClick}
         >
