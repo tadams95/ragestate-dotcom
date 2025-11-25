@@ -91,13 +91,7 @@ function splitNameSafely(full) {
 }
 
 function pickPhone(obj = {}) {
-  return (
-    obj.phoneNumber ||
-    obj.phone ||
-    obj.mobile ||
-    obj.tel ||
-    ''
-  );
+  return obj.phoneNumber || obj.phone || obj.mobile || obj.tel || '';
 }
 
 async function main() {
