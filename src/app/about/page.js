@@ -306,8 +306,8 @@ export default function Home() {
             <div className="mt-32">
               <h3 className="mb-4 text-2xl font-bold text-white">JOIN THE MOVEMENT</h3>
               <p className="mx-auto mb-8 max-w-2xl text-gray-300">
-                Create an account to unlock exclusive benefits, early access to events, special
-                promoter opportunities, and be the first to know about new merch drops.
+                Create an account to unlock exclusive benefits, early access to events, and be the
+                first to know about new merch drops.
               </p>
 
               <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
