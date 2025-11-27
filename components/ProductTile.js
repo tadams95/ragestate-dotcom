@@ -22,12 +22,18 @@ function ProductTile({ product, viewMode = 'grid' }) {
     product?.imageSrc || resolvedImage?.src || resolvedImage?.transformedSrc || '/assets/user.png';
   const imageAlt = product?.imageAlt || resolvedImage?.altText || product?.title || 'Product image';
 
-  // Function to format slug
-  const formatSlug = (title) => {
+  // Build the canonical product slug, preferring the Shopify handle when present.
+  const getProductSlug = () => {
+    if (product?.handle && typeof product.handle === 'string') {
+      return product.handle;
+    }
+
+    const title = product?.title || '';
     return title
       .toLowerCase()
+      .trim()
       .replace(/\s+/g, '-')
-      .replace(/[^\w\-]+/g, '')
+      .replace(/[^a-z0-9\-]+/g, '')
       .replace(/\-\-+/g, '-');
   };
 
@@ -97,10 +103,11 @@ function ProductTile({ product, viewMode = 'grid' }) {
       </motion.div>
     );
 
+    const slug = getProductSlug();
     return isOutOfStock ? (
       <div>{ListContent}</div>
     ) : (
-      <Link href={`/shop/${product?.handle || formatSlug(product.title)}`}>{ListContent}</Link>
+      <Link href={`/shop/${slug}`}>{ListContent}</Link>
     );
   }
 
@@ -141,14 +148,12 @@ function ProductTile({ product, viewMode = 'grid' }) {
     </motion.div>
   );
 
+  const slug = getProductSlug();
+
   return isOutOfStock ? (
     <div className="group">{GridContent}</div>
   ) : (
-    <Link
-      href={`/shop/${product?.handle || formatSlug(product.title)}`}
-      className="group"
-      onClick={handleLinkClick}
-    >
+    <Link href={`/shop/${slug}`} className="group" onClick={handleLinkClick}>
       {GridContent}
     </Link>
   );

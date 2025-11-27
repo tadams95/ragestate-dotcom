@@ -58,8 +58,6 @@ export default function ProductDetails({ product, focusRestoreRef }) {
   const variants = useMemo(() => product?.variants || [], [product]);
   const productImages = useMemo(() => product?.images || [], [product]);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const closeBtnRef = useRef(null);
   const containerRef = useRef(null);
   const setWrapperRef = useCallback(
     (node) => {
@@ -68,13 +66,19 @@ export default function ProductDetails({ product, focusRestoreRef }) {
     },
     [focusRestoreRef],
   );
-  const lightboxRef = useRef(null);
 
   const totalImages = productImages.length;
   const goPrev = useCallback(() => {
+    // When navigating between images, reset zoom/pan so the new image is clearly visible
+    setZoomed(false);
+    setPanX(0);
+    setPanY(0);
     setActiveIndex((i) => (totalImages ? (i - 1 + totalImages) % totalImages : 0));
   }, [totalImages]);
   const goNext = useCallback(() => {
+    setZoomed(false);
+    setPanX(0);
+    setPanY(0);
     setActiveIndex((i) => (totalImages ? (i + 1) % totalImages : 0));
   }, [totalImages]);
 
@@ -203,51 +207,8 @@ export default function ProductDetails({ product, focusRestoreRef }) {
 
   const onImageClick = useCallback(() => {
     if (Date.now() < clickSuppressUntilRef.current) return;
-    if (!zoomed) setLightboxOpen(true);
-  }, [zoomed]);
-
-  const onOpenLightbox = useCallback(() => {
-    if (!zoomed) setLightboxOpen(true);
-  }, [zoomed]);
-
-  useEffect(() => {
-    if (!lightboxOpen) return;
-    const onKeyDown = (e) => {
-      if (e.key === 'Escape') setLightboxOpen(false);
-      if (e.key === 'ArrowLeft') goPrev();
-      if (e.key === 'ArrowRight') goNext();
-      if (e.key === 'Tab') {
-        const container = lightboxRef.current;
-        const focusables = container?.querySelectorAll(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-        );
-        if (!focusables || focusables.length === 0) {
-          e.preventDefault();
-          closeBtnRef.current?.focus?.();
-          return;
-        }
-        const first = focusables[0];
-        const last = focusables[focusables.length - 1];
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
-      }
-    };
-    const prevOverflow = document.body.style.overflow;
-    const restoreEl = focusRestoreRef?.current || null;
-    document.body.style.overflow = 'hidden';
-    closeBtnRef.current?.focus?.();
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      window.removeEventListener('keydown', onKeyDown);
-      document.body.style.overflow = prevOverflow;
-      restoreEl?.focus?.();
-    };
-  }, [lightboxOpen, totalImages, goNext, goPrev, focusRestoreRef]);
+    // Single click does not open a separate lightbox; zoom is driven via double-tap logic
+  }, []);
 
   const getVariantOption = (variant, name) =>
     (variant?.selectedOptions || []).find((o) => o?.name === name)?.value || '';
@@ -434,7 +395,7 @@ export default function ProductDetails({ product, focusRestoreRef }) {
               <div
                 ref={setWrapperRef}
                 tabIndex={-1}
-                className="group relative h-[28rem] overflow-hidden rounded-lg sm:h-[32rem]"
+                className="group relative h-[70vh] max-h-[80vh] overflow-hidden rounded-lg sm:h-[75vh]"
                 onTouchStart={onTouchStart}
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}
@@ -460,7 +421,7 @@ export default function ProductDetails({ product, focusRestoreRef }) {
                           fill
                           sizes="(min-width:1024px) 60vw, 100vw"
                           className={classNames(
-                            'object-cover transition-transform duration-300 group-hover:scale-105',
+                            'object-contain transition-transform duration-300 group-hover:scale-105 sm:object-cover',
                             zoomed ? 'cursor-move' : 'cursor-zoom-in',
                           )}
                           onClick={onImageClick}
@@ -472,16 +433,12 @@ export default function ProductDetails({ product, focusRestoreRef }) {
                               : undefined
                           }
                         />
-                        {/* Keyboard-accessible open button overlay */}
-                        <button
-                          type="button"
-                          aria-label="Open image in lightbox"
-                          onClick={onOpenLightbox}
-                          className={classNames(
-                            'absolute inset-0 z-10 focus:outline-none focus:ring-2 focus:ring-red-500/70 focus:ring-offset-2 focus:ring-offset-black/50',
-                            zoomed ? 'pointer-events-none' : 'pointer-events-auto',
-                          )}
-                        />
+                        {/* Mobile-only hint for zoom interaction */}
+                        {!zoomed && (
+                          <div className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-black/60 px-3 py-1 text-xs text-gray-200 sm:hidden">
+                            Double tap to zoom
+                          </div>
+                        )}
                         {/* Prev/Next controls */}
                         {totalImages > 1 && (
                           <>
@@ -524,7 +481,13 @@ export default function ProductDetails({ product, focusRestoreRef }) {
                         key={thumb?.id || idx}
                         type="button"
                         aria-label={`Show image ${idx + 1}`}
-                        onClick={() => setActiveIndex(idx)}
+                        onClick={() => {
+                          // Reset zoom state when jumping directly via thumbnail
+                          setZoomed(false);
+                          setPanX(0);
+                          setPanY(0);
+                          setActiveIndex(idx);
+                        }}
                         className={classNames(
                           'relative h-16 w-16 flex-shrink-0 overflow-hidden rounded border',
                           selected ? 'border-red-500' : 'border-gray-700',
@@ -543,41 +506,6 @@ export default function ProductDetails({ product, focusRestoreRef }) {
                 </div>
               )}
             </div>
-
-            {/* Lightbox overlay */}
-            {lightboxOpen && (
-              <div
-                ref={lightboxRef}
-                className="fixed inset-0 z-50 bg-black/90"
-                role="dialog"
-                aria-modal="true"
-                onMouseDown={(e) => {
-                  if (e.target === lightboxRef.current) setLightboxOpen(false);
-                }}
-              >
-                <button
-                  ref={closeBtnRef}
-                  aria-label="Close image"
-                  className="absolute right-4 top-4 rounded bg-black/60 px-3 py-2 text-white"
-                  onClick={() => setLightboxOpen(false)}
-                >
-                  Close
-                </button>
-                <div className="relative mx-auto flex h-full w-full max-w-7xl items-center justify-center px-4">
-                  <Image
-                    src={
-                      productImages[activeIndex]?.src ||
-                      productImages[activeIndex]?.transformedSrc ||
-                      '/assets/user.png'
-                    }
-                    alt={productImages[activeIndex]?.altText || product.title}
-                    fill
-                    sizes="100vw"
-                    className="object-contain"
-                  />
-                </div>
-              </div>
-            )}
 
             <div
               className="mt-8 lg:sticky lg:col-span-5 lg:col-start-8"
