@@ -13,7 +13,7 @@ import { useEffect, useState } from 'react';
 import { useUnreadNotificationsCount } from '../../../lib/hooks';
 
 const navigation = [
-  { name: 'ABOUT', href: '/about' },
+  // { name: 'ABOUT', href: '/about' },
   { name: 'EVENTS', href: '/events' },
   { name: 'SHOP', href: '/shop' },
   // { name: "PRODUCTS", href: "/products" },
