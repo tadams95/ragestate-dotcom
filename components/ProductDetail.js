@@ -8,6 +8,7 @@ import {
 import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import { useInView } from 'react-intersection-observer';
 
 import { useDispatch } from 'react-redux';
 import { addToCart } from '../lib/features/todos/cartSlice';
@@ -361,6 +362,10 @@ export default function ProductDetails({ product, focusRestoreRef }) {
     return !variants.some((v) => getVariantOption(v, 'Size') === size && isVariantAvailable(v));
   };
 
+  const { ref: footerSentinelRef, inView: footerVisible } = useInView({
+    threshold: 0.1,
+  });
+
   return (
     <div className="isolate bg-black">
       {/* Screen reader live region for ATC and validation messages */}
@@ -369,7 +374,7 @@ export default function ProductDetails({ product, focusRestoreRef }) {
       </div>
       <EventStyling1 />
       <EventStyling2 />
-      <div className="scroll-pb-24 pb-20 pt-6 sm:pb-10 lg:pb-8">
+      <div className="scroll-pb-32 pb-28 pt-6 sm:pb-10 lg:pb-8">
         <div className="mx-auto mt-8 max-w-2xl px-4 sm:px-6 lg:max-w-7xl lg:px-8">
           <div className="lg:grid lg:auto-rows-min lg:grid-cols-10 lg:gap-x-8">
             <div className="lg:col-span-5 lg:col-start-8">
@@ -656,28 +661,32 @@ export default function ProductDetails({ product, focusRestoreRef }) {
           </div>
         </div>
       </div>
-      {/* Mobile sticky ATC bar */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-800 bg-black/80 pb-[env(safe-area-inset-bottom)] backdrop-blur supports-[backdrop-filter]:bg-black/60 sm:hidden">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
-          <div className="text-lg font-semibold text-white">${displayPrice}</div>
-          <button
-            onClick={() => handleAddToCart()}
-            disabled={!currentVariant || !isVariantAvailable(currentVariant)}
-            className={classNames(
-              'flex flex-1 justify-center rounded-md px-6 py-3 text-base font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500',
-              !currentVariant || !isVariantAvailable(currentVariant)
-                ? 'cursor-not-allowed bg-gray-700 text-gray-300'
-                : 'bg-red-600 text-white hover:bg-red-700',
-            )}
-          >
-            {!currentVariant
-              ? 'Select options'
-              : !isVariantAvailable(currentVariant)
-                ? 'Out of stock'
-                : 'Add to cart'}
-          </button>
+      {/* Sentinel used to hide mobile ATC bar when near the footer */}
+      <div ref={footerSentinelRef} className="h-10 w-full" />
+      {/* Mobile sticky ATC bar (hides when footer area is visible for a premium feel) */}
+      {!footerVisible && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-800 bg-black/80 pb-[env(safe-area-inset-bottom)] backdrop-blur supports-[backdrop-filter]:bg-black/60 sm:hidden">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
+            <div className="text-lg font-semibold text-white">${displayPrice}</div>
+            <button
+              onClick={() => handleAddToCart()}
+              disabled={!currentVariant || !isVariantAvailable(currentVariant)}
+              className={classNames(
+                'flex flex-1 justify-center rounded-md px-6 py-3 text-base font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500',
+                !currentVariant || !isVariantAvailable(currentVariant)
+                  ? 'cursor-not-allowed bg-gray-700 text-gray-300'
+                  : 'bg-red-600 text-white hover:bg-red-700',
+              )}
+            >
+              {!currentVariant
+                ? 'Select options'
+                : !isVariantAvailable(currentVariant)
+                  ? 'Out of stock'
+                  : 'Add to cart'}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
       {/* Footer is rendered globally in RootLayout */}
     </div>
   );
