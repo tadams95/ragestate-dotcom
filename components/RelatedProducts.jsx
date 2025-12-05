@@ -44,13 +44,13 @@ export default function RelatedProducts({ currentId, productType, limit = 8 }) {
               href={`/shop/${p?.handle || p?.title?.toLowerCase?.().replace(/\s+/g, '-')}`}
               className="group"
             >
-              <div className="relative h-40 w-full overflow-hidden rounded-lg">
+              <div className="relative aspect-[4/5] w-full overflow-hidden rounded-lg">
                 <Image
                   src={src}
                   alt={alt}
                   fill
                   sizes="(min-width:1024px) 25vw, 50vw"
-                  className="object-cover group-hover:opacity-80"
+                  className="object-cover object-center group-hover:opacity-80"
                 />
               </div>
               <div className="mt-2 line-clamp-1 text-sm text-gray-100">{p.title}</div>

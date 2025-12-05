@@ -37,6 +37,15 @@ export default function ShopClient() {
   const [inStockOnly, setInStockOnly] = useState(false);
   const [sort, setSort] = useState('');
 
+  // Default to list view on small screens (mobile), grid on larger screens
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const isMobile = window.innerWidth < 640; // Tailwind's sm breakpoint
+    if (isMobile) {
+      setViewMode('list');
+    }
+  }, []);
+
   useEffect(() => {
     let isMounted = true;
 
@@ -234,7 +243,7 @@ export default function ShopClient() {
       <Header />
 
       {/* Add the AutoSliderBanner */}
-      <AutoSliderBanner />
+      {/* <AutoSliderBanner /> */}
 
       <div id="product-section" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
         {/* View Toggle */}
