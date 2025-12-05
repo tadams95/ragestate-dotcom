@@ -2,7 +2,7 @@
 
 import { Squares2X2Icon as GridIcon, ListBulletIcon } from '@heroicons/react/24/outline';
 import { motion, useReducedMotion } from 'framer-motion';
-import dynamic from 'next/dynamic';
+// import dynamic from 'next/dynamic';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import ProductTile from '../../../components/ProductTile';
@@ -10,10 +10,10 @@ import QuickViewModal from '../../../components/QuickViewModal';
 import { fetchShopifyProducts } from '../../../shopify/shopifyService';
 import Header from '../components/Header';
 
-const AutoSliderBanner = dynamic(() => import('../../../components/AutoSliderBanner'), {
-  ssr: false,
-  loading: () => null,
-});
+// const AutoSliderBanner = dynamic(() => import('../../../components/AutoSliderBanner'), {
+//   ssr: false,
+//   loading: () => null,
+// });
 
 export default function ShopClient() {
   const prefersReducedMotion = useReducedMotion();
