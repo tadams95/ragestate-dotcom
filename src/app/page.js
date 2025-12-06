@@ -15,7 +15,6 @@ import Link from 'next/link';
 export default function Home() {
   const prefersReducedMotion = useReducedMotion();
   const [activeWorld, setActiveWorld] = useState('your'); // "your" or "ours"
-  const [scrolled, setScrolled] = useState(false);
 
   // Refs for scrolling sections
   const yourWorldRef = useRef(null); // Added ref for "your world" section
@@ -25,15 +24,6 @@ export default function Home() {
   const { ref: manifestoRef, inView: manifestoInView } = useInView({
     threshold: 0.3,
   });
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   // Improved scroll function that works for both sections
   const scrollToSection = useCallback((ref, worldType) => {
@@ -62,63 +52,25 @@ export default function Home() {
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-black">
-      {/* Single dynamic background; lazy-mount when hero in view */}
-      {(heroInView || manifestoInView) && (
-        <div className="fixed inset-0 z-0 transition-all duration-700">
-          <div
-            className={`absolute inset-0 transition-opacity duration-700 ${
-              activeWorld === 'ours' ? 'opacity-100' : 'opacity-80'
-            } bg-gradient-to-b from-red-900/30 to-black`}
-          />
-          <div
-            className={`absolute inset-0 transition-opacity duration-700 ${
-              activeWorld === 'your' ? 'opacity-100' : 'opacity-80'
-            } bg-gradient-to-b from-blue-900/20 to-black`}
-          />
-          <Home3DAnimation
-            intensity={activeWorld === 'ours' ? 1 : 0.7}
-            color={activeWorld === 'ours' ? '#EF4E4E' : '#3B82F6'}
-          />
-        </div>
-      )}
-
-      {/* Split slogan navigation */}
-      <div
-        className={`fixed left-0 top-0 z-40 w-full transition-all duration-500 ${
-          scrolled ? 'bg-black/80 backdrop-blur-md' : ''
-        }`}
-      >
-        {/* Added pt-20 to create space below the header */}
-        <div className="container mx-auto flex justify-center px-4 py-4 pt-20">
-          <div className="flex items-center space-x-2 sm:space-x-6">
-            <button
-              onClick={() => scrollToSection(yourWorldRef, 'your')} // Updated to use the new function
-              className={`text-xl font-bold transition-all sm:text-3xl ${
-                activeWorld === 'your'
-                  ? 'scale-110 text-white'
-                  : 'text-gray-400 hover:text-gray-300'
-              }`}
-            >
-              LIVE IN YOUR WORLD
-            </button>
-
-            <span className="text-2xl font-extrabold text-red-600 sm:text-4xl">/</span>
-
-            <button
-              onClick={() => scrollToSection(ourWorldRef, 'ours')} // Updated to use the new function
-              className={`text-xl font-bold transition-all sm:text-3xl ${
-                activeWorld === 'ours'
-                  ? 'scale-110 text-red-600'
-                  : 'text-gray-400 hover:text-gray-300'
-              }`}
-            >
-              RAGE IN OURS
-            </button>
-          </div>
-        </div>
+      {/* Single dynamic background; keep mounted across both sections */}
+      <div className="fixed inset-0 z-0 transition-all duration-700">
+        <div
+          className={`absolute inset-0 transition-opacity duration-700 ${
+            activeWorld === 'ours' ? 'opacity-100' : 'opacity-80'
+          } bg-gradient-to-b from-red-900/30 to-black`}
+        />
+        <div
+          className={`absolute inset-0 transition-opacity duration-700 ${
+            activeWorld === 'your' ? 'opacity-100' : 'opacity-80'
+          } bg-gradient-to-b from-blue-900/20 to-black`}
+        />
+        <Home3DAnimation
+          intensity={activeWorld === 'ours' ? 1 : 0.7}
+          color={activeWorld === 'ours' ? '#EF4E4E' : '#3B82F6'}
+        />
       </div>
 
-      {/* Update the main content top padding to account for both header and split slogan */}
+      {/* Update the main content top padding to account for header */}
       <main className="relative z-10">
         {/* Hero Section - Your World */}
         <section

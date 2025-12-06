@@ -91,9 +91,8 @@ export default function Header() {
                 {item.name}
               </Link>
             ))}
-            {/* DRAFTS link intentionally removed from header to reduce discoverability */}
           </div>
-          <div className="hidden gap-3 lg:flex lg:flex-1 lg:items-center lg:justify-end">
+          <div className="hidden gap-7 lg:flex lg:flex-1 lg:items-center lg:justify-end">
             <Link
               href="/cart"
               aria-label="Cart"
