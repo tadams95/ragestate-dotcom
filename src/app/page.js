@@ -181,21 +181,21 @@ export default function Home() {
             </h2>
 
             <p className="mb-8 text-xl italic text-gray-300 md:text-2xl">
-              "In a world that expects you to play by the rules, we9re here to break 9em 9 smart,
+              "In a world that expects you to play by the rules, we're here to break 'em – smart,
               bold, and unapologetic."
             </p>
 
             <div className="space-y-6 text-left text-gray-400">
               <p>
                 Right at the crossroads of campus buzz and midnight spontaneity, RAGESTATE is more
-                than a brand9it9s a vibe, a rebellion, and your crew.
+                than a brand—it's a vibe, a rebellion, and your crew.
               </p>
               <p>
                 When the day brings structure and deadlines, the night flips the script: here,
-                authenticity reigns and you9re free to be unapologetically yourself.
+                authenticity reigns and you're free to be unapologetically yourself.
               </p>
               <p>
-                With our events, threads, and everything in between, we9re your passport to a life
+                With our events, threads, and everything in between, we're your passport to a life
                 without limits. Ready to step beyond the ordinary?
               </p>
             </div>

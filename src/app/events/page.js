@@ -2,7 +2,7 @@
 
 import { collection, getDocs, limit, orderBy, query, Timestamp, where } from 'firebase/firestore';
 import { useSearchParams } from 'next/navigation';
-import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import EventSkeleton from '../../../components/EventSkeleton';
 import EventTile from '../../../components/EventTile';
 import NoEventTile from '../../../components/NoEventTile';
@@ -132,31 +132,5 @@ function EventsPageContent() {
 }
 
 export default function Events() {
-  return (
-    <Suspense fallback={<EventsFallback />}>
-      <EventsPageContent />
-    </Suspense>
-  );
-}
-
-function EventsFallback() {
-  return (
-    <div className="flex min-h-screen flex-col">
-      <EventStyling1 />
-
-      <div className="flex-grow">
-        <div className="mx-auto max-w-7xl px-4 pb-16 pt-10 sm:px-6 sm:pt-12 lg:px-8">
-          <h1 className="mb-8 mt-12 text-center text-3xl font-bold tracking-tight text-gray-100">
-            UPCOMING EVENTS
-          </h1>
-
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {[...Array(3)].map((_, index) => (
-              <EventSkeleton key={index} />
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  return <EventsPageContent />;
 }
