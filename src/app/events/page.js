@@ -2,7 +2,7 @@
 
 import { collection, getDocs, limit, orderBy, query, Timestamp, where } from 'firebase/firestore';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import EventSkeleton from '../../../components/EventSkeleton';
 import EventTile from '../../../components/EventTile';
 import NoEventTile from '../../../components/NoEventTile';
@@ -132,5 +132,15 @@ function EventsPageContent() {
 }
 
 export default function Events() {
-  return <EventsPageContent />;
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-black text-gray-200">
+          <span>Loading events...</span>
+        </div>
+      }
+    >
+      <EventsPageContent />
+    </Suspense>
+  );
 }
