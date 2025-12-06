@@ -5,6 +5,7 @@ import storage from '@/utils/storage';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+// import { useInView } from 'react-intersection-observer';
 import ProductDetails from '../../../../components/ProductDetail';
 import RelatedProducts from '../../../../components/RelatedProducts';
 
@@ -47,6 +48,8 @@ export default function ProductDetailClient({ product: initialProduct }) {
       clearTimeout(timer);
     };
   }, [initialProduct]);
+
+  // Sticky ATC bar has been removed on mobile; no scroll-based hide logic needed anymore.
 
   if (!selectedProduct) {
     return (

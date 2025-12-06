@@ -2,10 +2,10 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { forwardRef, useEffect, useState } from 'react';
 import { fetchShopifyProducts } from '../shopify/shopifyService';
 
-export default function RelatedProducts({ currentId, productType, limit = 8 }) {
+const RelatedProducts = forwardRef(({ currentId, productType, limit = 8 }, ref) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,7 +31,7 @@ export default function RelatedProducts({ currentId, productType, limit = 8 }) {
   if (loading || items.length === 0) return null;
 
   return (
-    <section className="mt-12">
+    <section ref={ref} className="mt-12">
       <h2 className="mb-4 text-lg font-semibold text-white">Related products</h2>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         {items.map((p) => {
@@ -60,4 +60,8 @@ export default function RelatedProducts({ currentId, productType, limit = 8 }) {
       </div>
     </section>
   );
-}
+});
+
+RelatedProducts.displayName = 'RelatedProducts';
+
+export default RelatedProducts;
