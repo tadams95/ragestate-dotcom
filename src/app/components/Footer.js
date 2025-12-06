@@ -1,15 +1,13 @@
-import Link from "next/link";
-
 const navigation = {
   main: [
-    { name: "About", href: "/about" },
-    { name: "Blog", href: "/blog" },
-    { name: "Privacy Policy", href: "/privacy-policy" },
+    { name: 'About', href: '/about' },
+    { name: 'Blog', href: '/blog' },
+    { name: 'Privacy Policy', href: '/privacy-policy' },
   ],
   social: [
     {
-      name: "Facebook",
-      href: "https://www.facebook.com/ragestate.co",
+      name: 'Facebook',
+      href: 'https://www.facebook.com/ragestate.co',
       icon: (props) => (
         <svg fill="currentColor" viewBox="0 0 24 24" {...props}>
           <path
@@ -21,8 +19,8 @@ const navigation = {
       ),
     },
     {
-      name: "Instagram",
-      href: "https://www.instagram.com/ragestate/",
+      name: 'Instagram',
+      href: 'https://www.instagram.com/ragestate/',
       icon: (props) => (
         <svg fill="currentColor" viewBox="0 0 24 24" {...props}>
           <path
@@ -34,8 +32,8 @@ const navigation = {
       ),
     },
     {
-      name: "X",
-      href: "https://x.com/ragestate_",
+      name: 'X',
+      href: 'https://x.com/ragestate_',
       icon: (props) => (
         <svg fill="currentColor" viewBox="0 0 24 24" {...props}>
           <path d="M13.6823 10.6218L20.2391 3H18.6854L12.9921 9.61788L8.44486 3H3.2002L10.0765 13.0074L3.2002 21H4.75404L10.7663 14.0113L15.5685 21H20.8131L13.6819 10.6218H13.6823ZM11.5541 13.0956L10.8574 12.0991L5.31391 4.16971H7.70053L12.1742 10.5689L12.8709 11.5655L18.6861 19.8835H16.2995L11.5541 13.096V13.0956Z" />
@@ -43,8 +41,8 @@ const navigation = {
       ),
     },
     {
-      name: "YouTube",
-      href: "https://www.youtube.com/@ragestate3086",
+      name: 'YouTube',
+      href: 'https://www.youtube.com/@ragestate3086',
       icon: (props) => (
         <svg fill="currentColor" viewBox="0 0 24 24" {...props}>
           <path
@@ -56,8 +54,8 @@ const navigation = {
       ),
     },
     {
-      name: "GitHub",
-      href: "https://github.com/tadams95/ragestate-dotcom",
+      name: 'GitHub',
+      href: 'https://github.com/tadams95/ragestate-dotcom',
       icon: (props) => (
         <svg fill="currentColor" viewBox="0 0 24 24" {...props}>
           <path
@@ -69,8 +67,8 @@ const navigation = {
       ),
     },
     {
-      name: "TikTok",
-      href: "https://www.tiktok.com/@ragestate",
+      name: 'TikTok',
+      href: 'https://www.tiktok.com/@ragestate',
       icon: (props) => (
         <svg fill="currentColor" viewBox="0 0 24 24" {...props}>
           <path
@@ -88,23 +86,22 @@ export default function Footer() {
   return (
     <footer className="relative z-10 border-t border-gray-500 py-6">
       <div className="container mx-auto px-4">
-        <div className="flex flex-col md:flex-row justify-between items-center">
+        <div className="flex flex-col items-center justify-between md:flex-row">
           <div className="mb-4 md:mb-0">
             <p className="text-sm text-white">
-              &copy; {new Date().getFullYear()} RAGESTATE, LLC. All rights
-              reserved.
+              &copy; {new Date().getFullYear()} RAGESTATE, LLC. All rights reserved.
             </p>
           </div>
 
           <div className="flex space-x-6">
             {/* Filter social links to only show Instagram, TikTok, X (Twitter), and GitHub */}
             {navigation.social
-              .filter(item => ['Instagram', 'TikTok', 'X', 'GitHub'].includes(item.name))
+              .filter((item) => ['Instagram', 'TikTok', 'X', 'GitHub'].includes(item.name))
               .map((item) => (
                 <a
                   key={item.name}
                   href={item.href}
-                  className="text-white hover:text-red-500 transition-colors"
+                  className="text-white transition-colors hover:text-red-500"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
