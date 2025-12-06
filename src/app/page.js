@@ -79,7 +79,7 @@ export default function Home() {
             heroRef(node);
             yourWorldRef.current = node;
           }}
-          className="flex min-h-screen flex-col items-center justify-center px-4 pt-24"
+          className="flex min-h-screen flex-col items-center justify-center px-4 pt-4"
         >
           <motion.div
             className="container mx-auto max-w-4xl text-center"
@@ -93,16 +93,12 @@ export default function Home() {
           >
             <h1 className="mb-6 text-4xl font-extrabold md:text-7xl">
               <span className="text-white">LIVE IN </span>
-              <span className="text-blue-400">YOUR WORLD</span>
+              <span className="text-blue-500">YOUR WORLD</span>
             </h1>
 
             <p className="mx-auto mb-12 max-w-2xl text-lg text-gray-300 md:text-xl">
               Everyday reality. Routine. Expectations. Structure. The world that shapes you.
             </p>
-
-            {/* <div className="relative h-[40vh] md:h-[50vh] w-full my-16">
-              <SloganWorld world="your" />
-            </div> */}
 
             <motion.button
               onClick={() => scrollToSection(ourWorldRef, 'ours')} // Updated to use the new function
