@@ -222,7 +222,7 @@ app.post('/test-shopify-draft-order', async (req, res) => {
           'X-Shopify-Access-Token': accessToken,
         },
         body: JSON.stringify(draftOrderPayload),
-      }
+      },
     );
 
     if (!response.ok) {
