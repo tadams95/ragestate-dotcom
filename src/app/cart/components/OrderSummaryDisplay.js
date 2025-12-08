@@ -70,6 +70,7 @@ export default function OrderSummaryDisplay({
                 addressDetails={addressDetails}
                 isLoading={isLoading} // Pass the general loading state
                 clientSecret={clientSecret}
+                hasPhysicalItems={hasPhysicalItems} // FIX: Pass for address validation
               />
             </Elements>
           </>

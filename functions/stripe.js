@@ -8,10 +8,13 @@ const logger = require('firebase-functions/logger');
 const express = require('express');
 const cors = require('cors');
 const { admin, db } = require('./admin');
+const { createShopifyOrder, isShopifyConfigured } = require('./shopifyAdmin');
 
-// Secret Manager: define STRIPE_SECRET. Also support process.env for local dev.
+// Secret Manager: define secrets. Also support process.env for local dev.
 const STRIPE_SECRET = defineSecret('STRIPE_SECRET');
 const PROXY_KEY = defineSecret('PROXY_KEY');
+const SHOPIFY_ADMIN_ACCESS_TOKEN = defineSecret('SHOPIFY_ADMIN_ACCESS_TOKEN');
+const SHOPIFY_SHOP_NAME = defineSecret('SHOPIFY_SHOP_NAME');
 let stripeClient;
 function getStripe() {
   const key = STRIPE_SECRET.value() || process.env.STRIPE_SECRET;
@@ -71,6 +74,199 @@ app.use((req, _res, next) => {
 app.get('/health', (_req, res) => {
   const configured = Boolean(STRIPE_SECRET.value() || process.env.STRIPE_SECRET);
   res.json({ ok: true, stripeConfigured: configured });
+});
+
+// Test endpoint to verify Shopify Admin API connection
+app.get('/test-shopify', async (req, res) => {
+  try {
+    // Check proxy key for security
+    const expectedProxyKey = PROXY_KEY.value() || process.env.PROXY_KEY;
+    if (expectedProxyKey) {
+      const provided = req.get('x-proxy-key');
+      if (!provided || provided !== expectedProxyKey) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+    }
+
+    const shopifyConfigured = isShopifyConfigured();
+
+    if (!shopifyConfigured) {
+      return res.json({
+        ok: false,
+        shopifyConfigured: false,
+        message:
+          'Shopify Admin API not configured. Set SHOPIFY_ADMIN_ACCESS_TOKEN and SHOPIFY_SHOP_NAME secrets.',
+      });
+    }
+
+    // Try to fetch shop info to verify the connection
+    const shopName = process.env.SHOPIFY_SHOP_NAME;
+    const accessToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN;
+    const apiVersion = '2024-10';
+
+    const response = await fetch(
+      `https://${shopName}.myshopify.com/admin/api/${apiVersion}/shop.json`,
+      {
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      logger.error('[Shopify] Test connection failed', {
+        status: response.status,
+        error: errorText,
+      });
+      return res.json({
+        ok: false,
+        shopifyConfigured: true,
+        connectionTest: 'failed',
+        status: response.status,
+        error: errorText,
+      });
+    }
+
+    const data = await response.json();
+    const shop = data.shop;
+
+    logger.info('[Shopify] Test connection successful', {
+      shopName: shop.name,
+      domain: shop.domain,
+    });
+
+    return res.json({
+      ok: true,
+      shopifyConfigured: true,
+      connectionTest: 'passed',
+      shop: {
+        name: shop.name,
+        email: shop.email,
+        domain: shop.domain,
+        currency: shop.currency,
+        plan: shop.plan_name,
+      },
+    });
+  } catch (error) {
+    logger.error('[Shopify] Test connection exception', { error: error.message });
+    return res.status(500).json({
+      ok: false,
+      error: error.message,
+    });
+  }
+});
+
+// Test endpoint to create a DRAFT order in Shopify (safe - doesn't affect inventory)
+app.post('/test-shopify-draft-order', async (req, res) => {
+  try {
+    // Check proxy key for security
+    const expectedProxyKey = PROXY_KEY.value() || process.env.PROXY_KEY;
+    if (expectedProxyKey) {
+      const provided = req.get('x-proxy-key');
+      if (!provided || provided !== expectedProxyKey) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+    }
+
+    const shopName = process.env.SHOPIFY_SHOP_NAME;
+    const accessToken = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN;
+
+    if (!shopName || !accessToken) {
+      return res.json({
+        ok: false,
+        error: 'Shopify not configured',
+      });
+    }
+
+    const apiVersion = '2024-10';
+
+    // Create a simple draft order with a custom line item (no real product needed)
+    const draftOrderPayload = {
+      draft_order: {
+        line_items: [
+          {
+            title: 'TEST ITEM - Delete This Order',
+            price: '0.01',
+            quantity: 1,
+            requires_shipping: true,
+          },
+        ],
+        customer: {
+          email: 'test@ragestate.com',
+          first_name: 'Test',
+          last_name: 'Order',
+        },
+        shipping_address: {
+          first_name: 'Test',
+          last_name: 'Order',
+          address1: '123 Test Street',
+          city: 'Los Angeles',
+          province: 'CA',
+          zip: '90001',
+          country: 'US',
+        },
+        note: 'TEST DRAFT ORDER - Safe to delete. Created by RAGESTATE integration test.',
+        tags: 'test, auto-delete, ragestate-integration-test',
+      },
+    };
+
+    logger.info('[Shopify] Creating test draft order');
+
+    const response = await fetch(
+      `https://${shopName}.myshopify.com/admin/api/${apiVersion}/draft_orders.json`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': accessToken,
+        },
+        body: JSON.stringify(draftOrderPayload),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      logger.error('[Shopify] Draft order creation failed', {
+        status: response.status,
+        error: errorText,
+      });
+      return res.json({
+        ok: false,
+        error: 'Failed to create draft order',
+        status: response.status,
+        details: errorText,
+      });
+    }
+
+    const data = await response.json();
+    const draftOrder = data.draft_order;
+
+    logger.info('[Shopify] Test draft order created successfully', {
+      draftOrderId: draftOrder.id,
+      name: draftOrder.name,
+    });
+
+    return res.json({
+      ok: true,
+      message: 'Draft order created successfully! Check your Shopify Admin > Orders > Drafts',
+      draftOrder: {
+        id: draftOrder.id,
+        name: draftOrder.name,
+        status: draftOrder.status,
+        total_price: draftOrder.total_price,
+        created_at: draftOrder.created_at,
+        admin_url: `https://${shopName}.myshopify.com/admin/draft_orders/${draftOrder.id}`,
+      },
+      note: 'This is a TEST draft order. You can safely delete it from Shopify Admin.',
+    });
+  } catch (error) {
+    logger.error('[Shopify] Draft order test exception', { error: error.message });
+    return res.status(500).json({
+      ok: false,
+      error: error.message,
+    });
+  }
 });
 
 // Example placeholder; add endpoints when Stripe is reactivated
@@ -240,7 +436,90 @@ app.post('/create-customer', async (req, res) => {
   }
 });
 
-// Finalize order: verify payment succeeded, then create tickets (ragers) and decrement inventory
+// ============================================================================
+// ITEM TYPE DETECTION HELPERS
+// FIX: Distinguish merchandise (Shopify products) from event tickets (Firestore events)
+// Reference: MERCH_CHECKOUT_FIXES.md - Phase 1: Robust item-type detection
+// ============================================================================
+
+/**
+ * Determines if a product ID represents a Shopify merchandise item.
+ * Shopify product IDs contain 'gid://shopify' or are long numeric strings (10+ digits).
+ * Event IDs in Firestore are typically shorter alphanumeric strings.
+ *
+ * @param {string} productId - The product identifier to check
+ * @param {object} item - The full cart item for additional context
+ * @returns {boolean} - True if this is a Shopify merchandise item
+ */
+function isShopifyMerchandise(productId, item) {
+  if (!productId || typeof productId !== 'string') return false;
+
+  // Check for Shopify GID format (e.g., 'gid://shopify/Product/12345678901')
+  if (productId.includes('gid://shopify') || productId.toLowerCase().includes('shopify')) {
+    return true;
+  }
+
+  // Shopify numeric IDs are typically 10+ digits
+  if (/^\d{10,}$/.test(productId)) {
+    return true;
+  }
+
+  // Check item properties that indicate merchandise
+  // Merchandise has isDigital: false and no eventDetails
+  if (item) {
+    // If explicitly marked as digital (like event tickets), it's not merchandise
+    if (item.isDigital === true) {
+      return false;
+    }
+    // If it has eventDetails, it's an event ticket
+    if (item.eventDetails != null) {
+      return false;
+    }
+    // If it has a variantId (Shopify variant), it's merchandise
+    if (item.variantId && String(item.variantId).includes('gid://shopify')) {
+      return true;
+    }
+    // If it has size/color selections typical of apparel, likely merchandise
+    if ((item.selectedSize || item.size) && (item.selectedColor || item.color)) {
+      // Could be merchandise, but need to verify it's not an event
+      // Events typically don't have both size AND color
+    }
+  }
+
+  // If productId is short (< 30 chars) and doesn't look like Shopify, assume event
+  if (productId.length < 30 && !/^\d+$/.test(productId)) {
+    return false;
+  }
+
+  // Default: if it looks like a long ID, assume Shopify merchandise
+  return productId.length >= 30;
+}
+
+/**
+ * Categorizes cart items into event tickets and merchandise.
+ * @param {Array} items - Array of cart items
+ * @returns {{eventItems: Array, merchandiseItems: Array}}
+ */
+function categorizeCartItems(items) {
+  const eventItems = [];
+  const merchandiseItems = [];
+
+  for (const item of items) {
+    const productId = String(item?.productId || '').trim();
+    if (!productId) continue;
+
+    if (isShopifyMerchandise(productId, item)) {
+      merchandiseItems.push(item);
+    } else {
+      eventItems.push(item);
+    }
+  }
+
+  return { eventItems, merchandiseItems };
+}
+
+// Finalize order: verify payment succeeded, then create tickets (ragers) and/or merchandise orders
+// FIX: Now properly handles both event tickets AND merchandise items separately
 app.post('/finalize-order', async (req, res) => {
   try {
     const stripe = getStripe();
@@ -317,6 +596,7 @@ app.post('/finalize-order', async (req, res) => {
     if (alreadyFulfilled) {
       const orderNumber = existingFulfillment?.orderNumber || null;
       const createdTickets = existingFulfillment?.createdTickets || 0;
+      const createdMerchOrders = existingFulfillment?.createdMerchOrders || 0;
       const details = existingFulfillment?.details || [];
       return res.json({
         ok: true,
@@ -324,38 +604,57 @@ app.post('/finalize-order', async (req, res) => {
         message: 'Already fulfilled',
         orderNumber,
         createdTickets,
+        createdMerchOrders,
         details,
       });
     }
 
     const items = Array.isArray(cartItems) ? cartItems : [];
     const orderNumber = generateOrderNumber();
-    logger.info('Finalize-order: received items', {
-      count: items.length,
+
+    // FIX: Categorize items into events vs merchandise BEFORE processing
+    // Reference: MERCH_CHECKOUT_FIXES.md - Issue #1: finalize-order treats all items as events
+    const { eventItems, merchandiseItems } = categorizeCartItems(items);
+
+    logger.info('Finalize-order: received and categorized items', {
+      totalCount: items.length,
+      eventCount: eventItems.length,
+      merchandiseCount: merchandiseItems.length,
+      orderNumber,
       example: items[0]
         ? {
             productId: items[0].productId,
             quantity: items[0].quantity,
             hasEventDetails: !!items[0].eventDetails,
+            isShopify: isShopifyMerchandise(items[0].productId, items[0]),
           }
         : null,
     });
 
     const created = [];
+    const merchOrdersCreated = [];
+    const errors = [];
     const crypto = require('crypto');
     const generateTicketToken = () => crypto.randomBytes(16).toString('hex');
-    for (const item of items) {
+
+    // ============================================================================
+    // PROCESS EVENT TICKETS
+    // This is the original working flow - only process items identified as events
+    // ============================================================================
+    for (const item of eventItems) {
       const eventId = String(item?.productId || '').trim();
       const qty = Math.max(1, parseInt(item.quantity || 1, 10));
       if (!eventId) continue;
 
       const eventRef = db.collection('events').doc(eventId);
-      logger.info('Finalize-order: processing potential event', { eventId, qty });
+      logger.info('Finalize-order: processing EVENT ticket', { eventId, qty, orderNumber });
       try {
         await db.runTransaction(async (tx) => {
           const snap = await tx.get(eventRef);
           if (!snap.exists) {
-            throw new Error(`Event ${eventId} not found`);
+            // FIX: This should only happen for actual event items now
+            // If we get here, it means our categorization might have a false negative
+            throw new Error(`Event ${eventId} not found - item may have been miscategorized`);
           }
           const data = snap.data() || {};
           const currentQty = typeof data.quantity === 'number' ? data.quantity : 0;
@@ -399,16 +698,262 @@ app.post('/finalize-order', async (req, res) => {
             },
             { merge: true },
           );
-          created.push({ eventId, ragerId: ragerDoc.id, qty, newQty });
+          created.push({ type: 'event', eventId, ragerId: ragerDoc.id, qty, newQty });
+        });
+        logger.info('Finalize-order: EVENT ticket created successfully', { eventId, qty });
+      } catch (e) {
+        // FIX: Log as ERROR not warn for event ticket failures (these are critical)
+        logger.error(`Finalize order: FAILED to create event ticket for eventId=${eventId}`, {
+          message: e?.message,
+          orderNumber,
+        });
+        errors.push({
+          type: 'event',
+          productId: eventId,
+          error: e?.message || 'Unknown error',
+        });
+      }
+    }
+
+    // ============================================================================
+    // PROCESS MERCHANDISE ITEMS
+    // FIX: New flow to properly handle Shopify merchandise
+    // Reference: MERCH_CHECKOUT_FIXES.md - Phase 1: Create merchandiseOrders collection
+    // ============================================================================
+
+    // Collect all merchandise items for a single Shopify order
+    const merchItemsForShopify = [];
+
+    for (const item of merchandiseItems) {
+      const productId = String(item?.productId || '').trim();
+      const qty = Math.max(1, parseInt(item.quantity || 1, 10));
+      if (!productId) continue;
+
+      logger.info('Finalize-order: processing MERCHANDISE item', {
+        productId,
+        variantId: item.variantId,
+        title: item.title,
+        qty,
+        orderNumber,
+      });
+
+      try {
+        // Build shipping address object
+        const shippingAddr = addressDetails
+          ? {
+              name: addressDetails.name || userName || '',
+              line1: addressDetails.address?.line1 || '',
+              line2: addressDetails.address?.line2 || '',
+              city: addressDetails.address?.city || '',
+              state: addressDetails.address?.state || '',
+              postalCode: addressDetails.address?.postal_code || '',
+              country: addressDetails.address?.country || 'US',
+            }
+          : null;
+
+        // Create merchandise order document in dedicated collection
+        const merchOrderDoc = {
+          // Order reference
+          orderNumber,
+          paymentIntentId: pi.id,
+          firebaseId,
+
+          // Product details
+          productId,
+          variantId: item.variantId || null,
+          title: item.title || item.name || productId,
+          quantity: qty,
+          price:
+            typeof item.price === 'number'
+              ? item.price
+              : typeof item.price === 'string'
+                ? parseFloat(item.price)
+                : null,
+          productImageSrc: item.productImageSrc || item.imageSrc || null,
+
+          // Variant details
+          color: item.color || item.selectedColor || null,
+          size: item.size || item.selectedSize || null,
+
+          // Customer info
+          customerEmail: userEmail || pi.receipt_email || '',
+          customerName: userName || '',
+
+          // Shipping address (critical for physical items)
+          shippingAddress: shippingAddr,
+
+          // Status tracking
+          status: 'pending_fulfillment',
+          fulfillmentStatus: 'unfulfilled',
+          shopifyOrderId: null,
+          shopifyOrderNumber: null,
+
+          // Timestamps
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        };
+
+        // Store in merchandiseOrders collection
+        const merchRef = db.collection('merchandiseOrders').doc();
+        await merchRef.set(merchOrderDoc);
+
+        // Collect for Shopify batch order
+        merchItemsForShopify.push({
+          firestoreId: merchRef.id,
+          productId,
+          variantId: item.variantId || null,
+          title: item.title || item.name || productId,
+          quantity: qty,
+          price: merchOrderDoc.price,
+        });
+
+        merchOrdersCreated.push({
+          type: 'merchandise',
+          orderId: merchRef.id,
+          productId,
+          variantId: item.variantId || null,
+          title: item.title,
+          qty,
+        });
+
+        logger.info('Finalize-order: MERCHANDISE order created successfully', {
+          orderId: merchRef.id,
+          productId,
+          qty,
+          orderNumber,
         });
       } catch (e) {
-        logger.warn(`Finalize order: failed for productId=${eventId}`, e);
+        // FIX: Log merchandise failures as ERRORS (not warnings) - these need attention
+        logger.error(
+          `Finalize order: FAILED to create merchandise order for productId=${productId}`,
+          {
+            message: e?.message,
+            orderNumber,
+            productId,
+          },
+        );
+        errors.push({
+          type: 'merchandise',
+          productId,
+          error: e?.message || 'Unknown error',
+        });
       }
+    }
+
+    // ============================================================================
+    // CREATE SHOPIFY ORDER (if we have merchandise items and Shopify is configured)
+    // ============================================================================
+    if (merchItemsForShopify.length > 0) {
+      logger.info('Finalize-order: Creating Shopify order for merchandise', {
+        orderNumber,
+        itemCount: merchItemsForShopify.length,
+        shopifyConfigured: isShopifyConfigured(),
+      });
+
+      try {
+        const shopifyResult = await createShopifyOrder({
+          items: merchItemsForShopify,
+          email: userEmail || pi.receipt_email || '',
+          orderNumber: orderNumber,
+          customerName: userName || '',
+          shippingAddress: addressDetails
+            ? {
+                name: addressDetails.name || userName || '',
+                line1: addressDetails.address?.line1 || '',
+                line2: addressDetails.address?.line2 || '',
+                city: addressDetails.address?.city || '',
+                state: addressDetails.address?.state || '',
+                postalCode: addressDetails.address?.postal_code || '',
+                country: addressDetails.address?.country || 'US',
+              }
+            : null,
+        });
+
+        if (shopifyResult && shopifyResult.success) {
+          // Update all merchandise orders with Shopify order info
+          const batch = db.batch();
+          for (const merchItem of merchItemsForShopify) {
+            const merchDocRef = db.collection('merchandiseOrders').doc(merchItem.firestoreId);
+            batch.update(merchDocRef, {
+              shopifyOrderId: shopifyResult.shopifyOrderId,
+              shopifyOrderNumber: shopifyResult.shopifyOrderNumber,
+              shopifyOrderName: shopifyResult.orderName || null,
+              shopifyStatusUrl: shopifyResult.statusUrl || null,
+              status: 'sent_to_shopify',
+              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+          }
+          await batch.commit();
+
+          logger.info('Finalize-order: Shopify order created and linked', {
+            orderNumber,
+            shopifyOrderId: shopifyResult.shopifyOrderId,
+            shopifyOrderNumber: shopifyResult.shopifyOrderNumber,
+            itemCount: merchItemsForShopify.length,
+          });
+        } else if (shopifyResult && shopifyResult.reason === 'not_configured') {
+          // Shopify not configured - orders remain in Firestore for manual fulfillment
+          logger.info(
+            'Finalize-order: Shopify not configured, merchandise orders saved to Firestore only',
+            {
+              orderNumber,
+              itemCount: merchItemsForShopify.length,
+            },
+          );
+        } else {
+          // Shopify API error - log but don't fail the order (Firestore has the data)
+          logger.warn('Finalize-order: Shopify order creation failed, falling back to Firestore', {
+            orderNumber,
+            shopifyResult,
+          });
+        }
+      } catch (shopifyError) {
+        // Non-fatal: Shopify failed but Firestore orders exist
+        logger.error('Finalize-order: Shopify order creation exception', {
+          orderNumber,
+          error: shopifyError?.message,
+        });
+      }
+    }
+
+    // FIX: Check if we had critical failures
+    // If ALL items failed, return an error to the client
+    const totalItemsProcessed = created.length + merchOrdersCreated.length;
+    const totalItemsExpected = eventItems.length + merchandiseItems.length;
+
+    if (totalItemsExpected > 0 && totalItemsProcessed === 0) {
+      logger.error('Finalize-order: ALL items failed to process', {
+        orderNumber,
+        errors,
+        eventCount: eventItems.length,
+        merchandiseCount: merchandiseItems.length,
+      });
+      // Update fulfillment status to failed
+      try {
+        await fulfillRef.set(
+          {
+            status: 'failed',
+            failedAt: admin.firestore.FieldValue.serverTimestamp(),
+            errors,
+            orderNumber,
+          },
+          { merge: true },
+        );
+      } catch (_) {}
+      return res.status(500).json({
+        ok: false,
+        error: 'Failed to process any items in the order',
+        orderNumber,
+        errors,
+      });
     }
 
     // Build purchase payloads (server-side mirror of client SaveToFirestore)
     const amountTotal = typeof pi.amount === 'number' ? pi.amount : 0;
     const amountStr = (amountTotal / 100).toFixed(2);
+
+    // FIX: Add itemType to each item for better tracking
+    // Reference: MERCH_CHECKOUT_FIXES.md - Phase 2: Purchase records now indicate item types
     const sanitizedItems = items.map((i) => ({
       productId: i.productId,
       title: i.title || i.name || i.productId,
@@ -423,7 +968,17 @@ app.post('/finalize-order', async (req, res) => {
       color: i.color || i.selectedColor || null,
       size: i.size || i.selectedSize || null,
       eventDetails: i.eventDetails || null,
+      // FIX: Add item type for tracking
+      itemType: isShopifyMerchandise(i.productId, i) ? 'merchandise' : 'event',
+      variantId: i.variantId || null,
     }));
+
+    // FIX: Calculate item type flags for the order
+    const hasEventItems = eventItems.length > 0;
+    const hasMerchandiseItems = merchandiseItems.length > 0;
+    const itemTypes = [];
+    if (hasEventItems) itemTypes.push('event');
+    if (hasMerchandiseItems) itemTypes.push('merchandise');
 
     const purchaseDoc = {
       addressDetails: addressDetails || null,
@@ -442,6 +997,12 @@ app.post('/finalize-order', async (req, res) => {
         appliedPromoCode && appliedPromoCode.discountValue ? appliedPromoCode.discountValue : 0,
       promoCodeUsed: appliedPromoCode && appliedPromoCode.id ? appliedPromoCode.id : null,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      // FIX: Add item type tracking for easier filtering/reporting
+      itemTypes,
+      hasEventItems,
+      hasMerchandiseItems,
+      eventItemCount: eventItems.length,
+      merchandiseItemCount: merchandiseItems.length,
     };
 
     // Write purchases in both collections
@@ -499,14 +1060,25 @@ app.post('/finalize-order', async (req, res) => {
           status: 'completed',
           completedAt: admin.firestore.FieldValue.serverTimestamp(),
           createdTickets: created.length,
+          // FIX: Include merchandise order info in fulfillment
+          createdMerchOrders: merchOrdersCreated.length,
           details: created,
+          merchandiseDetails: merchOrdersCreated,
           orderNumber,
+          // FIX: Track item types in fulfillment
+          itemTypes,
+          hasEventItems,
+          hasMerchandiseItems,
+          // FIX: Include any partial failures
+          errors: errors.length > 0 ? errors : null,
+          partialSuccess: errors.length > 0 && totalItemsProcessed > 0,
           // backfill summary fields for triggers
           email: (userEmail && String(userEmail).trim()) || pi.receipt_email || '',
           items: items.map((i) => ({
             title: i.title || i.productId,
             productId: i.productId,
             quantity: Math.max(1, parseInt(i.quantity || 1, 10)),
+            itemType: isShopifyMerchandise(i.productId, i) ? 'merchandise' : 'event',
           })),
         },
         { merge: true },
@@ -515,8 +1087,27 @@ app.post('/finalize-order', async (req, res) => {
       logger.warn('Failed to update fulfillments record', e);
     }
 
-    logger.info('Finalize-order: completed', { createdTickets: created.length, orderNumber });
-    return res.json({ ok: true, orderNumber, createdTickets: created.length, details: created });
+    // FIX: Enhanced logging with merchandise info
+    logger.info('Finalize-order: completed', {
+      orderNumber,
+      createdTickets: created.length,
+      createdMerchOrders: merchOrdersCreated.length,
+      errors: errors.length,
+      itemTypes,
+    });
+
+    // FIX: Return comprehensive response including merchandise orders
+    return res.json({
+      ok: true,
+      orderNumber,
+      createdTickets: created.length,
+      createdMerchOrders: merchOrdersCreated.length,
+      details: created,
+      merchandiseDetails: merchOrdersCreated,
+      itemTypes,
+      // Include partial failure info if some items failed
+      partialFailure: errors.length > 0 ? { count: errors.length, errors } : null,
+    });
   } catch (err) {
     logger.error('finalize-order error', err);
     res.status(500).json({ error: 'Failed to finalize order' });
@@ -1300,7 +1891,13 @@ function generateOrderNumber() {
   return `${prefix}-${datePart}-${rand}`;
 }
 
-exports.stripePayment = onRequest({ secrets: [STRIPE_SECRET, PROXY_KEY], invoker: 'public' }, app);
+exports.stripePayment = onRequest(
+  {
+    secrets: [STRIPE_SECRET, PROXY_KEY, SHOPIFY_ADMIN_ACCESS_TOKEN, SHOPIFY_SHOP_NAME],
+    invoker: 'public',
+  },
+  app,
+);
 
 // Callable function to create a Stripe customer for the authenticated, verified user
 exports.createStripeCustomer = onCall(

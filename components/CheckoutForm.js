@@ -7,11 +7,21 @@ import { clearCart, selectCartItems } from '../lib/features/todos/cartSlice';
 import { selectLocalId, selectUserEmail, selectUserName } from '../lib/features/todos/userSlice'; // Import selectors
 import SuccessModal from './SuccessModal';
 
+/**
+ * CheckoutForm component with shipping address validation
+ *
+ * FIX: Added hasPhysicalItems prop and address validation
+ * Reference: MERCH_CHECKOUT_FIXES.md - Phase 1: Enforce shipping address validation
+ *
+ * When physical items are in the cart, the Pay button is disabled until
+ * a complete shipping address is provided.
+ */
 export default function CheckoutForm({
   addressDetails,
   isLoading,
   appliedPromoCode,
   clientSecret,
+  hasPhysicalItems, // FIX: New prop to indicate if cart contains physical/merchandise items
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -185,7 +195,31 @@ export default function CheckoutForm({
   };
 
   const paymentElementOptions = { layout: 'tabs' };
-  const isButtonDisabled = !stripe || !elements || isLoading || isProcessing;
+
+  // FIX: Shipping address validation for physical items
+  // Reference: MERCH_CHECKOUT_FIXES.md - Phase 1: Enforce shipping address validation
+  // When physical/merchandise items are in cart, require complete shipping address
+  const isAddressRequired = hasPhysicalItems === true;
+  const isAddressComplete =
+    addressDetails &&
+    addressDetails.name &&
+    addressDetails.address?.line1 &&
+    addressDetails.address?.city &&
+    addressDetails.address?.state &&
+    addressDetails.address?.postal_code;
+  const addressMissing = isAddressRequired && !isAddressComplete;
+
+  const isButtonDisabled = !stripe || !elements || isLoading || isProcessing || addressMissing;
+
+  // Determine button text based on state
+  let buttonText = 'Pay now';
+  if (isProcessing) {
+    buttonText = 'Processing...';
+  } else if (isLoading) {
+    buttonText = 'Updating...';
+  } else if (addressMissing) {
+    buttonText = 'Enter shipping address';
+  }
 
   return (
     <form id="payment-form" onSubmit={handleSubmit}>
@@ -198,6 +232,17 @@ export default function CheckoutForm({
         />
       )}
       <PaymentElement id="payment-element" options={paymentElementOptions} />
+
+      {/* FIX: Show address validation message for physical items */}
+      {addressMissing && (
+        <div className="mt-4 rounded-md border border-yellow-500/50 bg-yellow-500/10 p-3 text-sm text-yellow-200">
+          <p>
+            <strong>Shipping address required:</strong> Please enter your complete shipping address
+            above to continue with checkout for physical items.
+          </p>
+        </div>
+      )}
+
       <button
         disabled={isButtonDisabled}
         id="submit"
@@ -207,9 +252,7 @@ export default function CheckoutForm({
             : 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500'
         }`}
       >
-        <span id="button-text">
-          {isProcessing ? 'Processing...' : isLoading ? 'Updating...' : 'Pay now'}
-        </span>
+        <span id="button-text">{buttonText}</span>
       </button>
       {message && (
         <div
