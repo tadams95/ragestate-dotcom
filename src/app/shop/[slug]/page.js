@@ -1,3 +1,4 @@
+import { notFound } from 'next/navigation';
 import Script from 'next/script';
 import {
   fetchAllProductSlugs,
@@ -34,7 +35,8 @@ export async function generateMetadata({ params }) {
 
     if (!product) {
       return {
-        notFound: true,
+        title: 'Product Not Found',
+        description: 'The requested product could not be found.',
       };
     }
 
@@ -79,9 +81,7 @@ export default async function ProductDetailPage({ params }) {
     const product = await fetchShopifyProductBySlug(slug);
 
     if (!product) {
-      return {
-        notFound: true,
-      };
+      notFound();
     }
 
     // console.log("Product Data in ProductDetailPage:", product);
@@ -123,10 +123,8 @@ export default async function ProductDetailPage({ params }) {
     );
   } catch (error) {
     console.error('Error in ProductDetailPage:', error);
-    // Render a minimal not-found fragment if product cannot be loaded
-    return {
-      notFound: true,
-    };
+    // Product cannot be loaded - trigger 404
+    notFound();
   } finally {
     // console.log("ProductDetailPage: End");
   }

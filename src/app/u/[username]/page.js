@@ -1,31 +1,27 @@
-'use client';
+import { notFound, redirect } from 'next/navigation';
+import { getUserByUsername } from '../../../../lib/server-only/getUserByUsername';
 
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+/**
+ * Server component that validates username and redirects to root-level profile.
+ * If username doesn't exist, triggers 404 instead of redirecting to invalid path.
+ */
+export default async function UsernameResolverPage({ params }) {
+  const { username } = await params;
+  const usernameLower = String(username || '')
+    .trim()
+    .toLowerCase();
 
-export default function UsernameResolverPage({ params }) {
-  const router = useRouter();
-  const usernameParam = params?.username || '';
-  const [status] = useState('Redirecting…');
+  if (!usernameLower) {
+    notFound();
+  }
 
-  useEffect(() => {
-    async function go() {
-      const usernameLower = String(usernameParam || '')
-        .trim()
-        .toLowerCase();
-      if (!usernameLower) {
-        return;
-      }
-      // Compatibility: redirect to root-level username route
-      router.replace(`/${usernameLower}`);
-    }
-    go();
-    return () => {};
-  }, [router, usernameParam]);
+  // Check if username exists before redirecting via server-only function
+  const user = await getUserByUsername(usernameLower);
 
-  return (
-    <div className="mx-auto max-w-xl py-10 text-center text-white">
-      <p className="text-gray-300">{status}</p>
-    </div>
-  );
+  if (!user) {
+    notFound();
+  }
+
+  // Username exists, redirect to root-level profile route
+  redirect(`/${usernameLower}`);
 }
