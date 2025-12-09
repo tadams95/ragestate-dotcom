@@ -1,6 +1,5 @@
 'use client';
 
-import Header from '@/app/components/Header';
 import { formatDate } from '@/utils/formatters';
 import {
   collection,
@@ -174,7 +173,7 @@ export default function ProfileView({ params }) {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <Header />
+      {/* Header is rendered by layout.js */}
       <div className="mx-auto max-w-6xl px-4 pb-6 pt-24">
         {/* Top nav: Back */}
         <div className="mb-4">

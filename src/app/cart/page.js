@@ -16,7 +16,6 @@ import {
 
 import storage from '@/utils/storage';
 import EmptyCart from '../../../components/EmptyCart';
-import Header from '../components/Header';
 
 // Import new components
 import CartItemDisplay from './components/CartItemDisplay';
@@ -226,7 +225,7 @@ export default function Cart() {
 
   return (
     <div className="isolate bg-black">
-      <Header />
+      {/* Header is rendered by layout.js */}
       {errorMessage && (
         <div
           className="relative mx-auto mt-16 max-w-7xl rounded border border-red-400 bg-red-100 px-4 py-3 text-red-700"

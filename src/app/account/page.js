@@ -14,7 +14,6 @@ import Image from 'next/image';
 import OrderHistory from '../../../components/OrderHistory';
 import { getUserFromFirestore } from '../../../firebase/util/getUserData';
 import { logoutUser } from '../../../lib/utils/auth';
-import Header from '../components/Header';
 import styles from './account.module.css';
 
 import storage from '@/utils/storage';
@@ -240,7 +239,7 @@ export default function Account() {
 
   return (
     <div className="min-h-screen bg-black">
-      <Header profilePicture={profilePicture} userName={userName} />
+      {/* Header is rendered by layout.js */}
 
       <main className="flex-grow">
         {isLoading ? (

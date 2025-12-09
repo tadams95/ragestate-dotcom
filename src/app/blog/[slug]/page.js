@@ -1,18 +1,17 @@
-import { posts as blogPosts } from "../../../../blog-posts/blogPosts";
-import Header from "@/app/components/Header";
-import Footer from "@/app/components/Footer";
-import BlogStyling from "@/app/components/styling/BlogStyling";
-import BlogPostClient from "@/app/blog/BlogPostClient";
-import Link from "next/link";
+import BlogPostClient from '@/app/blog/BlogPostClient';
+import Footer from '@/app/components/Footer';
+import BlogStyling from '@/app/components/styling/BlogStyling';
+import Link from 'next/link';
+import { posts as blogPosts } from '../../../../blog-posts/blogPosts';
 
 export async function generateMetadata({ params }) {
   const { slug } = params;
   const blog = blogPosts.find((post) => post.slug === slug);
-  
+
   if (!blog) {
     return {
-      title: "Blog Post Not Found - RAGESTATE",
-      description: "The requested blog post could not be found."
+      title: 'Blog Post Not Found - RAGESTATE',
+      description: 'The requested blog post could not be found.',
     };
   }
 
@@ -31,28 +30,30 @@ export async function generateMetadata({ params }) {
 export default function BlogPost({ params }) {
   const { slug } = params;
   const blog = blogPosts.find((post) => post.slug === slug);
-  
+
   // Removed related posts lookup
 
   if (!blog) {
     return (
-      <div className="bg-gradient-to-b from-black via-gray-900 to-black min-h-screen">
-        <Header />
-        <div className="mx-auto max-w-3xl text-center py-32 px-6">
-          <div className="bg-gray-900/70 backdrop-blur-sm rounded-2xl shadow-xl p-10">
-            <h1 className="text-4xl font-bold text-white mb-6">Post Not Found</h1>
-            <p className="text-gray-300 mb-8 text-lg">The blog post you're looking for doesn't exist or has been moved.</p>
-            <Link 
-              href="/blog" 
-              className="px-5 py-3 bg-red-600 hover:bg-red-700 transition-colors duration-300 rounded-md text-white font-medium inline-flex items-center"
+      <div className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-black">
+        {/* Header is rendered by layout.js */}
+        <div className="mx-auto max-w-3xl px-6 py-32 text-center">
+          <div className="rounded-2xl bg-gray-900/70 p-10 shadow-xl backdrop-blur-sm">
+            <h1 className="mb-6 text-4xl font-bold text-white">Post Not Found</h1>
+            <p className="mb-8 text-lg text-gray-300">
+              The blog post you're looking for doesn't exist or has been moved.
+            </p>
+            <Link
+              href="/blog"
+              className="inline-flex items-center rounded-md bg-red-600 px-5 py-3 font-medium text-white transition-colors duration-300 hover:bg-red-700"
             >
-              <svg 
-                className="mr-2 w-4 h-4" 
-                fill="none" 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                strokeWidth="2" 
-                viewBox="0 0 24 24" 
+              <svg
+                className="mr-2 h-4 w-4"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
                 stroke="currentColor"
               >
                 <path d="M15 19l-7-7 7-7" />
@@ -70,17 +71,15 @@ export default function BlogPost({ params }) {
     <>
       <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gray-900 via-black to-black">
         <BlogStyling />
-        <Header />
-        
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 py-28 lg:py-32 relative">
+        {/* Header is rendered by layout.js */}
+
+        <div className="relative mx-auto max-w-4xl px-4 py-28 sm:px-6 lg:py-32">
           {/* Background pattern */}
-          <div className="absolute inset-0 bg-grid-pattern opacity-5 pointer-events-none"></div>
-          
-          <div 
-            className="bg-gray-900/70 backdrop-blur-sm rounded-2xl shadow-2xl ring-1 ring-gray-800/30 p-6 md:p-10 transition-all duration-300 hover:shadow-red-900/10"
-          >
+          <div className="bg-grid-pattern pointer-events-none absolute inset-0 opacity-5"></div>
+
+          <div className="rounded-2xl bg-gray-900/70 p-6 shadow-2xl ring-1 ring-gray-800/30 backdrop-blur-sm transition-all duration-300 hover:shadow-red-900/10 md:p-10">
             <BlogPostClient blog={blog} />
-            
+
             {/* Removed Divider and Related Posts sections */}
           </div>
         </div>

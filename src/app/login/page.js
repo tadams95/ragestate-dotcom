@@ -1,5 +1,6 @@
 'use client';
 
+import storage from '@/utils/storage';
 import { doc, getDoc, getFirestore } from 'firebase/firestore';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -8,7 +9,6 @@ import { useDispatch } from 'react-redux';
 import { loginSuccess } from '../../../lib/features/todos/authSlice';
 import { setAuthenticated, setUserName } from '../../../lib/features/todos/userSlice';
 import { loginUser } from '../../../lib/utils/auth';
-import Header from '../components/Header';
 
 export default function Login() {
   const router = useRouter();
@@ -44,17 +44,17 @@ export default function Login() {
         }),
       );
 
-      // Save auth data to local storage
-      localStorage.setItem('idToken', user.stsTokenManager.accessToken);
-      localStorage.setItem('refreshToken', user.stsTokenManager.refreshToken);
-      localStorage.setItem('email', user.email);
-      localStorage.setItem('userId', user.uid);
+      // Save auth data to local storage (using storage helper to trigger same-tab event)
+      storage.set('idToken', user.stsTokenManager.accessToken);
+      storage.set('refreshToken', user.stsTokenManager.refreshToken);
+      storage.set('email', user.email);
+      storage.set('userId', user.uid);
 
       // Set user name if available
       if (userData) {
         const name = `${userData.firstName} ${userData.lastName}`;
         dispatch(setUserName(name));
-        localStorage.setItem('name', name);
+        storage.set('name', name);
       }
 
       // Prefer the public profiles.photoURL for header/avatar; fallback to customers.profilePicture
@@ -63,10 +63,10 @@ export default function Login() {
         const profileSnap = await getDoc(doc(db, 'profiles', user.uid));
         const publicPhoto = profileSnap.exists() ? profileSnap.data()?.photoURL || '' : '';
         const fallbackPhoto = userData?.profilePicture || '/assets/user.png';
-        localStorage.setItem('profilePicture', publicPhoto || fallbackPhoto);
+        storage.set('profilePicture', publicPhoto || fallbackPhoto);
       } catch (_) {
         // If Firestore read fails, still set a fallback so Header can render something
-        localStorage.setItem('profilePicture', userData?.profilePicture || '/assets/user.png');
+        storage.set('profilePicture', userData?.profilePicture || '/assets/user.png');
       }
 
       // Redirect to intended destination if provided
@@ -92,7 +92,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-black">
-      <Header />
+      {/* Header is rendered by layout.js */}
 
       <div className="relative isolate flex min-h-[calc(100vh-80px)] flex-col items-center justify-center overflow-hidden px-6 py-12 lg:px-8">
         {/* Background gradient effect */}

@@ -1,12 +1,11 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import Footer from "./components/Footer";
-import Header from "./components/Header";
-import Image from "next/image";
-import { useEffect, useState } from "react";
-import HomeIcon from "@heroicons/react/24/outline/HomeIcon";
-import EnvelopeIcon from "@heroicons/react/24/outline/EnvelopeIcon";
+import EnvelopeIcon from '@heroicons/react/24/outline/EnvelopeIcon';
+import HomeIcon from '@heroicons/react/24/outline/HomeIcon';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import Footer from './components/Footer';
 
 export default function NotFound() {
   const [mounted, setMounted] = useState(false);
@@ -18,13 +17,13 @@ export default function NotFound() {
   if (!mounted) return null;
 
   return (
-    <div className="bg-black min-h-screen flex flex-col">
-      <Header />
+    <div className="flex min-h-screen flex-col bg-black">
+      {/* Header is rendered by layout.js */}
 
-      <main className="flex-grow flex items-center justify-center px-6 py-16 sm:py-24">
-        <div className="max-w-2xl mx-auto text-center">
+      <main className="flex flex-grow items-center justify-center px-6 py-16 sm:py-24">
+        <div className="mx-auto max-w-2xl text-center">
           {/* Logo */}
-          <div className="flex justify-center mb-6">
+          <div className="mb-6 flex justify-center">
             <Image
               src="/assets/RSLogo2.png"
               alt="RAGESTATE"
@@ -35,39 +34,39 @@ export default function NotFound() {
           </div>
 
           {/* Error Code with Animation */}
-          <h1 className="text-red-600 font-bold text-9xl animate-pulse">404</h1>
+          <h1 className="animate-pulse text-9xl font-bold text-red-600">404</h1>
 
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-5xl">
             Page not found
           </h2>
 
-          <div className="mt-6 mb-8 h-1 w-40 bg-gradient-to-r from-transparent via-red-700 to-transparent mx-auto"></div>
+          <div className="mx-auto mb-8 mt-6 h-1 w-40 bg-gradient-to-r from-transparent via-red-700 to-transparent"></div>
 
           <p className="mt-6 text-lg leading-7 text-gray-300">
             Sorry, the page you are looking for doesn't exist or has been moved.
           </p>
 
-          <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
               href="/"
-              className="w-full sm:w-auto flex items-center justify-center rounded-md bg-red-700 px-6 py-2 text-base font-semibold text-white shadow-md hover:bg-red-900 focus:outline-none focus:ring-2 focus:ring-red-500 transition-all duration-300"
+              className="flex w-full items-center justify-center rounded-md bg-red-700 px-6 py-2 text-base font-semibold text-white shadow-md transition-all duration-300 hover:bg-red-900 focus:outline-none focus:ring-2 focus:ring-red-500 sm:w-auto"
             >
-              <HomeIcon className="h-5 w-5 mr-2" />
+              <HomeIcon className="mr-2 h-5 w-5" />
               Return Home
             </Link>
             <Link
               href="/contact"
-              className="w-full sm:w-auto flex items-center justify-center rounded-md border border-gray-700 px-6 py-2 text-base font-semibold text-gray-300 hover:bg-red-900 hover:border-red-500 transition-all duration-300"
+              className="flex w-full items-center justify-center rounded-md border border-gray-700 px-6 py-2 text-base font-semibold text-gray-300 transition-all duration-300 hover:border-red-500 hover:bg-red-900 sm:w-auto"
             >
-              <EnvelopeIcon className="h-5 w-5 mr-2" />
+              <EnvelopeIcon className="mr-2 h-5 w-5" />
               Contact Support
             </Link>
           </div>
 
           {/* Optional: Add a cool glitch effect or animation */}
-          <div className="mt-12 relative h-32 w-32 mx-auto">
-            <div className="absolute inset-0 opacity-75 animate-ping rounded-full bg-gradient-to-r from-red-700 to-transparent"></div>
-            <div className="relative flex items-center justify-center h-full">
+          <div className="relative mx-auto mt-12 h-32 w-32">
+            <div className="absolute inset-0 animate-ping rounded-full bg-gradient-to-r from-red-700 to-transparent opacity-75"></div>
+            <div className="relative flex h-full items-center justify-center">
               <span className="text-3xl">⚠️</span>
             </div>
           </div>

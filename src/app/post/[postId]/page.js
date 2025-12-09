@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react';
 import { db } from '../../../../firebase/firebase';
 
 import { formatDate } from '@/utils/formatters';
-import Header from '../../components/Header';
 import Post from '../../components/Post';
 import PostSkeleton from '../../components/PostSkeleton';
 
@@ -53,7 +52,7 @@ export default function PostPermalinkPage() {
 
   return (
     <div className="isolate min-h-screen bg-black px-6 py-12 text-white sm:py-24 lg:px-8">
-      <Header />
+      {/* Header is rendered by layout.js */}
       <div className="mx-auto max-w-2xl">
         {loading && <PostSkeleton />}
         {!loading && error && <p className="text-center text-gray-400">Error loading post.</p>}

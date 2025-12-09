@@ -1,7 +1,5 @@
 'use client';
 
-import Header from '../components/Header';
-
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -211,7 +209,7 @@ export default function CreateAccount() {
 
   return (
     <div className="min-h-screen bg-black">
-      <Header />
+      {/* Header is rendered by layout.js */}
       <div className="mx-auto flex min-h-full max-w-4xl flex-1 flex-col justify-center px-6 py-12 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           {/* Add a logo or brand element */}

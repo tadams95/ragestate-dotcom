@@ -1,6 +1,5 @@
 'use client';
 
-import Header from '@/app/components/Header';
 import storage from '@/utils/storage';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
@@ -54,7 +53,7 @@ export default function ProductDetailClient({ product: initialProduct }) {
   if (!selectedProduct) {
     return (
       <>
-        <Header />
+        {/* Header is rendered by layout.js */}
         <div className="px-4 py-20 lg:px-8">
           <div className="mx-auto max-w-7xl">
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-10">
@@ -82,7 +81,7 @@ export default function ProductDetailClient({ product: initialProduct }) {
 
   return (
     <>
-      <Header />
+      {/* Header is rendered by layout.js */}
       <div
         className={`transition-opacity ${loading ? 'opacity-0' : 'opacity-100 duration-1000'} px-4 pb-20 lg:px-8`}
         style={{ paddingTop: 'calc(var(--header-h, 96px) + 16px)' }}

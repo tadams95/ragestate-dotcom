@@ -8,7 +8,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import ProductTile from '../../../components/ProductTile';
 import QuickViewModal from '../../../components/QuickViewModal';
 import { fetchShopifyProducts } from '../../../shopify/shopifyService';
-import Header from '../components/Header';
 
 // const AutoSliderBanner = dynamic(() => import('../../../components/AutoSliderBanner'), {
 //   ssr: false,
@@ -240,7 +239,7 @@ export default function ShopClient() {
 
   return (
     <div className="isolate min-h-screen bg-black">
-      <Header />
+      {/* Header is rendered by layout.js */}
 
       {/* Add the AutoSliderBanner */}
       {/* <AutoSliderBanner /> */}

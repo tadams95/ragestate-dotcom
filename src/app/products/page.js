@@ -1,21 +1,19 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import Image from "next/image";
-import Footer from "../components/Footer";
-import Header from "../components/Header";
-import BackgroundPattern from "../components/BackgroundPattern";
-import AppScreenshot from "../components/AppScreenshot";
-import { useState } from "react";
+import Image from 'next/image';
+import Link from 'next/link';
+import { useState } from 'react';
+import AppScreenshot from '../components/AppScreenshot';
+import BackgroundPattern from '../components/BackgroundPattern';
+import Footer from '../components/Footer';
 
 export default function Products() {
-  const [activeTab, setActiveTab] = useState("features");
+  const [activeTab, setActiveTab] = useState('features');
 
   const features = [
     {
-      name: "Shop Merch",
-      description:
-        "Browse and purchase exclusive RAGESTATE merchandise directly from the app.",
+      name: 'Shop Merch',
+      description: 'Browse and purchase exclusive RAGESTATE merchandise directly from the app.',
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -23,7 +21,7 @@ export default function Products() {
           viewBox="0 0 24 24"
           strokeWidth={1.5}
           stroke="currentColor"
-          className="w-6 h-6"
+          className="h-6 w-6"
         >
           <path
             strokeLinecap="round"
@@ -34,8 +32,8 @@ export default function Products() {
       ),
     },
     {
-      name: "Event Calendar",
-      description: "Stay updated with upcoming events and never miss a show.",
+      name: 'Event Calendar',
+      description: 'Stay updated with upcoming events and never miss a show.',
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -43,7 +41,7 @@ export default function Products() {
           viewBox="0 0 24 24"
           strokeWidth={1.5}
           stroke="currentColor"
-          className="w-6 h-6"
+          className="h-6 w-6"
         >
           <path
             strokeLinecap="round"
@@ -54,9 +52,8 @@ export default function Products() {
       ),
     },
     {
-      name: "Ticket Management",
-      description:
-        "Easily send and receive tickets to events with your friends.",
+      name: 'Ticket Management',
+      description: 'Easily send and receive tickets to events with your friends.',
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -64,7 +61,7 @@ export default function Products() {
           viewBox="0 0 24 24"
           strokeWidth={1.5}
           stroke="currentColor"
-          className="w-6 h-6"
+          className="h-6 w-6"
         >
           <path
             strokeLinecap="round"
@@ -75,8 +72,8 @@ export default function Products() {
       ),
     },
     {
-      name: "Community",
-      description: "Connect with other RAGESTATE fans and build your network.",
+      name: 'Community',
+      description: 'Connect with other RAGESTATE fans and build your network.',
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -84,7 +81,7 @@ export default function Products() {
           viewBox="0 0 24 24"
           strokeWidth={1.5}
           stroke="currentColor"
-          className="w-6 h-6"
+          className="h-6 w-6"
         >
           <path
             strokeLinecap="round"
@@ -99,47 +96,45 @@ export default function Products() {
   const testimonials = [
     {
       content:
-        "The RAGESTATE app makes it so easy to get tickets and connect with other fans. Love it!",
-      author: "Alex T.",
+        'The RAGESTATE app makes it so easy to get tickets and connect with other fans. Love it!',
+      author: 'Alex T.',
     },
     {
       content:
         "I've been using this app for months now. The ticket transfer feature is a game-changer.",
-      author: "Jamie L.",
+      author: 'Jamie L.',
     },
     {
-      content:
-        "The merch shop in the app has the best exclusive gear. Fast shipping too!",
-      author: "Morgan P.",
+      content: 'The merch shop in the app has the best exclusive gear. Fast shipping too!',
+      author: 'Morgan P.',
     },
   ];
 
   const faqs = [
     {
-      question: "Is the app free to download?",
+      question: 'Is the app free to download?',
       answer:
-        "Yes, the RAGESTATE app is completely free to download on both iOS and Android devices.",
+        'Yes, the RAGESTATE app is completely free to download on both iOS and Android devices.',
     },
     {
-      question: "How do I transfer tickets to friends?",
+      question: 'How do I transfer tickets to friends?',
       answer:
         "Simply go to your tickets section, select the ticket you want to share, press the transfer button, and enter your friend's email or username.",
     },
     {
-      question: "Is the merchandise in the app the same as on the website?",
-      answer:
-        "The app features all website merchandise plus exclusive app-only limited editions.",
+      question: 'Is the merchandise in the app the same as on the website?',
+      answer: 'The app features all website merchandise plus exclusive app-only limited editions.',
     },
     {
-      question: "Can I get notifications for upcoming events?",
+      question: 'Can I get notifications for upcoming events?',
       answer:
-        "Yes, you can enable notifications in the app settings to get alerts about new events, ticket sales, and more.",
+        'Yes, you can enable notifications in the app settings to get alerts about new events, ticket sales, and more.',
     },
   ];
 
   return (
     <div className="bg-black">
-      <Header />
+      {/* Header is rendered by layout.js */}
       <div className="relative isolate">
         <BackgroundPattern />
 
@@ -151,9 +146,8 @@ export default function Products() {
               The <span className="text-red-700">RAGESTATE</span> App
             </h1>
             <p className="mt-6 text-lg leading-8 text-gray-300">
-              The RAGESTATE app is your one-stop shop for all things RAGESTATE.
-              Shop merch, browse events, or send tickets to your friends.
-              Everything you need in one place.
+              The RAGESTATE app is your one-stop shop for all things RAGESTATE. Shop merch, browse
+              events, or send tickets to your friends. Everything you need in one place.
             </p>
 
             {/* Improved app download buttons with app store badges */}
@@ -195,33 +189,29 @@ export default function Products() {
 
         {/* Content tabs */}
         <div className="mx-auto max-w-7xl px-6 py-10 sm:py-16">
-          <div className="flex justify-center space-x-4 mb-12">
+          <div className="mb-12 flex justify-center space-x-4">
             <button
-              onClick={() => setActiveTab("features")}
-              className={`px-4 py-2 rounded-md ${
-                activeTab === "features"
-                  ? "bg-red-700 text-white"
-                  : "bg-transparent text-gray-300"
+              onClick={() => setActiveTab('features')}
+              className={`rounded-md px-4 py-2 ${
+                activeTab === 'features' ? 'bg-red-700 text-white' : 'bg-transparent text-gray-300'
               }`}
             >
               Features
             </button>
             <button
-              onClick={() => setActiveTab("testimonials")}
-              className={`px-4 py-2 rounded-md ${
-                activeTab === "testimonials"
-                  ? "bg-red-700 text-white"
-                  : "bg-transparent text-gray-300"
+              onClick={() => setActiveTab('testimonials')}
+              className={`rounded-md px-4 py-2 ${
+                activeTab === 'testimonials'
+                  ? 'bg-red-700 text-white'
+                  : 'bg-transparent text-gray-300'
               }`}
             >
               Testimonials
             </button>
             <button
-              onClick={() => setActiveTab("faq")}
-              className={`px-4 py-2 rounded-md ${
-                activeTab === "faq"
-                  ? "bg-red-700 text-white"
-                  : "bg-transparent text-gray-300"
+              onClick={() => setActiveTab('faq')}
+              className={`rounded-md px-4 py-2 ${
+                activeTab === 'faq' ? 'bg-red-700 text-white' : 'bg-transparent text-gray-300'
               }`}
             >
               FAQ
@@ -229,23 +219,21 @@ export default function Products() {
           </div>
 
           {/* Features grid */}
-          {activeTab === "features" && (
+          {activeTab === 'features' && (
             <div className="mx-auto max-w-7xl">
-              <h2 className="text-3xl font-bold tracking-tight text-gray-100 text-center mb-12">
+              <h2 className="mb-12 text-center text-3xl font-bold tracking-tight text-gray-100">
                 Everything You Need in One App
               </h2>
-              <div className="grid grid-cols-1  gap-x-8 gap-y-10 md:grid-cols-2 lg:grid-cols-4">
+              <div className="grid grid-cols-1 gap-x-8 gap-y-10 md:grid-cols-2 lg:grid-cols-4">
                 {features.map((feature, index) => (
                   <div
                     key={index}
-                    className="bg-transparent border border-white p-6 rounded-xl hover:bg-red-700  transition-colors duration-200"
+                    className="rounded-xl border border-white bg-transparent p-6 transition-colors duration-200 hover:bg-red-700"
                   >
-                    <div className="bg-red-700/10 rounded-md p-2 w-fit mb-4">
+                    <div className="mb-4 w-fit rounded-md bg-red-700/10 p-2">
                       <div className="text-red-700">{feature.icon}</div>
                     </div>
-                    <h3 className="text-xl font-semibold text-gray-100 mb-2">
-                      {feature.name}
-                    </h3>
+                    <h3 className="mb-2 text-xl font-semibold text-gray-100">{feature.name}</h3>
                     <p className="text-gray-400">{feature.description}</p>
                   </div>
                 ))}
@@ -254,31 +242,27 @@ export default function Products() {
           )}
 
           {/* Testimonials */}
-          {activeTab === "testimonials" && (
+          {activeTab === 'testimonials' && (
             <div className="mx-auto max-w-5xl">
-              <h2 className="text-3xl font-bold tracking-tight text-gray-100 text-center mb-12">
+              <h2 className="mb-12 text-center text-3xl font-bold tracking-tight text-gray-100">
                 What Users Are Saying
               </h2>
               <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
                 {testimonials.map((testimonial, index) => (
                   <div
                     key={index}
-                    className="relative bg-transparent border border-white p-6 rounded-xl"
+                    className="relative rounded-xl border border-white bg-transparent p-6"
                   >
                     <svg
-                      className="h-10 w-10 text-gray-700 absolute top-6 left-6 opacity-20"
+                      className="absolute left-6 top-6 h-10 w-10 text-gray-700 opacity-20"
                       fill="currentColor"
                       viewBox="0 0 32 32"
                     >
                       <path d="M9.352 4C4.456 7.456 1 13.12 1 19.36c0 5.088 3.072 8.064 6.624 8.064 3.36 0 5.856-2.688 5.856-5.856 0-3.168-2.208-5.472-5.088-5.472-.576 0-1.344.096-1.536.192.48-3.264 3.552-7.104 6.624-9.024L9.352 4zm16.512 0c-4.8 3.456-8.256 9.12-8.256 15.36 0 5.088 3.072 8.064 6.624 8.064 3.264 0 5.856-2.688 5.856-5.856 0-3.168-2.304-5.472-5.184-5.472-.576 0-1.248.096-1.44.192.48-3.264 3.456-7.104 6.528-9.024L25.864 4z" />
                     </svg>
                     <div className="relative z-10">
-                      <p className="text-gray-300 mb-4">
-                        {testimonial.content}
-                      </p>
-                      <p className="text-sm font-semibold text-red-700">
-                        {testimonial.author}
-                      </p>
+                      <p className="mb-4 text-gray-300">{testimonial.content}</p>
+                      <p className="text-sm font-semibold text-red-700">{testimonial.author}</p>
                     </div>
                   </div>
                 ))}
@@ -287,17 +271,15 @@ export default function Products() {
           )}
 
           {/* FAQ section */}
-          {activeTab === "faq" && (
+          {activeTab === 'faq' && (
             <div className="mx-auto max-w-5xl">
-              <h2 className="text-3xl font-bold tracking-tight text-gray-100 text-center mb-12">
+              <h2 className="mb-12 text-center text-3xl font-bold tracking-tight text-gray-100">
                 Frequently Asked Questions
               </h2>
               <div className="space-y-6">
                 {faqs.map((faq, index) => (
-                  <div key={index} className="bg-transparent  rounded-xl p-6">
-                    <h3 className="text-xl font-medium text-gray-100 mb-3">
-                      {faq.question}
-                    </h3>
+                  <div key={index} className="rounded-xl bg-transparent p-6">
+                    <h3 className="mb-3 text-xl font-medium text-gray-100">{faq.question}</h3>
                     <p className="text-gray-400">{faq.answer}</p>
                   </div>
                 ))}

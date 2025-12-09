@@ -1,6 +1,5 @@
 'use client';
 
-import Header from '@/app/components/Header';
 import EventStyling1 from '@/app/components/styling/EventStyling1';
 import storage from '@/utils/storage';
 import { useAuth } from '@fb/context/FirebaseContext';
@@ -113,7 +112,7 @@ export default function EventDetail() {
 
   return (
     <div className="min-h-screen bg-black">
-      <Header />
+      {/* Header is rendered by layout.js */}
       <EventStyling1 />
 
       <main className="flex-grow">
