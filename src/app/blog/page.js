@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { posts } from '../../../blog-posts/blogPosts';
-import Footer from '../components/Footer';
 import BlogStyling from '../components/styling/BlogStyling';
 
 export default function Blog() {
@@ -74,7 +73,7 @@ export default function Blog() {
           </div>
         </main>
       </div>
-      <Footer />
+      {/* Footer is rendered globally in RootLayout */}
     </>
   );
 }

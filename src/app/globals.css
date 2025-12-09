@@ -18,11 +18,7 @@
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
+  background: linear-gradient(to bottom, transparent, rgb(var(--background-end-rgb)))
     rgb(var(--background-start-rgb));
 }
 
@@ -33,8 +29,181 @@ body {
 }
 
 .bg-grid-pattern {
-  background-image: 
+  background-image:
     linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
   background-size: 30px 30px;
+}
+
+/* ============================================
+   GLITCH WARNING ANIMATION SYSTEM
+   Cyberpunk warning beacon with RGB split,
+   scan lines, and digital corruption
+   ============================================ */
+
+/* RGB Chromatic Aberration - Red Channel */
+@keyframes rgb-red {
+  0%,
+  100% {
+    transform: translate(-2px, 0);
+  }
+  25% {
+    transform: translate(-3px, 1px);
+  }
+  50% {
+    transform: translate(-1px, -1px);
+  }
+  75% {
+    transform: translate(-4px, 0);
+  }
+}
+
+/* RGB Chromatic Aberration - Blue Channel */
+@keyframes rgb-blue {
+  0%,
+  100% {
+    transform: translate(2px, 0);
+  }
+  25% {
+    transform: translate(3px, -1px);
+  }
+  50% {
+    transform: translate(1px, 1px);
+  }
+  75% {
+    transform: translate(4px, 0);
+  }
+}
+
+/* Container shake for glitch bursts */
+@keyframes glitch-shake {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  10% {
+    transform: translate(-2px, -1px) rotate(-0.5deg);
+  }
+  20% {
+    transform: translate(2px, 1px) rotate(0.5deg);
+  }
+  30% {
+    transform: translate(-1px, 2px) rotate(-0.5deg);
+  }
+  40% {
+    transform: translate(1px, -2px) rotate(0.5deg);
+  }
+  50% {
+    transform: translate(-2px, 1px) rotate(0deg);
+  }
+  60% {
+    transform: translate(2px, -1px) rotate(-0.5deg);
+  }
+  70% {
+    transform: translate(-1px, -2px) rotate(0.5deg);
+  }
+  80% {
+    transform: translate(1px, 2px) rotate(-0.5deg);
+  }
+  90% {
+    transform: translate(-2px, -1px) rotate(0.5deg);
+  }
+}
+
+/* CRT Scan lines moving down */
+@keyframes scanlines {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(4px);
+  }
+}
+
+/* VHS Tracking line - vertical sweep */
+@keyframes vhs-tracking {
+  0% {
+    top: -5%;
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  95% {
+    opacity: 1;
+  }
+  100% {
+    top: 105%;
+    opacity: 0;
+  }
+}
+
+/* CRT Flicker effect */
+@keyframes crt-flicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  93% {
+    opacity: 0.8;
+  }
+  94% {
+    opacity: 1;
+  }
+  97% {
+    opacity: 0.9;
+  }
+  98% {
+    opacity: 1;
+  }
+}
+
+/* Animation utility classes */
+.animate-rgb-red {
+  animation: rgb-red 0.15s infinite steps(1);
+}
+
+.animate-rgb-blue {
+  animation: rgb-blue 0.15s infinite steps(1);
+}
+
+.animate-glitch-shake {
+  animation: glitch-shake 0.1s infinite;
+}
+
+.animate-scanlines {
+  animation: scanlines 0.5s linear infinite;
+}
+
+.animate-vhs-tracking {
+  animation: vhs-tracking 3s linear infinite;
+}
+
+.animate-crt-flicker {
+  animation: crt-flicker 4s infinite;
+}
+
+/* Hover intensifies all glitch effects */
+.glitch-warning-container:hover .animate-rgb-red,
+.glitch-warning-container:hover .animate-rgb-blue {
+  animation-duration: 0.08s;
+}
+
+.glitch-warning-container:hover .animate-vhs-tracking {
+  animation-duration: 1.5s;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .animate-rgb-red,
+  .animate-rgb-blue,
+  .animate-glitch-shake,
+  .animate-scanlines,
+  .animate-vhs-tracking,
+  .animate-crt-flicker {
+    animation: none;
+  }
 }

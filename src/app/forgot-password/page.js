@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 
 import { forgotPassword } from '../../../firebase/util/auth';
 
-import Footer from '../components/Footer';
 import RandomDetailStyling from '../components/styling/RandomDetailStyling';
 
 export default function ForgotPassword() {
@@ -80,7 +79,7 @@ export default function ForgotPassword() {
           </div>
         </div>
       </div>
-      <Footer />
+      {/* Footer is rendered globally in RootLayout */}
     </>
   );
 }

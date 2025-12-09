@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useState } from 'react';
 import AppScreenshot from '../components/AppScreenshot';
 import BackgroundPattern from '../components/BackgroundPattern';
-import Footer from '../components/Footer';
 
 export default function Products() {
   const [activeTab, setActiveTab] = useState('features');
@@ -288,7 +287,7 @@ export default function Products() {
           )}
         </div>
       </div>
-      <Footer />
+      {/* Footer is rendered globally in RootLayout */}
     </div>
   );
 }

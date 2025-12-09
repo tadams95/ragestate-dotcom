@@ -1,5 +1,4 @@
 import CheckCircleIcon from '@heroicons/react/20/solid/CheckCircleIcon';
-import Footer from '../components/Footer';
 
 export default function PrivacyPolicy() {
   return (
@@ -109,7 +108,7 @@ export default function PrivacyPolicy() {
           </div>
         </div>
       </div>
-      <Footer />
+      {/* Footer is rendered globally in RootLayout */}
     </>
   );
 }

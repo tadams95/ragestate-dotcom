@@ -1,5 +1,3 @@
-import Footer from '../components/Footer';
-
 import CheckCircleIcon from '@heroicons/react/20/solid/CheckCircleIcon';
 
 export default function ReturnPolicy() {
@@ -84,7 +82,7 @@ export default function ReturnPolicy() {
           </div>
         </div>
       </div>
-      <Footer />
+      {/* Footer is rendered globally in RootLayout */}
     </>
   );
 }

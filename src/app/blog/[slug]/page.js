@@ -1,5 +1,4 @@
 import BlogPostClient from '@/app/blog/BlogPostClient';
-import Footer from '@/app/components/Footer';
 import BlogStyling from '@/app/components/styling/BlogStyling';
 import Link from 'next/link';
 import { posts as blogPosts } from '../../../../blog-posts/blogPosts';
@@ -62,7 +61,7 @@ export default function BlogPost({ params }) {
             </Link>
           </div>
         </div>
-        <Footer />
+        {/* Footer is rendered globally in RootLayout */}
       </div>
     );
   }
@@ -83,7 +82,7 @@ export default function BlogPost({ params }) {
             {/* Removed Divider and Related Posts sections */}
           </div>
         </div>
-        <Footer />
+        {/* Footer is rendered globally in RootLayout */}
       </div>
     </>
   );

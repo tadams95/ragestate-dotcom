@@ -5,7 +5,6 @@ import MusicalNoteIcon from '@heroicons/react/24/solid/MusicalNoteIcon';
 import UserCircleIcon from '@heroicons/react/24/solid/UserCircleIcon';
 import Image from 'next/image';
 import { useState } from 'react';
-import Footer from '../components/Footer';
 import RandomDetailStyling from '../components/styling/RandomDetailStyling';
 
 import { doc, getFirestore, setDoc } from 'firebase/firestore';
@@ -313,8 +312,7 @@ export default function GuestMix() {
           </form>
         </div>
       </div>
-
-      <Footer />
+      {/* Footer is rendered globally in RootLayout */}
     </>
   );
 }

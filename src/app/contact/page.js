@@ -1,5 +1,4 @@
 import EnvelopeIcon from '@heroicons/react/24/outline/EnvelopeIcon';
-import Footer from '../components/Footer';
 
 export default function Contact() {
   return (
@@ -33,7 +32,7 @@ export default function Contact() {
           </div>
         </div>
       </div>
-      <Footer />
+      {/* Footer is rendered globally in RootLayout */}
     </>
   );
 }

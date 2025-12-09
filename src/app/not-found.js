@@ -5,7 +5,7 @@ import HomeIcon from '@heroicons/react/24/outline/HomeIcon';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import Footer from './components/Footer';
+import GlitchWarning from './components/GlitchWarning';
 
 export default function NotFound() {
   const [mounted, setMounted] = useState(false);
@@ -63,17 +63,12 @@ export default function NotFound() {
             </Link>
           </div>
 
-          {/* Optional: Add a cool glitch effect or animation */}
-          <div className="relative mx-auto mt-12 h-32 w-32">
-            <div className="absolute inset-0 animate-ping rounded-full bg-gradient-to-r from-red-700 to-transparent opacity-75"></div>
-            <div className="relative flex h-full items-center justify-center">
-              <span className="text-3xl">⚠️</span>
-            </div>
+          {/* Cyberpunk Glitch Warning Animation */}
+          <div className="mx-auto mt-12 flex justify-center">
+            <GlitchWarning />
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }

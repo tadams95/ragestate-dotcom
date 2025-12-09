@@ -9,7 +9,6 @@ import { useEffect, useState } from 'react';
 import { useAuth, useFirebase } from '../../../firebase/context/FirebaseContext';
 import { formatCurrency, formatDate, getStatusColor } from '../../utils/formatters';
 import AdminProtected from '../components/AdminProtected';
-import Footer from '../components/Footer';
 // Lazy-load admin tabs and modal to keep them out of initial/shared chunks
 const DashboardTab = dynamic(() => import('../components/admin/DashboardTab'), {
   loading: () => (
@@ -288,7 +287,7 @@ export default function AdminPage() {
             </div>
           </div>
         </main>
-        <Footer />
+        {/* Footer is rendered globally in RootLayout */}
         {orderDetailsOpen && (
           <OrderDetailsModal
             selectedOrder={selectedOrder}
