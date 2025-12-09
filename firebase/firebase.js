@@ -1,7 +1,6 @@
 // firebase.js
 
 import { initializeApp } from 'firebase/app';
-import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 import { browserLocalPersistence, getAuth, setPersistence } from 'firebase/auth';
 import { getDatabase } from 'firebase/database';
 import { getFirestore } from 'firebase/firestore';
@@ -50,40 +49,11 @@ const rtdb = getDatabase(app);
 // Initialize Firebase Storage
 const storage = getStorage(app);
 
-// Initialize Firebase App Check (reCAPTCHA v3 provider)
-// Optional: disable in local dev via NEXT_PUBLIC_DISABLE_APPCHECK=true
-try {
-  if (typeof window !== 'undefined') {
-    const disable = process.env.NEXT_PUBLIC_DISABLE_APPCHECK === 'true';
-    const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
-
-    if (disable) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.info('[AppCheck] Disabled via NEXT_PUBLIC_DISABLE_APPCHECK');
-      }
-    } else if (siteKey && siteKey.trim()) {
-      // Debug token support: set NEXT_PUBLIC_APPCHECK_DEBUG=true to emit token for allow‑listing
-      if (process.env.NEXT_PUBLIC_APPCHECK_DEBUG === 'true') {
-        // eslint-disable-next-line no-undef
-        self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-        console.info('[AppCheck] Debug token mode enabled');
-      }
-      initializeAppCheck(app, {
-        provider: new ReCaptchaV3Provider(siteKey.trim()),
-        isTokenAutoRefreshEnabled: true,
-      });
-      if (process.env.NODE_ENV !== 'production') {
-        console.info('[AppCheck] Initialized with reCAPTCHA v3 site key');
-      }
-    } else {
-      if (process.env.NODE_ENV !== 'production') {
-        console.warn('[AppCheck] Not initialized: missing NEXT_PUBLIC_RECAPTCHA_SITE_KEY');
-      }
-    }
-  }
-} catch (err) {
-  console.error('App Check initialization error (non-fatal):', err);
-}
+// App Check is intentionally disabled.
+// DeviceCheck + Play Integrity are for native iOS/Android apps only.
+// For web, you would need reCAPTCHA — which we've removed.
+// If you add a native mobile app later, configure App Check there with native providers.
+// For web, consider Cloudflare Turnstile via a custom App Check provider if needed.
 
 // Export the initialized app, auth, db, rtdb, and storage
 export { app, auth, db, rtdb, storage };

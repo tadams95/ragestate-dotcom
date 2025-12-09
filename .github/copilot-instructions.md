@@ -54,7 +54,7 @@
 
 ## Environment & Secrets
 
-- Next env: `PROXY_KEY` (forwarded in headers), `STRIPE_FN_URL` or `NEXT_PUBLIC_STRIPE_FN_URL` (override function base), `STRIPE_FN_REGION` (default `us-central1`), `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`, Firebase public config vars (see `firebase/firebase.js`).
+- Next env: `PROXY_KEY` (forwarded in headers), `STRIPE_FN_URL` or `NEXT_PUBLIC_STRIPE_FN_URL` (override function base), `STRIPE_FN_REGION` (default `us-central1`), Firebase public config vars (see `firebase/firebase.js`).
 - Functions secrets: `STRIPE_SECRET`, `RESEND_API_KEY`, `PROXY_KEY` via Secret Manager (`defineSecret`). No secret → Stripe endpoints return 503.
 - Local emulator: set `STRIPE_FN_URL=http://127.0.0.1:5001/<project>/us-central1/stripePayment` so Next proxies locally.
 

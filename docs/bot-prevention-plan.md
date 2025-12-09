@@ -196,15 +196,17 @@ Notes for our stack:
 ### App Check
 
 - File: `firebase/firebase.js`
-  - Initialize App Check with reCAPTCHA v3 (site key via env):
+  - App Check is currently **disabled** for the web app.
+  - DeviceCheck + Play Integrity are for **native iOS/Android apps only** — they do not work on web.
+  - For web, you would need reCAPTCHA (removed) or a custom provider like Cloudflare Turnstile.
+  - If building native mobile apps, configure App Check there with native providers.
   ```js
-  import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
-  const appCheck = initializeAppCheck(app, {
-    provider: new ReCaptchaV3Provider(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY),
-    isTokenAutoRefreshEnabled: true,
-  });
+  // App Check is intentionally disabled for web.
+  // For native iOS/Android, use:
+  // import { initializeAppCheck, CustomProvider } from 'firebase/app-check';
+  // initializeAppCheck(app, { provider: yourNativeProvider, isTokenAutoRefreshEnabled: true });
   ```
-- Console: Enforce App Check for Firestore, Storage, RTDB, Functions after 24–48h soak
+- Console: Do NOT enforce App Check for web until a valid provider is configured.
 
 ### Signup Flow (Auth + UI)
 

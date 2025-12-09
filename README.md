@@ -37,7 +37,6 @@ Create a `.env.local` (not committed). Key variables (some may already be inject
 ```
 PROXY_KEY=dev-proxy                # Shared secret for Next → Cloud Function proxy
 STRIPE_FN_URL=http://127.0.0.1:5001/<project>/us-central1/stripePayment  # Local emulator base (optional)
-NEXT_PUBLIC_RECAPTCHA_SITE_KEY=...  # If App Check / reCAPTCHA used
 FIREBASE_API_KEY=...                # Standard Firebase web config vars
 FIREBASE_AUTH_DOMAIN=...
 FIREBASE_PROJECT_ID=...
