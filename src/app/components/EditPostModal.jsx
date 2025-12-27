@@ -1,6 +1,7 @@
 'use client';
 
 import { Dialog, DialogPanel } from '@headlessui/react';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
 export default function EditPostModal({
@@ -8,18 +9,25 @@ export default function EditPostModal({
   onClose,
   initialContent = '',
   initialIsPublic = true,
+  initialMediaUrls = [],
   onSave,
   saving = false,
 }) {
   const [content, setContent] = useState(initialContent || '');
   const [isPublic, setIsPublic] = useState(!!initialIsPublic);
+  const [mediaUrls, setMediaUrls] = useState([]);
 
   useEffect(() => {
     if (open) {
       setContent(initialContent || '');
       setIsPublic(!!initialIsPublic);
+      setMediaUrls(Array.isArray(initialMediaUrls) ? [...initialMediaUrls] : []);
     }
-  }, [open, initialContent, initialIsPublic]);
+  }, [open, initialContent, initialIsPublic, initialMediaUrls]);
+
+  const removeImage = (indexToRemove) => {
+    setMediaUrls((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  };
 
   const canSave = (content?.trim().length || 0) <= 2000 && !saving;
 
@@ -45,6 +53,40 @@ export default function EditPostModal({
               autoFocus
             />
 
+            {/* Existing images with remove option */}
+            {mediaUrls.length > 0 && (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {mediaUrls.map((url, idx) => (
+                  <div key={url} className="group relative overflow-hidden rounded-lg">
+                    <div className="relative" style={{ aspectRatio: '1/1' }}>
+                      <Image
+                        src={url}
+                        alt={`Attached image ${idx + 1}`}
+                        fill
+                        className="object-cover"
+                        sizes="150px"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeImage(idx)}
+                      className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white opacity-0 transition-opacity hover:bg-red-600 group-hover:opacity-100"
+                      aria-label={`Remove image ${idx + 1}`}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        className="h-4 w-4"
+                      >
+                        <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="flex items-center justify-between">
               <label className="inline-flex items-center gap-2 text-sm text-gray-300">
                 <span className="text-gray-400">Visibility</span>
@@ -67,7 +109,7 @@ export default function EditPostModal({
                 </button>
                 <button
                   disabled={!canSave}
-                  onClick={() => onSave?.({ content: content.trim(), isPublic })}
+                  onClick={() => onSave?.({ content: content.trim(), isPublic, mediaUrls })}
                   className={`h-10 rounded px-4 text-sm font-semibold ${canSave ? 'bg-[#ff1f42] text-white hover:bg-[#ff415f]' : 'cursor-not-allowed bg-gray-700 text-gray-400'}`}
                 >
                   {saving ? 'Saving…' : 'Save changes'}

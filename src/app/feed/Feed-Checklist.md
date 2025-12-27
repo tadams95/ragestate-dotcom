@@ -43,7 +43,7 @@
 - [x] `Post.js`: Pass `mediaUrls` from `liveData` / `postData` to `PostContent`
 - [x] `PostContent.js`: Render image grid (single image full-width, 2+ in 2-col grid)
 - [x] `PostContent.js`: Lightbox/modal for tapping images
-- [ ] `EditPostModal.js`: Show existing images, allow removal (not re-upload for now)
+- [x] `EditPostModal.js`: Show existing images, allow removal (not re-upload for now)
 
 ### Media Uploads (Video) — Phase 2
 
@@ -54,6 +54,48 @@
 - [ ] `PostComposer.js`: Video preview (thumbnail or `<video>` element)
 - [ ] `PostContent.js`: Render `<video>` with controls for video URLs
 - [ ] Consider compression/transcoding (Firebase Extensions or Cloud Function)
+
+---
+
+## 1.5 Comments Architecture (1 week)
+
+> **Status**: Core works; missing delete UI, avatar bug fixed, notification data bug
+
+### Backend Fixes
+
+- [ ] `CommentsSheet.js`: Include `postOwnerId` in `addDoc` for notifications to fire
+- [ ] Verify `onPostCommentCreateNotify` receives `postOwnerId` correctly
+- [x] `CommentsSheet.js`: Fix avatar not showing — use `profiles/{uid}.profilePicture` instead of Auth `photoURL`
+
+### Delete UI
+
+- [ ] `CommentsSheet.js`: Show delete icon (🗑) on own comments (hover or swipe)
+- [ ] `CommentsSheet.js`: Delete comment with confirmation
+- [ ] Firestore rules already allow author delete ✅
+
+### Reply Threading
+
+- [ ] Add `parentId` field to comment schema (null = top-level)
+- [ ] `firestore.rules`: Allow `parentId` on create
+- [ ] `firestore.indexes.json`: Add index for `postComments(postId, parentId, timestamp)`
+- [ ] `CommentsSheet.js`: Render nested replies (indent or thread view)
+- [ ] `CommentsSheet.js`: "Reply" button on each comment
+- [ ] `CommentsSheet.js`: Collapse/expand long threads
+
+### Comment Likes
+
+- [ ] Create `postCommentLikes` collection: `{ commentId, postId, userId, timestamp }`
+- [ ] `firestore.rules`: Add rules for `postCommentLikes` (auth create/delete own)
+- [ ] `functions/feed.js`: Add `onCommentLikeCreate`/`Delete` to update `likeCount` on comment
+- [ ] `CommentsSheet.js`: Heart icon + count on each comment
+- [ ] `CommentsSheet.js`: Optimistic like toggle
+
+### Consistency Checks
+
+- [x] `firestore.rules`: Author can delete own comment, immutable `postId`/`userId`
+- [x] `firestore.indexes.json`: `postComments(postId, timestamp)` index exists
+- [x] `functions/feed.js`: `commentCount` increment/decrement triggers exist
+- [x] `functions/notifications.js`: Comment + @mention notifications exist
 
 ---
 

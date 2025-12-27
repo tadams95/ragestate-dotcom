@@ -92,9 +92,16 @@ export default function CommentsSheet({ postId, onClose }) {
       // Optimistic prepend (we display in asc order; append makes sense)
       // Resolve usernameLower once for link consistency
       let usernameLower = null;
+      let profilePicture = currentUser.photoURL || null;
       try {
         const prof = await getDoc(doc(db, 'profiles', currentUser.uid));
-        usernameLower = prof.exists() ? prof.data()?.usernameLower || null : null;
+        if (prof.exists()) {
+          const profData = prof.data();
+          usernameLower = profData?.usernameLower || null;
+          // Prefer Firestore profile picture over Auth photoURL
+          profilePicture =
+            profData?.profilePicture || profData?.photoURL || currentUser.photoURL || null;
+        }
       } catch {}
 
       const optimistic = {
@@ -102,7 +109,7 @@ export default function CommentsSheet({ postId, onClose }) {
         postId,
         userId: currentUser.uid,
         userDisplayName: currentUser.displayName || 'You',
-        userProfilePicture: currentUser.photoURL || '',
+        userProfilePicture: profilePicture || '',
         usernameLower: usernameLower || null,
         content: text,
         timestamp: new Date(),
@@ -114,7 +121,7 @@ export default function CommentsSheet({ postId, onClose }) {
         postId,
         userId: currentUser.uid,
         userDisplayName: currentUser.displayName || null,
-        userProfilePicture: currentUser.photoURL || null,
+        userProfilePicture: profilePicture,
         usernameLower: usernameLower || null,
         content: text,
         timestamp: serverTimestamp(),
@@ -228,7 +235,7 @@ export default function CommentsSheet({ postId, onClose }) {
           className="sticky bottom-0 flex items-end space-x-2 border-t border-white/10 bg-[#0d0d0f] p-3 supports-[padding:env(safe-area-inset-bottom)]:pb-[env(safe-area-inset-bottom)]"
         >
           <textarea
-            className="min-h-11 flex-1 rounded-lg border border-white/10 bg-[#16171a] p-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#ff1f42]"
+            className="min-h-11 flex-1 rounded-lg border border-white/10 bg-[#16171a] p-3 text-sm text-white placeholder-gray-500 outline-none ring-0 focus:border-[#ff1f42] focus:ring-1 focus:ring-[#ff1f42]"
             placeholder={currentUser ? 'Add a comment…' : 'Sign in to comment'}
             rows={1}
             maxLength={500}

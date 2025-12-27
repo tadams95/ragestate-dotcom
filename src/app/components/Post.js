@@ -59,16 +59,21 @@ export default function Post({ postData, hideFollow = false }) {
 
   const isAuthor = !!(currentUser && postData?.userId && currentUser.uid === postData.userId);
 
-  const onSaveEdit = async ({ content, isPublic }) => {
+  const onSaveEdit = async ({ content, isPublic, mediaUrls }) => {
     if (!postData?.id || !isAuthor) return;
     setSavingEdit(true);
     try {
-      await updateDoc(doc(db, 'posts', postData.id), {
+      const updateData = {
         content,
         isPublic,
         edited: true,
         updatedAt: new Date(),
-      });
+      };
+      // Only include mediaUrls if provided (allows removal)
+      if (Array.isArray(mediaUrls)) {
+        updateData.mediaUrls = mediaUrls;
+      }
+      await updateDoc(doc(db, 'posts', postData.id), updateData);
       try {
         track('post_edit', { postId: postData.id });
       } catch {}
@@ -163,6 +168,7 @@ export default function Post({ postData, hideFollow = false }) {
           onClose={() => setEditOpen(false)}
           initialContent={liveData?.content ?? postData?.content ?? ''}
           initialIsPublic={liveData?.isPublic ?? postData?.isPublic ?? true}
+          initialMediaUrls={liveData?.mediaUrls ?? postData?.mediaUrls ?? []}
           saving={savingEdit}
           onSave={onSaveEdit}
         />
