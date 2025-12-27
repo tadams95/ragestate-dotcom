@@ -181,19 +181,72 @@ export default function CommentsSheet({ postId, onClose }) {
           <h3 id="comments-title" className="text-base font-semibold">
             Comments
           </h3>
-          <button
-            className="text-gray-400 hover:text-white"
-            onClick={onClose}
-            aria-label="Close"
-            title="Close"
-          >
-            ✕
-          </button>
+          <div className="flex items-center gap-1">
+            {/* Open in new tab link */}
+            <Link
+              href={`/post/${postId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
+              title="Open post in new tab"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="h-4 w-4"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M4.25 5.5a.75.75 0 00-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 00.75-.75v-4a.75.75 0 011.5 0v4A2.25 2.25 0 0112.75 17h-8.5A2.25 2.25 0 012 14.75v-8.5A2.25 2.25 0 014.25 4h5a.75.75 0 010 1.5h-5z"
+                  clipRule="evenodd"
+                />
+                <path
+                  fillRule="evenodd"
+                  d="M6.194 12.753a.75.75 0 001.06.053L16.5 4.44v2.81a.75.75 0 001.5 0v-4.5a.75.75 0 00-.75-.75h-4.5a.75.75 0 000 1.5h2.553l-9.056 8.194a.75.75 0 00-.053 1.06z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </Link>
+            <button
+              className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
+              onClick={onClose}
+              aria-label="Close"
+              title="Close"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="h-5 w-5"
+              >
+                <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+              </svg>
+            </button>
+          </div>
         </div>
 
-        <div ref={contentRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-3" role="list">
+        <div ref={contentRef} className="flex-1 space-y-4 overflow-y-auto px-4 py-4" role="list">
           {comments.length === 0 && !loading && (
-            <p className="text-gray-400">Be the first to comment.</p>
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white/5">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  className="h-6 w-6 text-gray-500"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4.848 2.771A49.144 49.144 0 0112 2.25c2.43 0 4.817.178 7.152.52 1.978.292 3.348 2.024 3.348 3.97v6.02c0 1.946-1.37 3.678-3.348 3.97a48.901 48.901 0 01-3.476.383.39.39 0 00-.297.17l-2.755 4.133a.75.75 0 01-1.248 0l-2.755-4.133a.39.39 0 00-.297-.17 48.9 48.9 0 01-3.476-.384c-1.978-.29-3.348-2.024-3.348-3.97V6.741c0-1.946 1.37-3.678 3.348-3.97zM6.75 8.25a.75.75 0 01.75-.75h9a.75.75 0 010 1.5h-9a.75.75 0 01-.75-.75zm.75 2.25a.75.75 0 000 1.5H12a.75.75 0 000-1.5H7.5z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+              <p className="text-sm text-gray-400">No comments yet.</p>
+              <p className="text-xs text-gray-500">Be the first to start the conversation.</p>
+            </div>
           )}
           {comments.length === 0 && loading && (
             <div className="space-y-3">
@@ -229,7 +282,20 @@ export default function CommentsSheet({ postId, onClose }) {
                     />
                   </Link>
                 ) : (
-                  <span className="text-xs text-gray-300">👤</span>
+                  <div className="flex h-full w-full items-center justify-center bg-white/5">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      className="h-5 w-5 text-gray-400"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
                 )}
               </div>
               <div className="min-w-0">
@@ -273,7 +339,7 @@ export default function CommentsSheet({ postId, onClose }) {
           className="sticky bottom-0 flex items-end space-x-2 border-t border-white/10 bg-[#0d0d0f] p-3 supports-[padding:env(safe-area-inset-bottom)]:pb-[env(safe-area-inset-bottom)]"
         >
           <textarea
-            className="min-h-11 flex-1 rounded-lg border border-white/10 bg-[#16171a] p-3 text-sm text-white placeholder-gray-500 outline-none ring-0 focus:border-[#ff1f42] focus:ring-1 focus:ring-[#ff1f42]"
+            className="min-h-11 flex-1 resize-none rounded-lg border border-white/10 bg-[#16171a] p-3 text-sm text-white placeholder-gray-500 outline-none ring-0 transition-colors focus:border-[#ff1f42] focus:ring-1 focus:ring-[#ff1f42]"
             placeholder={currentUser ? 'Add a comment…' : 'Sign in to comment'}
             rows={1}
             maxLength={500}

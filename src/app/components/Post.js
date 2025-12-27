@@ -110,6 +110,7 @@ export default function Post({ postData, hideFollow = false }) {
         avatarUrl={liveData?.avatarUrl ?? postData?.avatarUrl}
         usernameLower={liveData?.usernameLower ?? postData?.usernameLower}
         authorUserId={postData?.userId}
+        postId={postData?.id}
         hideFollow={hideFollow}
         isAuthor={isAuthor}
         isPublic={liveData?.isPublic ?? postData?.isPublic ?? true}
@@ -136,12 +137,12 @@ export default function Post({ postData, hideFollow = false }) {
       {/* Meta badges */}
       <div className="mb-2 flex items-center gap-2">
         {isAuthor && liveData?.isPublic === false && (
-          <span className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-gray-300">
+          <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-gray-300">
             <span>🔒</span>
             <span>Private</span>
           </span>
         )}
-        {liveData?.edited && <span className="text-xs text-gray-400">Edited</span>}
+        {liveData?.edited && <span className="text-xs text-gray-500">Edited</span>}
       </div>
 
       <PostContent

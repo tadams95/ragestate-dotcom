@@ -84,7 +84,7 @@
 - [x] `PostContent.js`: Show "Processing video…" placeholder during transcode
 - [x] `storage.rules`: Allow reads for `posts-optimized/` folder, writes via Admin SDK only
 - [x] `firestore.rules`: Prevent client modification of `isProcessing`/`optimizedMediaUrls`
-- [ ] Storage lifecycle rule: Delete originals in `posts/` after 7 days (safe—won't touch `posts-optimized/`)
+- [x] Storage lifecycle rule: Delete originals in `posts/` after 7 days (safe—won't touch `posts-optimized/`)
 
 #### Phase C: Adaptive Bitrate (Growth — Premium UX)
 
@@ -107,14 +107,15 @@
 ### Post Detail Page (Shareable Links)
 
 > **Goal**: Enable users to share/link directly to posts for comments (like X/Instagram)
+> **Status**: ✅ Complete
 
-- [ ] Create `src/app/post/[postId]/page.js` — dedicated post detail route
-- [ ] `Post.js`: Make post timestamp/content clickable → `/post/{postId}`
-- [ ] `page.js`: Fetch single post by ID, render full `<Post>` component
-- [ ] `page.js`: Inline comments thread below post (no sheet)
-- [ ] `page.js`: SEO meta tags (og:title, og:image from first media)
-- [ ] `page.js`: Handle 404 if post doesn't exist or is private
-- [ ] `CommentsSheet.js`: Add "Open in new tab" link to post detail page
+- [x] Create `src/app/post/[postId]/page.js` — dedicated post detail route (server component with SEO)
+- [x] `PostHeader.js`: Make post timestamp clickable → `/post/{postId}`
+- [x] `page.js`: Fetch single post by ID via Firebase Admin SDK, render full `<Post>` component
+- [x] `page.js`: Inline comments thread below post (new `InlineComments.js` component)
+- [x] `page.js`: SEO meta tags (og:title from author, og:image from first media, dynamic description)
+- [x] `page.js`: Handle 404 if post doesn't exist; private post shows "This post is private" for non-authors
+- [x] `CommentsSheet.js`: Add "Open in new tab" icon link to post detail page
 
 ### Backend Fixes
 

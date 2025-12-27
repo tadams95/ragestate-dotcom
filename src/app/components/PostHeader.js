@@ -11,6 +11,7 @@ export default function PostHeader({
   avatarUrl,
   usernameLower,
   authorUserId,
+  postId,
   hideFollow = false,
   isAuthor = false,
   isPublic = true,
@@ -44,7 +45,20 @@ export default function PostHeader({
                 className="h-8 w-8 rounded-md border border-white/10 object-cover"
               />
             ) : (
-              <div className="h-8 w-8 animate-pulse rounded-md bg-white/10" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 bg-white/5">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  className="h-5 w-5 text-gray-400"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
             )}
           </Link>
         ) : avatarUrl ? (
@@ -58,9 +72,22 @@ export default function PostHeader({
             className="h-8 w-8 rounded-md border border-white/10 object-cover"
           />
         ) : (
-          <div className="h-8 w-8 animate-pulse rounded-md bg-white/10" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 bg-white/5">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="h-5 w-5 text-gray-400"
+            >
+              <path
+                fillRule="evenodd"
+                d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </div>
         )}
-        <div>
+        <div className="flex flex-col items-start gap-0.5">
           {usernameLower ? (
             <Link
               href={`/${usernameLower}`}
@@ -74,7 +101,18 @@ export default function PostHeader({
               {displayName || (authorUserId ? `uid:${String(authorUserId).slice(0, 8)}` : '')}
             </p>
           )}
-          <p className="text-xs text-gray-400">{timestamp || 'Time ago'}</p>
+          {postId ? (
+            <Link
+              href={`/post/${postId}`}
+              prefetch={false}
+              className="text-xs text-gray-400 transition-colors hover:text-gray-200"
+              title="View post"
+            >
+              {timestamp || 'Time ago'}
+            </Link>
+          ) : (
+            <p className="text-xs text-gray-400">{timestamp || 'Time ago'}</p>
+          )}
         </div>
       </div>
       {!hideFollow && authorUserId && currentUser?.uid !== authorUserId && (
