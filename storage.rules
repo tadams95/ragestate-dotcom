@@ -9,6 +9,10 @@ service firebase.storage {
       return request.resource.contentType.matches('image/.*');
     }
 
+    function isVideo() {
+      return request.resource.contentType.matches('video/.*');
+    }
+
     function isAudio() {
       return request.resource.contentType.matches('audio/.*') ||
              request.resource.contentType == 'application/octet-stream'; // fallback some browsers use
@@ -26,11 +30,14 @@ service firebase.storage {
     }
 
     // Post media uploaded under posts/{postId}/...
-    // Public read; any signed-in user may upload images up to 10MB
+    // Public read; any signed-in user may upload images (≤10MB) or videos (≤100MB)
     // Ownership is enforced at the Firestore layer when creating posts
     match /posts/{postId}/{filename} {
       allow read: if true;
-      allow write: if isSignedIn() && isImage() && under(10 * 1024 * 1024);
+      allow write: if isSignedIn() && (
+        (isImage() && under(10 * 1024 * 1024)) ||
+        (isVideo() && under(100 * 1024 * 1024))
+      );
     }
 
     // Guest mixes (public submission form currently unauthenticated)

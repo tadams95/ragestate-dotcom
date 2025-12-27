@@ -3,7 +3,235 @@
 import { linkifyAll } from '@/app/utils/linkify';
 import { Dialog, DialogPanel } from '@headlessui/react';
 import Image from 'next/image';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+// Detect if URL is a video based on extension or Firebase Storage path
+const isVideoUrl = (url) => {
+  if (!url) return false;
+  const lower = url.toLowerCase();
+  // Common video extensions
+  if (/\.(mp4|mov|webm|avi|mkv|m4v)(\?|$)/i.test(lower)) return true;
+  // Firebase Storage video content type hint
+  if (lower.includes('video%2f') || lower.includes('video/')) return true;
+  return false;
+};
+
+// TikTok/Reels-style video player component
+function VideoPlayer({ src, className = '' }) {
+  const videoRef = useRef(null);
+  const containerRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [showControls, setShowControls] = useState(true);
+  const controlsTimeoutRef = useRef(null);
+
+  // Auto-play when in viewport (Intersection Observer)
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+            video.play().catch(() => {}); // Auto-play may fail without user interaction
+          } else {
+            video.pause();
+          }
+        });
+      },
+      { threshold: 0.5 },
+    );
+
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, []);
+
+  // Update playing state on video events
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+    const handleTimeUpdate = () => {
+      if (video.duration) {
+        setProgress((video.currentTime / video.duration) * 100);
+      }
+    };
+    const handleLoadedMetadata = () => setDuration(video.duration);
+
+    video.addEventListener('play', handlePlay);
+    video.addEventListener('pause', handlePause);
+    video.addEventListener('timeupdate', handleTimeUpdate);
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+
+    return () => {
+      video.removeEventListener('play', handlePlay);
+      video.removeEventListener('pause', handlePause);
+      video.removeEventListener('timeupdate', handleTimeUpdate);
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+    };
+  }, []);
+
+  // Hide controls after inactivity
+  const showControlsTemporarily = useCallback(() => {
+    setShowControls(true);
+    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    controlsTimeoutRef.current = setTimeout(() => {
+      if (isPlaying) setShowControls(false);
+    }, 2500);
+  }, [isPlaying]);
+
+  // Toggle play/pause on tap
+  const togglePlay = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (video.paused) {
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+    showControlsTemporarily();
+  };
+
+  // Toggle mute
+  const toggleMute = (e) => {
+    e.stopPropagation();
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = !video.muted;
+    setIsMuted(video.muted);
+    showControlsTemporarily();
+  };
+
+  // Seek on progress bar click
+  const handleSeek = (e) => {
+    e.stopPropagation();
+    const video = videoRef.current;
+    const bar = e.currentTarget;
+    if (!video || !bar) return;
+    const rect = bar.getBoundingClientRect();
+    const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    video.currentTime = percent * video.duration;
+    showControlsTemporarily();
+  };
+
+  // Format time as m:ss
+  const formatTime = (seconds) => {
+    if (!seconds || !isFinite(seconds)) return '0:00';
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      className={`relative overflow-hidden rounded-xl bg-black ${className}`}
+      onClick={togglePlay}
+      onMouseMove={showControlsTemporarily}
+      onTouchStart={showControlsTemporarily}
+    >
+      <video
+        ref={videoRef}
+        src={src}
+        className="h-full w-full object-contain"
+        muted={isMuted}
+        loop
+        playsInline
+        preload="metadata"
+        style={{ maxHeight: '510px' }}
+      />
+
+      {/* Center play button (shown when paused) */}
+      {!isPlaying && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="rounded-full bg-black/50 p-4 backdrop-blur-sm">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="white"
+              className="h-10 w-10"
+            >
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </div>
+        </div>
+      )}
+
+      {/* Controls overlay */}
+      <div
+        className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3 transition-opacity duration-200 ${
+          showControls || !isPlaying ? 'opacity-100' : 'opacity-0'
+        }`}
+      >
+        {/* Progress bar */}
+        <div className="mb-2 h-1 cursor-pointer rounded-full bg-white/30" onClick={handleSeek}>
+          <div
+            className="h-full rounded-full bg-[#ff1f42] transition-all duration-100"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+
+        {/* Bottom controls row */}
+        <div className="flex items-center justify-between">
+          {/* Time display */}
+          <span className="text-xs text-white/80">
+            {formatTime(videoRef.current?.currentTime)} / {formatTime(duration)}
+          </span>
+
+          {/* Mute button */}
+          <button
+            onClick={toggleMute}
+            className="rounded-full bg-black/40 p-2 text-white hover:bg-black/60"
+            aria-label={isMuted ? 'Unmute' : 'Mute'}
+          >
+            {isMuted ? (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="h-5 w-5"
+              >
+                <path d="M3.63 3.63a.75.75 0 00-1.06 1.06L7.5 9.62v4.88a.75.75 0 001.28.53l4.72-4.72v4.19a.75.75 0 001.28.53l.69-.69 3.22 3.22a.75.75 0 101.06-1.06L3.63 3.63z" />
+                <path d="M19.5 12a6.48 6.48 0 01-.94 3.37l1.12 1.12A7.97 7.97 0 0021 12a8 8 0 00-4.47-7.16.75.75 0 00-.66 1.35A6.5 6.5 0 0119.5 12z" />
+                <path d="M12 4.5v3.38l1.5 1.5V4.5a.75.75 0 00-1.28-.53l-2.1 2.1 1.06 1.06L12 6.31v-1.8z" />
+              </svg>
+            ) : (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="h-5 w-5"
+              >
+                <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.35 2.595.341 1.24 1.518 1.905 2.659 1.905h1.93l4.5 4.5c.945.945 2.561.276 2.561-1.06V4.06z" />
+                <path d="M18.584 5.106a.75.75 0 011.06 0c3.808 3.807 3.808 9.98 0 13.788a.75.75 0 11-1.06-1.06 8.25 8.25 0 000-11.668.75.75 0 010-1.06z" />
+                <path d="M15.932 7.757a.75.75 0 011.061 0 6 6 0 010 8.486.75.75 0 01-1.06-1.061 4.5 4.5 0 000-6.364.75.75 0 010-1.06z" />
+              </svg>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Muted indicator (top-right, always visible when muted) */}
+      {isMuted && isPlaying && (
+        <div className="absolute right-3 top-3 rounded-full bg-black/50 p-1.5 backdrop-blur-sm">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="white"
+            className="h-4 w-4"
+          >
+            <path d="M3.63 3.63a.75.75 0 00-1.06 1.06L7.5 9.62v4.88a.75.75 0 001.28.53l4.72-4.72v4.19a.75.75 0 001.28.53l.69-.69 3.22 3.22a.75.75 0 101.06-1.06L3.63 3.63z" />
+          </svg>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Clamp long content to ~5 lines and reveal with a toggle per design spec
 export default function PostContent({ content, mediaUrls = [] }) {
@@ -13,7 +241,11 @@ export default function PostContent({ content, mediaUrls = [] }) {
 
   const text = content || 'This is the post content.';
   const shouldClamp = useMemo(() => (text?.length || 0) > 300, [text]);
-  const images = Array.isArray(mediaUrls) ? mediaUrls.filter(Boolean) : [];
+
+  // Separate images and videos
+  const allMedia = Array.isArray(mediaUrls) ? mediaUrls.filter(Boolean) : [];
+  const images = allMedia.filter((url) => !isVideoUrl(url));
+  const videos = allMedia.filter((url) => isVideoUrl(url));
 
   const openLightbox = (index) => {
     setLightboxIndex(index);
@@ -173,6 +405,15 @@ export default function PostContent({ content, mediaUrls = [] }) {
                 )}
               </div>
             ))}
+        </div>
+      )}
+
+      {/* Video player - TikTok/Reels style */}
+      {videos.length > 0 && (
+        <div className="mt-3 space-y-3">
+          {videos.map((videoUrl, idx) => (
+            <VideoPlayer key={videoUrl} src={videoUrl} className="w-full" />
+          ))}
         </div>
       )}
 

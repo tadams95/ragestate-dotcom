@@ -47,12 +47,18 @@
 
 ### Media Uploads (Video) — Phase 2
 
-> **Status**: Not implemented; requires storage rule + UI changes
+> **Status**: ✅ Core implementation complete
 
-- [ ] `storage.rules`: Add video rule (`video/*`, size limit TBD ~100MB)
-- [ ] `PostComposer.js`: Accept `video/*` in file picker
-- [ ] `PostComposer.js`: Video preview (thumbnail or `<video>` element)
-- [ ] `PostContent.js`: Render `<video>` with controls for video URLs
+- [x] `storage.rules`: Add video rule (`video/*`, size limit 100MB)
+- [x] `PostComposer.js`: Accept `video/*` in file picker
+- [x] `PostComposer.js`: Video preview (`<video>` element with controls)
+- [x] `PostContent.js`: Render `<video>` with TikTok/Reels-style player
+  - Auto-play on scroll (muted, via IntersectionObserver)
+  - Tap to play/pause
+  - Tap to mute/unmute
+  - Progress bar with seek
+  - Loop playback
+  - Auto-hide controls
 - [ ] Consider compression/transcoding (Firebase Extensions or Cloud Function)
 
 ---

@@ -17,6 +17,7 @@ export default function PostComposer() {
   const localUserName = useSelector(selectUserName);
   const [content, setContent] = useState('');
   const [file, setFile] = useState(null);
+  const [mediaType, setMediaType] = useState(null); // 'image' | 'video' | null
   const [previewUrl, setPreviewUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -75,17 +76,31 @@ export default function PostComposer() {
   const onPickFile = (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    if (!f.type.startsWith('image/')) {
-      setError('Only image files are allowed.');
+
+    const isImage = f.type.startsWith('image/');
+    const isVideo = f.type.startsWith('video/');
+
+    if (!isImage && !isVideo) {
+      setError('Only image or video files are allowed.');
       return;
     }
+
+    // Video size limit: 100MB, Image: 10MB
+    const maxSize = isVideo ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
+    if (f.size > maxSize) {
+      setError(`File too large. Max ${isVideo ? '100MB' : '10MB'}.`);
+      return;
+    }
+
     setError('');
     setFile(f);
+    setMediaType(isVideo ? 'video' : 'image');
   };
 
   const onRemoveFile = () => {
     setFile(null);
     setPreviewUrl('');
+    setMediaType(null);
   };
 
   const onSubmit = async (e) => {
@@ -187,7 +202,8 @@ export default function PostComposer() {
       // Metrics: post_create
       try {
         track('post_create', {
-          hasImage: !!mediaUrls.length,
+          hasImage: mediaType === 'image',
+          hasVideo: mediaType === 'video',
           contentLength: payload.content?.length || 0,
         });
       } catch {}
@@ -216,7 +232,10 @@ export default function PostComposer() {
       setContent('');
       setFile(null);
       setPreviewUrl('');
+      setMediaType(null);
       setIsPublic(true);
+      setSavedDraft(''); // Clear draft state so "We found a saved draft" doesn't show
+      setOpen(false); // Close the modal
       try {
         sessionStorage.removeItem(DRAFT_KEY);
       } catch {}
@@ -294,18 +313,28 @@ export default function PostComposer() {
               />
               {previewUrl && (
                 <div className="relative mt-3">
-                  {/* Using regular img for blob URL preview keeps it simple; set explicit dimensions to reduce CLS */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={previewUrl}
-                    alt="Selected preview"
-                    className="max-h-[60vh] w-full rounded-md border border-white/10 object-contain"
-                    loading="eager"
-                  />
+                  {mediaType === 'video' ? (
+                    <video
+                      src={previewUrl}
+                      className="max-h-[60vh] w-full rounded-md border border-white/10 bg-black object-contain"
+                      controls
+                      muted
+                      playsInline
+                      preload="metadata"
+                    />
+                  ) : (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={previewUrl}
+                      alt="Selected preview"
+                      className="max-h-[60vh] w-full rounded-md border border-white/10 object-contain"
+                      loading="eager"
+                    />
+                  )}
                   <button
                     type="button"
                     onClick={onRemoveFile}
-                    className="absolute right-2 top-2 rounded bg-black/60 px-2 py-1 text-xs text-white"
+                    className="absolute right-2 top-2 rounded bg-black/60 px-2 py-1 text-xs text-white hover:bg-black/80"
                   >
                     Remove
                   </button>
@@ -320,9 +349,14 @@ export default function PostComposer() {
                 <div className="flex items-center gap-3">
                   <label
                     className="inline-flex h-11 cursor-pointer items-center text-gray-300 hover:text-white"
-                    title="Add image"
+                    title="Add photo or video"
                   >
-                    <input type="file" accept="image/*" onChange={onPickFile} className="hidden" />
+                    <input
+                      type="file"
+                      accept="image/*,video/*"
+                      onChange={onPickFile}
+                      className="hidden"
+                    />
                     <span className="inline-flex items-center justify-center rounded-lg border border-white/20 p-2.5 hover:bg-white/10 active:opacity-80">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
