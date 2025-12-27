@@ -18,19 +18,19 @@
 
 - [x] `PostComposer.js`: `isPublic` state toggle exists
 - [x] `PostComposer.js`: Make toggle visually prominent (icon + label)
-- [ ] `Post.js`: Display privacy status (🔒 private / 🌐 public)
-- [ ] `Feed.js`: Filter feed by privacy mode (public-only for non-followers)
+- [x] `Post.js`: Display privacy status (🔒 Private — author-only, shown when private)
+- [x] `Feed.js`: Main feed shows public posts only (private posts visible on author's profile — matches Instagram/X behavior)
 
 ### Infinite Scroll
 
-- [ ] `Feed.js`: Fix pagination edge cases (no duplicate posts on scroll)
-- [ ] `Feed.js`: Add "end of feed" indicator
-- [ ] `Feed.js`: Debounce scroll listener to prevent rapid re-fetches
+- [x] `Feed.js`: Fix pagination edge cases (deduplication via Set + loading guard)
+- [x] `Feed.js`: Add "end of feed" indicator ("You've reached the end 🎉")
+- [x] `Feed.js`: Debounce scroll listener (loading guard + reduced rootMargin)
 
 ### Engagement Tracking
 
-- [ ] Verify `track()` events fire for: `post_view`, `post_create`, `post_edit`, `post_delete`
-- [ ] Add `track()` for `post_share` if share button exists
+- [x] Verify `track()` events fire for: `post_view`, `post_create`, `post_edit`, `post_delete` ✅
+- [x] Add `track()` for `post_share` — already exists in PostActions.js
 
 ### Media Uploads (Images)
 

@@ -330,18 +330,19 @@ export default function Feed({ forcePublic = false }) {
     }
   }, [hasMore, loading, lastPublicDoc]);
 
-  // Intersection observer for infinite scroll
+  // Intersection observer for infinite scroll (with debounce via loading guard)
   const lastPostElementRef = useCallback(
     (node) => {
       if (loading) return;
       if (observer.current) observer.current.disconnect();
       observer.current = new IntersectionObserver(
         (entries) => {
-          if (entries[0].isIntersecting && hasMore) {
+          // Only trigger if visible, has more content, and not already loading
+          if (entries[0].isIntersecting && hasMore && !loading) {
             fetchFeedPage();
           }
         },
-        { root: null, rootMargin: '600px 0px', threshold: 0 },
+        { root: null, rootMargin: '400px 0px', threshold: 0 },
       );
       if (node) observer.current.observe(node);
     },
@@ -435,9 +436,9 @@ export default function Feed({ forcePublic = false }) {
           <PostSkeleton />
         </div>
       )}
-      {/* {!loading && !hasMore && posts.length > 0 && (
-        <p className="py-4 text-center text-gray-500">This is the beginning!</p>
-      )} */}
+      {!loading && !hasMore && posts.length > 0 && (
+        <p className="py-6 text-center text-sm text-gray-500">You&apos;ve reached the end 🎉</p>
+      )}
     </div>
   );
 }

@@ -132,13 +132,14 @@ export default function Post({ postData, hideFollow = false }) {
         onDelete={onDelete}
       />
       {/* Meta badges */}
-      <div className="mb-2">
+      <div className="mb-2 flex items-center gap-2">
         {isAuthor && liveData?.isPublic === false && (
-          <span className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-gray-300">
-            Private
+          <span className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-gray-300">
+            <span>🔒</span>
+            <span>Private</span>
           </span>
         )}
-        {liveData?.edited && <span className="ml-2 text-xs text-gray-400">Edited</span>}
+        {liveData?.edited && <span className="text-xs text-gray-400">Edited</span>}
       </div>
 
       <PostContent
