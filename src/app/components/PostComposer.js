@@ -4,13 +4,155 @@ import { track } from '@/app/utils/metrics';
 import { Dialog, DialogPanel } from '@headlessui/react';
 import { collection, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useAuth } from '../../../firebase/context/FirebaseContext';
 import { db, storage } from '../../../firebase/firebase';
 import { selectUserName } from '../../../lib/features/todos/userSlice';
 
 const DRAFT_KEY = 'postComposer.draft';
+
+// Video compression constants
+const MAX_VIDEO_DURATION = 60; // seconds
+const MAX_VIDEO_WIDTH = 1080; // max input resolution allowed
+const TARGET_WIDTH = 720; // compressed output width
+const TARGET_BITRATE = 2_000_000; // 2 Mbps
+
+/**
+ * Check if browser supports video compression via MediaRecorder + Canvas
+ */
+function supportsVideoCompression() {
+  if (typeof window === 'undefined') return false;
+  if (!window.MediaRecorder) return false;
+  // Check for H.264 or VP8 codec support
+  return (
+    MediaRecorder.isTypeSupported('video/webm;codecs=h264') ||
+    MediaRecorder.isTypeSupported('video/webm;codecs=vp8') ||
+    MediaRecorder.isTypeSupported('video/mp4;codecs=h264')
+  );
+}
+
+/**
+ * Get video metadata (duration, width, height)
+ */
+function getVideoMetadata(file) {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(video.src);
+      resolve({
+        duration: video.duration,
+        width: video.videoWidth,
+        height: video.videoHeight,
+      });
+    };
+    video.onerror = () => {
+      URL.revokeObjectURL(video.src);
+      reject(new Error('Failed to load video metadata'));
+    };
+    video.src = URL.createObjectURL(file);
+  });
+}
+
+/**
+ * Compress video using Canvas + MediaRecorder
+ * Returns compressed Blob or null if compression fails
+ */
+function compressVideo(file, onProgress) {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    video.muted = true;
+    video.playsInline = true;
+
+    video.onloadedmetadata = async () => {
+      const { videoWidth, videoHeight, duration } = video;
+
+      // Calculate target dimensions (maintain aspect ratio)
+      const scale = Math.min(1, TARGET_WIDTH / Math.max(videoWidth, videoHeight));
+      const targetW = Math.round(videoWidth * scale);
+      const targetH = Math.round(videoHeight * scale);
+
+      // Create canvas for frame rendering
+      const canvas = document.createElement('canvas');
+      canvas.width = targetW;
+      canvas.height = targetH;
+      const ctx = canvas.getContext('2d');
+
+      // Get canvas stream
+      const stream = canvas.captureStream(30); // 30 fps
+
+      // Try to capture audio from original video
+      try {
+        const audioCtx = new AudioContext();
+        const source = audioCtx.createMediaElementSource(video);
+        const dest = audioCtx.createMediaStreamDestination();
+        source.connect(dest);
+        source.connect(audioCtx.destination); // Keep audio playing
+        dest.stream.getAudioTracks().forEach((track) => stream.addTrack(track));
+      } catch {
+        // Audio capture may fail, continue without audio
+      }
+
+      // Select best available codec
+      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=h264')
+        ? 'video/webm;codecs=h264'
+        : MediaRecorder.isTypeSupported('video/mp4;codecs=h264')
+          ? 'video/mp4;codecs=h264'
+          : 'video/webm;codecs=vp8';
+
+      const recorder = new MediaRecorder(stream, {
+        mimeType,
+        videoBitsPerSecond: TARGET_BITRATE,
+      });
+
+      const chunks = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: mimeType });
+        URL.revokeObjectURL(video.src);
+        resolve(blob);
+      };
+
+      recorder.onerror = (e) => {
+        URL.revokeObjectURL(video.src);
+        reject(e.error || new Error('MediaRecorder error'));
+      };
+
+      // Start recording
+      recorder.start(100); // Collect data every 100ms
+
+      // Play video and render frames to canvas
+      video.play();
+
+      const renderFrame = () => {
+        if (video.paused || video.ended) {
+          recorder.stop();
+          return;
+        }
+        ctx.drawImage(video, 0, 0, targetW, targetH);
+        onProgress?.(Math.min(99, Math.round((video.currentTime / duration) * 100)));
+        requestAnimationFrame(renderFrame);
+      };
+
+      video.onplay = renderFrame;
+      video.onended = () => {
+        onProgress?.(100);
+        recorder.stop();
+      };
+    };
+
+    video.onerror = () => {
+      URL.revokeObjectURL(video.src);
+      reject(new Error('Failed to load video for compression'));
+    };
+
+    video.src = URL.createObjectURL(file);
+  });
+}
 
 export default function PostComposer() {
   const { currentUser } = useAuth();
@@ -24,6 +166,8 @@ export default function PostComposer() {
   const [open, setOpen] = useState(false);
   const [savedDraft, setSavedDraft] = useState('');
   const [isPublic, setIsPublic] = useState(true);
+  const [compressionProgress, setCompressionProgress] = useState(0); // 0-100
+  const [isCompressing, setIsCompressing] = useState(false);
   const saveTimerRef = useRef(null);
 
   // Load saved draft (don't auto-apply; offer recovery)
@@ -70,37 +214,109 @@ export default function PostComposer() {
   const canSubmit = useMemo(() => {
     const hasText = content.trim().length >= 2;
     const hasMedia = !!file;
-    return (hasText || hasMedia) && !submitting;
-  }, [content, file, submitting]);
+    return (hasText || hasMedia) && !submitting && !isCompressing;
+  }, [content, file, submitting, isCompressing]);
 
-  const onPickFile = (e) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
+  // Process video: validate metadata and optionally compress
+  const processVideo = useCallback(async (videoFile) => {
+    try {
+      // Get video metadata
+      const meta = await getVideoMetadata(videoFile);
 
-    const isImage = f.type.startsWith('image/');
-    const isVideo = f.type.startsWith('video/');
+      // Validate duration
+      if (meta.duration > MAX_VIDEO_DURATION) {
+        setError(`Video too long. Max ${MAX_VIDEO_DURATION} seconds.`);
+        return null;
+      }
 
-    if (!isImage && !isVideo) {
-      setError('Only image or video files are allowed.');
-      return;
+      // Validate resolution (allow up to 1080p input)
+      if (meta.width > MAX_VIDEO_WIDTH * 2 || meta.height > MAX_VIDEO_WIDTH * 2) {
+        setError(`Video resolution too high. Max 2160p input.`);
+        return null;
+      }
+
+      // Check if compression is needed and supported
+      const needsCompression = meta.width > TARGET_WIDTH || meta.height > TARGET_WIDTH;
+      const canCompress = supportsVideoCompression();
+
+      if (needsCompression && canCompress) {
+        setIsCompressing(true);
+        setCompressionProgress(0);
+
+        try {
+          const compressed = await compressVideo(videoFile, setCompressionProgress);
+
+          // Only use compressed if it's actually smaller
+          if (compressed && compressed.size < videoFile.size) {
+            // Create a new File object with proper name
+            const compressedFile = new File(
+              [compressed],
+              videoFile.name.replace(/\.[^.]+$/, '_compressed.webm'),
+              { type: compressed.type },
+            );
+            return compressedFile;
+          }
+        } catch (err) {
+          console.warn('Compression failed, using original:', err);
+          // Fall through to return original
+        } finally {
+          setIsCompressing(false);
+          setCompressionProgress(0);
+        }
+      }
+
+      // Return original file (either no compression needed, not supported, or compression failed)
+      return videoFile;
+    } catch (err) {
+      console.error('Video processing failed:', err);
+      setError('Failed to process video. Please try a different file.');
+      return null;
     }
+  }, []);
 
-    // Video size limit: 100MB, Image: 10MB
-    const maxSize = isVideo ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
-    if (f.size > maxSize) {
-      setError(`File too large. Max ${isVideo ? '100MB' : '10MB'}.`);
-      return;
-    }
+  const onPickFile = useCallback(
+    async (e) => {
+      const f = e.target.files?.[0];
+      if (!f) return;
 
-    setError('');
-    setFile(f);
-    setMediaType(isVideo ? 'video' : 'image');
-  };
+      const isImage = f.type.startsWith('image/');
+      const isVideo = f.type.startsWith('video/');
+
+      if (!isImage && !isVideo) {
+        setError('Only image or video files are allowed.');
+        return;
+      }
+
+      // Video size limit: 100MB, Image: 10MB
+      const maxSize = isVideo ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
+      if (f.size > maxSize) {
+        setError(`File too large. Max ${isVideo ? '100MB' : '10MB'}.`);
+        return;
+      }
+
+      setError('');
+
+      if (isVideo) {
+        // Process video (validate + optionally compress)
+        const processed = await processVideo(f);
+        if (processed) {
+          setFile(processed);
+          setMediaType('video');
+        }
+      } else {
+        setFile(f);
+        setMediaType('image');
+      }
+    },
+    [processVideo],
+  );
 
   const onRemoveFile = () => {
     setFile(null);
     setPreviewUrl('');
     setMediaType(null);
+    setIsCompressing(false);
+    setCompressionProgress(0);
   };
 
   const onSubmit = async (e) => {
@@ -311,7 +527,25 @@ export default function PostComposer() {
                 maxLength={2000}
                 autoFocus
               />
-              {previewUrl && (
+              {/* Compression progress indicator */}
+              {isCompressing && (
+                <div className="mt-3 rounded-lg border border-white/10 bg-white/5 p-4">
+                  <div className="mb-2 flex items-center justify-between text-sm">
+                    <span className="text-gray-300">Optimizing video…</span>
+                    <span className="font-medium text-white">{compressionProgress}%</span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className="h-full rounded-full bg-[#ff1f42] transition-all duration-200"
+                      style={{ width: `${compressionProgress}%` }}
+                    />
+                  </div>
+                  <p className="mt-2 text-xs text-gray-500">
+                    Compressing to 720p for faster uploads and playback
+                  </p>
+                </div>
+              )}
+              {previewUrl && !isCompressing && (
                 <div className="relative mt-3">
                   {mediaType === 'video' ? (
                     <video

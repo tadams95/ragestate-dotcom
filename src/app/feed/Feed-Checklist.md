@@ -59,13 +59,58 @@
   - Progress bar with seek
   - Loop playback
   - Auto-hide controls
-- [ ] Consider compression/transcoding (Firebase Extensions or Cloud Function)
+- [x] Compression/transcoding strategy defined
+
+### Video Optimization (Compression & Transcoding)
+
+> **Goal**: 95% bandwidth cost reduction, instant playback for users
+
+#### Phase A: Client-Side Compression (Quick Win — Free)
+
+- [x] `PostComposer.js`: Add video dimension/duration validation (max 1080p, 60s for feed)
+- [x] `PostComposer.js`: Use `<canvas>` + MediaRecorder API to re-encode large videos client-side
+- [x] `PostComposer.js`: Show compression progress indicator
+- [x] `PostComposer.js`: Target output: 720p, 2Mbps bitrate, H.264/VP8 codec
+- [x] Fallback: If browser doesn't support re-encoding, upload raw (capped at 100MB)
+
+#### Phase B: Server-Side Transcoding (Scale — Pay per transcode)
+
+- [ ] Install Firebase Extension: **"Transcode Videos"** (uses Cloud Tasks + FFmpeg)
+- [ ] Configure output: `720p_h264.mp4` stored in `posts/{postId}/optimized/`
+- [ ] `PostContent.js`: Prefer optimized URL if available, fallback to original
+- [ ] Add `isProcessing` field to post doc while transcoding runs
+- [ ] `PostContent.js`: Show "Processing video…" placeholder during transcode
+- [ ] Storage lifecycle rule: Delete original after 7 days (keep only optimized)
+
+#### Phase C: Adaptive Bitrate (Growth — Premium UX)
+
+- [ ] Generate multiple resolutions (360p, 720p, 1080p) via transcoding
+- [ ] Implement HLS/DASH manifest for adaptive streaming
+- [ ] `PostContent.js`: Use hls.js or native HLS for quality switching
 
 ---
 
 ## 1.5 Comments Architecture (1 week)
 
 > **Status**: Core works; missing delete UI, avatar bug fixed, notification data bug
+
+### Modal & Scroll Fixes
+
+- [x] `CommentsSheet.js`: Lock body scroll when open (prevent feed/footer bleed-through)
+- [x] `CommentsSheet.js`: Close on backdrop click and Escape key
+- [x] `CommentsSheet.js`: Proper aria attributes for accessibility
+
+### Post Detail Page (Shareable Links)
+
+> **Goal**: Enable users to share/link directly to posts for comments (like X/Instagram)
+
+- [ ] Create `src/app/post/[postId]/page.js` — dedicated post detail route
+- [ ] `Post.js`: Make post timestamp/content clickable → `/post/{postId}`
+- [ ] `page.js`: Fetch single post by ID, render full `<Post>` component
+- [ ] `page.js`: Inline comments thread below post (no sheet)
+- [ ] `page.js`: SEO meta tags (og:title, og:image from first media)
+- [ ] `page.js`: Handle 404 if post doesn't exist or is private
+- [ ] `CommentsSheet.js`: Add "Open in new tab" link to post detail page
 
 ### Backend Fixes
 

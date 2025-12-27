@@ -33,6 +33,35 @@ export default function CommentsSheet({ postId, onClose }) {
   const [take, setTake] = useState(PAGE_SIZE);
   const [newComment, setNewComment] = useState('');
   const contentRef = useRef(null);
+  const backdropRef = useRef(null);
+
+  // Lock body scroll when sheet is open
+  useEffect(() => {
+    const originalStyle = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
+
+  // Close on backdrop click (not on sheet content click)
+  const handleBackdropClick = useCallback(
+    (e) => {
+      if (e.target === backdropRef.current) {
+        onClose();
+      }
+    },
+    [onClose],
+  );
+
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   // Live listener with incremental limit
   useEffect(() => {
@@ -139,10 +168,19 @@ export default function CommentsSheet({ postId, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 supports-[padding:env(safe-area-inset-bottom)]:pb-[env(safe-area-inset-bottom)] sm:items-center sm:p-6">
+    <div
+      ref={backdropRef}
+      onClick={handleBackdropClick}
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 supports-[padding:env(safe-area-inset-bottom)]:pb-[env(safe-area-inset-bottom)] sm:items-center sm:p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="comments-title"
+    >
       <div className="flex max-h-[90vh] w-full flex-col rounded-t-2xl border border-white/10 bg-[#0d0d0f] text-white shadow-xl sm:max-w-2xl sm:rounded-2xl">
         <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-          <h3 className="text-base font-semibold">Comments</h3>
+          <h3 id="comments-title" className="text-base font-semibold">
+            Comments
+          </h3>
           <button
             className="text-gray-400 hover:text-white"
             onClick={onClose}
