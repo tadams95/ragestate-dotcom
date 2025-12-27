@@ -17,7 +17,7 @@ const isVideoUrl = (url) => {
 };
 
 // TikTok/Reels-style video player component
-function VideoPlayer({ src, className = '' }) {
+function VideoPlayer({ src, optimizedSrc, isProcessing = false, className = '' }) {
   const videoRef = useRef(null);
   const containerRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -26,6 +26,9 @@ function VideoPlayer({ src, className = '' }) {
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
   const controlsTimeoutRef = useRef(null);
+
+  // Prefer optimized URL if available, fallback to original
+  const videoSrc = optimizedSrc || src;
 
   // Auto-play when in viewport (Intersection Observer)
   useEffect(() => {
@@ -127,6 +130,42 @@ function VideoPlayer({ src, className = '' }) {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
+  // Show processing placeholder while video is being transcoded
+  if (isProcessing && !optimizedSrc) {
+    return (
+      <div
+        className={`relative flex items-center justify-center overflow-hidden rounded-xl bg-black/80 ${className}`}
+        style={{ aspectRatio: '16/9', maxHeight: '510px' }}
+      >
+        <div className="flex flex-col items-center gap-3 text-white/70">
+          {/* Animated spinner */}
+          <svg
+            className="h-10 w-10 animate-spin"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            />
+          </svg>
+          <span className="text-sm font-medium">Processing video…</span>
+          <span className="text-xs text-white/50">This may take a moment</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       ref={containerRef}
@@ -137,7 +176,7 @@ function VideoPlayer({ src, className = '' }) {
     >
       <video
         ref={videoRef}
-        src={src}
+        src={videoSrc}
         className="h-full w-full object-contain"
         muted={isMuted}
         loop
@@ -234,7 +273,12 @@ function VideoPlayer({ src, className = '' }) {
 }
 
 // Clamp long content to ~5 lines and reveal with a toggle per design spec
-export default function PostContent({ content, mediaUrls = [] }) {
+export default function PostContent({
+  content,
+  mediaUrls = [],
+  optimizedMediaUrls = [],
+  isProcessing = false,
+}) {
   const [expanded, setExpanded] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -246,6 +290,28 @@ export default function PostContent({ content, mediaUrls = [] }) {
   const allMedia = Array.isArray(mediaUrls) ? mediaUrls.filter(Boolean) : [];
   const images = allMedia.filter((url) => !isVideoUrl(url));
   const videos = allMedia.filter((url) => isVideoUrl(url));
+
+  // Build a map of original video URL -> optimized URL (if available)
+  const optimizedUrlMap = useMemo(() => {
+    const map = {};
+    const optimized = Array.isArray(optimizedMediaUrls) ? optimizedMediaUrls : [];
+    // Match by filename: original posts/{postId}/video.mp4 -> optimized posts-optimized/{postId}/video.mp4
+    videos.forEach((originalUrl) => {
+      // Extract filename from original URL
+      const originalFileName = originalUrl.split('/').pop()?.split('?')[0];
+      if (!originalFileName) return;
+      const originalBaseName = originalFileName.replace(/\.[^.]+$/, ''); // Remove extension
+      // Find matching optimized URL
+      const match = optimized.find((optUrl) => {
+        const optFileName = optUrl.split('/').pop()?.split('?')[0];
+        return optFileName && optFileName.startsWith(originalBaseName);
+      });
+      if (match) {
+        map[originalUrl] = match;
+      }
+    });
+    return map;
+  }, [videos, optimizedMediaUrls]);
 
   const openLightbox = (index) => {
     setLightboxIndex(index);
@@ -412,7 +478,13 @@ export default function PostContent({ content, mediaUrls = [] }) {
       {videos.length > 0 && (
         <div className="mt-3 space-y-3">
           {videos.map((videoUrl, idx) => (
-            <VideoPlayer key={videoUrl} src={videoUrl} className="w-full" />
+            <VideoPlayer
+              key={videoUrl}
+              src={videoUrl}
+              optimizedSrc={optimizedUrlMap[videoUrl]}
+              isProcessing={isProcessing && !optimizedUrlMap[videoUrl]}
+              className="w-full"
+            />
           ))}
         </div>
       )}

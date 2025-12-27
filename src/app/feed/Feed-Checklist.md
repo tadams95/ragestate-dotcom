@@ -75,12 +75,16 @@
 
 #### Phase B: Server-Side Transcoding (Scale — Pay per transcode)
 
-- [ ] Install Firebase Extension: **"Transcode Videos"** (uses Cloud Tasks + FFmpeg)
-- [ ] Configure output: `720p_h264.mp4` stored in `posts/{postId}/optimized/`
-- [ ] `PostContent.js`: Prefer optimized URL if available, fallback to original
-- [ ] Add `isProcessing` field to post doc while transcoding runs
-- [ ] `PostContent.js`: Show "Processing video…" placeholder during transcode
-- [ ] Storage lifecycle rule: Delete original after 7 days (keep only optimized)
+> **Status**: ✅ Complete — Cloud Function + FFmpeg implementation
+
+- [x] Create `functions/transcode.js`: Cloud Function with Storage `onObjectFinalized` trigger
+- [x] Configure output: `720p_h264.mp4` stored in `posts-optimized/{postId}/` (separate folder for safe lifecycle)
+- [x] `PostContent.js`: Prefer optimized URL if available, fallback to original
+- [x] Add `isProcessing` field to post doc while transcoding runs
+- [x] `PostContent.js`: Show "Processing video…" placeholder during transcode
+- [x] `storage.rules`: Allow reads for `posts-optimized/` folder, writes via Admin SDK only
+- [x] `firestore.rules`: Prevent client modification of `isProcessing`/`optimizedMediaUrls`
+- [ ] Storage lifecycle rule: Delete originals in `posts/` after 7 days (safe—won't touch `posts-optimized/`)
 
 #### Phase C: Adaptive Bitrate (Growth — Premium UX)
 

@@ -197,12 +197,14 @@ service cloud.firestore {
         && (!request.resource.data.keys().hasAny(['commentCount']) || request.resource.data.commentCount == 0);
 
       // Update: only author; lock immutable/counter fields from client edits
+      // Note: isProcessing and optimizedMediaUrls are set by Cloud Function (Admin SDK bypasses rules)
       allow update: if isAuthenticated()
         && resource.data.userId == request.auth.uid
         && request.resource.data.userId == resource.data.userId
         && request.resource.data.timestamp == resource.data.timestamp
         && request.resource.data.likeCount == resource.data.likeCount
         && request.resource.data.commentCount == resource.data.commentCount
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['isProcessing', 'optimizedMediaUrls']))
         && (!request.resource.data.keys().hasAny(['userDisplayName']) || isString(request.resource.data.userDisplayName))
         && (!request.resource.data.keys().hasAny(['userProfilePicture']) || isString(request.resource.data.userProfilePicture))
         && (!request.resource.data.keys().hasAny(['content']) || isMaxLen500(request.resource.data.content))

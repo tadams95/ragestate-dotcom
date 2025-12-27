@@ -3,4 +3,5 @@ module.exports = {
   ...require('./stripe'),
   ...require('./email'),
   ...require('./notifications'),
+  ...require('./transcode'),
 };

@@ -49,6 +49,8 @@ export default function Post({ postData, hideFollow = false }) {
         isPublic: typeof p.isPublic === 'boolean' ? p.isPublic : true,
         edited: !!p.edited,
         mediaUrls: Array.isArray(p.mediaUrls) ? p.mediaUrls : [],
+        optimizedMediaUrls: Array.isArray(p.optimizedMediaUrls) ? p.optimizedMediaUrls : [],
+        isProcessing: !!p.isProcessing,
         timestamp:
           formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp) || data.timestamp,
       });
@@ -145,6 +147,8 @@ export default function Post({ postData, hideFollow = false }) {
       <PostContent
         content={liveData?.content ?? postData?.content ?? data.content}
         mediaUrls={liveData?.mediaUrls ?? postData?.mediaUrls ?? []}
+        optimizedMediaUrls={liveData?.optimizedMediaUrls ?? postData?.optimizedMediaUrls ?? []}
+        isProcessing={liveData?.isProcessing ?? postData?.isProcessing ?? false}
       />
 
       <PostActions
