@@ -17,7 +17,7 @@
 ### Privacy Toggle
 
 - [x] `PostComposer.js`: `isPublic` state toggle exists
-- [ ] `PostComposer.js`: Make toggle visually prominent (icon + label)
+- [x] `PostComposer.js`: Make toggle visually prominent (icon + label)
 - [ ] `Post.js`: Display privacy status (🔒 private / 🌐 public)
 - [ ] `Feed.js`: Filter feed by privacy mode (public-only for non-followers)
 
@@ -31,6 +31,29 @@
 
 - [ ] Verify `track()` events fire for: `post_view`, `post_create`, `post_edit`, `post_delete`
 - [ ] Add `track()` for `post_share` if share button exists
+
+### Media Uploads (Images)
+
+> **Status**: Upload backend works; display is missing
+
+- [x] `firebase/firebase.js`: Storage initialized (`ragestate-app.appspot.com`)
+- [x] `storage.rules`: `posts/{postId}/{filename}` allows auth uploads ≤10MB images
+- [x] `PostComposer.js`: `uploadBytes` + `getDownloadURL` saves `mediaUrls[]` to Firestore
+- [x] `PostComposer.js`: Local preview via `URL.createObjectURL`
+- [x] `Post.js`: Pass `mediaUrls` from `liveData` / `postData` to `PostContent`
+- [x] `PostContent.js`: Render image grid (single image full-width, 2+ in 2-col grid)
+- [x] `PostContent.js`: Lightbox/modal for tapping images
+- [ ] `EditPostModal.js`: Show existing images, allow removal (not re-upload for now)
+
+### Media Uploads (Video) — Phase 2
+
+> **Status**: Not implemented; requires storage rule + UI changes
+
+- [ ] `storage.rules`: Add video rule (`video/*`, size limit TBD ~100MB)
+- [ ] `PostComposer.js`: Accept `video/*` in file picker
+- [ ] `PostComposer.js`: Video preview (thumbnail or `<video>` element)
+- [ ] `PostContent.js`: Render `<video>` with controls for video URLs
+- [ ] Consider compression/transcoding (Firebase Extensions or Cloud Function)
 
 ---
 

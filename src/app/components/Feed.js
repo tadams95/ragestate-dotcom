@@ -111,6 +111,7 @@ export default function Feed({ forcePublic = false }) {
               usernameLower: p.usernameLower || undefined,
               timestamp: formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp),
               content: p.content || '',
+              mediaUrls: Array.isArray(p.mediaUrls) ? p.mediaUrls : [],
               likeCount: typeof p.likeCount === 'number' ? p.likeCount : 0,
               commentCount: typeof p.commentCount === 'number' ? p.commentCount : 0,
             };
@@ -145,6 +146,7 @@ export default function Feed({ forcePublic = false }) {
               usernameLower: p.usernameLower || undefined,
               timestamp: formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp),
               content: p.content || '',
+              mediaUrls: Array.isArray(p.mediaUrls) ? p.mediaUrls : [],
               likeCount: typeof p.likeCount === 'number' ? p.likeCount : 0,
               commentCount: typeof p.commentCount === 'number' ? p.commentCount : 0,
             };
@@ -178,6 +180,7 @@ export default function Feed({ forcePublic = false }) {
                   usernameLower: p.usernameLower || undefined,
                   timestamp: formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp),
                   content: p.content || '',
+                  mediaUrls: Array.isArray(p.mediaUrls) ? p.mediaUrls : [],
                   likeCount: typeof p.likeCount === 'number' ? p.likeCount : 0,
                   commentCount: typeof p.commentCount === 'number' ? p.commentCount : 0,
                 };
@@ -262,6 +265,7 @@ export default function Feed({ forcePublic = false }) {
               usernameLower: p.usernameLower || undefined,
               timestamp: formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp),
               content: p.content || '',
+              mediaUrls: Array.isArray(p.mediaUrls) ? p.mediaUrls : [],
               likeCount: typeof p.likeCount === 'number' ? p.likeCount : 0,
               commentCount: typeof p.commentCount === 'number' ? p.commentCount : 0,
             };
@@ -298,6 +302,7 @@ export default function Feed({ forcePublic = false }) {
               usernameLower: p.usernameLower || undefined,
               timestamp: formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp),
               content: p.content || '',
+              mediaUrls: Array.isArray(p.mediaUrls) ? p.mediaUrls : [],
               likeCount: typeof p.likeCount === 'number' ? p.likeCount : 0,
               commentCount: typeof p.commentCount === 'number' ? p.commentCount : 0,
             }));

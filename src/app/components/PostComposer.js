@@ -203,6 +203,7 @@ export default function PostComposer() {
           timestamp: 'Just now',
           content: payload.content,
           usernameLower: payload.usernameLower || undefined,
+          mediaUrls: mediaUrls.length ? mediaUrls : [],
           likeCount: 0,
           commentCount: 0,
         };
@@ -284,7 +285,7 @@ export default function PostComposer() {
 
             <form onSubmit={onSubmit}>
               <textarea
-                className="min-h-[120px] w-full resize-none bg-transparent text-white placeholder-gray-500 outline-none"
+                className="min-h-[120px] w-full resize-none rounded-lg border border-white/10 bg-white/5 p-3 text-white placeholder-gray-500 outline-none focus:border-white/20"
                 placeholder="What's happening?"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
@@ -317,28 +318,58 @@ export default function PostComposer() {
               )}
               <div className="mt-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <label className="inline-flex h-11 cursor-pointer items-center gap-2 text-sm text-gray-300 hover:text-white">
+                  <label
+                    className="inline-flex h-11 cursor-pointer items-center text-gray-300 hover:text-white"
+                    title="Add image"
+                  >
                     <input type="file" accept="image/*" onChange={onPickFile} className="hidden" />
-                    <span className="inline-flex items-center rounded border border-white/20 px-3 py-2.5 hover:bg-white/10 active:opacity-80">
-                      Add image
+                    <span className="inline-flex items-center justify-center rounded-lg border border-white/20 p-2.5 hover:bg-white/10 active:opacity-80">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-5 w-5"
+                      >
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <polyline points="21 15 16 10 5 21" />
+                      </svg>
                     </span>
                   </label>
-                  <label className="inline-flex items-center gap-2 text-sm text-gray-300">
-                    <span className="text-gray-400">Visibility</span>
-                    <select
-                      value={isPublic ? 'public' : 'private'}
-                      onChange={(e) => setIsPublic(e.target.value === 'public')}
-                      className="rounded-md border border-white/20 bg-transparent px-2 py-1 text-white"
+                  {/* Privacy Toggle - Segmented Button */}
+                  <div className="flex h-11 items-center rounded-lg border border-white/20 bg-white/5 p-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsPublic(true)}
+                      className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
+                        isPublic ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'
+                      }`}
+                      aria-pressed={isPublic}
                     >
-                      <option value="public">Public</option>
-                      <option value="private">Private</option>
-                    </select>
-                  </label>
+                      <span className="hidden text-base sm:inline">🌐</span>
+                      <span>Public</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsPublic(false)}
+                      className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
+                        !isPublic ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'
+                      }`}
+                      aria-pressed={!isPublic}
+                    >
+                      <span className="hidden text-base sm:inline">🔒</span>
+                      <span>Private</span>
+                    </button>
+                  </div>
                 </div>
                 <button
                   type="submit"
                   disabled={!canSubmit}
-                  className={`h-11 rounded px-4 py-2.5 font-semibold active:opacity-80 ${
+                  className={`h-11 rounded-lg px-4 py-2.5 font-semibold active:opacity-80 ${
                     canSubmit
                       ? 'bg-[#ff1f42] text-white hover:bg-[#ff415f]'
                       : 'cursor-not-allowed bg-gray-700 text-gray-400'

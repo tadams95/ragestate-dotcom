@@ -48,6 +48,7 @@ export default function Post({ postData, hideFollow = false }) {
         content: p.content ?? data.content,
         isPublic: typeof p.isPublic === 'boolean' ? p.isPublic : true,
         edited: !!p.edited,
+        mediaUrls: Array.isArray(p.mediaUrls) ? p.mediaUrls : [],
         timestamp:
           formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp) || data.timestamp,
       });
@@ -135,7 +136,10 @@ export default function Post({ postData, hideFollow = false }) {
         {liveData?.edited && <span className="ml-2 text-xs text-gray-400">Edited</span>}
       </div>
 
-      <PostContent content={liveData?.content ?? postData?.content ?? data.content} />
+      <PostContent
+        content={liveData?.content ?? postData?.content ?? data.content}
+        mediaUrls={liveData?.mediaUrls ?? postData?.mediaUrls ?? []}
+      />
 
       <PostActions
         postId={postData?.id}
