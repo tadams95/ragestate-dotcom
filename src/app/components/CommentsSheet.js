@@ -8,11 +8,13 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  getDocs,
   limit,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
   where,
 } from 'firebase/firestore';
 import Image from 'next/image';
@@ -36,6 +38,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState(null); // { id, userDisplayName } of comment being replied to
   const [collapsedThreads, setCollapsedThreads] = useState(new Set()); // Set of parentIds with collapsed replies
+  const [likedCommentIds, setLikedCommentIds] = useState(new Set()); // Set of commentIds liked by current user
   const contentRef = useRef(null);
   const backdropRef = useRef(null);
   const textareaRef = useRef(null);
@@ -104,6 +107,77 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
     if (!hasMore || loading) return;
     setTake((t) => t + PAGE_SIZE);
   }, [hasMore, loading]);
+
+  // Fetch user's likes for this post
+  useEffect(() => {
+    if (!postId || !currentUser) {
+      setLikedCommentIds(new Set());
+      return;
+    }
+    const fetchLikes = async () => {
+      try {
+        const q = query(
+          collection(db, 'postCommentLikes'),
+          where('postId', '==', postId),
+          where('userId', '==', currentUser.uid),
+        );
+        const snap = await getDocs(q);
+        const ids = new Set(snap.docs.map((d) => d.data().commentId));
+        setLikedCommentIds(ids);
+      } catch (e) {
+        console.error('Failed to fetch comment likes', e);
+      }
+    };
+    fetchLikes();
+  }, [postId, currentUser]);
+
+  // Toggle like on a comment
+  const toggleLike = async (comment) => {
+    if (!currentUser) {
+      alert('Please sign in to like comments.');
+      return;
+    }
+    const commentId = comment.id;
+    const isLiked = likedCommentIds.has(commentId);
+    const likeId = `${commentId}_${currentUser.uid}`;
+    const likeRef = doc(db, 'postCommentLikes', likeId);
+
+    // Optimistic update
+    setLikedCommentIds((prev) => {
+      const next = new Set(prev);
+      if (isLiked) next.delete(commentId);
+      else next.add(commentId);
+      return next;
+    });
+
+    setComments((prev) =>
+      prev.map((c) => {
+        if (c.id === commentId) {
+          return {
+            ...c,
+            likeCount: (c.likeCount || 0) + (isLiked ? -1 : 1),
+          };
+        }
+        return c;
+      }),
+    );
+
+    try {
+      if (isLiked) {
+        await deleteDoc(likeRef);
+      } else {
+        await setDoc(likeRef, {
+          commentId,
+          postId,
+          userId: currentUser.uid,
+          timestamp: serverTimestamp(),
+        });
+      }
+    } catch (e) {
+      console.error('Failed to toggle like', e);
+      // Revert optimistic update if needed
+    }
+  };
 
   const onSubmit = async (e) => {
     e?.preventDefault?.();
@@ -405,15 +479,53 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                     <p className="whitespace-pre-line break-words text-sm text-gray-200">
                       {linkifyAll(c.content)}
                     </p>
-                    {/* Reply button */}
-                    {currentUser && (
+                    {/* Reply & Like buttons */}
+                    <div className="mt-1 flex items-center gap-4">
+                      {currentUser && (
+                        <button
+                          onClick={() => handleReply(c)}
+                          className="text-xs text-gray-500 hover:text-gray-300"
+                        >
+                          Reply
+                        </button>
+                      )}
                       <button
-                        onClick={() => handleReply(c)}
-                        className="mt-1 text-xs text-gray-500 hover:text-gray-300"
+                        onClick={() => toggleLike(c)}
+                        className={`flex items-center gap-1 text-xs transition-colors ${
+                          likedCommentIds.has(c.id)
+                            ? 'text-red-500'
+                            : 'text-gray-500 hover:text-gray-300'
+                        }`}
+                        aria-label={likedCommentIds.has(c.id) ? 'Unlike comment' : 'Like comment'}
                       >
-                        Reply
+                        {likedCommentIds.has(c.id) ? (
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            className="h-3.5 w-3.5"
+                          >
+                            <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+                          </svg>
+                        ) : (
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={1.5}
+                            stroke="currentColor"
+                            className="h-3.5 w-3.5"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+                            />
+                          </svg>
+                        )}
+                        {c.likeCount > 0 && <span>{c.likeCount}</span>}
                       </button>
-                    )}
+                    </div>
                   </div>
                   {/* Delete button */}
                   {(currentUser?.uid === c.userId || currentUser?.uid === postOwnerId) && (
@@ -512,6 +624,42 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                           <p className="whitespace-pre-line break-words text-xs text-gray-200">
                             {linkifyAll(r.content)}
                           </p>
+                          <button
+                            onClick={() => toggleLike(r)}
+                            className={`mt-1 flex items-center gap-1 text-xs transition-colors ${
+                              likedCommentIds.has(r.id)
+                                ? 'text-red-500'
+                                : 'text-gray-500 hover:text-gray-300'
+                            }`}
+                            aria-label={likedCommentIds.has(r.id) ? 'Unlike reply' : 'Like reply'}
+                          >
+                            {likedCommentIds.has(r.id) ? (
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                                className="h-3 w-3"
+                              >
+                                <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+                              </svg>
+                            ) : (
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                strokeWidth={1.5}
+                                stroke="currentColor"
+                                className="h-3 w-3"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+                                />
+                              </svg>
+                            )}
+                            {r.likeCount > 0 && <span>{r.likeCount}</span>}
+                          </button>
                         </div>
                         {/* Delete button for replies */}
                         {(currentUser?.uid === r.userId || currentUser?.uid === postOwnerId) && (

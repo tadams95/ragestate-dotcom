@@ -146,11 +146,11 @@
 
 ### Comment Likes
 
-- [ ] Create `postCommentLikes` collection: `{ commentId, postId, userId, timestamp }`
-- [ ] `firestore.rules`: Add rules for `postCommentLikes` (auth create/delete own)
-- [ ] `functions/feed.js`: Add `onCommentLikeCreate`/`Delete` to update `likeCount` on comment
-- [ ] `CommentsSheet.js`: Heart icon + count on each comment
-- [ ] `CommentsSheet.js`: Optimistic like toggle
+- [x] Create `postCommentLikes` collection: `{ commentId, postId, userId, timestamp }`
+- [x] `firestore.rules`: Add rules for `postCommentLikes` (auth create/delete own)
+- [x] `functions/feed.js`: Add `onCommentLikeCreate`/`Delete` to update `likeCount` on comment
+- [x] `CommentsSheet.js`: Heart icon + count on each comment
+- [x] `CommentsSheet.js`: Optimistic like toggle
 
 ### Consistency Checks
 

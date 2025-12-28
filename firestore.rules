@@ -239,13 +239,29 @@ service cloud.firestore {
         && isMaxLen500(request.resource.data.content)
         && isTimestamp(request.resource.data.timestamp)
         // parentId is optional: null for top-level, string for replies
-        && (!request.resource.data.keys().hasAny(['parentId']) || request.resource.data.parentId == null || isString(request.resource.data.parentId));
-      // Only allow author to edit/delete their own comment; lock postId, userId, parentId
+        && (!request.resource.data.keys().hasAny(['parentId']) || request.resource.data.parentId == null || isString(request.resource.data.parentId))
+        // likeCount must be 0 on create
+        && (!request.resource.data.keys().hasAny(['likeCount']) || request.resource.data.likeCount == 0);
+      // Only allow author to edit/delete their own comment; lock postId, userId, parentId, likeCount
       allow update, delete: if isAuthenticated()
         && resource.data.userId == request.auth.uid
         && request.resource.data.userId == resource.data.userId
         && request.resource.data.postId == resource.data.postId
-        && request.resource.data.parentId == resource.data.parentId;
+        && request.resource.data.parentId == resource.data.parentId
+        && request.resource.data.likeCount == resource.data.likeCount;
+    }
+
+    // Feed: postCommentLikes (per user like on a comment)
+    match /postCommentLikes/{likeId} {
+      allow read: if true;
+      // Create: auth user can like; validate ownership and required fields
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && isString(request.resource.data.commentId)
+        && isString(request.resource.data.postId)
+        && isTimestamp(request.resource.data.timestamp);
+      // Delete: only the user who created the like
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
     // Feed: userFeeds (personalized list) — client read-only; backend writes

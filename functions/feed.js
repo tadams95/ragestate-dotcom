@@ -99,6 +99,43 @@ exports.onPostCommentDelete = onDocumentDeleted('postComments/{commentId}', asyn
   return null;
 });
 
+// --- Comment Likes ---
+async function updateCommentCounter(commentId, field, delta) {
+  const commentRef = db.collection('postComments').doc(commentId);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(commentRef);
+    if (!snap.exists) return;
+    const data = snap.data() || {};
+    const current = typeof data[field] === 'number' ? data[field] : 0;
+    const next = Math.max(0, current + delta);
+    tx.update(commentRef, { [field]: next });
+  });
+}
+
+exports.onCommentLikeCreate = onDocumentCreated('postCommentLikes/{likeId}', async (event) => {
+  const like = event.data?.data() || {};
+  const commentId = like.commentId;
+  if (!commentId) return null;
+  try {
+    await updateCommentCounter(commentId, 'likeCount', 1);
+  } catch (err) {
+    logger.error('onCommentLikeCreate failed', { commentId, err });
+  }
+  return null;
+});
+
+exports.onCommentLikeDelete = onDocumentDeleted('postCommentLikes/{likeId}', async (event) => {
+  const like = event.data?.data() || {};
+  const commentId = like.commentId;
+  if (!commentId) return null;
+  try {
+    await updateCommentCounter(commentId, 'likeCount', -1);
+  } catch (err) {
+    logger.error('onCommentLikeDelete failed', { commentId, err });
+  }
+  return null;
+});
+
 // --- Personal feed fan-out (userFeeds/{userId}/feedItems) ---
 
 async function commitInChunks(writes) {
