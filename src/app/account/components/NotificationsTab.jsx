@@ -7,6 +7,7 @@
 // Using relative path because firebase config lives at project root /firebase/firebase.js (not under src)
 import {
   collection,
+  deleteDoc,
   doc,
   getDocs,
   limit,
@@ -20,6 +21,7 @@ import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useState } from 'react';
 import { db } from '../../../../firebase/firebase';
 import {
+  forceResetAndRegister,
   initWebPushTokenAutoRefresh,
   registerWebPush,
 } from '../../../../firebase/util/registerWebPush';
@@ -43,6 +45,8 @@ export default function NotificationsTab({ userId, containerStyling, cardStyling
   // Sync pushStatus with browser permission on mount (client-side only)
   useEffect(() => {
     if (typeof window !== 'undefined' && typeof Notification !== 'undefined') {
+      console.log('[Push] Browser permission:', Notification.permission);
+      console.log('[Push] VAPID Key loaded in Client:', process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY);
       setPushStatus(Notification.permission);
     }
   }, []);
@@ -152,13 +156,17 @@ export default function NotificationsTab({ userId, containerStyling, cardStyling
             onClick={async () => {
               setRegistering(true);
               try {
+                console.log('[Push] Starting registration for uid:', userId);
                 const res = await registerWebPush(userId, { requestPermission: true });
+                console.log('[Push] Registration result:', res);
                 if (res.status === 'granted') {
                   setPushStatus('granted');
                   // Start auto refresh loop after successful grant
                   initWebPushTokenAutoRefresh(userId, {});
                 } else if (res.status === 'blocked') {
                   setPushStatus('blocked');
+                } else if (res.status === 'error') {
+                  console.error('[Push] Registration error:', res.error);
                 }
               } finally {
                 setRegistering(false);
@@ -173,6 +181,83 @@ export default function NotificationsTab({ userId, containerStyling, cardStyling
               Permission denied. Adjust your browser notification settings to enable.
             </p>
           )}
+        </div>
+      )}
+      {/* Show status when already granted - allows manual re-registration */}
+      {userId && pushStatus === 'granted' && (
+        <div className="mb-4 rounded border border-green-700/40 bg-green-900/20 p-3 text-sm text-green-200">
+          <p className="mb-2 font-medium">✓ Push notifications enabled</p>
+          <button
+            disabled={registering}
+            onClick={async () => {
+              setRegistering(true);
+              try {
+                console.log('[Push] Nuclear reset: Nuking SWs, cache, and re-registering...');
+                // Delete all existing device documents for this user
+                const devicesRef = collection(db, 'users', userId, 'devices');
+                const devicesSnap = await getDocs(devicesRef);
+                console.log('[Push] Found', devicesSnap.size, 'device documents to delete');
+
+                const deletePromises = devicesSnap.docs.map((doc) => {
+                  console.log('[Push] Deleting device doc:', doc.id);
+                  return deleteDoc(doc.ref);
+                });
+                await Promise.all(deletePromises);
+                console.log('[Push] Deleted', devicesSnap.size, 'old device documents');
+
+                // Use forceResetAndRegister which nukes SWs & IndexedDB before re-registering
+                console.log('[Push] Force reset and re-register for uid:', userId);
+                const res = await forceResetAndRegister(userId);
+                console.log('[Push] Force reset result:', res);
+                if (res.status === 'granted' && res.token) {
+                  console.log(
+                    '[Push] Device token stored successfully. Token prefix:',
+                    res.token.slice(0, 20) + '...',
+                  );
+                  alert('Reset complete! New token generated. Try Send Test Push now.');
+                } else if (res.status === 'error') {
+                  console.error('[Push] Re-registration error:', res.error);
+                  alert('Reset failed: ' + (res.error?.message || 'Unknown error'));
+                }
+              } finally {
+                setRegistering(false);
+              }
+            }}
+            className="rounded bg-orange-700/30 px-3 py-1 text-xs font-semibold text-orange-200 transition hover:bg-orange-700/50 disabled:opacity-50"
+          >
+            {registering ? 'Resetting…' : '🔥 Nuclear Reset'}
+          </button>
+          <button
+            disabled={registering}
+            onClick={async () => {
+              setRegistering(true);
+              try {
+                console.log('[Push] Sending test notification...');
+                const fn = httpsCallable(getFunctions(), 'testSendPush');
+                const res = await fn({
+                  title: 'RAGESTATE',
+                  body: 'Push notifications are working! 🔥',
+                });
+                console.log('[Push] Test result:', res.data);
+                if (res.data?.success) {
+                  alert('Test push sent! Check your notifications.');
+                } else {
+                  alert('Push failed: ' + (res.data?.error || 'Unknown error'));
+                }
+              } catch (e) {
+                console.error('[Push] Test error:', e);
+                alert('Push test failed: ' + e.message);
+              } finally {
+                setRegistering(false);
+              }
+            }}
+            className="ml-2 rounded bg-blue-700/30 px-3 py-1 text-xs font-semibold text-blue-200 transition hover:bg-blue-700/50 disabled:opacity-50"
+          >
+            {registering ? 'Sending…' : 'Send Test Push'}
+          </button>
+          <p className="mt-2 text-xs text-green-300/60">
+            Click if push notifications aren&apos;t working.
+          </p>
         </div>
       )}
       {loading ? (

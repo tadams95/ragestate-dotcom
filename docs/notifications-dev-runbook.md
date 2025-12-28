@@ -147,7 +147,48 @@ Invalid tokens are auto-disabled (device doc gets `enabled:false`, `disableReaso
 | Quiet hours timezone   | Still uses Intl                         | Same                           |
 | Token pruning schedule | Run manually or wait                    | Cloud Scheduler executes daily |
 
-## 12. Troubleshooting Checklist
+## 12. Test Push Callable (Manual Testing)
+
+A `testSendPush` callable function is available for manually testing push delivery to your own devices.
+
+### From Browser Console (after authenticating):
+
+```js
+import { getFunctions, httpsCallable } from 'firebase/functions';
+const fn = httpsCallable(getFunctions(), 'testSendPush');
+
+// Send test push to yourself
+fn({}).then((r) => console.log('Result:', r.data));
+
+// With custom title/body
+fn({
+  title: 'RAGESTATE Test',
+  body: 'Push notifications are working!',
+}).then((r) => console.log('Result:', r.data));
+```
+
+### Expected Response:
+
+```json
+{
+  "success": true,
+  "devicesFound": 1,
+  "fcmTokens": 1,
+  "fcmResult": { "successCount": 1, "failureCount": 0 },
+  "errors": []
+}
+```
+
+### Common Results:
+
+| Result                          | Meaning                                   |
+| ------------------------------- | ----------------------------------------- |
+| `devicesFound: 0`               | No enabled devices; register push first   |
+| `fcmTokens: 0, devicesFound: 1` | Device exists but provider is not 'fcm'   |
+| `failureCount > 0`              | Token invalid/expired; re-register        |
+| `success: true`                 | Push sent! Check browser/OS notifications |
+
+## 13. Troubleshooting Checklist
 
 - Service worker registered? (Application tab)
 - VAPID key present & matches Firebase Console?
@@ -157,15 +198,9 @@ Invalid tokens are auto-disabled (device doc gets `enabled:false`, `disableReaso
 - pushStatus not an early exit (skipped_prefs / suppressed_quiet_hours)?
 - Function logs show correlationId & aggregationApplied?
 
-## 13. Useful Firestore Console Queries
+## 14. Useful Firestore Console Queries
 
 - List unread notifications: users/{uid}/notifications where read == false order by createdAt desc limit 20
 - Device docs needing cleanup: users/{uid}/devices where enabled == false
 
-## 14. Future Enhancements Placeholder
-
-Add morning digest scheduling, retention policy, metrics export once baseline reliability confirmed.
-
----
-
-Maintainer Tip: Keep this runbook updated when adding new pushStatus codes or modifying preference schema.
+## 15. Future Enhancements Placeholder

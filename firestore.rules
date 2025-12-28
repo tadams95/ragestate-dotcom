@@ -333,10 +333,16 @@ service cloud.firestore {
 
     // Notifications: devices (user can manage their own device tokens)
     match /users/{userId}/devices/{deviceId} {
-      allow read, create, update, delete: if isAuthenticated() && request.auth.uid == userId
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow create: if isAuthenticated() && request.auth.uid == userId
         && (!request.resource.data.keys().hasAny(['token']) || isString(request.resource.data.token))
         && (!request.resource.data.keys().hasAny(['platform']) || isString(request.resource.data.platform))
         && (!request.resource.data.keys().hasAny(['provider']) || isString(request.resource.data.provider));
+      allow update: if isAuthenticated() && request.auth.uid == userId
+        && (!request.resource.data.keys().hasAny(['token']) || isString(request.resource.data.token))
+        && (!request.resource.data.keys().hasAny(['platform']) || isString(request.resource.data.platform))
+        && (!request.resource.data.keys().hasAny(['provider']) || isString(request.resource.data.provider));
+      allow delete: if isAuthenticated() && request.auth.uid == userId;
     }
 
     // Notifications: preferences document

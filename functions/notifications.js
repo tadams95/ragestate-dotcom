@@ -9,8 +9,7 @@ const { onDocumentWritten } = require('firebase-functions/v2/firestore');
 const { onCall } = require('firebase-functions/v2/https');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const logger = require('firebase-functions/logger');
-const admin = require('firebase-admin');
-const { db } = require('./admin');
+const { admin, db } = require('./admin');
 
 // --- Test Helpers (exposed via module.exports._test) ---
 // These pure functions mirror logic inside the push sender trigger so we can unit test
@@ -767,3 +766,88 @@ exports.onNotificationPrefsWrittenSanitize = onDocumentWritten(
     return null;
   },
 );
+// --- Callable: testSendPush (Admin/Dev only) ---
+// Sends a test push notification to a specific user's devices
+// Input: { uid?: string, title?: string, body?: string }
+// If uid omitted, uses caller's uid.
+// Returns: { success, devicesFound, fcmResult }
+// Updated: 2025-12-28 - Force redeploy after VAPID key configuration
+exports.testSendPush = onCall(async (request) => {
+  const ctx = request.auth;
+  if (!ctx || !ctx.uid) {
+    throw new Error('UNAUTHENTICATED');
+  }
+  const callerUid = ctx.uid;
+  const { uid: targetUid, title, body } = request.data || {};
+  const uid = targetUid || callerUid;
+
+  // Security: Only allow sending to self (unless caller has admin claim)
+  const isAdmin = ctx.token?.admin === true;
+  if (uid !== callerUid && !isAdmin) {
+    throw new Error('PERMISSION_DENIED: Cannot send push to other users');
+  }
+
+  // Fetch active device tokens
+  const devicesSnap = await db
+    .collection('users')
+    .doc(uid)
+    .collection('devices')
+    .where('enabled', '==', true)
+    .get();
+
+  if (devicesSnap.empty) {
+    return { success: false, devicesFound: 0, error: 'No enabled devices found' };
+  }
+
+  const fcmTokens = [];
+  devicesSnap.forEach((d) => {
+    const data = d.data();
+    if (data.provider === 'fcm' && data.token) {
+      fcmTokens.push(data.token);
+    }
+  });
+
+  if (!fcmTokens.length) {
+    return {
+      success: false,
+      devicesFound: devicesSnap.size,
+      fcmTokens: 0,
+      error: 'No FCM tokens found',
+    };
+  }
+
+  const message = {
+    tokens: fcmTokens,
+    notification: {
+      title: title || 'Test Push Notification',
+      body: body || `Test notification sent at ${new Date().toISOString()}`,
+    },
+    data: {
+      type: 'test',
+      timestamp: String(Date.now()),
+    },
+    android: { priority: 'high' },
+    apns: { payload: { aps: { sound: 'default' } } },
+    webpush: { fcmOptions: { link: '/account' } },
+  };
+
+  try {
+    const res = await admin.messaging().sendEachForMulticast(message);
+    logger.info('testSendPush result', {
+      uid,
+      callerUid,
+      success: res.successCount,
+      failure: res.failureCount,
+    });
+    return {
+      success: res.successCount > 0,
+      devicesFound: devicesSnap.size,
+      fcmTokens: fcmTokens.length,
+      fcmResult: { successCount: res.successCount, failureCount: res.failureCount },
+      errors: res.responses.filter((r) => !r.success).map((r) => r.error?.code || 'unknown'),
+    };
+  } catch (err) {
+    logger.error('testSendPush failed', { uid, err });
+    return { success: false, error: err.message || 'FCM send failed' };
+  }
+});

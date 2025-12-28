@@ -170,7 +170,7 @@
 - [x] Aggregation logic for multiple likes/comments
 - [x] Add `onNewFollower` trigger → notify followed user
 - [x] Add `onPostMention` trigger → notify mentioned user (if @mentions exist)
-- [ ] Test push sender with FCM web tokens
+- [x] Test push sender with FCM web tokens
 
 ### In-App Notification Feed
 

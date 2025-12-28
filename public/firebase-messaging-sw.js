@@ -3,14 +3,17 @@
 importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
 
-// These values rely on NEXT_PUBLIC_* env vars being inlined at build if using next.config rewrites.
-// For safety, they can be replaced at build time or you can hard-code for local testing.
+// Service workers cannot access process.env or Next.js environment variables.
+// These values must be hardcoded. Get them from Firebase Console → Project Settings → General.
+// IMPORTANT: You need to fill in messagingSenderId and appId from your Firebase project.
 firebase.initializeApp({
-  apiKey: self?.ENV_FIREBASE_API_KEY || undefined,
-  authDomain: self?.ENV_FIREBASE_AUTH_DOMAIN || undefined,
-  projectId: self?.ENV_FIREBASE_PROJECT_ID || undefined,
-  messagingSenderId: self?.ENV_FIREBASE_MESSAGING_SENDER_ID || undefined,
-  appId: self?.ENV_FIREBASE_APP_ID || undefined,
+  apiKey: 'AIzaSyDcHCRWrYonzJa_Pyfwzbfp-r3bxz2bUX8',
+  authDomain: 'ragestate-app.firebaseapp.com',
+  projectId: 'ragestate-app',
+  storageBucket: 'ragestate-app.appspot.com',
+  messagingSenderId: '930832370585',
+  appId: '1:930832370585:web:fc703a0dd37d550a1fa108',
+  measurementId: 'G-5YQ5FWXH85',
 });
 
 const messaging = firebase.messaging();
