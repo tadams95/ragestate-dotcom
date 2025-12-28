@@ -84,7 +84,7 @@ export default function PostDetailClient({ postId, initialPost }) {
         <Post postData={postData} hideFollow={false} />
 
         {/* Inline comments (not a sheet) */}
-        <InlineComments postId={postId} />
+        <InlineComments postId={postId} postOwnerId={initialPost?.userId} />
       </div>
     </div>
   );

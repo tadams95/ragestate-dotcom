@@ -119,15 +119,21 @@
 
 ### Backend Fixes
 
-- [ ] `CommentsSheet.js`: Include `postOwnerId` in `addDoc` for notifications to fire
-- [ ] Verify `onPostCommentCreateNotify` receives `postOwnerId` correctly
+- [x] `CommentsSheet.js`: Include `postOwnerId` in `addDoc` for notifications to fire
+- [x] Verify `onPostCommentCreateNotify` receives `postOwnerId` correctly
 - [x] `CommentsSheet.js`: Fix avatar not showing — use `profiles/{uid}.profilePicture` instead of Auth `photoURL`
 
 ### Delete UI
 
-- [ ] `CommentsSheet.js`: Show delete icon (🗑) on own comments (hover or swipe)
-- [ ] `CommentsSheet.js`: Delete comment with confirmation
-- [ ] Firestore rules already allow author delete ✅
+- [x] `CommentsSheet.js`: Show delete icon (🗑) on own comments (hover or swipe)
+- [x] `CommentsSheet.js`: Delete comment with confirmation
+- [x] Firestore rules already allow author delete ✅
+
+### Post Author Moderation
+
+- [x] `CommentsSheet.js`: Show delete icon (🗑) on all comments for post author (hover)
+- [x] `CommentsSheet.js`: Delete any comment with confirmation (post author only)
+- [x] Firestore rules already allow post author delete ✅
 
 ### Reply Threading
 

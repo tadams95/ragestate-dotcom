@@ -165,7 +165,11 @@ export default function Post({ postData, hideFollow = false }) {
       />
       {/* Comments modal */}
       {showComments && postData?.id && (
-        <CommentsSheet postId={postData.id} onClose={() => setShowComments(false)} />
+        <CommentsSheet
+          postId={postData.id}
+          postOwnerId={postData?.userId}
+          onClose={() => setShowComments(false)}
+        />
       )}
       {/* Edit modal */}
       {isAuthor && (
