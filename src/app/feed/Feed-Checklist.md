@@ -137,9 +137,9 @@
 
 ### Reply Threading
 
-- [ ] Add `parentId` field to comment schema (null = top-level)
-- [ ] `firestore.rules`: Allow `parentId` on create
-- [ ] `firestore.indexes.json`: Add index for `postComments(postId, parentId, timestamp)`
+- [x] Add `parentId` field to comment schema (null = top-level)
+- [x] `firestore.rules`: Allow `parentId` on create
+- [x] `firestore.indexes.json`: Add index for `postComments(postId, parentId, timestamp)`
 - [ ] `CommentsSheet.js`: Render nested replies (indent or thread view)
 - [ ] `CommentsSheet.js`: "Reply" button on each comment
 - [ ] `CommentsSheet.js`: Collapse/expand long threads

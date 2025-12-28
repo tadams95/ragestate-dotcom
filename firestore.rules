@@ -237,12 +237,15 @@ service cloud.firestore {
         && request.resource.data.userId == request.auth.uid
         && isString(request.resource.data.postId)
         && isMaxLen500(request.resource.data.content)
-        && isTimestamp(request.resource.data.timestamp);
-      // Only allow author to edit/delete their own comment; lock postId and userId
+        && isTimestamp(request.resource.data.timestamp)
+        // parentId is optional: null for top-level, string for replies
+        && (!request.resource.data.keys().hasAny(['parentId']) || request.resource.data.parentId == null || isString(request.resource.data.parentId));
+      // Only allow author to edit/delete their own comment; lock postId, userId, parentId
       allow update, delete: if isAuthenticated()
         && resource.data.userId == request.auth.uid
         && request.resource.data.userId == resource.data.userId
-        && request.resource.data.postId == resource.data.postId;
+        && request.resource.data.postId == resource.data.postId
+        && request.resource.data.parentId == resource.data.parentId;
     }
 
     // Feed: userFeeds (personalized list) — client read-only; backend writes

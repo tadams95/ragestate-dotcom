@@ -118,6 +118,7 @@ export default function InlineComments({ postId, postOwnerId }) {
       await addDoc(collection(db, 'postComments'), {
         postId,
         postOwnerId: postOwnerId || null,
+        parentId: null, // null = top-level comment; replies use parent comment ID
         userId: currentUser.uid,
         userDisplayName: currentUser.displayName || null,
         userProfilePicture: profilePicture,
