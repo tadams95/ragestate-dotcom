@@ -145,76 +145,158 @@ export default function EditProfileForm({ inputStyling, buttonStyling, cardStyli
 
   return (
     <div className={cardStyling}>
-      <h3 className="mb-4 text-xl font-medium text-white">Public Profile (Handle & Bio)</h3>
+      <div className="mb-6">
+        <h3 className="text-lg font-medium text-white">Public Profile</h3>
+        <p className="text-xs text-gray-400">
+          This information will be displayed on your public profile page.
+        </p>
+      </div>
+
       {loading ? (
-        <p className="text-gray-400">Loading…</p>
+        <div className="py-8 text-center text-sm text-gray-500">Loading profile data…</div>
       ) : (
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={onSubmit} className="space-y-6">
+          {/* Display Name */}
           <div>
-            <label className="mb-1 block text-sm text-gray-300">Display name</label>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-gray-500">
+              Display Name
+            </label>
             <input
               type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              className={`${inputStyling}`}
+              className={inputStyling}
+              placeholder="Your Name"
             />
           </div>
 
+          {/* Username */}
           <div>
-            <label className="mb-1 block text-sm text-gray-300">Bio</label>
-            <textarea
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              className={`${inputStyling}`}
-              maxLength={500}
-              rows={3}
-            />
-            <p className="mt-1 text-xs text-gray-500">Max 500 characters.</p>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm text-gray-300">Username</label>
-            <div className="flex items-center gap-2">
-              <span className="text-gray-400">ragestate.com/</span>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-gray-500">
+              Username
+            </label>
+            <div className="relative">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                <span className="text-sm text-gray-500">ragestate.com/</span>
+              </div>
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(normalizeUsername(e.target.value))}
-                className={`${inputStyling}`}
-                placeholder="yourname"
+                className={`${inputStyling} pl-[115px] pr-10`}
+                placeholder="username"
                 minLength={3}
                 maxLength={20}
               />
+              {/* Status Icon */}
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                {availability === 'checking' && (
+                  <svg
+                    className="h-4 w-4 animate-spin text-gray-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                )}
+                {availability === 'available' && username !== initialUsername && (
+                  <svg
+                    className="h-4 w-4 text-green-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+                {availability === 'taken' && (
+                  <svg
+                    className="h-4 w-4 text-red-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                )}
+              </div>
             </div>
-            <p className="mt-1 text-xs text-gray-500">
-              Lowercase letters, numbers, dot and underscore. 3–20 characters.
-            </p>
-            {availability === 'checking' && (
-              <p className="mt-1 text-xs text-gray-400">Checking availability…</p>
-            )}
-            {availability === 'available' && username !== initialUsername && (
-              <p className="mt-1 text-xs text-green-400">Username is available</p>
-            )}
-            {availability === 'taken' && (
-              <p className="mt-1 text-xs text-red-400">That username is taken</p>
-            )}
+
+            <div className="mt-1.5 flex justify-between text-xs">
+              <span
+                className={`${
+                  availability === 'taken'
+                    ? 'text-red-400'
+                    : availability === 'available' && username !== initialUsername
+                      ? 'text-green-400'
+                      : 'text-gray-500'
+                }`}
+              >
+                {availability === 'taken'
+                  ? 'Username is taken'
+                  : availability === 'available' && username !== initialUsername
+                    ? 'Username is available'
+                    : 'Lowercase letters, numbers, dot & underscore.'}
+              </span>
+            </div>
           </div>
 
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {/* Bio */}
+          <div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <label className="block text-xs font-medium uppercase tracking-wide text-gray-500">
+                Bio
+              </label>
+              <span
+                className={`text-[10px] ${bio.length > 450 ? 'text-yellow-500' : 'text-gray-600'}`}
+              >
+                {bio.length}/500
+              </span>
+            </div>
+            <textarea
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              className={`${inputStyling} min-h-[100px] resize-y`}
+              maxLength={500}
+              rows={4}
+              placeholder="Tell us about yourself..."
+            />
+          </div>
+
+          {error && (
+            <div className="rounded border border-red-900/50 bg-red-900/20 p-3 text-sm text-red-200">
+              {error}
+            </div>
+          )}
+
           {message && (
-            <p className="text-sm text-green-400">
-              {message}
-              {username ? (
-                <>
-                  {' '}
-                  <a
-                    href={`/${username}`}
-                    className="ml-1 underline underline-offset-2 hover:text-green-300"
-                  >
-                    View profile
-                  </a>
-                </>
-              ) : null}
-            </p>
+            <div className="flex items-center justify-between rounded border border-green-900/50 bg-green-900/20 p-3 text-sm text-green-200">
+              <span>{message}</span>
+              {username && (
+                <a
+                  href={`/${username}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs font-medium underline underline-offset-2 hover:text-white"
+                >
+                  View Profile &rarr;
+                </a>
+              )}
+            </div>
           )}
 
           <div className="pt-2">
@@ -223,7 +305,7 @@ export default function EditProfileForm({ inputStyling, buttonStyling, cardStyli
               disabled={saving || availability === 'taken'}
               className={buttonStyling}
             >
-              {saving ? 'Saving…' : 'Save'}
+              {saving ? 'Saving Profile…' : 'Save Public Profile'}
             </button>
           </div>
         </form>

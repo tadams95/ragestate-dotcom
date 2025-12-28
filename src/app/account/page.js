@@ -37,7 +37,7 @@ export default function Account() {
   const [unreadCount] = useUnreadNotificationsCount(userId);
 
   const inputStyling =
-    'block w-full bg-black pl-2 rounded-md border py-1.5 px-1 text-gray-100 shadow-sm placeholder:text-gray-500 appearance-none focus:outline-none focus:ring-2 focus:ring-red-700 sm:text-sm sm:leading-6';
+    'block w-full bg-black pl-2 rounded-md border border-gray-800 py-1.5 px-1 text-gray-100 shadow-sm placeholder:text-gray-500 appearance-none focus:outline-none focus:border-red-700 focus:ring-1 focus:ring-red-700 sm:text-sm sm:leading-6';
 
   const buttonStyling =
     'flex justify-center rounded-md bg-transparent px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 border border-gray-700 transition-all duration-300';

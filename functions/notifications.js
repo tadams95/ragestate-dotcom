@@ -691,6 +691,7 @@ exports.pruneStaleDevices = onSchedule(
 // Strips unknown fields to enforce a stable schema and prevents unexpected payload inflation.
 // Allowed top-level boolean fields correspond to notification types plus future-safe flags.
 // quietHours shape: { start: 'HH:MM', end: 'HH:MM', timezone: string }
+// Updated 2024-12-27: added new_post_from_follow and marketing keys
 exports.onNotificationPrefsWrittenSanitize = onDocumentWritten(
   'users/{uid}/settings/notificationPrefs',
   async (event) => {
@@ -705,6 +706,8 @@ exports.onNotificationPrefsWrittenSanitize = onDocumentWritten(
         'comment_added',
         'mention',
         'new_follower',
+        'new_post_from_follow',
+        'marketing',
         // add future types here as they are introduced
       ]);
       const sanitized = {};
@@ -714,8 +717,10 @@ exports.onNotificationPrefsWrittenSanitize = onDocumentWritten(
         if (typeof data[k] === 'boolean') sanitized[k] = data[k];
       }
 
-      // quietHours validation
-      if (data.quietHours && typeof data.quietHours === 'object') {
+      // quietHours validation - preserve null (disabled) or valid object
+      if (data.quietHours === null) {
+        sanitized.quietHours = null;
+      } else if (data.quietHours && typeof data.quietHours === 'object') {
         const { start, end, timezone } = data.quietHours;
         const timeRe = /^([01]\d|2[0-3]):[0-5]\d$/; // HH:MM 24h
         if (
@@ -728,6 +733,11 @@ exports.onNotificationPrefsWrittenSanitize = onDocumentWritten(
         ) {
           sanitized.quietHours = { start, end, timezone };
         }
+      }
+
+      // Preserve updatedAt timestamp if present
+      if (data.updatedAt) {
+        sanitized.updatedAt = data.updatedAt;
       }
 
       // If sanitized differs from stored data, update doc.

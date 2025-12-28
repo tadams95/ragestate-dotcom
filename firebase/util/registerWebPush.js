@@ -1,6 +1,6 @@
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { getMessaging, getToken, isSupported, onMessage } from 'firebase/messaging';
-import { db } from '../firebase';
+import { app, db } from '../firebase';
 
 /**
  * Register Web Push (FCM) for current browser.
@@ -14,7 +14,7 @@ export async function registerWebPush(uid, opts = {}) {
   if (!(await isSupported())) return { status: 'unsupported' };
   const { requestPermission = true } = opts;
   try {
-    const messaging = getMessaging();
+    const messaging = getMessaging(app);
     if (requestPermission && Notification.permission === 'default') {
       const perm = await Notification.requestPermission();
       if (perm !== 'granted') return { status: 'blocked' };
@@ -61,7 +61,7 @@ let _lastUid = null;
 async function fetchAndPersistToken(uid) {
   try {
     if (!(await isSupported())) return;
-    const messaging = getMessaging();
+    const messaging = getMessaging(app);
     const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
     const token = await getToken(messaging, { vapidKey });
     if (!token) return;

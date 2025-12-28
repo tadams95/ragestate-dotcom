@@ -35,9 +35,17 @@ export default function NotificationsTab({ userId, containerStyling, cardStyling
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [end, setEnd] = useState(false);
-  const [pushStatus, setPushStatus] = useState(Notification?.permission || 'default');
+  // Initialize as 'default' to avoid SSR/hydration mismatch; sync in useEffect
+  const [pushStatus, setPushStatus] = useState('default');
   const [registering, setRegistering] = useState(false);
   const PAGE_SIZE = 20;
+
+  // Sync pushStatus with browser permission on mount (client-side only)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && typeof Notification !== 'undefined') {
+      setPushStatus(Notification.permission);
+    }
+  }, []);
 
   const load = useCallback(
     async (cursor) => {

@@ -105,12 +105,22 @@ export default function NotificationPreferences({ userId, className = '' }) {
         toSave.quietHours = null;
       }
       toSave.updatedAt = serverTimestamp();
+      console.log('Saving notification preferences:', { userId, toSave, ref: ref.path });
       await setDoc(ref, toSave, { merge: true });
+      console.log('Notification preferences saved successfully to:', ref.path);
+      // Verify write by reading back
+      const verifySnap = await getDoc(ref);
+      console.log('Verified saved data:', verifySnap.data());
       setSaved(true);
       setPrefs((p) => ({ ...p, quietHours: toSave.quietHours }));
     } catch (e) {
       console.error('Failed to save notification prefs', e);
-      setError('Failed to save');
+      // Show more specific error for permission issues
+      if (e?.code === 'permission-denied') {
+        setError('Permission denied. Please refresh the page and try again.');
+      } else {
+        setError('Failed to save. Check console for details.');
+      }
     } finally {
       setSaving(false);
     }
