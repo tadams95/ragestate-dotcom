@@ -220,6 +220,45 @@ exports.onPostCommentCreateNotify = onDocumentCreated('postComments/{commentId}'
   return null;
 });
 
+// --- posts onCreate -> notify mentioned users in post content ---
+exports.onPostCreateNotifyMentions = onDocumentCreated('posts/{postId}', async (event) => {
+  try {
+    const post = event.data?.data() || {};
+    const { userId: authorId, content } = post;
+    const postId = event.params.postId;
+    if (!authorId || !postId || !content || typeof content !== 'string') return null;
+
+    // Match @usernameLower pattern (alphanumeric + underscore, 3-30 chars)
+    const mentionMatches = content.match(/@([a-z0-9_]{3,30})/gi) || [];
+    const usernames = [...new Set(mentionMatches.map((m) => m.slice(1).toLowerCase()))];
+    if (!usernames.length) return null;
+
+    // Resolve usernames -> userIds
+    const lookups = await Promise.all(
+      usernames.map((uname) => db.collection('usernames').doc(uname).get()),
+    );
+    await Promise.all(
+      lookups.map(async (snap) => {
+        if (!snap.exists) return null;
+        const targetUid = snap.data().uid;
+        if (!targetUid || targetUid === authorId) return null; // skip self-mention
+        return createNotification({
+          uid: targetUid,
+          type: 'mention',
+          title: 'You were mentioned',
+          body: 'Someone mentioned you in a post',
+          data: { postId, actorId: authorId },
+          link: `/post/${postId}`,
+          deepLink: `ragestate://post/${postId}`,
+        });
+      }),
+    );
+  } catch (err) {
+    logger.error('onPostCreateNotifyMentions failed', { err });
+  }
+  return null;
+});
+
 // --- follows onCreate -> target user gets new_follower ---
 exports.onFollowCreateNotify = onDocumentCreated('follows/{followId}', async (event) => {
   try {

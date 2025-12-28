@@ -168,8 +168,8 @@
 - [x] Triggers exist: `onPostLikeCreateNotify`, `onPostCommentCreateNotify`
 - [x] Quiet hours logic implemented
 - [x] Aggregation logic for multiple likes/comments
-- [ ] Add `onNewFollower` trigger → notify followed user
-- [ ] Add `onPostMention` trigger → notify mentioned user (if @mentions exist)
+- [x] Add `onNewFollower` trigger → notify followed user
+- [x] Add `onPostMention` trigger → notify mentioned user (if @mentions exist)
 - [ ] Test push sender with FCM web tokens
 
 ### In-App Notification Feed
