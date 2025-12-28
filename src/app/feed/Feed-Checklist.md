@@ -140,9 +140,9 @@
 - [x] Add `parentId` field to comment schema (null = top-level)
 - [x] `firestore.rules`: Allow `parentId` on create
 - [x] `firestore.indexes.json`: Add index for `postComments(postId, parentId, timestamp)`
-- [ ] `CommentsSheet.js`: Render nested replies (indent or thread view)
-- [ ] `CommentsSheet.js`: "Reply" button on each comment
-- [ ] `CommentsSheet.js`: Collapse/expand long threads
+- [x] `CommentsSheet.js`: Render nested replies (indent or thread view)
+- [x] `CommentsSheet.js`: "Reply" button on each comment
+- [x] `CommentsSheet.js`: Collapse/expand long threads
 
 ### Comment Likes
 
