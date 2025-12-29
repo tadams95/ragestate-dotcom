@@ -136,6 +136,113 @@ exports.onCommentLikeDelete = onDocumentDeleted('postCommentLikes/{likeId}', asy
   return null;
 });
 
+// --- Reposts ---
+exports.onRepostCreate = onDocumentCreated('postReposts/{repostId}', async (event) => {
+  const repost = event.data?.data() || {};
+  const postId = repost.postId;
+  const reposterId = repost.userId;
+  const repostPostId = repost.repostPostId; // The new post doc representing the repost
+  if (!postId || !reposterId) return null;
+
+  try {
+    // Increment repostCount on original post
+    await updatePostCounter(postId, 'repostCount', 1);
+    logger.info('onRepostCreate counter incremented', { postId, reposterId });
+
+    // Fan-out repost to reposter's followers' feeds
+    if (repostPostId) {
+      const followersSnap = await db
+        .collection('follows')
+        .where('followedId', '==', reposterId)
+        .get();
+      const recipients = new Set([reposterId]);
+      followersSnap.forEach((doc) => {
+        const d = doc.data() || {};
+        if (d.followerId) recipients.add(d.followerId);
+      });
+
+      const ts = repost.timestamp || admin.firestore.FieldValue.serverTimestamp();
+      const writes = [];
+      for (const uid of recipients) {
+        const feedDoc = db
+          .collection('userFeeds')
+          .doc(uid)
+          .collection('feedItems')
+          .doc(repostPostId);
+        writes.push((batch) =>
+          batch.set(
+            feedDoc,
+            {
+              postId: repostPostId,
+              authorId: reposterId,
+              isPublic: true,
+              timestamp: ts,
+            },
+            { merge: true },
+          ),
+        );
+      }
+      await commitInChunks(writes);
+      logger.info('onRepostCreate fan-out complete', {
+        postId,
+        repostPostId,
+        reposterId,
+        recipients: writes.length,
+      });
+    }
+  } catch (err) {
+    logger.error('onRepostCreate failed', { postId, reposterId, err });
+  }
+  return null;
+});
+
+exports.onRepostDelete = onDocumentDeleted('postReposts/{repostId}', async (event) => {
+  const repost = event.data?.data() || {};
+  const postId = repost.postId;
+  const reposterId = repost.userId;
+  const repostPostId = repost.repostPostId;
+  if (!postId) return null;
+
+  try {
+    // Decrement repostCount on original post
+    await updatePostCounter(postId, 'repostCount', -1);
+    logger.info('onRepostDelete counter decremented', { postId, reposterId });
+
+    // Remove from followers' feeds
+    if (repostPostId) {
+      const followersSnap = await db
+        .collection('follows')
+        .where('followedId', '==', reposterId)
+        .get();
+      const recipients = new Set([reposterId]);
+      followersSnap.forEach((doc) => {
+        const d = doc.data() || {};
+        if (d.followerId) recipients.add(d.followerId);
+      });
+
+      const writes = [];
+      for (const uid of recipients) {
+        const feedDoc = db
+          .collection('userFeeds')
+          .doc(uid)
+          .collection('feedItems')
+          .doc(repostPostId);
+        writes.push((batch) => batch.delete(feedDoc));
+      }
+      await commitInChunks(writes);
+      logger.info('onRepostDelete fan-out removal complete', {
+        postId,
+        repostPostId,
+        reposterId,
+        recipients: writes.length,
+      });
+    }
+  } catch (err) {
+    logger.error('onRepostDelete failed', { postId, reposterId, err });
+  }
+  return null;
+});
+
 // --- Personal feed fan-out (userFeeds/{userId}/feedItems) ---
 
 async function commitInChunks(writes) {

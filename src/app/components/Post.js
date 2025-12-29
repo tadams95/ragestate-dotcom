@@ -2,6 +2,7 @@
 import { track } from '@/app/utils/metrics';
 import { formatDate } from '@/utils/formatters';
 import { deleteDoc, doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../../firebase/context/FirebaseContext';
 import { db } from '../../../firebase/firebase';
@@ -10,6 +11,91 @@ import EditPostModal from './EditPostModal';
 import PostActions from './PostActions';
 import PostContent from './PostContent';
 import PostHeader from './PostHeader';
+
+// Embedded card for displaying the original post in a repost
+function EmbeddedPost({ repostOf }) {
+  if (!repostOf) return null;
+
+  // Handle deleted/unavailable original posts
+  const isUnavailable =
+    !repostOf.postId ||
+    (!repostOf.content && (!repostOf.mediaUrls || repostOf.mediaUrls.length === 0));
+
+  if (isUnavailable) {
+    return (
+      <div className="mt-3 flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-4 text-gray-400">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={1.5}
+          stroke="currentColor"
+          className="h-5 w-5"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+          />
+        </svg>
+        <span className="text-sm">Original post unavailable</span>
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      href={`/post/${repostOf.postId}`}
+      className="mt-3 block rounded-xl border border-white/10 bg-white/5 p-3 transition-colors hover:bg-white/10"
+    >
+      {/* Original author header */}
+      <div className="mb-2 flex items-center gap-2">
+        {repostOf.authorPhoto ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img src={repostOf.authorPhoto} alt="" className="h-5 w-5 rounded-full object-cover" />
+        ) : (
+          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-[#ff1f42] to-[#ff6b35] text-[10px] font-bold text-white">
+            {(repostOf.authorName || 'U')[0].toUpperCase()}
+          </div>
+        )}
+        <span className="text-sm font-semibold text-white">{repostOf.authorName || 'Unknown'}</span>
+      </div>
+
+      {/* Original content */}
+      {repostOf.content && (
+        <p className="mb-2 line-clamp-4 whitespace-pre-line break-words text-sm text-white/80">
+          {repostOf.content}
+        </p>
+      )}
+
+      {/* Original media */}
+      {repostOf.mediaUrls && repostOf.mediaUrls.length > 0 && (
+        <div className="mt-2 overflow-hidden rounded-lg">
+          {repostOf.mediaUrls[0]?.toLowerCase().includes('video') ||
+          /\.(mp4|mov|webm)(\?|$)/i.test(repostOf.mediaUrls[0]) ? (
+            <video
+              src={repostOf.mediaUrls[0]}
+              className="max-h-48 w-full rounded-lg object-cover"
+              muted
+              playsInline
+              preload="metadata"
+            />
+          ) : (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={repostOf.mediaUrls[0]}
+              alt=""
+              className="max-h-48 w-full rounded-lg object-cover"
+            />
+          )}
+          {repostOf.mediaUrls.length > 1 && (
+            <div className="mt-1 text-xs text-white/50">+{repostOf.mediaUrls.length - 1} more</div>
+          )}
+        </div>
+      )}
+    </Link>
+  );
+}
 
 export default function Post({ postData, hideFollow = false }) {
   // Use dummy data if postData is not provided
@@ -42,6 +128,7 @@ export default function Post({ postData, hideFollow = false }) {
       setLiveData({
         likeCount: typeof p.likeCount === 'number' ? p.likeCount : 0,
         commentCount: typeof p.commentCount === 'number' ? p.commentCount : 0,
+        repostCount: typeof p.repostCount === 'number' ? p.repostCount : 0,
         author: p.usernameLower ? p.usernameLower : p.userDisplayName || p.userId || data.author,
         avatarUrl: p.userProfilePicture || null,
         usernameLower: p.usernameLower || postData?.usernameLower,
@@ -53,6 +140,7 @@ export default function Post({ postData, hideFollow = false }) {
         isProcessing: !!p.isProcessing,
         timestamp:
           formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp) || data.timestamp,
+        repostOf: p.repostOf || null,
       });
     });
     return () => unsub();
@@ -104,6 +192,26 @@ export default function Post({ postData, hideFollow = false }) {
 
   return (
     <div className="mb-4 rounded-[14px] border border-white/10 bg-[#0d0d0f] p-4 shadow-[0_4px_12px_-4px_#000c]">
+      {/* Repost indicator */}
+      {(liveData?.repostOf || postData?.repostOf) && (
+        <div className="mb-2 flex items-center gap-1.5 text-xs text-gray-400">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={1.5}
+            stroke="currentColor"
+            className="h-3.5 w-3.5"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3"
+            />
+          </svg>
+          <span>Reposted</span>
+        </div>
+      )}
       <PostHeader
         author={liveData?.author || data.author}
         timestamp={liveData?.timestamp || data.timestamp}
@@ -145,17 +253,49 @@ export default function Post({ postData, hideFollow = false }) {
         {liveData?.edited && <span className="text-xs text-gray-500">Edited</span>}
       </div>
 
-      <PostContent
-        content={liveData?.content ?? postData?.content ?? data.content}
-        mediaUrls={liveData?.mediaUrls ?? postData?.mediaUrls ?? []}
-        optimizedMediaUrls={liveData?.optimizedMediaUrls ?? postData?.optimizedMediaUrls ?? []}
-        isProcessing={liveData?.isProcessing ?? postData?.isProcessing ?? false}
-      />
+      {/* Check if this is a repost */}
+      {liveData?.repostOf || postData?.repostOf ? (
+        <>
+          {/* Show quote text if any (for quote reposts) */}
+          {(liveData?.content || postData?.content) && (
+            <PostContent
+              content={liveData?.content ?? postData?.content}
+              mediaUrls={liveData?.mediaUrls ?? postData?.mediaUrls ?? []}
+              optimizedMediaUrls={
+                liveData?.optimizedMediaUrls ?? postData?.optimizedMediaUrls ?? []
+              }
+              isProcessing={liveData?.isProcessing ?? postData?.isProcessing ?? false}
+            />
+          )}
+          {/* Embedded original post */}
+          <EmbeddedPost repostOf={liveData?.repostOf ?? postData?.repostOf} />
+        </>
+      ) : (
+        <PostContent
+          content={liveData?.content ?? postData?.content ?? data.content}
+          mediaUrls={liveData?.mediaUrls ?? postData?.mediaUrls ?? []}
+          optimizedMediaUrls={liveData?.optimizedMediaUrls ?? postData?.optimizedMediaUrls ?? []}
+          isProcessing={liveData?.isProcessing ?? postData?.isProcessing ?? false}
+        />
+      )}
 
       <PostActions
         postId={postData?.id}
         likeCount={liveData?.likeCount ?? postData?.likeCount ?? 0}
         commentCount={liveData?.commentCount ?? postData?.commentCount ?? 0}
+        repostCount={liveData?.repostCount ?? postData?.repostCount ?? 0}
+        postData={{
+          id: postData?.id,
+          userId: postData?.userId,
+          author: liveData?.author ?? postData?.author ?? data.author,
+          usernameLower: liveData?.usernameLower ?? postData?.usernameLower,
+          avatarUrl: liveData?.avatarUrl ?? postData?.avatarUrl,
+          content: liveData?.content ?? postData?.content ?? data.content,
+          mediaUrls: liveData?.mediaUrls ?? postData?.mediaUrls ?? [],
+          timestamp: liveData?.timestamp ?? postData?.timestamp ?? data.timestamp,
+          isPublic: liveData?.isPublic ?? postData?.isPublic ?? true,
+          repostOf: liveData?.repostOf ?? postData?.repostOf ?? null,
+        }}
         onOpenComments={() => {
           try {
             track('comments_open', { postId: postData?.id });

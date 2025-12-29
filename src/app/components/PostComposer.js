@@ -168,7 +168,27 @@ export default function PostComposer() {
   const [isPublic, setIsPublic] = useState(true);
   const [compressionProgress, setCompressionProgress] = useState(0); // 0-100
   const [isCompressing, setIsCompressing] = useState(false);
+  const [quotedPost, setQuotedPost] = useState(null);
   const saveTimerRef = useRef(null);
+
+  // Listen for quote repost events
+  useEffect(() => {
+    const onQuotePost = (e) => {
+      const post = e.detail;
+      if (post) {
+        setQuotedPost(post);
+        setOpen(true);
+      }
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('feed:quote-post', onQuotePost);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('feed:quote-post', onQuotePost);
+      }
+    };
+  }, []);
 
   // Load saved draft (don't auto-apply; offer recovery)
   useEffect(() => {
@@ -410,10 +430,38 @@ export default function PostComposer() {
         timestamp: serverTimestamp(),
         likeCount: 0,
         commentCount: 0,
+        repostCount: 0,
       };
       if (mediaUrls.length) payload.mediaUrls = mediaUrls;
 
+      if (quotedPost) {
+        payload.repostOf = {
+          postId: quotedPost.id,
+          authorId: quotedPost.userId,
+          authorName: quotedPost.author || quotedPost.usernameLower,
+          authorPhoto: quotedPost.avatarUrl,
+          content: quotedPost.content || '',
+          mediaUrls: quotedPost.mediaUrls || [],
+          timestamp: quotedPost.timestamp || null,
+        };
+      }
+
       await setDoc(postRef, payload);
+
+      if (quotedPost) {
+        // Create postReposts doc for tracking
+        const repostRef = doc(db, 'postReposts', `${quotedPost.id}_${currentUser.uid}`);
+        await setDoc(repostRef, {
+          postId: quotedPost.id,
+          userId: currentUser.uid,
+          timestamp: serverTimestamp(),
+          originalAuthorId: quotedPost.userId || null,
+          repostPostId: postRef.id,
+        });
+        try {
+          track('repost_add', { postId: quotedPost.id, type: 'quote' });
+        } catch {}
+      }
 
       // Metrics: post_create
       try {
@@ -421,6 +469,7 @@ export default function PostComposer() {
           hasImage: mediaType === 'image',
           hasVideo: mediaType === 'video',
           contentLength: payload.content?.length || 0,
+          isQuote: !!quotedPost,
         });
       } catch {}
 
@@ -438,6 +487,8 @@ export default function PostComposer() {
           mediaUrls: mediaUrls.length ? mediaUrls : [],
           likeCount: 0,
           commentCount: 0,
+          repostCount: 0,
+          repostOf: payload.repostOf || null,
         };
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('feed:new-post', { detail: newPost }));
@@ -448,6 +499,7 @@ export default function PostComposer() {
       setContent('');
       setFile(null);
       setPreviewUrl('');
+      setQuotedPost(null);
       setMediaType(null);
       setIsPublic(true);
       setSavedDraft(''); // Clear draft state so "We found a saved draft" doesn't show
@@ -574,6 +626,43 @@ export default function PostComposer() {
                   </button>
                 </div>
               )}
+
+              {quotedPost && (
+                <div className="relative mt-3 rounded-xl border border-white/10 bg-white/5 p-3">
+                  <div className="mb-2 flex items-center gap-2">
+                    {quotedPost.avatarUrl && (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={quotedPost.avatarUrl}
+                        alt=""
+                        className="h-5 w-5 rounded-full object-cover"
+                      />
+                    )}
+                    <span className="text-sm font-bold text-white">{quotedPost.author}</span>
+                  </div>
+                  {quotedPost.content && (
+                    <p className="mb-2 line-clamp-3 text-sm text-white/80">{quotedPost.content}</p>
+                  )}
+                  {quotedPost.mediaUrls?.length > 0 && (
+                    <div className="h-24 w-full overflow-hidden rounded-lg bg-black/20">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={quotedPost.mediaUrls[0]}
+                        alt=""
+                        className="h-full w-full object-cover opacity-60"
+                      />
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setQuotedPost(null)}
+                    className="absolute right-2 top-2 rounded bg-black/60 px-2 py-1 text-xs text-white hover:bg-black/80"
+                  >
+                    Remove Quote
+                  </button>
+                </div>
+              )}
+
               {error && (
                 <p className="mt-2 text-sm text-red-400" role="alert">
                   {error}

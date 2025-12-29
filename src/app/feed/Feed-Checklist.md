@@ -94,6 +94,75 @@
 
 ---
 
+## 1.6 Repost Feature (1 week)
+
+> **Goal**: Allow users to share others' posts to their followers (like X/Twitter retweet)
+> **Status**: Not started
+
+### Data Model
+
+- [x] Add `repostOf` field to post schema: `{ postId, authorId, authorName, authorPhoto }` (null for original posts)
+- [x] Add `repostCount` field to posts (incremented/decremented by triggers)
+- [x] Create `postReposts` collection: `{ postId, userId, timestamp }` for tracking who reposted
+- [x] `firestore.indexes.json`: Add index for `postReposts(postId, userId)` for duplicate checks
+
+### Firestore Rules (`firestore.rules`)
+
+- [x] `postReposts`: Auth user can create/delete own reposts only
+- [x] `postReposts`: Immutable `postId`/`userId` after creation
+- [x] `posts`: Allow `repostOf` on create (validated structure)
+- [x] `posts`: Prevent client modification of `repostCount`
+
+### Backend Triggers (`functions/feed.js`)
+
+- [x] `onRepostCreate`: Increment `repostCount` on original post
+- [x] `onRepostCreate`: Fan-out repost to reposter's followers' feeds
+- [x] `onRepostDelete`: Decrement `repostCount` on original post
+- [x] `onRepostDelete`: Remove from followers' feeds
+
+### Notifications (`functions/notifications.js`)
+
+- [x] `onRepostCreateNotify`: Notify original post author ("X reposted your post")
+- [x] Respect quiet hours and notification preferences
+
+### UI Components
+
+#### Repost Button (`PostActions.js`)
+
+- [x] Add repost icon (🔁) next to like/comment/share
+- [x] Show repost count
+- [x] Highlight icon if current user has reposted
+- [x] Tap opens repost menu (Simple Repost / Quote Repost / Undo)
+
+#### Repost Display (`Post.js`)
+
+- [x] Show "🔁 Reposted by [username]" header above reposted content
+- [x] Link to reposter's profile
+- [x] Render original post content (author, text, media) in embedded card style
+- [x] Original post links to `/post/{originalPostId}`
+
+#### Quote Repost (`PostComposer.js`)
+
+- [x] Accept `quotedPost` prop to embed original post below new content
+- [x] Show quoted post preview in composer
+- [x] Save as new post with `repostOf` + user's additional text
+
+#### Undo Repost
+
+- [x] `PostActions.js`: Show "Undo Repost" in menu if already reposted
+- [x] Delete from `postReposts` + delete the repost post doc
+- [x] Optimistic UI update
+
+### Edge Cases
+
+- [x] Prevent reposting own posts (or allow? — decide UX) → **Allowed** (like X/Twitter — users can bump their own content)
+- [x] Prevent reposting private posts
+- [x] Handle deleted original posts gracefully (show "Original post unavailable")
+- [x] Prevent duplicate reposts (check `postReposts` before creating)
+- [x] Repost of a repost → links to original (flatten chain)
+
+---
+
 ## 1.5 Comments Architecture (1 week)
 
 > **Status**: Core works; missing delete UI, avatar bug fixed, notification data bug

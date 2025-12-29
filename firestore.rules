@@ -194,17 +194,24 @@ service cloud.firestore {
         && isBool(request.resource.data.isPublic)
         && isTimestamp(request.resource.data.timestamp)
         && (!request.resource.data.keys().hasAny(['likeCount']) || request.resource.data.likeCount == 0)
-        && (!request.resource.data.keys().hasAny(['commentCount']) || request.resource.data.commentCount == 0);
+        && (!request.resource.data.keys().hasAny(['commentCount']) || request.resource.data.commentCount == 0)
+        && (!request.resource.data.keys().hasAny(['repostCount']) || request.resource.data.repostCount == 0)
+        // repostOf: optional object with postId, authorId, authorName, authorPhoto (all strings)
+        && (!request.resource.data.keys().hasAny(['repostOf']) || (
+          request.resource.data.repostOf is map
+          && isString(request.resource.data.repostOf.postId)
+          && isString(request.resource.data.repostOf.authorId)
+        ));
 
       // Update: only author; lock immutable/counter fields from client edits
-      // Note: isProcessing and optimizedMediaUrls are set by Cloud Function (Admin SDK bypasses rules)
+      // Note: isProcessing, optimizedMediaUrls, repostCount are set by Cloud Function (Admin SDK bypasses rules)
       allow update: if isAuthenticated()
         && resource.data.userId == request.auth.uid
         && request.resource.data.userId == resource.data.userId
         && request.resource.data.timestamp == resource.data.timestamp
         && request.resource.data.likeCount == resource.data.likeCount
         && request.resource.data.commentCount == resource.data.commentCount
-        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['isProcessing', 'optimizedMediaUrls']))
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['isProcessing', 'optimizedMediaUrls', 'repostCount', 'repostOf']))
         && (!request.resource.data.keys().hasAny(['userDisplayName']) || isString(request.resource.data.userDisplayName))
         && (!request.resource.data.keys().hasAny(['userProfilePicture']) || isString(request.resource.data.userProfilePicture))
         && (!request.resource.data.keys().hasAny(['content']) || isMaxLen500(request.resource.data.content))
@@ -261,6 +268,20 @@ service cloud.firestore {
         && isString(request.resource.data.postId)
         && isTimestamp(request.resource.data.timestamp);
       // Delete: only the user who created the like
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // Feed: postReposts (tracks who reposted what)
+    match /postReposts/{repostId} {
+      allow read: if true;
+      // Create: auth user can repost; validate ownership and required fields
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && isString(request.resource.data.postId)
+        && isTimestamp(request.resource.data.timestamp);
+      // Update: immutable after creation (postId/userId cannot change)
+      allow update: if false;
+      // Delete: only the user who created the repost
       allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 

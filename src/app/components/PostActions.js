@@ -1,17 +1,38 @@
 'use client';
 
 import { track } from '@/app/utils/metrics';
-import { deleteDoc, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  serverTimestamp,
+  setDoc,
+  where,
+  writeBatch,
+} from 'firebase/firestore';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../../firebase/context/FirebaseContext';
 import { db } from '../../../firebase/firebase';
 
-export default function PostActions({ postId, likeCount = 0, commentCount = 0, onOpenComments }) {
+export default function PostActions({
+  postId,
+  likeCount = 0,
+  commentCount = 0,
+  repostCount = 0,
+  onOpenComments,
+  postData,
+}) {
   const { currentUser } = useAuth();
   const [optimisticLikes, setOptimisticLikes] = useState(likeCount);
+  const [optimisticReposts, setOptimisticReposts] = useState(repostCount);
   const [isLiking, setIsLiking] = useState(false);
   const [hasLiked, setHasLiked] = useState(false);
+  const [hasReposted, setHasReposted] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
+  const [showRepostMenu, setShowRepostMenu] = useState(false);
   const longPressRef = useRef(null);
   const longPressTimer = useRef(null);
   const [reactions, setReactions] = useState({}); // {"👍": 12, "🔥": 3, "😂": 1}
@@ -28,6 +49,24 @@ export default function PostActions({ postId, likeCount = 0, commentCount = 0, o
     return snap.exists();
   }, [likeDocRef]);
 
+  // Get the target post ID for repost operations (handles chain flattening)
+  const getRepostTargetId = useCallback(() => {
+    // If this is a repost, the target is the original post
+    return postData?.repostOf?.postId || postId;
+  }, [postId, postData?.repostOf?.postId]);
+
+  const checkInitialRepost = useCallback(async () => {
+    const targetId = getRepostTargetId();
+    if (!targetId || !currentUser?.uid) return false;
+    const q = query(
+      collection(db, 'postReposts'),
+      where('postId', '==', targetId),
+      where('userId', '==', currentUser.uid),
+    );
+    const snap = await getDocs(q);
+    return !snap.empty;
+  }, [getRepostTargetId, currentUser?.uid]);
+
   // Lazy initialize hasLiked on first interaction to avoid extra reads on mount
   const ensureHasLiked = useCallback(async () => {
     if (hasLiked === false && currentUser && likeDocRef) {
@@ -37,6 +76,15 @@ export default function PostActions({ postId, likeCount = 0, commentCount = 0, o
     }
     return hasLiked;
   }, [hasLiked, currentUser, likeDocRef, checkInitialLike]);
+
+  const ensureHasReposted = useCallback(async () => {
+    if (hasReposted === false && currentUser && postId) {
+      const exists = await checkInitialRepost();
+      setHasReposted(exists);
+      return exists;
+    }
+    return hasReposted;
+  }, [hasReposted, currentUser, postId, checkInitialRepost]);
 
   const onToggleLike = useCallback(async () => {
     if (!currentUser) {
@@ -149,6 +197,22 @@ export default function PostActions({ postId, likeCount = 0, commentCount = 0, o
       />
     </svg>
   );
+  const repostIcon = (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+      className="h-5 w-5"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3"
+      />
+    </svg>
+  );
   const shareIcon = (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -183,6 +247,163 @@ export default function PostActions({ postId, likeCount = 0, commentCount = 0, o
         track('post_share', { postId });
       } catch {}
     } catch (_) {}
+  };
+
+  const onRepostClick = async () => {
+    if (!currentUser) {
+      alert('Please sign in to repost.');
+      return;
+    }
+    await ensureHasReposted();
+    setShowRepostMenu(!showRepostMenu);
+  };
+
+  const onSimpleRepost = async () => {
+    if (!currentUser || !postId) return;
+
+    // Prevent reposting private posts
+    if (postData?.isPublic === false) {
+      alert('Cannot repost private posts.');
+      setShowRepostMenu(false);
+      return;
+    }
+
+    // Check for duplicate repost (already reposted)
+    const alreadyReposted = await ensureHasReposted();
+    if (alreadyReposted) {
+      setShowRepostMenu(false);
+      return; // User already reposted; menu should show Undo instead
+    }
+
+    setShowRepostMenu(false);
+    setHasReposted(true);
+    setOptimisticReposts((n) => n + 1);
+
+    try {
+      const batch = writeBatch(db);
+
+      // Flatten repost chain: if this is a repost of a repost, link to original
+      const originalRepostOf = postData?.repostOf;
+      const targetPostId = originalRepostOf?.postId || postId;
+      const targetAuthorId = originalRepostOf?.authorId || postData?.userId;
+      const targetAuthorName =
+        originalRepostOf?.authorName || postData?.author || postData?.usernameLower;
+      const targetAuthorPhoto = originalRepostOf?.authorPhoto || postData?.avatarUrl;
+      const targetContent = originalRepostOf?.content ?? postData?.content ?? '';
+      const targetMediaUrls = originalRepostOf?.mediaUrls || postData?.mediaUrls || [];
+      const targetTimestamp = originalRepostOf?.timestamp || postData?.timestamp || null;
+
+      // 1. Create postReposts doc (always references the original post)
+      const repostRef = doc(db, 'postReposts', `${targetPostId}_${currentUser.uid}`);
+
+      // 2. Create the Repost Post doc
+      const newPostRef = doc(collection(db, 'posts'));
+
+      batch.set(repostRef, {
+        postId: targetPostId,
+        userId: currentUser.uid,
+        timestamp: serverTimestamp(),
+        originalAuthorId: targetAuthorId || null,
+        repostPostId: newPostRef.id,
+      });
+
+      batch.set(newPostRef, {
+        userId: currentUser.uid,
+        usernameLower: currentUser.displayName?.toLowerCase() || 'unknown',
+        userDisplayName: currentUser.displayName || 'Unknown',
+        userProfilePicture: currentUser.photoURL || null,
+        content: '',
+        mediaUrls: [],
+        timestamp: serverTimestamp(),
+        isPublic: true,
+        repostOf: {
+          postId: targetPostId,
+          authorId: targetAuthorId,
+          authorName: targetAuthorName,
+          authorPhoto: targetAuthorPhoto,
+          content: targetContent,
+          mediaUrls: targetMediaUrls,
+          timestamp: targetTimestamp,
+        },
+        repostCount: 0,
+        likeCount: 0,
+        commentCount: 0,
+      });
+
+      await batch.commit();
+      track('repost_add', { postId: targetPostId, type: 'simple' });
+    } catch (e) {
+      console.error(e);
+      setHasReposted(false);
+      setOptimisticReposts((n) => Math.max(0, n - 1));
+      alert('Failed to repost');
+    }
+  };
+
+  const onUndoRepost = async () => {
+    if (!currentUser || !postId) return;
+    setShowRepostMenu(false);
+    setHasReposted(false);
+    setOptimisticReposts((n) => Math.max(0, n - 1));
+
+    // Get the target post ID (handles chain flattening)
+    const targetId = getRepostTargetId();
+
+    try {
+      const q = query(
+        collection(db, 'postReposts'),
+        where('postId', '==', targetId),
+        where('userId', '==', currentUser.uid),
+      );
+      const snap = await getDocs(q);
+      if (snap.empty) return;
+
+      const repostDoc = snap.docs[0];
+      const repostData = repostDoc.data();
+      const batch = writeBatch(db);
+
+      batch.delete(repostDoc.ref);
+      if (repostData.repostPostId) {
+        batch.delete(doc(db, 'posts', repostData.repostPostId));
+      }
+
+      await batch.commit();
+      track('repost_remove', { postId: targetId });
+    } catch (e) {
+      console.error(e);
+      setHasReposted(true);
+      setOptimisticReposts((n) => n + 1);
+      alert('Failed to undo repost');
+    }
+  };
+
+  const onQuoteRepost = () => {
+    // Prevent quoting private posts
+    if (postData?.isPublic === false) {
+      alert('Cannot quote private posts.');
+      setShowRepostMenu(false);
+      return;
+    }
+
+    setShowRepostMenu(false);
+    if (typeof window !== 'undefined') {
+      // Flatten repost chain: if this is already a repost, quote the original instead
+      const originalRepostOf = postData?.repostOf;
+      const quoteData = originalRepostOf
+        ? {
+            ...postData,
+            id: originalRepostOf.postId,
+            userId: originalRepostOf.authorId,
+            author: originalRepostOf.authorName,
+            avatarUrl: originalRepostOf.authorPhoto,
+            content: originalRepostOf.content,
+            mediaUrls: originalRepostOf.mediaUrls,
+            timestamp: originalRepostOf.timestamp,
+            repostOf: null, // Clear to prevent further nesting
+          }
+        : postData;
+      window.dispatchEvent(new CustomEvent('feed:quote-post', { detail: quoteData }));
+    }
   };
 
   return (
@@ -231,6 +452,54 @@ export default function PostActions({ postId, likeCount = 0, commentCount = 0, o
         <span className="flex items-center justify-center">{commentIcon}</span>
         <span className="text-sm font-medium tabular-nums">{formatCount(commentCount)}</span>
       </button>
+
+      <div className="relative">
+        <button
+          className={`flex h-11 items-center space-x-1.5 rounded px-2 transition-colors hover:text-white active:opacity-80 ${
+            hasReposted ? 'text-green-500' : ''
+          }`}
+          onClick={onRepostClick}
+          aria-label="Repost"
+          title="Repost"
+        >
+          <span className="flex items-center justify-center">{repostIcon}</span>
+          <span className="text-sm font-medium tabular-nums">{formatCount(optimisticReposts)}</span>
+        </button>
+        {showRepostMenu && (
+          <>
+            <div
+              className="fixed inset-0 z-10"
+              onClick={() => setShowRepostMenu(false)}
+              aria-hidden="true"
+            />
+            <div className="absolute bottom-full left-1/2 z-20 mb-2 w-40 -translate-x-1/2 overflow-hidden rounded-lg border border-white/10 bg-[#1a1a1c] shadow-xl">
+              {hasReposted ? (
+                <button
+                  onClick={onUndoRepost}
+                  className="flex w-full items-center px-4 py-3 text-sm text-red-500 hover:bg-white/5"
+                >
+                  Undo Repost
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={onSimpleRepost}
+                    className="flex w-full items-center px-4 py-3 text-sm text-white hover:bg-white/5"
+                  >
+                    Repost
+                  </button>
+                  <button
+                    onClick={onQuoteRepost}
+                    className="flex w-full items-center px-4 py-3 text-sm text-white hover:bg-white/5"
+                  >
+                    Quote Repost
+                  </button>
+                </>
+              )}
+            </div>
+          </>
+        )}
+      </div>
 
       <button
         className="flex h-11 items-center rounded px-2 transition-colors hover:text-white active:opacity-80"

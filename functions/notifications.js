@@ -279,6 +279,27 @@ exports.onFollowCreateNotify = onDocumentCreated('follows/{followId}', async (ev
   return null;
 });
 
+// --- postReposts onCreate -> original post owner gets post_reposted ---
+exports.onRepostCreateNotify = onDocumentCreated('postReposts/{repostId}', async (event) => {
+  try {
+    const repost = event.data?.data() || {};
+    const { postId, userId: actorId, originalAuthorId } = repost;
+    if (!postId || !originalAuthorId) return null;
+    await createNotification({
+      uid: originalAuthorId,
+      type: 'post_reposted',
+      title: 'Your post was reposted',
+      body: 'Someone reposted your post',
+      data: { postId, actorId: actorId || null },
+      link: `/post/${postId}`,
+      deepLink: `ragestate://post/${postId}`,
+    });
+  } catch (err) {
+    logger.error('onRepostCreateNotify failed', { err });
+  }
+  return null;
+});
+
 // NOTE: push sending will be a separate trigger or queue; this phase only creates docs and increments counters.
 
 // --- Callable: batchMarkNotificationsRead ---
@@ -706,6 +727,7 @@ exports.onNotificationPrefsWrittenSanitize = onDocumentWritten(
         'mention',
         'new_follower',
         'new_post_from_follow',
+        'post_reposted',
         'marketing',
         // add future types here as they are introduced
       ]);
