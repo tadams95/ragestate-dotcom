@@ -3,7 +3,6 @@
 import storage, { AUTH_STORAGE_EVENT } from '@/utils/storage';
 import { Dialog, DialogPanel } from '@headlessui/react';
 import Bars3Icon from '@heroicons/react/24/outline/Bars3Icon';
-import BellIcon from '@heroicons/react/24/outline/BellIcon';
 import ShoppingBagIcon from '@heroicons/react/24/outline/ShoppingBagIcon';
 import UserIcon from '@heroicons/react/24/outline/UserIcon';
 import XMarkIcon from '@heroicons/react/24/outline/XMarkIcon';
@@ -11,7 +10,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../../../firebase/context/FirebaseContext';
-import { useUnreadNotificationsCount } from '../../../lib/hooks';
+import NotificationBell from './NotificationBell';
 
 const navigation = [
   // { name: 'ABOUT', href: '/about' },
@@ -33,8 +32,6 @@ export default function Header() {
 
   // Derive auth state: prefer Firebase auth (instant), fallback to localStorage (persisted)
   const isAuthenticated = currentUser !== null || (hydrated && !!storage.get('idToken'));
-
-  const [unreadCount] = useUnreadNotificationsCount(currentUser?.uid || userId);
 
   // Load persisted data from localStorage on mount and listen for changes
   const loadFromStorage = useCallback(() => {
@@ -140,21 +137,7 @@ export default function Header() {
               <ShoppingBagIcon className="h-6 w-6" aria-hidden="true" />
             </Link>
             {!showSkeleton && isAuthenticated && (
-              <Link
-                href="/account"
-                aria-label="Notifications"
-                className="relative -m-2 inline-flex h-11 w-11 items-center justify-center text-gray-100 active:opacity-80"
-              >
-                <BellIcon className="h-6 w-6" aria-hidden="true" />
-                {unreadCount > 0 && (
-                  <span
-                    aria-label={`${unreadCount} unread notifications`}
-                    className="pointer-events-none absolute -right-0.5 -top-0.5 inline-flex min-w-[18px] max-w-[30px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-semibold leading-4 text-white shadow ring-1 ring-black/40"
-                  >
-                    {unreadCount > 99 ? '99+' : unreadCount}
-                  </span>
-                )}
-              </Link>
+              <NotificationBell userId={currentUser?.uid || userId} className="-m-2 h-11 w-11" />
             )}
             <div className="-m-2 inline-flex h-11 w-11 items-center justify-center">
               {showSkeleton ? (
@@ -241,16 +224,11 @@ export default function Header() {
                   </Link>
                   {!showSkeleton && isAuthenticated && (
                     <Link
-                      href="/account"
+                      href="/account/notifications"
                       onClick={handleNavClick}
                       className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-100 hover:bg-zinc-900"
                     >
                       NOTIFICATIONS
-                      {unreadCount > 0 && (
-                        <span className="ml-2 inline-flex items-center rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-semibold text-white">
-                          {unreadCount > 99 ? '99+' : unreadCount}
-                        </span>
-                      )}
                     </Link>
                   )}
                   {isAuthenticated ? (

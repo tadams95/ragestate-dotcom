@@ -181,10 +181,10 @@
 
 ### Notification Bell Component
 
-- [ ] Create `src/app/components/NotificationBell.js`
-- [ ] Show unread count badge (red dot or number)
-- [ ] Link to `/account/notifications`
-- [ ] Add to `Header.js` (visible when logged in)
+- [x] Create `src/app/components/NotificationBell.js`
+- [x] Show unread count badge (red dot or number)
+- [x] Link to `/account/notifications`
+- [x] Add to `Header.js` (visible when logged in)
 
 ### Preferences Page
 
