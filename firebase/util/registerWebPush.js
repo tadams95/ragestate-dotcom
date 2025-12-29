@@ -72,103 +72,66 @@ export async function registerWebPush(uid, opts = {}) {
   if (!(await isSupported())) return { status: 'unsupported' };
   const { requestPermission = true, forceClean = false } = opts;
   try {
-    console.log('[registerWebPush] Starting registration for uid:', uid);
-
     // If forceClean is requested, nuke everything first
     if (forceClean) {
       await nukeServiceWorkersAndCache();
     }
 
     // Explicitly register our service worker BEFORE initializing messaging
-    // This ensures the correct SW is in place after a nuclear reset
     let swRegistration = null;
     if ('serviceWorker' in navigator) {
       try {
-        console.log('[registerWebPush] Registering firebase-messaging-sw.js...');
         swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
           scope: '/',
         });
-        console.log('[registerWebPush] Service worker registered:', swRegistration.scope);
-        console.log(
-          '[registerWebPush] SW state - active:',
-          !!swRegistration.active,
-          'installing:',
-          !!swRegistration.installing,
-          'waiting:',
-          !!swRegistration.waiting,
-        );
 
         // Wait for the SW to be fully active
         await navigator.serviceWorker.ready;
-        console.log('[registerWebPush] navigator.serviceWorker.ready resolved');
 
         // Double-check we have an active SW
         if (!swRegistration.active) {
-          // Re-fetch the registration to get the active SW
           swRegistration = await navigator.serviceWorker.getRegistration('/');
-          console.log(
-            '[registerWebPush] Re-fetched registration, active:',
-            !!swRegistration?.active,
-          );
         }
 
-        if (swRegistration?.active) {
-          console.log(
-            '[registerWebPush] Service worker is active:',
-            swRegistration.active.scriptURL,
-          );
-        } else {
-          console.warn('[registerWebPush] No active service worker found after ready!');
+        if (!swRegistration?.active) {
+          console.warn('[registerWebPush] No active service worker found');
         }
       } catch (swError) {
         console.error('[registerWebPush] Failed to register service worker:', swError);
-        // Continue anyway - getToken will try to register its own
       }
     }
 
     const messaging = getMessaging(app);
-    console.log('[registerWebPush] Messaging instance created');
-    console.log('[registerWebPush] App Config SenderID:', app.options.messagingSenderId);
 
     if (requestPermission && Notification.permission === 'default') {
-      console.log('[registerWebPush] Requesting permission...');
       const perm = await Notification.requestPermission();
-      console.log('[registerWebPush] Permission result:', perm);
       if (perm !== 'granted') return { status: 'blocked' };
     }
     if (Notification.permission !== 'granted') {
-      console.log('[registerWebPush] Permission not granted, current:', Notification.permission);
       return { status: 'blocked' };
     }
 
     const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
-    console.log(
-      '[registerWebPush] Using VAPID Key:',
-      vapidKey ? vapidKey.slice(0, 10) + '...' : 'MISSING!',
-    );
+    if (!vapidKey) {
+      console.error('[registerWebPush] VAPID key missing');
+      return { status: 'error', error: new Error('VAPID key not configured') };
+    }
 
-    // Delete any existing token to force regeneration with new VAPID key
-    console.log('[registerWebPush] Deleting any existing token...');
+    // Delete any existing token to force regeneration
     try {
       await deleteToken(messaging);
-      console.log('[registerWebPush] Existing token deleted');
-    } catch (e) {
-      console.log('[registerWebPush] No existing token to delete or delete failed:', e.message);
+    } catch {
+      // Ignore - may not have a token yet
     }
 
-    console.log('[registerWebPush] Calling getToken...');
     const tokenOptions = { vapidKey };
-    // If we explicitly registered a SW, pass it to getToken
     if (swRegistration) {
       tokenOptions.serviceWorkerRegistration = swRegistration;
-      console.log('[registerWebPush] Using explicit SW registration for getToken');
     }
     const token = await getToken(messaging, tokenOptions);
-    console.log('[registerWebPush] getToken result:', token ? 'success' : 'no token');
     if (!token) return { status: 'error', error: new Error('No token returned') };
 
     const deviceId = `web_${token.slice(-10)}`;
-    console.log('[registerWebPush] Storing device document:', deviceId);
     await setDoc(
       doc(db, 'users', uid, 'devices', deviceId),
       {
@@ -180,7 +143,6 @@ export async function registerWebPush(uid, opts = {}) {
       },
       { merge: true },
     );
-    console.log('[registerWebPush] Device document stored successfully');
 
     // Foreground messages (optional hook for UI toast)
     onMessage(messaging, () => {
@@ -200,6 +162,38 @@ export async function registerWebPush(uid, opts = {}) {
  */
 export async function forceResetAndRegister(uid) {
   return registerWebPush(uid, { requestPermission: false, forceClean: true });
+}
+
+/**
+ * Disable web push: delete token, unregister SWs, and stop auto-refresh.
+ */
+export async function disableWebPush(uid) {
+  console.log('[registerWebPush] Disabling web push...');
+
+  // 1. Stop auto-refresh if running
+  if (_refreshIntervalId) {
+    clearInterval(_refreshIntervalId);
+    _refreshIntervalId = null;
+  }
+
+  // 2. Try to delete token from FCM
+  try {
+    const messaging = getMessaging(app);
+    await deleteToken(messaging);
+    console.log('[registerWebPush] Token deleted from FCM');
+  } catch (e) {
+    console.warn('[registerWebPush] Failed to delete token:', e);
+  }
+
+  // 3. Unregister Service Workers
+  if ('serviceWorker' in navigator) {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    for (const registration of registrations) {
+      registration.unregister();
+    }
+  }
+
+  return { status: 'disabled' };
 }
 
 /**

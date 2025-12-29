@@ -1,10 +1,6 @@
 'use client';
-// NOTE: batch mark-read optimization: we now have a callable `batchMarkNotificationsRead`.
-// Future improvement: replace sequential markAllRead loop with single callable invocation:
-// import { getFunctions, httpsCallable } from 'firebase/functions';
-// const fn = httpsCallable(getFunctions(), 'batchMarkNotificationsRead');
-// await fn({ markAll: true, max: 200 });
 // Using relative path because firebase config lives at project root /firebase/firebase.js (not under src)
+import { BellIcon, BellSlashIcon } from '@heroicons/react/24/outline';
 import {
   collection,
   deleteDoc,
@@ -21,7 +17,7 @@ import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useState } from 'react';
 import { db } from '../../../../firebase/firebase';
 import {
-  forceResetAndRegister,
+  disableWebPush,
   initWebPushTokenAutoRefresh,
   registerWebPush,
 } from '../../../../firebase/util/registerWebPush';
@@ -32,7 +28,12 @@ const NotificationPreferences = dynamic(
   { ssr: false },
 );
 
-export default function NotificationsTab({ userId, containerStyling, cardStyling }) {
+export default function NotificationsTab({
+  userId,
+  containerStyling,
+  cardStyling,
+  markReadOnView = false,
+}) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -40,13 +41,12 @@ export default function NotificationsTab({ userId, containerStyling, cardStyling
   // Initialize as 'default' to avoid SSR/hydration mismatch; sync in useEffect
   const [pushStatus, setPushStatus] = useState('default');
   const [registering, setRegistering] = useState(false);
+  const [hasAutoMarkedRead, setHasAutoMarkedRead] = useState(false);
   const PAGE_SIZE = 20;
 
   // Sync pushStatus with browser permission on mount (client-side only)
   useEffect(() => {
     if (typeof window !== 'undefined' && typeof Notification !== 'undefined') {
-      console.log('[Push] Browser permission:', Notification.permission);
-      console.log('[Push] VAPID Key loaded in Client:', process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY);
       setPushStatus(Notification.permission);
     }
   }, []);
@@ -76,6 +76,30 @@ export default function NotificationsTab({ userId, containerStyling, cardStyling
     setLoading(true);
     load().finally(() => setLoading(false));
   }, [load]);
+
+  // Auto-mark notifications as read when page is viewed (if markReadOnView is true)
+  useEffect(() => {
+    if (!markReadOnView || loading || hasAutoMarkedRead || !items.length) return;
+    const unread = items.filter((i) => !i.read);
+    if (unread.length === 0) {
+      setHasAutoMarkedRead(true);
+      return;
+    }
+    // Mark visible unread notifications as read after a short delay
+    // This gives the user a moment to see the unread state before it changes
+    const timer = setTimeout(async () => {
+      try {
+        const fn = httpsCallable(getFunctions(), 'batchMarkNotificationsRead');
+        await fn({ notificationIds: unread.map((n) => n.id) });
+        const now = new Date();
+        setItems((prev) => prev.map((n) => (n.read ? n : { ...n, read: true, seenAt: now })));
+        setHasAutoMarkedRead(true);
+      } catch (e) {
+        console.error('Auto mark-read failed:', e);
+      }
+    }, 1500); // 1.5s delay so user sees unread state briefly
+    return () => clearTimeout(timer);
+  }, [markReadOnView, loading, hasAutoMarkedRead, items]);
 
   // Initialize auto refresh if already granted on mount
   useEffect(() => {
@@ -149,115 +173,74 @@ export default function NotificationsTab({ userId, containerStyling, cardStyling
         </button>
       </div>
       {userId && pushStatus !== 'granted' && (
-        <div className="mb-4 rounded border border-yellow-700/40 bg-yellow-900/20 p-3 text-sm text-yellow-200">
-          <p className="mb-2 font-medium">Enable push notifications?</p>
+        <div className="mb-6 flex items-center justify-between rounded-lg border border-gray-800 bg-gray-900/50 p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-800">
+              <BellSlashIcon className="h-5 w-5 text-gray-400" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-white">Push Notifications</p>
+              <p className="text-xs text-gray-500">
+                {pushStatus === 'blocked'
+                  ? 'Blocked — update browser settings to enable'
+                  : 'Get notified about likes, comments, and more'}
+              </p>
+            </div>
+          </div>
           <button
-            disabled={registering}
+            disabled={registering || pushStatus === 'blocked'}
             onClick={async () => {
               setRegistering(true);
               try {
-                console.log('[Push] Starting registration for uid:', userId);
                 const res = await registerWebPush(userId, { requestPermission: true });
-                console.log('[Push] Registration result:', res);
                 if (res.status === 'granted') {
                   setPushStatus('granted');
-                  // Start auto refresh loop after successful grant
                   initWebPushTokenAutoRefresh(userId, {});
                 } else if (res.status === 'blocked') {
                   setPushStatus('blocked');
-                } else if (res.status === 'error') {
-                  console.error('[Push] Registration error:', res.error);
                 }
               } finally {
                 setRegistering(false);
               }
             }}
-            className="rounded bg-red-700/30 px-3 py-1 text-xs font-semibold text-red-200 transition hover:bg-red-700/50 disabled:opacity-50"
+            className="rounded-full bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {registering ? 'Enabling…' : 'Enable Push'}
+            {registering ? 'Enabling…' : 'Enable'}
           </button>
-          {pushStatus === 'blocked' && (
-            <p className="mt-2 text-xs text-yellow-300/80">
-              Permission denied. Adjust your browser notification settings to enable.
-            </p>
-          )}
         </div>
       )}
-      {/* Show status when already granted - allows manual re-registration */}
       {userId && pushStatus === 'granted' && (
-        <div className="mb-4 rounded border border-green-700/40 bg-green-900/20 p-3 text-sm text-green-200">
-          <p className="mb-2 font-medium">✓ Push notifications enabled</p>
+        <div className="mb-6 flex items-center justify-between rounded-lg border border-gray-800 bg-gray-900/50 p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-900/30">
+              <BellIcon className="h-5 w-5 text-green-400" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-white">Push Notifications</p>
+              <p className="text-xs text-green-500">Enabled — you&apos;ll receive push alerts</p>
+            </div>
+          </div>
           <button
             disabled={registering}
             onClick={async () => {
               setRegistering(true);
               try {
-                console.log('[Push] Nuclear reset: Nuking SWs, cache, and re-registering...');
-                // Delete all existing device documents for this user
+                // Delete device documents from Firestore
                 const devicesRef = collection(db, 'users', userId, 'devices');
                 const devicesSnap = await getDocs(devicesRef);
-                console.log('[Push] Found', devicesSnap.size, 'device documents to delete');
-
-                const deletePromises = devicesSnap.docs.map((doc) => {
-                  console.log('[Push] Deleting device doc:', doc.id);
-                  return deleteDoc(doc.ref);
-                });
+                const deletePromises = devicesSnap.docs.map((d) => deleteDoc(d.ref));
                 await Promise.all(deletePromises);
-                console.log('[Push] Deleted', devicesSnap.size, 'old device documents');
-
-                // Use forceResetAndRegister which nukes SWs & IndexedDB before re-registering
-                console.log('[Push] Force reset and re-register for uid:', userId);
-                const res = await forceResetAndRegister(userId);
-                console.log('[Push] Force reset result:', res);
-                if (res.status === 'granted' && res.token) {
-                  console.log(
-                    '[Push] Device token stored successfully. Token prefix:',
-                    res.token.slice(0, 20) + '...',
-                  );
-                  alert('Reset complete! New token generated. Try Send Test Push now.');
-                } else if (res.status === 'error') {
-                  console.error('[Push] Re-registration error:', res.error);
-                  alert('Reset failed: ' + (res.error?.message || 'Unknown error'));
-                }
+                // Disable push
+                await disableWebPush(userId);
+                setPushStatus('default');
               } finally {
                 setRegistering(false);
               }
             }}
-            className="rounded bg-orange-700/30 px-3 py-1 text-xs font-semibold text-orange-200 transition hover:bg-orange-700/50 disabled:opacity-50"
+            className="rounded-full border border-gray-700 bg-transparent px-4 py-2 text-sm font-medium text-gray-300 transition hover:border-red-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {registering ? 'Resetting…' : '🔥 Nuclear Reset'}
+            {registering ? 'Disabling…' : 'Disable'}
           </button>
-          <button
-            disabled={registering}
-            onClick={async () => {
-              setRegistering(true);
-              try {
-                console.log('[Push] Sending test notification...');
-                const fn = httpsCallable(getFunctions(), 'testSendPush');
-                const res = await fn({
-                  title: 'RAGESTATE',
-                  body: 'Push notifications are working! 🔥',
-                });
-                console.log('[Push] Test result:', res.data);
-                if (res.data?.success) {
-                  alert('Test push sent! Check your notifications.');
-                } else {
-                  alert('Push failed: ' + (res.data?.error || 'Unknown error'));
-                }
-              } catch (e) {
-                console.error('[Push] Test error:', e);
-                alert('Push test failed: ' + e.message);
-              } finally {
-                setRegistering(false);
-              }
-            }}
-            className="ml-2 rounded bg-blue-700/30 px-3 py-1 text-xs font-semibold text-blue-200 transition hover:bg-blue-700/50 disabled:opacity-50"
-          >
-            {registering ? 'Sending…' : 'Send Test Push'}
-          </button>
-          <p className="mt-2 text-xs text-green-300/60">
-            Click if push notifications aren&apos;t working.
-          </p>
         </div>
       )}
       {loading ? (

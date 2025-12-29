@@ -174,10 +174,10 @@
 
 ### In-App Notification Feed
 
-- [ ] Create `src/app/account/notifications/page.js`
-- [ ] Query `users/{uid}/notifications` ordered by `createdAt` desc
-- [ ] Mark notifications as `read: true` on view
-- [ ] Decrement `unreadNotifications` counter on user doc
+- [x] Create `src/app/account/notifications/page.js`
+- [x] Query `users/{uid}/notifications` ordered by `createdAt` desc
+- [x] Mark notifications as `read: true` on view
+- [x] Decrement `unreadNotifications` counter on user doc
 
 ### Notification Bell Component
 
