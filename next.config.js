@@ -56,6 +56,13 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
+      // Google profile pictures (for Google Sign-In)
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
 

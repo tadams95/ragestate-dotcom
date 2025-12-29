@@ -188,18 +188,54 @@
 
 ### Preferences Page
 
-- [ ] Create `src/app/account/notifications/settings/page.js` (or section)
-- [ ] Toggle: Enable/disable push notifications
-- [ ] Toggle: Quiet hours (start/end time, timezone)
-- [ ] Toggle: Per-type preferences (likes, comments, follows)
-- [ ] Save to `users/{uid}.notificationPrefs`
+- [x] Create `src/app/account/notifications/settings/page.js` (or section)
+- [x] Toggle: Enable/disable push notifications
+- [x] Toggle: Quiet hours (start/end time, timezone)
+- [x] Toggle: Per-type preferences (likes, comments, follows)
+- [x] Save to `users/{uid}.notificationPrefs`
 
 ### Device Registry
 
-- [ ] On login/app load: Request FCM permission
-- [ ] Store token in `users/{uid}/devices/{deviceId}`
-- [ ] Handle token refresh
-- [ ] Remove stale tokens on logout
+- [x] On login/app load: Request FCM permission
+- [x] Store token in `users/{uid}/devices/{deviceId}`
+- [x] Handle token refresh
+- [x] Remove stale tokens on logout
+
+---
+
+## 2.5 Google Sign-In (Social Login)
+
+> **Goal**: Allow users to sign in/up with Google for faster onboarding
+
+### Firebase Console Setup
+
+- [x] Enable Google provider in Firebase Console → Authentication → Sign-in method
+- [x] Verify authorized domains include `localhost` and production URL
+
+### Auth Helper (`lib/utils/auth.js`)
+
+- [x] Add `signInWithGoogle()` function using `GoogleAuthProvider` + `signInWithPopup`
+- [x] Handle new user creation (check if `customers/{uid}` exists, create if not)
+- [x] Sync profile data (name, email, photo) to Firestore `profiles/{uid}`
+
+### Login Page (`src/app/login/page.js`)
+
+- [x] Add "Sign in with Google" button (styled with Google branding)
+- [x] Call `signInWithGoogle()` on click
+- [x] Handle success (dispatch login, save to storage, redirect)
+- [x] Handle errors (display user-friendly message)
+
+### Create Account Page (`src/app/create-account/page.js`)
+
+- [x] Add "Sign up with Google" button
+- [x] Reuse same `signInWithGoogle()` flow (Firebase handles new vs existing)
+- [x] Skip email verification for Google accounts (already verified)
+
+### Profile Data Handling
+
+- [x] On Google sign-in: populate `profiles/{uid}` with Google displayName + photoURL
+- [x] Allow users to edit name/photo later (don't overwrite on subsequent logins)
+- [x] Handle edge case: user has email/password account, then tries Google with same email
 
 ---
 

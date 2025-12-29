@@ -6,7 +6,9 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { loginSuccess } from '../../../lib/features/todos/authSlice';
-import { createUser } from '../../../lib/utils/auth';
+import { setAuthenticated, setUserName } from '../../../lib/features/todos/userSlice';
+import { createUser, signInWithGoogle } from '../../../lib/utils/auth';
+import storage from '../../../src/utils/storage';
 
 import { sendEmailVerification } from 'firebase/auth';
 import { auth } from '../../../firebase/firebase';
@@ -25,15 +27,16 @@ export default function CreateAccount() {
   const [formError, setFormError] = useState('');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const dispatch = useDispatch();
 
   // const API_URL = "https://us-central1-ragestate-app.cloudfunctions.net/stripePayment";
 
   const inputStyling =
-    'block w-full bg-black pl-2 rounded-md border-2 py-1.5 px-1 text-gray-100 shadow-sm ring-1 ring-inset ring-gray-700 placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-red-500 sm:text-sm sm:leading-6';
+    'w-full rounded-lg border border-gray-500 bg-black/30 px-4 py-3 text-gray-100 transition duration-200 placeholder:text-gray-500 focus:border-red-500 focus:ring-1 focus:ring-red-500 sm:text-sm sm:leading-6';
 
   const buttonStyling =
-    'flex w-full justify-center rounded-md bg-transparent px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 border-2 border-gray-100 transition-all duration-200';
+    'flex w-full justify-center rounded-lg bg-gradient-to-r from-red-600 to-red-500 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:from-red-500 hover:to-red-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
 
   const cancelCreateHandler = () => {
     setFirstName('');
@@ -207,18 +210,71 @@ export default function CreateAccount() {
     }
   };
 
+  const handleGoogleSignUp = async () => {
+    setIsGoogleLoading(true);
+    setFormError('');
+    try {
+      const { user, userData } = await signInWithGoogle();
+
+      // Handle authentication state
+      dispatch(
+        loginSuccess({
+          userId: user.uid,
+          email: user.email,
+          idToken: user.stsTokenManager.accessToken,
+          refreshToken: user.stsTokenManager.refreshToken,
+        }),
+      );
+
+      // Save auth data to local storage
+      storage.set('idToken', user.stsTokenManager.accessToken);
+      storage.set('refreshToken', user.stsTokenManager.refreshToken);
+      storage.set('email', user.email);
+      storage.set('userId', user.uid);
+
+      // Set user name
+      const name = userData?.displayName || user.displayName || '';
+      if (name) {
+        dispatch(setUserName(name));
+        storage.set('name', name);
+      }
+
+      // Set profile picture
+      const photoURL = userData?.photoURL || user.photoURL || '/assets/user.png';
+      storage.set('profilePicture', photoURL);
+
+      dispatch(setAuthenticated(true));
+      setIsGoogleLoading(false);
+
+      // Google accounts are already verified - redirect directly
+      const next =
+        typeof window !== 'undefined'
+          ? new URLSearchParams(window.location.search).get('next')
+          : null;
+      router.push(next || '/');
+    } catch (error) {
+      console.error('Error signing up with Google:', error.message);
+      setFormError(error.message);
+      setIsGoogleLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-black">
       {/* Header is rendered by layout.js */}
-      <div className="mx-auto flex min-h-full max-w-4xl flex-1 flex-col justify-center px-6 py-12 lg:px-8">
+
+      <div className="relative isolate flex min-h-[calc(100vh-80px)] flex-col items-center justify-center overflow-hidden px-6 py-12 lg:px-8">
+        {/* Background gradient effect */}
+        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-red-500/10 via-transparent to-transparent" />
+
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           {/* Add a logo or brand element */}
           <div className="mb-6 mt-10 flex justify-center">
             <Image src="/assets/RSLogo2.png" alt="RAGESTATE" width={128} height={64} priority />
           </div>
 
-          <h2 className="text-center text-2xl font-bold leading-9 tracking-tight text-gray-100">
-            CREATE YOUR ACCOUNT
+          <h2 className="text-center text-3xl font-bold tracking-tight text-gray-100 sm:text-4xl">
+            Create Account
           </h2>
           <p className="mt-2 text-center text-sm text-gray-400">
             Already have an account?{' '}
@@ -229,9 +285,61 @@ export default function CreateAccount() {
         </div>
 
         {/* Two-column layout on larger screens */}
-        <div className="mt-10 grid w-full max-w-4xl grid-cols-1 items-start gap-8 sm:mx-auto sm:mt-16 md:grid-cols-5">
+        <div className="mt-10 grid w-full max-w-5xl grid-cols-1 items-start gap-8 sm:mx-auto md:grid-cols-5">
           {/* Form column */}
-          <div className="rounded-lg border border-gray-800 bg-gray-900/30 p-6 shadow-xl md:col-span-3">
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur-lg md:col-span-3">
+            {/* Google Sign-up Button */}
+            <button
+              type="button"
+              onClick={handleGoogleSignUp}
+              disabled={isGoogleLoading || isLoading || isAuthenticating}
+              className="mb-6 flex w-full items-center justify-center gap-3 rounded-lg border border-gray-500 bg-white px-4 py-3 text-sm font-semibold text-gray-900 transition-all duration-200 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isGoogleLoading ? (
+                <svg className="h-5 w-5 animate-spin text-gray-600" viewBox="0 0 24 24">
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    fill="none"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  />
+                </svg>
+              ) : (
+                <svg className="h-5 w-5" viewBox="0 0 24 24">
+                  <path
+                    fill="#4285F4"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                  />
+                </svg>
+              )}
+              {isGoogleLoading ? 'Signing up...' : 'Sign up with Google'}
+            </button>
+
+            {/* Divider */}
+            <div className="mb-6 flex items-center justify-center">
+              <span className="text-sm text-gray-400">or create with email</span>
+            </div>
+
             <form className="space-y-6" onSubmit={handleSignUp}>
               {/* Grid layout for form fields */}
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -408,9 +516,9 @@ export default function CreateAccount() {
           </div>
 
           {/* Information column */}
-          <div className="md:col-span-2">
+          <div className="space-y-6 md:col-span-2">
             {/* Password requirements box */}
-            <div className="mb-6 rounded-lg border border-gray-800 bg-gray-900/30 p-5 shadow-md">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl backdrop-blur-lg">
               <h3 className="mb-4 text-lg font-medium text-gray-100">Password Requirements</h3>
               <ul className="space-y-3">
                 {[
@@ -470,7 +578,7 @@ export default function CreateAccount() {
             </div>
 
             {/* Benefits box */}
-            <div className="rounded-lg border border-gray-800 bg-gray-900/30 p-5 shadow-md">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl backdrop-blur-lg">
               <h3 className="mb-4 text-lg font-medium text-gray-100">Account Benefits</h3>
               <ul className="space-y-2">
                 {[
