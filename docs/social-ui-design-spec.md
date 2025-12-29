@@ -96,12 +96,17 @@ Use subtle 1px borders with translucency for contrast layering: `border: 1px sol
 
 Heroicons outline + minimal custom glyphs (reactions). Stroke width consistent (1.5). Action icons 20px; micro icons (presence dots) 8–10px.
 
+**Additions:**
+
+- **Verified Badge**: Solid brand-blue or accent color checkmark (14px) next to verified usernames.
+- **Shopping Bag**: For product tags and commerce links.
+- **Repost**: "Repeat" arrows (Heroicons `arrow-path-rounded-square` or similar).
+
 ### 3.6 Responsive Grid & Breakpoints (Mobile-first)
 
 Baseline target devices: 360×740, 390×844, 414×896 (iOS/Android modern). Use fluid widths with consistent side gutters.
 
 - Breakpoints (Tailwind):
-
   - base: <640 (mobile, default styles)
   - sm: ≥640 (small tablet/landscape phones)
   - md: ≥768 (tablet)
@@ -109,27 +114,22 @@ Baseline target devices: 360×740, 390×844, 414×896 (iOS/Android modern). Use 
   - xl: ≥1280 (wider desktop)
 
 - Containers & gutters:
-
   - Mobile: full-bleed with 16px side padding (`px-4`) unless media requires edge-to-edge.
   - sm–md: center content with `max-w-[720px]` for feed column.
   - lg+: `max-w-[1040-1160px]` with optional secondary column.
 
 - Safe areas (iOS notch/home indicator):
-
   - Add `padding-bottom: env(safe-area-inset-bottom)` for bottom sheets, sticky bars, and FABs.
   - Header: `height: 56–64px`; if fixed, set `padding-top` on pages to prevent overlap.
 
 - Touch ergonomics:
-
   - Hit targets ≥44×44px; minimum spacing 8px between tap targets.
   - Place primary actions within right-thumb zone on mobile where possible.
 
 - Keyboard/IME avoidance:
-
   - Composer and inputs must avoid the on-screen keyboard; use viewport units (`dvh`) and safe-area padding. On iOS Safari, prefer `100dvh` over `100vh`.
 
 - Typography scaling:
-
   - Use `clamp()` for headings, e.g., section title `clamp(18px, 2.8vw, 20px)`.
   - Keep body at 15–16px base; don’t go below 14px on mobile.
 
@@ -159,13 +159,18 @@ Mobile-specific behaviors:
 ### 4.2 Post Card Structure
 
 ```
-[Avatar] [Author · handle]        [Overflow]
+[Repost Header (optional): 🔁 Reposted by [User]]
+[Avatar] [Author (Verified ✓) · handle]        [Overflow]
 [Timestamp inline right on mobile under author]
 [Body text truncated (line-clamp 5) + "See more" if > 300 chars]
-[Media gallery (1–4) or video with aspect ratio 16:9 / 1:1]
+[Embedded Repost Card (if repost)]
+  [Original Author (Verified ✓)]
+  [Original Content + Media]
+[Media gallery (1–4) or video with aspect ratio 16:9 / 9:16]
+[Product Card / Shop Link (optional)]
 [Tag / hashtag chips (scrollable row, lazy render if >2)]
 [Action bar]
-  (Like/React)  (Comment)  (Share)  (Save?)    [Reaction count cluster]
+  (Like/React)  (Comment)  (Repost)  (Share)    [Reaction count cluster]
 [Inline reaction faces row (top 3 types) + comment count + view count (future)]
 
 Responsive notes:
@@ -183,12 +188,13 @@ Responsive notes:
 
 ### 4.4 Media Handling
 
-| Media Count | Layout                                                                          |
-| ----------- | ------------------------------------------------------------------------------- |
-| 1           | Full width, radius 16, aspect maintained, max height 60vh with object-fit cover |
-| 2           | Two equal columns (gap 4)                                                       |
-| 3           | Left tall (60%) + right stack (2 x 30% height)                                  |
-| 4           | 2x2 grid                                                                        |
+| Media Count | Layout                                                                                             |
+| ----------- | -------------------------------------------------------------------------------------------------- |
+| 1 (Image)   | Full width, radius 16, aspect maintained, max height 60vh with object-fit cover                    |
+| 1 (Video)   | Immersive player (TikTok/Reels style): 9:16 preferred, auto-play muted, tap to unmute/pause, loop. |
+| 2           | Two equal columns (gap 4)                                                                          |
+| 3           | Left tall (60%) + right stack (2 x 30% height)                                                     |
+| 4           | 2x2 grid                                                                                           |
 
 Lazy load offscreen images via IntersectionObserver root margin 400px. Preload first image in viewport. Use blurred placeholder (dominant color extraction optional Phase 2).
 
@@ -221,6 +227,36 @@ Mobile guidance:
 | Empty feed | "Your feed is warming up."               | Button: "Find creators" (discover page) |
 | Load fail  | "Couldn’t load posts."                   | Retry button                            |
 | Offline    | Banner: "Offline – showing cached posts" | Dismiss X                               |
+
+### 4.9 Repost UI
+
+- **Repost Button**: Tapping opens menu (Simple Repost, Quote Repost).
+- **Simple Repost**: Instantly shares to feed. Shows "🔁 Reposted by [You]" on the card.
+- **Quote Repost**: Opens composer with embedded original post. User adds commentary.
+- **Embedded Card**:
+  - Distinct border/background (`border-white/10`, `bg-white/5`).
+  - Shows original author (avatar + name + verified badge).
+  - Truncated content (line-clamp 3-4).
+  - Media preview (thumbnail or small video player).
+  - Tapping embedded card navigates to original post.
+
+### 4.10 Commerce Integration (Ecommerce Aspect)
+
+- **Product Tags**: "Shopping Bag" icon on media. Tapping reveals product pills.
+- **Product Card**:
+  - Compact horizontal card embedded below post content.
+  - Thumbnail, Product Name, Price (accent color).
+  - "Shop" button (outline or subtle accent).
+- **Shop Tab**: (Future) Dedicated feed of shoppable posts.
+
+### 4.11 Profile View (Commerce Enhanced)
+
+- **Header**: Avatar (large), Stats (Posts, Followers, Following), Bio, Actions (Follow, Message, Shop).
+- **Tabs**:
+  - **Posts**: Grid of media/posts.
+  - **Shop**: (Seller only) Grid of products.
+  - **Saved**: (Private) Bookmarked posts/products.
+- **Product Highlights**: Horizontal scroll of featured items above the posts grid.
 
 ---
 
@@ -286,6 +322,8 @@ Mobile specifics:
 | Incoming      | Elev-2 bg + border-subtle; text-primary                                                  |
 | System        | Centered small pill, text-secondary, bg-elev-2 50%                                       |
 | Media         | Rounded container; show image/video; tap to full-screen viewer                           |
+| Post Share    | Miniaturized post card (author avatar + truncated text + media thumbnail)                |
+| Product Share | Compact card: Product Image (left), Title + Price (right) + "View" button                |
 | Reply (quote) | Top inset bar (2px accent) + quoted line ellipsis; tap scroll to source                  |
 
 Time + status (✓, ✓✓ read) shown on hover (desktop) or long press (mobile) or inline in small text under last bubble in a cluster.
@@ -406,7 +444,8 @@ Lazy import: emoji picker, media viewer, reaction picker, analytics tracking hoo
 | Feed MVP      | Card, composer (text + single image), like reaction, pagination, basic skeletons               |
 | Chat MVP      | Chat list, room, text only messages, optimistic send, presence, typing, basic reactions (like) |
 | Enhancement 1 | Multi-image grid, reaction palette, unread badges improvements, media attachments in chat      |
-| Enhancement 2 | Video posts, full reaction metrics, message replies/thread previews, new posts live banner     |
+| Enhancement 2 | Video posts, Reposts, full reaction metrics, message replies/thread previews, new posts banner |
+| UI Polish     | Verification Badges, Commerce Integration (Product Tags/Cards), Animation refinement           |
 | Enhancement 3 | Themes, advanced ranking UI signals (trending modules), story rail                             |
 
 ---
@@ -476,23 +515,19 @@ Mobile-tailored Tailwind patterns:
 ## 19. Mobile-first Overview (Quick Reference)
 
 - Layout
-
   - Single-column flow by default; enhance to two-column at `lg+`.
   - Fixed header; content padded to avoid overlap.
   - Optional bottom sheet composer; respects safe-area insets.
 
 - Ergonomics
-
   - Hit targets ≥44px; key actions within thumb zone.
   - Avoid edge swipes interfering with OS gestures; keep primary actions inset.
 
 - Performance
-
   - Smaller page size on feed; lazy-load and avoid reflow.
   - Preload only immediate viewport media.
 
 - Media
-
   - Maintain aspect ratios; clip rather than stretch.
   - Use `sizes` to tailor image srcset for mobile first.
 

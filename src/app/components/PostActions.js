@@ -407,7 +407,7 @@ export default function PostActions({
   };
 
   return (
-    <div className="flex items-center space-x-4 text-gray-400">
+    <div className="flex items-center space-x-4 text-[#a1a5ab]">
       {/* Reaction cluster */}
       {topReactions.length > 0 && (
         <div
@@ -440,7 +440,7 @@ export default function PostActions({
         title={hasLiked ? 'Unlike' : 'Like'}
       >
         <span className="flex items-center justify-center">{likeIcon}</span>
-        <span className="text-sm font-medium tabular-nums">{formatCount(optimisticLikes)}</span>
+        <span className="text-xs font-medium tabular-nums">{formatCount(optimisticLikes)}</span>
       </button>
 
       <button
@@ -450,7 +450,7 @@ export default function PostActions({
         title="Comments"
       >
         <span className="flex items-center justify-center">{commentIcon}</span>
-        <span className="text-sm font-medium tabular-nums">{formatCount(commentCount)}</span>
+        <span className="text-xs font-medium tabular-nums">{formatCount(commentCount)}</span>
       </button>
 
       <div className="relative">
@@ -463,7 +463,7 @@ export default function PostActions({
           title="Repost"
         >
           <span className="flex items-center justify-center">{repostIcon}</span>
-          <span className="text-sm font-medium tabular-nums">{formatCount(optimisticReposts)}</span>
+          <span className="text-xs font-medium tabular-nums">{formatCount(optimisticReposts)}</span>
         </button>
         {showRepostMenu && (
           <>

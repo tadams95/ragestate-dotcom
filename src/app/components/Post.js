@@ -1,7 +1,7 @@
 'use client';
 import { track } from '@/app/utils/metrics';
 import { formatDate } from '@/utils/formatters';
-import { deleteDoc, doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { deleteDoc, doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../../firebase/context/FirebaseContext';
@@ -10,10 +10,10 @@ import CommentsSheet from './CommentsSheet';
 import EditPostModal from './EditPostModal';
 import PostActions from './PostActions';
 import PostContent from './PostContent';
-import PostHeader from './PostHeader';
+import PostHeader, { VerifiedBadge } from './PostHeader';
 
 // Embedded card for displaying the original post in a repost
-function EmbeddedPost({ repostOf }) {
+function EmbeddedPost({ repostOf, isVerified = false }) {
   if (!repostOf) return null;
 
   // Handle deleted/unavailable original posts
@@ -58,7 +58,10 @@ function EmbeddedPost({ repostOf }) {
             {(repostOf.authorName || 'U')[0].toUpperCase()}
           </div>
         )}
-        <span className="text-sm font-semibold text-white">{repostOf.authorName || 'Unknown'}</span>
+        <span className="flex items-center text-sm font-semibold text-white">
+          {repostOf.authorName || 'Unknown'}
+          {isVerified && <VerifiedBadge />}
+        </span>
       </div>
 
       {/* Original content */}
@@ -109,7 +112,34 @@ export default function Post({ postData, hideFollow = false }) {
   const [liveData, setLiveData] = useState(null);
   const [editOpen, setEditOpen] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
+  const [originalAuthorVerified, setOriginalAuthorVerified] = useState(false);
   const { currentUser } = useAuth();
+
+  // Fetch author verification status from profile
+  useEffect(() => {
+    if (!postData?.userId) return;
+    getDoc(doc(db, 'profiles', postData.userId))
+      .then((snap) => {
+        if (snap.exists()) {
+          setIsVerified(snap.data().isVerified === true);
+        }
+      })
+      .catch(() => {});
+  }, [postData?.userId]);
+
+  // Fetch original post author verification status for reposts
+  useEffect(() => {
+    const originalAuthorId = liveData?.repostOf?.authorId || postData?.repostOf?.authorId;
+    if (!originalAuthorId) return;
+    getDoc(doc(db, 'profiles', originalAuthorId))
+      .then((snap) => {
+        if (snap.exists()) {
+          setOriginalAuthorVerified(snap.data().isVerified === true);
+        }
+      })
+      .catch(() => {});
+  }, [liveData?.repostOf?.authorId, postData?.repostOf?.authorId]);
 
   // Minimal view metric on mount
   useEffect(() => {
@@ -222,6 +252,7 @@ export default function Post({ postData, hideFollow = false }) {
         hideFollow={hideFollow}
         isAuthor={isAuthor}
         isPublic={liveData?.isPublic ?? postData?.isPublic ?? true}
+        isVerified={isVerified}
         onEdit={() => setEditOpen(true)}
         onTogglePrivacy={async () => {
           if (!postData?.id) return;
@@ -268,7 +299,10 @@ export default function Post({ postData, hideFollow = false }) {
             />
           )}
           {/* Embedded original post */}
-          <EmbeddedPost repostOf={liveData?.repostOf ?? postData?.repostOf} />
+          <EmbeddedPost
+            repostOf={liveData?.repostOf ?? postData?.repostOf}
+            isVerified={originalAuthorVerified}
+          />
         </>
       ) : (
         <PostContent

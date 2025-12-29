@@ -312,22 +312,31 @@
 
 ### Apply Design Spec (`docs/social-ui-design-spec.md`)
 
-- [ ] `Feed.js`: Use correct color tokens (`--bg-elev-1`, `--border-subtle`)
-- [ ] `Post.js`: 14px border-radius, proper shadow
-- [ ] `PostComposer.js`: 20px radius, modal shadow per spec
-- [ ] `Header.js`: Consistent icon sizing (20px), 44px tap targets
+- [x] **Spec Update**: Updated spec with Repost UI, Commerce Integration, and Profile Shop details.
+- [x] `Feed.js`: Use correct color tokens (`--bg-elev-1`, `--border-subtle`) — uses `border-white/10`, `bg-white/5` (equivalent)
+- [x] `Post.js`: 14px border-radius, proper shadow — `rounded-[14px]`, `shadow-[0_4px_12px_-4px_#000c]` ✅
+- [x] `PostComposer.js`: 20px radius, modal shadow per spec — `rounded-[20px]`, `shadow-[0_8px_28px_-8px_#000f]`
+- [x] `Header.js`: Consistent icon sizing (20px), 44px tap targets — icons `h-5 w-5`, targets `h-11 w-11`
 
 ### Skeleton Loaders
 
-- [ ] `Feed.js`: Show `PostSkeleton` during initial load
-- [ ] `Feed.js`: Show skeleton during pagination fetch
-- [ ] Skeleton matches post card dimensions
+- [x] `Feed.js`: Show `PostSkeleton` during initial load — shows 3 skeletons when `posts.length === 0 && loading`
+- [x] `Feed.js`: Show skeleton during pagination fetch — shows 1 skeleton when `loading && posts.length > 0`
+- [x] Skeleton matches post card dimensions — same `rounded-[14px]`, `border`, `bg`, `p-4`, `shadow` as Post.js
 
 ### Badges & Counters
 
-- [ ] Like/comment counts use `--text-secondary` color
-- [ ] Author name uses `--text-primary`, 15px/600 weight
-- [ ] Timestamps use `--text-tertiary`, 12px/500 weight
+- [x] Like/comment counts use `--text-secondary` color — `text-[#a1a5ab]` on PostActions container
+- [x] Author name uses `--text-primary`, 15px/600 weight — `text-[#f5f6f7]` in PostHeader.js
+- [x] Timestamps use `--text-tertiary`, 12px/500 weight — `text-[#5d6269]` with `font-medium` in PostHeader.js
+
+### Verification Badges
+
+- [x] Add `isVerified` field to `profiles/{uid}` schema (admin-only write) — fixed operator precedence in firestore.rules; `isVerified` excluded from allowed keys
+- [x] `PostHeader.js`: Show ✓ badge next to verified usernames — `VerifiedBadge` component with `isVerified` prop
+- [x] `EmbeddedPost` (reposts): Show ✓ badge for verified original authors — fetches `originalAuthorVerified` from profiles
+- [x] `CommentsSheet.js`: Show ✓ badge on verified commenters — `verifiedUserIds` Set populated from profiles
+- [x] Style: Red checkmark icon (RAGESTATE brand) — `text-[#ff1f42]` using badge SVG
 
 ### Mobile QA Checklist
 
@@ -366,6 +375,49 @@
 - [ ] Block disposable email domains on signup (list: `mailinator`, `tempmail`, etc.)
 - [x] Require email verification before posting (already in `PostComposer.js`)
 - [ ] Monitor spam account rate (target: <1%)
+
+---
+
+## 5. Light/Dark Mode Toggle (Phase 2 — 4 hours)
+
+> **Goal**: User-selectable theme with system preference detection
+> **Status**: Not started — CSS variables already in place
+
+### CSS Variables (`src/app/globals.css`)
+
+- [ ] Add `:root` (light mode) color definitions
+- [ ] Add `.dark` class overrides for dark mode colors
+- [ ] Ensure all semantic tokens covered (`--bg-primary`, `--text-primary`, `--border-subtle`, etc.)
+
+### Theme Provider (`lib/context/ThemeContext.js`)
+
+- [ ] Create `ThemeProvider` context with `theme` state (`light` | `dark` | `system`)
+- [ ] Create `useTheme()` hook exposing `theme`, `setTheme`, `resolvedTheme`
+- [ ] Detect system preference via `matchMedia('(prefers-color-scheme: dark)')`
+- [ ] Apply `.dark` class to `<html>` element based on resolved theme
+- [ ] Persist preference to `localStorage` (key: `theme`)
+- [ ] SSR-safe: Avoid hydration mismatch (inline script or cookie-based)
+
+### Toggle UI (`Header.js`)
+
+- [ ] Add theme toggle button (sun/moon icon)
+- [ ] Cycle through: Light → Dark → System (or simple toggle)
+- [ ] Icon animates on change (rotate/fade)
+- [ ] Tooltip shows current mode
+
+### Component Audit
+
+- [ ] Audit `Post.js`, `PostComposer.js`, `Feed.js` for hardcoded colors
+- [ ] Audit `Header.js`, `CommentsSheet.js` for hardcoded colors
+- [ ] Replace any hex values with CSS variable references
+- [ ] Test all components in both themes
+
+### Polish
+
+- [ ] Smooth transition on theme change (`transition: background-color 200ms, color 200ms`)
+- [ ] Ensure sufficient contrast in both modes (WCAG AA)
+- [ ] Test media (images/video) appearance in light mode
+- [ ] Update design spec with light mode color tokens
 
 ---
 

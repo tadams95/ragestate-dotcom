@@ -5,6 +5,28 @@ import Link from 'next/link';
 import { useAuth } from '../../../firebase/context/FirebaseContext';
 import Followbutton from './Followbutton';
 
+// Red checkmark badge for verified users (RAGESTATE brand)
+function VerifiedBadge() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className="ml-0.5 inline-block h-4 w-4 text-[#ff1f42]"
+      aria-label="Verified"
+      title="Verified"
+    >
+      <path
+        fillRule="evenodd"
+        d="M8.603 3.799A4.49 4.49 0 0112 2.25c1.357 0 2.573.6 3.397 1.549a4.49 4.49 0 013.498 1.307 4.491 4.491 0 011.307 3.497A4.49 4.49 0 0121.75 12a4.49 4.49 0 01-1.549 3.397 4.491 4.491 0 01-1.307 3.497 4.491 4.491 0 01-3.497 1.307A4.49 4.49 0 0112 21.75a4.49 4.49 0 01-3.397-1.549 4.49 4.49 0 01-3.498-1.306 4.491 4.491 0 01-1.307-3.498A4.49 4.49 0 012.25 12c0-1.357.6-2.573 1.549-3.397a4.49 4.49 0 011.307-3.497 4.49 4.49 0 013.497-1.307zm7.007 6.387a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}
+
+export { VerifiedBadge };
+
 export default function PostHeader({
   author,
   timestamp,
@@ -15,6 +37,7 @@ export default function PostHeader({
   hideFollow = false,
   isAuthor = false,
   isPublic = true,
+  isVerified = false,
   onEdit,
   onTogglePrivacy,
   onDelete,
@@ -89,29 +112,35 @@ export default function PostHeader({
         )}
         <div className="flex flex-col items-start gap-0.5">
           {usernameLower ? (
-            <Link
-              href={`/${usernameLower}`}
-              prefetch={false}
-              className="text-[15px] font-semibold leading-5 text-white hover:underline active:opacity-90"
-            >
-              {displayName || `${usernameLower}`}
-            </Link>
+            <span className="flex items-center">
+              <Link
+                href={`/${usernameLower}`}
+                prefetch={false}
+                className="text-[15px] font-semibold leading-5 text-[#f5f6f7] hover:underline active:opacity-90"
+              >
+                {displayName || `${usernameLower}`}
+              </Link>
+              {isVerified && <VerifiedBadge />}
+            </span>
           ) : (
-            <p className="text-[15px] font-semibold leading-5 text-white">
-              {displayName || (authorUserId ? `uid:${String(authorUserId).slice(0, 8)}` : '')}
-            </p>
+            <span className="flex items-center">
+              <p className="text-[15px] font-semibold leading-5 text-[#f5f6f7]">
+                {displayName || (authorUserId ? `uid:${String(authorUserId).slice(0, 8)}` : '')}
+              </p>
+              {isVerified && <VerifiedBadge />}
+            </span>
           )}
           {postId ? (
             <Link
               href={`/post/${postId}`}
               prefetch={false}
-              className="text-xs text-gray-400 transition-colors hover:text-gray-200"
+              className="text-xs font-medium text-[#5d6269] transition-colors hover:text-[#a1a5ab]"
               title="View post"
             >
               {timestamp || 'Time ago'}
             </Link>
           ) : (
-            <p className="text-xs text-gray-400">{timestamp || 'Time ago'}</p>
+            <p className="text-xs font-medium text-[#5d6269]">{timestamp || 'Time ago'}</p>
           )}
         </div>
       </div>

@@ -63,12 +63,13 @@ service cloud.firestore {
 
     // Public user profiles: minimal safe fields for display
     // Clients should only write benign fields here; sensitive data must remain in /users
+    // Note: isVerified is admin-only (not in allowed keys list)
     match /profiles/{userId} {
       allow read: if true;
-      allow create, update: if isCurrentUser(userId) || isAdmin()
-        && hasOnlyKeys(request.resource.data, [
-          'displayName', 'photoURL', 'bio', 'usernameLower'
-        ])
+      allow create, update: if (isCurrentUser(userId) || isAdmin())
+        && (isAdmin() || hasOnlyKeys(request.resource.data, [
+          'displayName', 'photoURL', 'bio', 'usernameLower', 'profilePicture'
+        ]))
         && (!request.resource.data.keys().hasAny(['displayName']) || isString(request.resource.data.displayName))
         && (!request.resource.data.keys().hasAny(['photoURL']) || isString(request.resource.data.photoURL))
         && (!request.resource.data.keys().hasAny(['bio']) || isMaxLen500(request.resource.data.bio))

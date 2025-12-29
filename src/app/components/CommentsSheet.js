@@ -24,6 +24,7 @@ import { useSelector } from 'react-redux';
 import { useAuth } from '../../../firebase/context/FirebaseContext';
 import { db } from '../../../firebase/firebase';
 import { selectUserName } from '../../../lib/features/todos/userSlice';
+import { VerifiedBadge } from './PostHeader';
 
 const PAGE_SIZE = 20;
 const REPLIES_PREVIEW_COUNT = 2; // Show this many replies before collapse
@@ -39,6 +40,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
   const [replyingTo, setReplyingTo] = useState(null); // { id, userDisplayName } of comment being replied to
   const [collapsedThreads, setCollapsedThreads] = useState(new Set()); // Set of parentIds with collapsed replies
   const [likedCommentIds, setLikedCommentIds] = useState(new Set()); // Set of commentIds liked by current user
+  const [verifiedUserIds, setVerifiedUserIds] = useState(new Set()); // Set of verified user IDs
   const contentRef = useRef(null);
   const backdropRef = useRef(null);
   const textareaRef = useRef(null);
@@ -130,6 +132,33 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
     };
     fetchLikes();
   }, [postId, currentUser]);
+
+  // Fetch verification status for commenters
+  useEffect(() => {
+    if (comments.length === 0) return;
+    const userIds = [...new Set(comments.map((c) => c.userId).filter(Boolean))];
+    // Only fetch for user IDs we haven't checked yet
+    const uncheckedIds = userIds.filter((id) => !verifiedUserIds.has(id));
+    if (uncheckedIds.length === 0) return;
+
+    const fetchVerified = async () => {
+      const newVerified = new Set(verifiedUserIds);
+      await Promise.all(
+        uncheckedIds.map(async (uid) => {
+          try {
+            const snap = await getDoc(doc(db, 'profiles', uid));
+            if (snap.exists() && snap.data().isVerified === true) {
+              newVerified.add(uid);
+            }
+          } catch {}
+        }),
+      );
+      if (newVerified.size !== verifiedUserIds.size) {
+        setVerifiedUserIds(newVerified);
+      }
+    };
+    fetchVerified();
+  }, [comments, verifiedUserIds]);
 
   // Toggle like on a comment
   const toggleLike = async (comment) => {
@@ -457,18 +486,21 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                   <div className="min-w-0 flex-1">
                     <div className="text-sm">
                       {c.userId ? (
-                        <Link
-                          href={c.usernameLower ? `/${c.usernameLower}` : `/profile/${c.userId}`}
-                          prefetch={false}
-                          className="font-semibold hover:underline"
-                        >
-                          {c.userDisplayName ||
-                            (c.usernameLower
-                              ? `${c.usernameLower}`
-                              : currentUser && c.userId === currentUser.uid
-                                ? localUserName || currentUser.displayName || 'You'
-                                : `uid:${String(c.userId).slice(0, 8)}`)}
-                        </Link>
+                        <span className="inline-flex items-center">
+                          <Link
+                            href={c.usernameLower ? `/${c.usernameLower}` : `/profile/${c.userId}`}
+                            prefetch={false}
+                            className="font-semibold hover:underline"
+                          >
+                            {c.userDisplayName ||
+                              (c.usernameLower
+                                ? `${c.usernameLower}`
+                                : currentUser && c.userId === currentUser.uid
+                                  ? localUserName || currentUser.displayName || 'You'
+                                  : `uid:${String(c.userId).slice(0, 8)}`)}
+                          </Link>
+                          {verifiedUserIds.has(c.userId) && <VerifiedBadge />}
+                        </span>
                       ) : (
                         <span className="font-semibold">{c.userDisplayName || 'Unknown user'}</span>
                       )}
@@ -598,20 +630,23 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                         <div className="min-w-0 flex-1">
                           <div className="text-xs">
                             {r.userId ? (
-                              <Link
-                                href={
-                                  r.usernameLower ? `/${r.usernameLower}` : `/profile/${r.userId}`
-                                }
-                                prefetch={false}
-                                className="font-semibold hover:underline"
-                              >
-                                {r.userDisplayName ||
-                                  (r.usernameLower
-                                    ? `${r.usernameLower}`
-                                    : currentUser && r.userId === currentUser.uid
-                                      ? localUserName || currentUser.displayName || 'You'
-                                      : `uid:${String(r.userId).slice(0, 8)}`)}
-                              </Link>
+                              <span className="inline-flex items-center">
+                                <Link
+                                  href={
+                                    r.usernameLower ? `/${r.usernameLower}` : `/profile/${r.userId}`
+                                  }
+                                  prefetch={false}
+                                  className="font-semibold hover:underline"
+                                >
+                                  {r.userDisplayName ||
+                                    (r.usernameLower
+                                      ? `${r.usernameLower}`
+                                      : currentUser && r.userId === currentUser.uid
+                                        ? localUserName || currentUser.displayName || 'You'
+                                        : `uid:${String(r.userId).slice(0, 8)}`)}
+                                </Link>
+                                {verifiedUserIds.has(r.userId) && <VerifiedBadge />}
+                              </span>
                             ) : (
                               <span className="font-semibold">
                                 {r.userDisplayName || 'Unknown user'}

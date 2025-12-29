@@ -114,7 +114,7 @@ export default function Header() {
               onClick={() => setMobileMenuOpen(true)}
             >
               <span className="sr-only">Open main menu</span>
-              <Bars3Icon className="h-6 w-6" aria-hidden="true" />
+              <Bars3Icon className="h-5 w-5" aria-hidden="true" />
             </button>
           </div>
           <div className="hidden lg:flex lg:gap-x-12">
@@ -134,14 +134,14 @@ export default function Header() {
               aria-label="Cart"
               className="relative -m-2 inline-flex h-11 w-11 items-center justify-center text-gray-100 active:opacity-80"
             >
-              <ShoppingBagIcon className="h-6 w-6" aria-hidden="true" />
+              <ShoppingBagIcon className="h-5 w-5" aria-hidden="true" />
             </Link>
             {!showSkeleton && isAuthenticated && (
               <NotificationBell userId={currentUser?.uid || userId} className="-m-2 h-11 w-11" />
             )}
             <div className="-m-2 inline-flex h-11 w-11 items-center justify-center">
               {showSkeleton ? (
-                <div aria-hidden className="h-6 w-6 animate-pulse rounded-md bg-zinc-800/60" />
+                <div aria-hidden className="h-5 w-5 animate-pulse rounded-md bg-zinc-800/60" />
               ) : isAuthenticated ? (
                 <Link
                   href="/account"
@@ -156,10 +156,10 @@ export default function Header() {
                       height={24}
                       sizes="24px"
                       loading="lazy"
-                      className="h-6 w-6 rounded-md"
+                      className="h-5 w-5 rounded-md"
                     />
                   ) : (
-                    <UserIcon className="h-6 w-6" aria-hidden="true" />
+                    <UserIcon className="h-5 w-5" aria-hidden="true" />
                   )}
                 </Link>
               ) : (
@@ -168,7 +168,7 @@ export default function Header() {
                   className="inline-flex h-11 w-11 items-center justify-center text-sm font-semibold leading-6 text-gray-100 active:opacity-80"
                   aria-label="Login"
                 >
-                  <UserIcon className="h-6 w-6" aria-hidden="true" />
+                  <UserIcon className="h-5 w-5" aria-hidden="true" />
                   <span aria-hidden="true"></span>
                 </Link>
               )}
@@ -196,7 +196,7 @@ export default function Header() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <span className="sr-only">Close menu</span>
-                <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                <XMarkIcon className="h-5 w-5" aria-hidden="true" />
               </button>
             </div>
             <div className="mt-6 flow-root">
