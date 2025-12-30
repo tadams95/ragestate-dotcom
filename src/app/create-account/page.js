@@ -8,6 +8,7 @@ import { useDispatch } from 'react-redux';
 import { loginSuccess } from '../../../lib/features/todos/authSlice';
 import { setAuthenticated, setUserName } from '../../../lib/features/todos/userSlice';
 import { createUser, signInWithGoogle } from '../../../lib/utils/auth';
+import { validateEmailDomain } from '../../../lib/utils/disposableEmails';
 import { checkRateLimit, peekRateLimit, RATE_LIMITS } from '../../../lib/utils/rateLimit';
 import storage from '../../../src/utils/storage';
 
@@ -135,6 +136,14 @@ export default function CreateAccount() {
     if (honeypot) {
       // Silently reject but pretend to process (don't reveal detection)
       await new Promise((r) => setTimeout(r, 1500));
+      setIsLoading(false);
+      return;
+    }
+
+    // Block disposable/temporary email domains
+    const disposableError = validateEmailDomain(email);
+    if (disposableError) {
+      setFormError(disposableError);
       setIsLoading(false);
       return;
     }

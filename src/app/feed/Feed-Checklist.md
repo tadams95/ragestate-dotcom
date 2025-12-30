@@ -365,16 +365,18 @@
 
 ### Firebase App Check (Recommended)
 
-- [ ] Enable App Check in Firebase Console
-- [ ] Add reCAPTCHA Enterprise or DeviceCheck provider
-- [ ] Initialize in `firebase/firebase.js`: `initializeAppCheck(app, { provider })`
-- [ ] Enforce on Cloud Functions (optional, adds device attestation)
+> **Status**: ⏭️ Skipped — overkill for current traffic; revisit if abuse bypasses existing gates
+
+- [~] Enable App Check in Firebase Console — deferred
+- [~] Add reCAPTCHA Enterprise or DeviceCheck provider — deferred
+- [~] Initialize in `firebase/firebase.js`: `initializeAppCheck(app, { provider })` — deferred
+- [~] Enforce on Cloud Functions (optional, adds device attestation) — deferred
 
 ### Spam Prevention
 
-- [ ] Block disposable email domains on signup (list: `mailinator`, `tempmail`, etc.)
+- [x] Block disposable email domains on signup (list: `mailinator`, `tempmail`, etc.) — `lib/utils/disposableEmails.js` blocklist, checked in `create-account/page.js`
 - [x] Require email verification before posting (already in `PostComposer.js`)
-- [ ] Monitor spam account rate (target: <1%)
+- [x] Monitor spam account rate (target: <1%) — track via Firebase Auth Console → Users list, filter by creation date
 
 ---
 
