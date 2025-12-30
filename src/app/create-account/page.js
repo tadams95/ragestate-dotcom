@@ -30,6 +30,7 @@ export default function CreateAccount() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [rateLimitError, setRateLimitError] = useState('');
+  const [honeypot, setHoneypot] = useState(''); // Bot trap - should remain empty
   const dispatch = useDispatch();
 
   // Check rate limit status on mount and periodically
@@ -129,6 +130,14 @@ export default function CreateAccount() {
     e.preventDefault();
     setIsLoading(true);
     setFormError('');
+
+    // Honeypot check - bots fill hidden fields, humans don't
+    if (honeypot) {
+      // Silently reject but pretend to process (don't reveal detection)
+      await new Promise((r) => setTimeout(r, 1500));
+      setIsLoading(false);
+      return;
+    }
 
     // Check rate limit before attempting signup
     const { key, maxAttempts, windowMs, blockDurationMs } = RATE_LIMITS.SIGNUP;
@@ -442,6 +451,20 @@ export default function CreateAccount() {
                   value={email}
                   onChange={handleEmailChange}
                   className={`${inputStyling} mt-1`}
+                />
+              </div>
+
+              {/* Honeypot field - hidden from humans, bots will fill it */}
+              <div aria-hidden="true" className="absolute left-[-9999px] top-[-9999px]">
+                <label htmlFor="website">Website</label>
+                <input
+                  type="text"
+                  id="website"
+                  name="website"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={honeypot}
+                  onChange={(e) => setHoneypot(e.target.value)}
                 />
               </div>
 

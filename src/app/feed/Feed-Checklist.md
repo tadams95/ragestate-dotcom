@@ -359,9 +359,9 @@
 
 ### Honeypot Fields (Invisible Bot Trap)
 
-- [ ] Add hidden field to signup form (e.g., `<input name="website" style="display:none">`)
-- [ ] Add hidden field to login form
-- [ ] Reject submissions where honeypot is filled (bots auto-fill everything)
+- [x] Add hidden field to signup form (e.g., `<input name="website" style="display:none">`)
+- [x] Add hidden field to login form
+- [x] Reject submissions where honeypot is filled (bots auto-fill everything)
 
 ### Firebase App Check (Recommended)
 

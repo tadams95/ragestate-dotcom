@@ -26,6 +26,7 @@ export default function Login() {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [rateLimitError, setRateLimitError] = useState('');
+  const [honeypot, setHoneypot] = useState(''); // Bot trap - should remain empty
 
   // Check rate limit status on mount and periodically
   useEffect(() => {
@@ -62,6 +63,14 @@ export default function Login() {
     event.preventDefault();
     setIsAuthenticating(true);
     setError(null);
+
+    // Honeypot check - if filled, silently reject (bots fill hidden fields)
+    if (honeypot) {
+      // Fake delay to not reveal detection
+      await new Promise((r) => setTimeout(r, 1500));
+      setIsAuthenticating(false);
+      return;
+    }
 
     // Pre-check rate limit (don't record attempt yet - only on failure)
     const { key, maxAttempts, windowMs, blockDurationMs } = RATE_LIMITS.LOGIN_FAILED;
@@ -232,6 +241,20 @@ export default function Login() {
                   onChange={handleEmailChange}
                   className="w-full rounded-lg border border-gray-500 bg-black/30 px-4 py-3 text-gray-100 transition duration-200 placeholder:text-gray-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
                   placeholder="Enter your email"
+                />
+              </div>
+
+              {/* Honeypot field - hidden from humans, bots will fill it */}
+              <div aria-hidden="true" className="absolute left-[-9999px] top-[-9999px]">
+                <label htmlFor="website">Website</label>
+                <input
+                  type="text"
+                  id="website"
+                  name="website"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={honeypot}
+                  onChange={(e) => setHoneypot(e.target.value)}
                 />
               </div>
 
