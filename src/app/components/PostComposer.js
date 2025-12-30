@@ -530,13 +530,13 @@ export default function PostComposer() {
 
       <Dialog open={open} onClose={setOpen} className="relative z-50">
         <div className="fixed inset-0 bg-black/60" aria-hidden="true" />
-        <div className="fixed inset-0 flex items-end justify-center supports-[padding:env(safe-area-inset-bottom)]:pb-[env(safe-area-inset-bottom)] sm:items-center">
+        <div className="fixed inset-0 flex items-end justify-center overflow-y-auto supports-[padding:env(safe-area-inset-bottom)]:pb-[env(safe-area-inset-bottom)] sm:items-center sm:overflow-visible">
           <DialogPanel className="w-full rounded-t-[20px] border border-white/10 bg-[#0d0d0f] p-4 text-white shadow-[0_8px_28px_-8px_#000f] sm:max-w-2xl sm:rounded-[20px] sm:p-6">
             <div className="mb-2 flex items-center justify-between">
               <h3 className="text-base font-semibold">Create post</h3>
               <button
                 onClick={() => setOpen(false)}
-                className="text-gray-400 hover:text-white"
+                className="flex h-11 w-11 items-center justify-center text-gray-400 hover:text-white"
                 aria-label="Close"
               >
                 ✕

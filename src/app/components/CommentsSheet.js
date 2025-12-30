@@ -353,7 +353,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
               href={`/post/${postId}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
               title="Open post in new tab"
               onClick={(e) => e.stopPropagation()}
             >
@@ -376,7 +376,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
               </svg>
             </Link>
             <button
-              className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
               onClick={onClose}
               aria-label="Close"
               title="Close"
@@ -512,18 +512,18 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                       {linkifyAll(c.content)}
                     </p>
                     {/* Reply & Like buttons */}
-                    <div className="mt-1 flex items-center gap-4">
+                    <div className="-ml-2 mt-1 flex items-center gap-1">
                       {currentUser && (
                         <button
                           onClick={() => handleReply(c)}
-                          className="text-xs text-gray-500 hover:text-gray-300"
+                          className="min-h-[44px] px-2 text-xs text-gray-500 hover:text-gray-300"
                         >
                           Reply
                         </button>
                       )}
                       <button
                         onClick={() => toggleLike(c)}
-                        className={`flex items-center gap-1 text-xs transition-colors ${
+                        className={`flex min-h-[44px] items-center gap-1 px-2 text-xs transition-colors ${
                           likedCommentIds.has(c.id)
                             ? 'text-red-500'
                             : 'text-gray-500 hover:text-gray-300'
@@ -563,7 +563,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                   {(currentUser?.uid === c.userId || currentUser?.uid === postOwnerId) && (
                     <button
                       onClick={() => handleDeleteComment(c.id)}
-                      className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded text-gray-500 opacity-0 transition-opacity hover:bg-white/10 hover:text-red-400 group-hover:opacity-100"
+                      className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center rounded text-gray-500 opacity-0 transition-opacity hover:bg-white/10 hover:text-red-400 group-hover:opacity-100"
                       title="Delete comment"
                       aria-label="Delete comment"
                     >
@@ -661,7 +661,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                           </p>
                           <button
                             onClick={() => toggleLike(r)}
-                            className={`mt-1 flex items-center gap-1 text-xs transition-colors ${
+                            className={`-ml-2 mt-0.5 flex min-h-[44px] items-center gap-1 px-2 text-xs transition-colors ${
                               likedCommentIds.has(r.id)
                                 ? 'text-red-500'
                                 : 'text-gray-500 hover:text-gray-300'
@@ -700,7 +700,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                         {(currentUser?.uid === r.userId || currentUser?.uid === postOwnerId) && (
                           <button
                             onClick={() => handleDeleteComment(r.id)}
-                            className="ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded text-gray-500 opacity-0 transition-opacity hover:bg-white/10 hover:text-red-400 group-hover:opacity-100"
+                            className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center rounded text-gray-500 opacity-0 transition-opacity hover:bg-white/10 hover:text-red-400 group-hover:opacity-100"
                             title="Delete reply"
                             aria-label="Delete reply"
                           >
@@ -708,7 +708,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                               xmlns="http://www.w3.org/2000/svg"
                               viewBox="0 0 20 20"
                               fill="currentColor"
-                              className="h-3 w-3"
+                              className="h-4 w-4"
                             >
                               <path
                                 fillRule="evenodd"
@@ -733,7 +733,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                         setCollapsedThreads((prev) => new Set([...prev, `${c.id}_expanded`]));
                       }
                     }}
-                    className="ml-8 text-xs text-gray-500 hover:text-gray-300"
+                    className="ml-8 min-h-[44px] px-2 text-xs text-gray-500 hover:text-gray-300"
                   >
                     {isCollapsed
                       ? `Show ${replies.length} ${replies.length === 1 ? 'reply' : 'replies'}`
@@ -752,7 +752,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                           return next;
                         });
                       }}
-                      className="ml-8 text-xs text-gray-500 hover:text-gray-300"
+                      className="ml-8 min-h-[44px] px-2 text-xs text-gray-500 hover:text-gray-300"
                     >
                       Collapse replies
                     </button>
@@ -762,7 +762,10 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
           })}
           {loading && <p className="text-gray-400">Loading…</p>}
           {!loading && hasMore && (
-            <button className="text-sm text-gray-300 hover:text-white" onClick={fetchMore}>
+            <button
+              className="min-h-[44px] px-2 text-sm text-gray-300 hover:text-white"
+              onClick={fetchMore}
+            >
               Load more
             </button>
           )}
@@ -786,7 +789,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
               <button
                 type="button"
                 onClick={cancelReply}
-                className="text-gray-500 hover:text-white"
+                className="flex h-11 w-11 items-center justify-center text-gray-500 hover:text-white"
               >
                 ✕
               </button>

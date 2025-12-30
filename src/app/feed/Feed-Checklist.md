@@ -340,10 +340,10 @@
 
 ### Mobile QA Checklist
 
-- [ ] All tap targets ≥44px
-- [ ] Safe area padding on iOS (notch, home indicator)
-- [ ] Composer opens without keyboard overlap
-- [ ] Scroll performance smooth (no jank)
+- [x] All tap targets ≥44px — CommentsSheet buttons, PostComposer close button updated to 44px minimum
+- [x] Safe area padding on iOS (notch, home indicator) — viewport-fit=cover, safe-area utilities in globals.css, Feed/Footer padding
+- [x] Composer opens without keyboard overlap — items-end positioning, overflow-y-auto, safe-area-inset-bottom
+- [x] Scroll performance smooth (no jank) — IntersectionObserver, useCallback, deduplication, loading guards
 - [ ] Test on: iPhone SE, iPhone 14, Pixel 5, Galaxy S21
 
 ---
