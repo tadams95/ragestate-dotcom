@@ -353,9 +353,9 @@
 ### Rate Limiting
 
 - [x] `functions/feed.js`: Post rate limit (3 posts/5 min) exists
-- [ ] `src/app/create-account/page.js`: Add account creation rate limit (IP-based, 3/hour)
-- [ ] `src/app/login/page.js`: Add failed login attempt limit (5 attempts/15min)
-- [ ] Cloud Function rate limits: Use Firebase `onCall` with custom throttling
+- [x] `src/app/create-account/page.js`: Add account creation rate limit (3/hour) — client-side via `lib/utils/rateLimit.js`, checks before and during signup
+- [x] `src/app/login/page.js`: Add failed login attempt limit (5 attempts/15min) — records only failed attempts, clears on success
+- [x] Cloud Function rate limits: Firestore-based throttling in `functions/rateLimit.js` — applied to `batchMarkNotificationsRead`, `testSendPush`, `createStripeCustomer`
 
 ### Honeypot Fields (Invisible Bot Trap)
 

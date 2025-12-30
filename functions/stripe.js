@@ -9,6 +9,7 @@ const express = require('express');
 const cors = require('cors');
 const { admin, db } = require('./admin');
 const { createShopifyOrder, isShopifyConfigured } = require('./shopifyAdmin');
+const { checkRateLimit } = require('./rateLimit');
 
 // Secret Manager: define secrets. Also support process.env for local dev.
 const STRIPE_SECRET = defineSecret('STRIPE_SECRET');
@@ -1900,6 +1901,7 @@ exports.stripePayment = onRequest(
 );
 
 // Callable function to create a Stripe customer for the authenticated, verified user
+// Rate limited: 3 calls per 5 minutes per user
 exports.createStripeCustomer = onCall(
   { enforceAppCheck: true, secrets: [STRIPE_SECRET] },
   async (request) => {
@@ -1910,6 +1912,15 @@ exports.createStripeCustomer = onCall(
       throw new HttpsError('unauthenticated', 'Authentication required');
     }
 
+    const uid = request.auth.uid;
+
+    // Rate limit check
+    const rateLimitResult = await checkRateLimit('CREATE_CUSTOMER', uid);
+    if (!rateLimitResult.allowed) {
+      logger.warn('createStripeCustomer rate limited', { uid });
+      throw new HttpsError('resource-exhausted', rateLimitResult.message);
+    }
+
     const stripe = getStripe();
     if (!stripe) {
       throw new HttpsError(
@@ -1918,7 +1929,6 @@ exports.createStripeCustomer = onCall(
       );
     }
 
-    const uid = request.auth.uid;
     const email = request.auth.token.email || undefined;
     const emailVerified = request.auth.token.email_verified === true;
     if (!emailVerified) {

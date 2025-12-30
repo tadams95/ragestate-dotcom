@@ -5,11 +5,17 @@ import { doc, getDoc, getFirestore } from 'firebase/firestore';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { loginSuccess } from '../../../lib/features/todos/authSlice';
 import { setAuthenticated, setUserName } from '../../../lib/features/todos/userSlice';
 import { loginUser, signInWithGoogle } from '../../../lib/utils/auth';
+import {
+  checkRateLimit,
+  clearRateLimit,
+  peekRateLimit,
+  RATE_LIMITS,
+} from '../../../lib/utils/rateLimit';
 
 export default function Login() {
   const router = useRouter();
@@ -19,6 +25,29 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [rateLimitError, setRateLimitError] = useState('');
+
+  // Check rate limit status on mount and periodically
+  useEffect(() => {
+    const checkLimit = () => {
+      const { key, maxAttempts, windowMs } = RATE_LIMITS.LOGIN_FAILED;
+      const status = peekRateLimit(key, maxAttempts, windowMs);
+      if (!status.allowed && status.blockedUntil) {
+        const remainingMs = status.blockedUntil.getTime() - Date.now();
+        const remainingMins = Math.ceil(remainingMs / 60000);
+        setRateLimitError(
+          `Too many failed login attempts. Please try again in ${remainingMins} minute${remainingMins !== 1 ? 's' : ''}.`,
+        );
+      } else {
+        setRateLimitError('');
+      }
+    };
+
+    checkLimit();
+    // Re-check every 30 seconds in case block expires
+    const interval = setInterval(checkLimit, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Memoize the onChange handlers using useCallback
   const handleEmailChange = useCallback((e) => {
@@ -32,9 +61,26 @@ export default function Login() {
   const handleSignIn = async (event) => {
     event.preventDefault();
     setIsAuthenticating(true);
+    setError(null);
+
+    // Pre-check rate limit (don't record attempt yet - only on failure)
+    const { key, maxAttempts, windowMs, blockDurationMs } = RATE_LIMITS.LOGIN_FAILED;
+    const preCheck = peekRateLimit(key, maxAttempts, windowMs);
+    if (!preCheck.allowed) {
+      const remainingMs = preCheck.blockedUntil.getTime() - Date.now();
+      const remainingMins = Math.ceil(remainingMs / 60000);
+      setRateLimitError(
+        `Too many failed login attempts. Please try again in ${remainingMins} minute${remainingMins !== 1 ? 's' : ''}.`,
+      );
+      setIsAuthenticating(false);
+      return;
+    }
 
     try {
       const { user, userData } = await loginUser(email, password, dispatch);
+
+      // Success - clear any rate limit tracking
+      clearRateLimit(key);
 
       // Handle authentication state
       dispatch(
@@ -89,6 +135,13 @@ export default function Login() {
       console.error('Error signing in:', error.message);
       setError(error.message);
       setIsAuthenticating(false);
+
+      // Record failed attempt for rate limiting
+      const { key, maxAttempts, windowMs, blockDurationMs } = RATE_LIMITS.LOGIN_FAILED;
+      const rateLimitStatus = checkRateLimit(key, maxAttempts, windowMs, blockDurationMs);
+      if (!rateLimitStatus.allowed) {
+        setRateLimitError(rateLimitStatus.message);
+      }
     }
   };
 
@@ -220,10 +273,17 @@ export default function Login() {
                 </Link>
               </div>
 
+              {/* Rate limit error */}
+              {rateLimitError && (
+                <div className="rounded-md border border-yellow-500 bg-yellow-500/10 p-3">
+                  <p className="text-sm text-yellow-500">{rateLimitError}</p>
+                </div>
+              )}
+
               {/* Sign in button */}
               <button
                 type="submit"
-                disabled={isAuthenticating}
+                disabled={isAuthenticating || !!rateLimitError}
                 className="w-full rounded-lg bg-gradient-to-r from-red-600 to-red-500 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:from-red-500 hover:to-red-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isAuthenticating ? (
@@ -260,7 +320,7 @@ export default function Login() {
               <button
                 type="button"
                 onClick={handleGoogleSignIn}
-                disabled={isGoogleLoading || isAuthenticating}
+                disabled={isGoogleLoading || isAuthenticating || !!rateLimitError}
                 className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-500 bg-white px-4 py-3 text-sm font-semibold text-gray-900 transition-all duration-200 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isGoogleLoading ? (

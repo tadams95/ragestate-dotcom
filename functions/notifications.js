@@ -6,10 +6,11 @@
 
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const { onDocumentWritten } = require('firebase-functions/v2/firestore');
-const { onCall } = require('firebase-functions/v2/https');
+const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const logger = require('firebase-functions/logger');
 const { admin, db } = require('./admin');
+const { checkRateLimit } = require('./rateLimit');
 
 // --- Test Helpers (exposed via module.exports._test) ---
 // These pure functions mirror logic inside the push sender trigger so we can unit test
@@ -309,12 +310,21 @@ exports.onRepostCreateNotify = onDocumentCreated('postReposts/{repostId}', async
 //  - Operates only on caller's own notifications.
 //  - If markAll=true, scans newest unread up to 'max' (default 100, hard cap 300).
 //  - Returns counts: { updated, remainingUnread }
+//  - Rate limited: 10 calls per minute per user
 exports.batchMarkNotificationsRead = onCall(async (request) => {
   const ctx = request.auth;
   if (!ctx || !ctx.uid) {
-    throw new Error('UNAUTHENTICATED');
+    throw new HttpsError('unauthenticated', 'Authentication required');
   }
   const uid = ctx.uid;
+
+  // Rate limit check
+  const rateLimitResult = await checkRateLimit('BATCH_MARK_READ', uid);
+  if (!rateLimitResult.allowed) {
+    logger.warn('batchMarkNotificationsRead rate limited', { uid });
+    throw new HttpsError('resource-exhausted', rateLimitResult.message);
+  }
+
   const { notificationIds, markAll, max } = request.data || {};
   const HARD_CAP = 300;
   const limit = Math.min(typeof max === 'number' && max > 0 ? max : 100, HARD_CAP);
@@ -793,20 +803,29 @@ exports.onNotificationPrefsWrittenSanitize = onDocumentWritten(
 // Input: { uid?: string, title?: string, body?: string }
 // If uid omitted, uses caller's uid.
 // Returns: { success, devicesFound, fcmResult }
+// Rate limited: 5 calls per minute per user
 // Updated: 2025-12-28 - Force redeploy after VAPID key configuration
 exports.testSendPush = onCall(async (request) => {
   const ctx = request.auth;
   if (!ctx || !ctx.uid) {
-    throw new Error('UNAUTHENTICATED');
+    throw new HttpsError('unauthenticated', 'Authentication required');
   }
   const callerUid = ctx.uid;
+
+  // Rate limit check
+  const rateLimitResult = await checkRateLimit('TEST_PUSH', callerUid);
+  if (!rateLimitResult.allowed) {
+    logger.warn('testSendPush rate limited', { callerUid });
+    throw new HttpsError('resource-exhausted', rateLimitResult.message);
+  }
+
   const { uid: targetUid, title, body } = request.data || {};
   const uid = targetUid || callerUid;
 
   // Security: Only allow sending to self (unless caller has admin claim)
   const isAdmin = ctx.token?.admin === true;
   if (uid !== callerUid && !isAdmin) {
-    throw new Error('PERMISSION_DENIED: Cannot send push to other users');
+    throw new HttpsError('permission-denied', 'Cannot send push to other users');
   }
 
   // Fetch active device tokens

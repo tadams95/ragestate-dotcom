@@ -3,11 +3,12 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { loginSuccess } from '../../../lib/features/todos/authSlice';
 import { setAuthenticated, setUserName } from '../../../lib/features/todos/userSlice';
 import { createUser, signInWithGoogle } from '../../../lib/utils/auth';
+import { checkRateLimit, peekRateLimit, RATE_LIMITS } from '../../../lib/utils/rateLimit';
 import storage from '../../../src/utils/storage';
 
 import { sendEmailVerification } from 'firebase/auth';
@@ -28,7 +29,30 @@ export default function CreateAccount() {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [rateLimitError, setRateLimitError] = useState('');
   const dispatch = useDispatch();
+
+  // Check rate limit status on mount and periodically
+  useEffect(() => {
+    const checkLimit = () => {
+      const { key, maxAttempts, windowMs } = RATE_LIMITS.SIGNUP;
+      const status = peekRateLimit(key, maxAttempts, windowMs);
+      if (!status.allowed && status.blockedUntil) {
+        const remainingMs = status.blockedUntil.getTime() - Date.now();
+        const remainingMins = Math.ceil(remainingMs / 60000);
+        setRateLimitError(
+          `Too many signup attempts. Please try again in ${remainingMins} minute${remainingMins !== 1 ? 's' : ''}.`,
+        );
+      } else {
+        setRateLimitError('');
+      }
+    };
+
+    checkLimit();
+    // Re-check every 30 seconds in case block expires
+    const interval = setInterval(checkLimit, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   // const API_URL = "https://us-central1-ragestate-app.cloudfunctions.net/stripePayment";
 
@@ -105,6 +129,15 @@ export default function CreateAccount() {
     e.preventDefault();
     setIsLoading(true);
     setFormError('');
+
+    // Check rate limit before attempting signup
+    const { key, maxAttempts, windowMs, blockDurationMs } = RATE_LIMITS.SIGNUP;
+    const rateLimitStatus = checkRateLimit(key, maxAttempts, windowMs, blockDurationMs);
+    if (!rateLimitStatus.allowed) {
+      setRateLimitError(rateLimitStatus.message);
+      setIsLoading(false);
+      return;
+    }
 
     try {
       // Validate password
@@ -292,7 +325,7 @@ export default function CreateAccount() {
             <button
               type="button"
               onClick={handleGoogleSignUp}
-              disabled={isGoogleLoading || isLoading || isAuthenticating}
+              disabled={isGoogleLoading || isLoading || isAuthenticating || !!rateLimitError}
               className="mb-6 flex w-full items-center justify-center gap-3 rounded-lg border border-gray-500 bg-white px-4 py-3 text-sm font-semibold text-gray-900 transition-all duration-200 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isGoogleLoading ? (
@@ -457,6 +490,11 @@ export default function CreateAccount() {
               </div>
 
               {/* Validation and form error messages */}
+              {rateLimitError && (
+                <div className="rounded-md border border-yellow-500 bg-yellow-500/10 p-3">
+                  <p className="text-sm text-yellow-500">{rateLimitError}</p>
+                </div>
+              )}
               {passwordError && (
                 <div className="rounded-md border border-red-500 bg-red-500/10 p-3">
                   <p className="text-sm text-red-500">{passwordError}</p>
@@ -472,9 +510,11 @@ export default function CreateAccount() {
               <div className="flex flex-col gap-4 pt-4 sm:flex-row sm:justify-between">
                 <button
                   type="submit"
-                  disabled={isLoading || isAuthenticating}
+                  disabled={isLoading || isAuthenticating || !!rateLimitError}
                   className={`${buttonStyling} sm:flex-1 ${
-                    isLoading || isAuthenticating ? 'cursor-not-allowed opacity-70' : ''
+                    isLoading || isAuthenticating || rateLimitError
+                      ? 'cursor-not-allowed opacity-70'
+                      : ''
                   }`}
                 >
                   {isLoading || isAuthenticating ? (
