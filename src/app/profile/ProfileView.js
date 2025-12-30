@@ -17,6 +17,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../../firebase/context/FirebaseContext';
 import { db } from '../../../firebase/firebase';
 import Post from '../components/Post';
+import { VerifiedBadge } from '../components/PostHeader';
 
 export default function ProfileView({ params }) {
   const router = useRouter();
@@ -31,6 +32,7 @@ export default function ProfileView({ params }) {
     bio: '',
     usernameLower: '',
     profileSongUrl: '',
+    isVerified: false,
   });
   const [profileLoading, setProfileLoading] = useState(true);
 
@@ -90,6 +92,7 @@ export default function ProfileView({ params }) {
             bio: p.bio || '',
             usernameLower: p.usernameLower || paramUsername || '',
             profileSongUrl: p.profileSongUrl || '',
+            isVerified: p.isVerified === true,
           });
         }
 
@@ -214,8 +217,9 @@ export default function ProfileView({ params }) {
                     </div>
                   ) : (
                     <>
-                      <h1 className="truncate text-xl font-semibold">
+                      <h1 className="flex items-center truncate text-xl font-semibold">
                         {profile.displayName || 'User'}
+                        {profile.isVerified && <VerifiedBadge />}
                       </h1>
                       {profile.usernameLower && (
                         <p className="text-xs text-gray-500">{profile.usernameLower}</p>
