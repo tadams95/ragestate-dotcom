@@ -45,7 +45,7 @@ export default function AuthGateModal({
                   {title}
                 </DialogTitle>
                 <div className="mt-2">
-                  <p className="text-sm text-gray-300">{message}</p>
+                  <p className="text-sm text-[var(--text-secondary)]">{message}</p>
                 </div>
               </div>
             </div>

@@ -47,14 +47,14 @@ export default function EventTile({ event }) {
   const imgSrc = event?.imgURL || '/assets/EventHero.png';
 
   return (
-    <div className="mb-8 transform overflow-hidden rounded-lg border border-gray-800 bg-gray-800/50 shadow-lg backdrop-blur-sm transition duration-300 hover:scale-105 hover:shadow-2xl">
+    <div className="mb-8 transform overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] shadow-lg backdrop-blur-sm transition duration-300 hover:scale-105 hover:shadow-2xl">
       <div className="mx-auto">
         <Link
           href={eventSlug ? `/events/${eventSlug}` : '/events'}
           className="group"
           onClick={handleLinkClick}
         >
-          <div className="relative h-60 w-full overflow-hidden bg-black sm:h-64 lg:h-72">
+          <div className="relative h-60 w-full overflow-hidden bg-[var(--bg-root)] sm:h-64 lg:h-72">
             <Image
               priority
               src={imgSrc}
@@ -78,7 +78,7 @@ export default function EventTile({ event }) {
             )} */}
           </div>
           <div className="p-6">
-            <h3 className="text-2xl font-bold text-gray-100 transition-colors group-hover:text-red-500">
+            <h3 className="text-2xl font-bold text-[var(--text-primary)] transition-colors group-hover:text-red-500">
               {event.name}
             </h3>
             {/* {event.description && (
@@ -86,7 +86,7 @@ export default function EventTile({ event }) {
                 {event.description}
               </p>
             )} */}
-            <div className="mt-4 flex items-center text-gray-400">
+            <div className="mt-4 flex items-center text-[var(--text-secondary)]">
               <svg className="mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
               </svg>
@@ -97,7 +97,7 @@ export default function EventTile({ event }) {
             </div>
 
             {event.location && (
-              <p className="mt-3 flex items-center text-sm text-gray-400">
+              <p className="mt-3 flex items-center text-sm text-[var(--text-secondary)]">
                 <svg className="mr-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
@@ -119,7 +119,7 @@ export default function EventTile({ event }) {
             <div className="mt-4 flex items-center justify-between">
               {event.price && <p className="text-lg font-bold text-red-700">${event.price}</p>}
               {event.capacity && (
-                <div className="text-sm text-gray-400">
+                <div className="text-sm text-[var(--text-secondary)]">
                   <span className="font-medium">{event.attendees?.length || 0}</span>
                   <span className="mx-1">/</span>
                   <span>{event.capacity}</span>

@@ -238,7 +238,7 @@ export default function ShopClient() {
   }, [productsWithHref, categories, sizes, colors]);
 
   return (
-    <div className="isolate min-h-screen bg-black">
+    <div className="isolate min-h-screen bg-[var(--bg-root)] transition-colors duration-200">
       {/* Header is rendered by layout.js */}
 
       {/* Add the AutoSliderBanner */}
@@ -247,7 +247,7 @@ export default function ShopClient() {
       <div id="product-section" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
         {/* View Toggle */}
         <div className="mb-8 flex justify-end">
-          <div className="flex gap-2 rounded-md bg-black p-1">
+          <div className="flex gap-2 rounded-md bg-[var(--bg-elev-1)] p-1">
             <button
               onClick={setGrid}
               data-testid="grid-view-button"
@@ -284,17 +284,17 @@ export default function ShopClient() {
               <div key={idx} className="animate-pulse">
                 {viewMode === 'grid' ? (
                   <div>
-                    <div className="h-64 w-full rounded-lg bg-gray-800 sm:h-72 lg:h-80" />
-                    <div className="mt-4 h-4 w-2/3 rounded bg-gray-800" />
-                    <div className="mt-2 h-4 w-1/3 rounded bg-gray-800" />
+                    <div className="h-64 w-full rounded-lg bg-[var(--bg-elev-2)] sm:h-72 lg:h-80" />
+                    <div className="mt-4 h-4 w-2/3 rounded bg-[var(--bg-elev-2)]" />
+                    <div className="mt-2 h-4 w-1/3 rounded bg-[var(--bg-elev-2)]" />
                   </div>
                 ) : (
-                  <div className="relative flex gap-x-6 rounded-lg bg-gray-900/30 p-4">
-                    <div className="h-24 w-24 rounded-md bg-gray-800" />
+                  <div className="relative flex gap-x-6 rounded-lg bg-[var(--bg-elev-1)] p-4">
+                    <div className="h-24 w-24 rounded-md bg-[var(--bg-elev-2)]" />
                     <div className="flex-1">
-                      <div className="h-4 w-1/2 rounded bg-gray-800" />
-                      <div className="mt-2 h-4 w-full rounded bg-gray-800" />
-                      <div className="mt-2 h-4 w-2/5 rounded bg-gray-800" />
+                      <div className="h-4 w-1/2 rounded bg-[var(--bg-elev-2)]" />
+                      <div className="mt-2 h-4 w-full rounded bg-[var(--bg-elev-2)]" />
+                      <div className="mt-2 h-4 w-2/5 rounded bg-[var(--bg-elev-2)]" />
                     </div>
                   </div>
                 )}
@@ -350,7 +350,7 @@ export default function ShopClient() {
 
         {/* No Products Message */}
         {!loading && !error && productsWithHref.length === 0 && (
-          <div className="py-8 text-center text-gray-400">No products available</div>
+          <div className="py-8 text-center text-[var(--text-secondary)]">No products available</div>
         )}
       </div>
 

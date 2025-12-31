@@ -65,15 +65,15 @@ export default function PostHeader({
                 height={32}
                 sizes="32px"
                 loading="lazy"
-                className="h-8 w-8 rounded-md border border-white/10 object-cover"
+                className="h-8 w-8 rounded-md border border-[var(--border-subtle)] object-cover"
               />
             ) : (
-              <div className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 bg-white/5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elev-2)]">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
                   fill="currentColor"
-                  className="h-5 w-5 text-gray-400"
+                  className="h-5 w-5 text-[var(--text-tertiary)]"
                 >
                   <path
                     fillRule="evenodd"
@@ -92,15 +92,15 @@ export default function PostHeader({
             height={32}
             sizes="32px"
             loading="lazy"
-            className="h-8 w-8 rounded-md border border-white/10 object-cover"
+            className="h-8 w-8 rounded-md border border-[var(--border-subtle)] object-cover"
           />
         ) : (
-          <div className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 bg-white/5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elev-2)]">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
               fill="currentColor"
-              className="h-5 w-5 text-gray-400"
+              className="h-5 w-5 text-[var(--text-tertiary)]"
             >
               <path
                 fillRule="evenodd"
@@ -116,7 +116,7 @@ export default function PostHeader({
               <Link
                 href={`/${usernameLower}`}
                 prefetch={false}
-                className="text-[15px] font-semibold leading-5 text-[#f5f6f7] hover:underline active:opacity-90"
+                className="text-[15px] font-semibold leading-5 text-[var(--text-primary)] hover:underline active:opacity-90"
               >
                 {displayName || `${usernameLower}`}
               </Link>
@@ -124,7 +124,7 @@ export default function PostHeader({
             </span>
           ) : (
             <span className="flex items-center">
-              <p className="text-[15px] font-semibold leading-5 text-[#f5f6f7]">
+              <p className="text-[15px] font-semibold leading-5 text-[var(--text-primary)]">
                 {displayName || (authorUserId ? `uid:${String(authorUserId).slice(0, 8)}` : '')}
               </p>
               {isVerified && <VerifiedBadge />}
@@ -134,13 +134,15 @@ export default function PostHeader({
             <Link
               href={`/post/${postId}`}
               prefetch={false}
-              className="text-xs font-medium text-[#5d6269] transition-colors hover:text-[#a1a5ab]"
+              className="text-xs font-medium text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
               title="View post"
             >
               {timestamp || 'Time ago'}
             </Link>
           ) : (
-            <p className="text-xs font-medium text-[#5d6269]">{timestamp || 'Time ago'}</p>
+            <p className="text-xs font-medium text-[var(--text-tertiary)]">
+              {timestamp || 'Time ago'}
+            </p>
           )}
         </div>
       </div>
@@ -150,16 +152,16 @@ export default function PostHeader({
       {isAuthor && (
         <Menu as="div" className="relative inline-block text-left">
           <MenuButton
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/10 bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] text-[var(--text-secondary)] transition-colors duration-200 hover:bg-[var(--bg-elev-2)] hover:text-[var(--text-primary)]"
             aria-label="Post options"
           >
             ⋯
           </MenuButton>
-          <MenuItems className="absolute right-0 z-10 mt-2 w-44 origin-top-right rounded-md border border-white/10 bg-[#0d0d0f] p-1 shadow-xl focus:outline-none">
+          <MenuItems className="absolute right-0 z-10 mt-2 w-44 origin-top-right rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-1 shadow-xl transition-colors duration-200 focus:outline-none">
             <MenuItem>
               {({ active }) => (
                 <button
-                  className={`w-full rounded px-3 py-2 text-left text-sm ${active ? 'bg-white/10 text-white' : 'text-gray-300'}`}
+                  className={`w-full rounded px-3 py-2 text-left text-sm ${active ? 'bg-[var(--bg-elev-2)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}
                   onClick={() => onEdit?.()}
                 >
                   Edit
@@ -169,7 +171,7 @@ export default function PostHeader({
             <MenuItem>
               {({ active }) => (
                 <button
-                  className={`w-full rounded px-3 py-2 text-left text-sm ${active ? 'bg-white/10 text-white' : 'text-gray-300'}`}
+                  className={`w-full rounded px-3 py-2 text-left text-sm ${active ? 'bg-[var(--bg-elev-2)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}
                   onClick={() => onTogglePrivacy?.()}
                 >
                   {isPublic ? 'Make Private' : 'Make Public'}
@@ -179,7 +181,7 @@ export default function PostHeader({
             <MenuItem>
               {({ active }) => (
                 <button
-                  className={`w-full rounded px-3 py-2 text-left text-sm ${active ? 'bg-white/10 text-white' : 'text-red-300'}`}
+                  className={`w-full rounded px-3 py-2 text-left text-sm ${active ? 'bg-[var(--bg-elev-2)] text-[var(--text-primary)]' : 'text-red-400'}`}
                   onClick={() => onDelete?.()}
                 >
                   Delete

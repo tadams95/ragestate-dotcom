@@ -1,14 +1,15 @@
-"use client";
+'use client';
 
-import React, { useRef, useMemo } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { PointMaterial, Points } from "@react-three/drei";
-import * as THREE from "three";
+import { PointMaterial, Points } from '@react-three/drei';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import * as THREE from 'three';
 
-function FloatingParticles({ color = "#EF4E4E", intensity = 1, count = 2000 }) {
+function FloatingParticles({ color = '#EF4E4E', intensity = 1, count = 2000, isDark = true }) {
   const ref = useRef();
 
   // Generate particles that represent the two worlds
+  // Using count in deps ensures buffer is recreated if count changes
   const particles = useMemo(() => {
     const temp = new Float32Array(count * 3);
 
@@ -23,24 +24,27 @@ function FloatingParticles({ color = "#EF4E4E", intensity = 1, count = 2000 }) {
     }
 
     return temp;
-  }, []);
+  }, [count]);
 
   useFrame((state, delta) => {
+    if (!ref.current?.geometry?.attributes?.position) return;
+
     const time = state.clock.getElapsedTime();
+    const positionArray = ref.current.geometry.attributes.position.array;
+    const len = positionArray.length;
 
     ref.current.rotation.y = time * 0.05;
 
     // Update particle positions for a flowing effect
-    for (let i = 0; i < particles.length; i += 3) {
+    for (let i = 0; i < len; i += 3) {
       const i3 = i / 3;
 
       // Create a flowing motion effect
-      ref.current.geometry.attributes.position.array[i + 1] -=
-        delta * 0.3 * (Math.sin(i3) * 0.5 + 0.5);
+      positionArray[i + 1] -= delta * 0.3 * (Math.sin(i3) * 0.5 + 0.5);
 
       // Reset particles that go too low
-      if (ref.current.geometry.attributes.position.array[i + 1] < -10) {
-        ref.current.geometry.attributes.position.array[i + 1] = 10;
+      if (positionArray[i + 1] < -10) {
+        positionArray[i + 1] = 10;
       }
     }
     ref.current.geometry.attributes.position.needsUpdate = true;
@@ -52,45 +56,96 @@ function FloatingParticles({ color = "#EF4E4E", intensity = 1, count = 2000 }) {
         <PointMaterial
           transparent
           color={color}
-          size={0.05}
+          size={isDark ? 0.05 : 0.06}
           sizeAttenuation={true}
           depthWrite={false}
-          blending={THREE.AdditiveBlending}
-          opacity={0.7 * intensity}
+          blending={isDark ? THREE.AdditiveBlending : THREE.NormalBlending}
+          opacity={isDark ? 0.7 * intensity : 0.85 * intensity}
         />
       </Points>
     </group>
   );
 }
 
-export default function Home3DAnimation({ color = "#EF4E4E", intensity = 1 }) {
+// Scene component that receives background color and theme as props
+function Scene({ color, intensity, particleCount, bgColor, isDark }) {
+  return (
+    <>
+      <color attach="background" args={[bgColor]} />
+      <fog attach="fog" args={[bgColor, 10, 25]} />
+      <FloatingParticles
+        color={color}
+        intensity={intensity}
+        count={particleCount}
+        isDark={isDark}
+      />
+    </>
+  );
+}
+
+export default function Home3DAnimation({ color = '#EF4E4E', intensity = 1 }) {
+  // Track theme for background color and particle styling
+  const [bgColor, setBgColor] = useState('#000000');
+  const [isDark, setIsDark] = useState(true);
+
+  useEffect(() => {
+    // Get initial background color from CSS variable
+    const updateTheme = () => {
+      const rootStyles = getComputedStyle(document.documentElement);
+      const cssColor = rootStyles.getPropertyValue('--bg-root').trim();
+      const darkMode = document.documentElement.classList.contains('dark');
+
+      setBgColor(cssColor || '#000000');
+      setIsDark(darkMode);
+    };
+
+    updateTheme();
+
+    // Listen for theme changes via MutationObserver on html class
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class') {
+          updateTheme();
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, { attributes: true });
+
+    return () => observer.disconnect();
+  }, []);
+
   // Prefer fewer particles on smaller screens and for users who prefer reduced motion
   const isMobile =
-    typeof window !== "undefined" &&
+    typeof window !== 'undefined' &&
     window.matchMedia &&
-    window.matchMedia("(max-width: 768px)").matches;
+    window.matchMedia('(max-width: 768px)').matches;
   const prefersReducedMotion =
-    typeof window !== "undefined" &&
+    typeof window !== 'undefined' &&
     window.matchMedia &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   if (prefersReducedMotion) return null;
 
   const particleCount = isMobile ? 900 : 2000;
+
+  // Adjust particle color for light mode visibility
+  // In light mode, use darker/more saturated colors
+  const particleColor = isDark ? color : color === '#EF4E4E' ? '#b91c1c' : '#1d4ed8';
 
   return (
     <div className="absolute inset-0 z-0">
       <Canvas
         camera={{ position: [0, 0, 15], fov: 60 }}
         dpr={[1, 1.5]}
-        gl={{ powerPreference: "low-power", antialias: false }}
+        gl={{ powerPreference: 'low-power', antialias: false }}
       >
-        <color attach="background" args={["#000000"]} />
-        <fog attach="fog" args={["#000000", 10, 25]} />
-        <FloatingParticles
-          color={color}
+        <Scene
+          color={particleColor}
           intensity={intensity}
-          count={particleCount}
+          particleCount={particleCount}
+          bgColor={bgColor}
+          isDark={isDark}
         />
       </Canvas>
     </div>

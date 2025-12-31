@@ -342,8 +342,8 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
       aria-modal="true"
       aria-labelledby="comments-title"
     >
-      <div className="flex max-h-[90vh] w-full flex-col rounded-t-2xl border border-white/10 bg-[#0d0d0f] text-white shadow-xl sm:max-w-2xl sm:rounded-2xl">
-        <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+      <div className="flex max-h-[90vh] w-full flex-col rounded-t-2xl border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] text-[var(--text-primary)] shadow-xl transition-colors duration-200 sm:max-w-2xl sm:rounded-2xl">
+        <div className="flex items-center justify-between border-b border-[var(--border-subtle)] px-4 py-3">
           <h3 id="comments-title" className="text-base font-semibold">
             Comments
           </h3>
@@ -353,7 +353,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
               href={`/post/${postId}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex h-11 w-11 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--text-tertiary)] transition-colors hover:bg-[var(--bg-elev-2)] hover:text-[var(--text-primary)]"
               title="Open post in new tab"
               onClick={(e) => e.stopPropagation()}
             >
@@ -376,7 +376,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
               </svg>
             </Link>
             <button
-              className="flex h-11 w-11 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--text-tertiary)] transition-colors hover:bg-[var(--bg-elev-2)] hover:text-[var(--text-primary)]"
               onClick={onClose}
               aria-label="Close"
               title="Close"
@@ -396,12 +396,12 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
         <div ref={contentRef} className="flex-1 space-y-4 overflow-y-auto px-4 py-4" role="list">
           {comments.length === 0 && !loading && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white/5">
+              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--bg-elev-2)]">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
                   fill="currentColor"
-                  className="h-6 w-6 text-gray-500"
+                  className="h-6 w-6 text-[var(--text-tertiary)]"
                 >
                   <path
                     fillRule="evenodd"
@@ -410,18 +410,20 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                   />
                 </svg>
               </div>
-              <p className="text-sm text-gray-400">No comments yet.</p>
-              <p className="text-xs text-gray-500">Be the first to start the conversation.</p>
+              <p className="text-sm text-[var(--text-tertiary)]">No comments yet.</p>
+              <p className="text-xs text-[var(--text-tertiary)]">
+                Be the first to start the conversation.
+              </p>
             </div>
           )}
           {comments.length === 0 && loading && (
             <div className="space-y-3">
               {Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="flex items-start space-x-3">
-                  <div className="h-8 w-8 animate-pulse rounded-md bg-white/10" />
+                  <div className="h-8 w-8 animate-pulse rounded-md bg-[var(--bg-elev-2)]" />
                   <div className="flex-1 space-y-2">
-                    <div className="h-3 w-32 animate-pulse rounded bg-white/10" />
-                    <div className="h-3 w-56 animate-pulse rounded bg-white/5" />
+                    <div className="h-3 w-32 animate-pulse rounded bg-[var(--bg-elev-2)]" />
+                    <div className="h-3 w-56 animate-pulse rounded bg-[var(--bg-elev-2)]" />
                   </div>
                 </div>
               ))}
@@ -467,12 +469,12 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                         />
                       </Link>
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-white/5">
+                      <div className="flex h-full w-full items-center justify-center bg-[var(--bg-elev-2)]">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           viewBox="0 0 24 24"
                           fill="currentColor"
-                          className="h-5 w-5 text-gray-400"
+                          className="h-5 w-5 text-[var(--text-tertiary)]"
                         >
                           <path
                             fillRule="evenodd"
@@ -504,11 +506,11 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                       ) : (
                         <span className="font-semibold">{c.userDisplayName || 'Unknown user'}</span>
                       )}
-                      <span className="ml-2 text-gray-500">
+                      <span className="ml-2 text-[var(--text-tertiary)]">
                         {formatDate(c.timestamp?.toDate ? c.timestamp.toDate() : c.timestamp)}
                       </span>
                     </div>
-                    <p className="whitespace-pre-line break-words text-sm text-gray-200">
+                    <p className="whitespace-pre-line break-words text-sm text-[var(--text-secondary)]">
                       {linkifyAll(c.content)}
                     </p>
                     {/* Reply & Like buttons */}
@@ -516,7 +518,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                       {currentUser && (
                         <button
                           onClick={() => handleReply(c)}
-                          className="min-h-[44px] px-2 text-xs text-gray-500 hover:text-gray-300"
+                          className="min-h-[44px] px-2 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
                         >
                           Reply
                         </button>
@@ -526,7 +528,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                         className={`flex min-h-[44px] items-center gap-1 px-2 text-xs transition-colors ${
                           likedCommentIds.has(c.id)
                             ? 'text-red-500'
-                            : 'text-gray-500 hover:text-gray-300'
+                            : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
                         }`}
                         aria-label={likedCommentIds.has(c.id) ? 'Unlike comment' : 'Like comment'}
                       >
@@ -563,7 +565,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                   {(currentUser?.uid === c.userId || currentUser?.uid === postOwnerId) && (
                     <button
                       onClick={() => handleDeleteComment(c.id)}
-                      className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center rounded text-gray-500 opacity-0 transition-opacity hover:bg-white/10 hover:text-red-400 group-hover:opacity-100"
+                      className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center rounded text-[var(--text-tertiary)] opacity-0 transition-opacity hover:bg-[var(--bg-elev-2)] hover:text-red-400 group-hover:opacity-100"
                       title="Delete comment"
                       aria-label="Delete comment"
                     >
@@ -585,10 +587,10 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
 
                 {/* Replies (indented) */}
                 {visibleReplies.length > 0 && (
-                  <div className="ml-8 space-y-2 border-l border-white/10 pl-3">
+                  <div className="ml-8 space-y-2 border-l border-[var(--border-subtle)] pl-3">
                     {visibleReplies.map((r) => (
                       <div key={r.id} className="group flex items-start space-x-2" role="listitem">
-                        <div className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-md bg-white/10">
+                        <div className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-md bg-[var(--bg-elev-2)]">
                           {r.userProfilePicture ? (
                             <Link
                               href={
@@ -611,12 +613,12 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                               />
                             </Link>
                           ) : (
-                            <div className="flex h-full w-full items-center justify-center bg-white/5">
+                            <div className="flex h-full w-full items-center justify-center bg-[var(--bg-elev-2)]">
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 viewBox="0 0 24 24"
                                 fill="currentColor"
-                                className="h-4 w-4 text-gray-400"
+                                className="h-4 w-4 text-[var(--text-tertiary)]"
                               >
                                 <path
                                   fillRule="evenodd"
@@ -652,11 +654,11 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                                 {r.userDisplayName || 'Unknown user'}
                               </span>
                             )}
-                            <span className="ml-2 text-gray-500">
+                            <span className="ml-2 text-[var(--text-tertiary)]">
                               {formatDate(r.timestamp?.toDate ? r.timestamp.toDate() : r.timestamp)}
                             </span>
                           </div>
-                          <p className="whitespace-pre-line break-words text-xs text-gray-200">
+                          <p className="whitespace-pre-line break-words text-xs text-[var(--text-secondary)]">
                             {linkifyAll(r.content)}
                           </p>
                           <button
@@ -664,7 +666,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                             className={`-ml-2 mt-0.5 flex min-h-[44px] items-center gap-1 px-2 text-xs transition-colors ${
                               likedCommentIds.has(r.id)
                                 ? 'text-red-500'
-                                : 'text-gray-500 hover:text-gray-300'
+                                : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
                             }`}
                             aria-label={likedCommentIds.has(r.id) ? 'Unlike reply' : 'Like reply'}
                           >
@@ -700,7 +702,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                         {(currentUser?.uid === r.userId || currentUser?.uid === postOwnerId) && (
                           <button
                             onClick={() => handleDeleteComment(r.id)}
-                            className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center rounded text-gray-500 opacity-0 transition-opacity hover:bg-white/10 hover:text-red-400 group-hover:opacity-100"
+                            className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center rounded text-[var(--text-tertiary)] opacity-0 transition-opacity hover:bg-[var(--bg-elev-2)] hover:text-red-400 group-hover:opacity-100"
                             title="Delete reply"
                             aria-label="Delete reply"
                           >
@@ -733,7 +735,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                         setCollapsedThreads((prev) => new Set([...prev, `${c.id}_expanded`]));
                       }
                     }}
-                    className="ml-8 min-h-[44px] px-2 text-xs text-gray-500 hover:text-gray-300"
+                    className="ml-8 min-h-[44px] px-2 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
                   >
                     {isCollapsed
                       ? `Show ${replies.length} ${replies.length === 1 ? 'reply' : 'replies'}`
@@ -752,7 +754,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                           return next;
                         });
                       }}
-                      className="ml-8 min-h-[44px] px-2 text-xs text-gray-500 hover:text-gray-300"
+                      className="ml-8 min-h-[44px] px-2 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
                     >
                       Collapse replies
                     </button>
@@ -760,10 +762,10 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
               </div>
             );
           })}
-          {loading && <p className="text-gray-400">Loading…</p>}
+          {loading && <p className="text-[var(--text-tertiary)]">Loading…</p>}
           {!loading && hasMore && (
             <button
-              className="min-h-[44px] px-2 text-sm text-gray-300 hover:text-white"
+              className="min-h-[44px] px-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               onClick={fetchMore}
             >
               Load more
@@ -773,14 +775,14 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
 
         <form
           onSubmit={onSubmit}
-          className="sticky bottom-0 flex flex-col border-t border-white/10 bg-[#0d0d0f] p-3 supports-[padding:env(safe-area-inset-bottom)]:pb-[env(safe-area-inset-bottom)]"
+          className="sticky bottom-0 flex flex-col border-t border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-3 supports-[padding:env(safe-area-inset-bottom)]:pb-[env(safe-area-inset-bottom)]"
         >
           {/* Reply indicator */}
           {replyingTo && (
-            <div className="mb-2 flex items-center justify-between rounded bg-white/5 px-2 py-1 text-xs text-gray-400">
+            <div className="mb-2 flex items-center justify-between rounded bg-[var(--bg-elev-2)] px-2 py-1 text-xs text-[var(--text-tertiary)]">
               <span>
                 Replying to{' '}
-                <span className="font-medium text-white">
+                <span className="font-medium text-[var(--text-primary)]">
                   {replyingTo.usernameLower
                     ? `@${replyingTo.usernameLower}`
                     : replyingTo.userDisplayName}
@@ -789,7 +791,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
               <button
                 type="button"
                 onClick={cancelReply}
-                className="flex h-11 w-11 items-center justify-center text-gray-500 hover:text-white"
+                className="flex h-11 w-11 items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
               >
                 ✕
               </button>
@@ -798,7 +800,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
           <div className="flex items-end space-x-2">
             <textarea
               ref={textareaRef}
-              className="min-h-11 flex-1 resize-none rounded-lg border border-white/10 bg-[#16171a] p-3 text-sm text-white placeholder-gray-500 outline-none ring-0 transition-colors focus:border-[#ff1f42] focus:ring-1 focus:ring-[#ff1f42]"
+              className="min-h-11 flex-1 resize-none rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-3 text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none ring-0 transition-colors focus:border-[#ff1f42] focus:ring-1 focus:ring-[#ff1f42]"
               placeholder={
                 currentUser
                   ? replyingTo

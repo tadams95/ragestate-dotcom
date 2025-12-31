@@ -35,17 +35,21 @@ export default function EditPostModal({
     <Dialog open={open} onClose={onClose} className="relative z-50">
       <div className="fixed inset-0 bg-black/60" aria-hidden="true" />
       <div className="fixed inset-0 flex items-end justify-center supports-[padding:env(safe-area-inset-bottom)]:pb-[env(safe-area-inset-bottom)] sm:items-center">
-        <DialogPanel className="w-full rounded-t-2xl border border-white/10 bg-[#0d0d0f] p-4 text-white shadow-xl sm:max-w-xl sm:rounded-2xl sm:p-6">
+        <DialogPanel className="w-full rounded-t-2xl border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-4 text-[var(--text-primary)] shadow-xl transition-colors duration-200 sm:max-w-xl sm:rounded-2xl sm:p-6">
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-base font-semibold">Edit post</h3>
-            <button onClick={onClose} className="text-gray-400 hover:text-white" aria-label="Close">
+            <button
+              onClick={onClose}
+              className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+              aria-label="Close"
+            >
               ✕
             </button>
           </div>
 
           <div className="space-y-4">
             <textarea
-              className="min-h-[120px] w-full resize-none bg-transparent text-white placeholder-gray-500 outline-none"
+              className="min-h-[120px] w-full resize-none bg-transparent text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none"
               placeholder="Update your post…"
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -88,12 +92,12 @@ export default function EditPostModal({
             )}
 
             <div className="flex items-center justify-between">
-              <label className="inline-flex items-center gap-2 text-sm text-gray-300">
-                <span className="text-gray-400">Visibility</span>
+              <label className="inline-flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+                <span className="text-[var(--text-tertiary)]">Visibility</span>
                 <select
                   value={isPublic ? 'public' : 'private'}
                   onChange={(e) => setIsPublic(e.target.value === 'public')}
-                  className="rounded-md border border-white/20 bg-transparent px-2 py-1 text-white"
+                  className="rounded-md border border-[var(--border-subtle)] bg-transparent px-2 py-1 text-[var(--text-primary)]"
                 >
                   <option value="public">Public</option>
                   <option value="private">Private</option>
@@ -103,14 +107,14 @@ export default function EditPostModal({
               <div className="space-x-2">
                 <button
                   onClick={onClose}
-                  className="h-10 rounded border border-white/20 px-3 text-sm text-gray-300 hover:bg-white/10"
+                  className="h-10 rounded border border-[var(--border-subtle)] px-3 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-elev-2)]"
                 >
                   Cancel
                 </button>
                 <button
                   disabled={!canSave}
                   onClick={() => onSave?.({ content: content.trim(), isPublic, mediaUrls })}
-                  className={`h-10 rounded px-4 text-sm font-semibold ${canSave ? 'bg-[#ff1f42] text-white hover:bg-[#ff415f]' : 'cursor-not-allowed bg-gray-700 text-gray-400'}`}
+                  className={`h-10 rounded px-4 text-sm font-semibold ${canSave ? 'bg-[#ff1f42] text-white hover:bg-[#ff415f]' : 'cursor-not-allowed bg-[var(--bg-elev-2)] text-[var(--text-tertiary)]'}`}
                 >
                   {saving ? 'Saving…' : 'Save changes'}
                 </button>

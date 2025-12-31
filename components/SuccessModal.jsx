@@ -48,7 +48,7 @@ export default function SuccessModal({ orderNumber, items = [], userEmail, onClo
                   Payment successful
                 </DialogTitle>
                 <div className="mt-2">
-                  <p className="text-sm text-gray-300">
+                  <p className="text-sm text-[var(--text-secondary)]">
                     Thanks! Your order has been saved{orderNumber ? ` — #${orderNumber}` : ''}.
                   </p>
                   {userEmail ? (

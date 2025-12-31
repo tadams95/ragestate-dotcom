@@ -132,11 +132,11 @@ export default function NotificationPreferences({ userId, className = '' }) {
 
   return (
     <div className={className}>
-      <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-300">
+      <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
         Notification Preferences
       </h3>
       {loading ? (
-        <div className="text-xs text-gray-500">Loading preferences…</div>
+        <div className="text-xs text-[var(--text-tertiary)]">Loading preferences…</div>
       ) : (
         <div className="space-y-3">
           <PreferenceToggle
@@ -200,16 +200,16 @@ export default function NotificationPreferences({ userId, className = '' }) {
 
 function PreferenceToggle({ label, desc, value, onChange }) {
   return (
-    <label className="flex cursor-pointer items-start gap-3 rounded border border-gray-800 p-3 hover:border-red-600/40">
+    <label className="flex cursor-pointer items-start gap-3 rounded border border-[var(--border-subtle)] p-3 hover:border-red-600/40">
       <input
         type="checkbox"
         checked={!!value}
         onChange={onChange}
-        className="mt-0.5 h-4 w-4 cursor-pointer rounded border-gray-600 bg-black text-red-600 focus:ring-red-600"
+        className="mt-0.5 h-4 w-4 cursor-pointer rounded border-[var(--border-subtle)] bg-[var(--bg-root)] text-red-600 focus:ring-red-600"
       />
       <span className="select-none">
-        <span className="block text-xs font-medium text-gray-200">{label}</span>
-        <span className="mt-0.5 block text-[11px] text-gray-500">{desc}</span>
+        <span className="block text-xs font-medium text-[var(--text-primary)]">{label}</span>
+        <span className="mt-0.5 block text-[11px] text-[var(--text-tertiary)]">{desc}</span>
       </span>
     </label>
   );
@@ -218,7 +218,7 @@ function PreferenceToggle({ label, desc, value, onChange }) {
 function QuietHoursEditor({ draft, setDraft, label, error }) {
   const tzList = getCommonTimezones();
   return (
-    <div className="mt-4 rounded border border-gray-800 p-3 text-xs text-gray-300">
+    <div className="mt-4 rounded border border-[var(--border-subtle)] p-3 text-xs text-[var(--text-secondary)]">
       <div className="mb-2 flex items-center justify-between">
         <div className="font-medium">Quiet Hours</div>
         <label className="flex items-center gap-2 text-[11px]">
@@ -226,61 +226,63 @@ function QuietHoursEditor({ draft, setDraft, label, error }) {
             type="checkbox"
             checked={draft.enabled}
             onChange={(e) => setDraft((d) => ({ ...d, enabled: e.target.checked }))}
-            className="h-3 w-3 cursor-pointer rounded border-gray-600 bg-black text-red-600 focus:ring-red-600"
+            className="h-3 w-3 cursor-pointer rounded border-[var(--border-subtle)] bg-[var(--bg-root)] text-red-600 focus:ring-red-600"
           />
           Enable
         </label>
       </div>
       {!draft.enabled ? (
-        <div className="text-[11px] text-gray-500">Currently disabled. No suppression window.</div>
+        <div className="text-[11px] text-[var(--text-tertiary)]">
+          Currently disabled. No suppression window.
+        </div>
       ) : (
         <div className="space-y-2">
           <div className="flex flex-wrap gap-3">
             <div>
-              <label className="mb-1 block text-[10px] uppercase tracking-wide text-gray-500">
+              <label className="mb-1 block text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">
                 Start (24h)
               </label>
               <input
                 type="time"
                 value={draft.start}
                 onChange={(e) => setDraft((d) => ({ ...d, start: e.target.value }))}
-                className="rounded border border-gray-700 bg-black px-2 py-1 text-xs text-gray-200 outline-none focus:border-red-600"
+                className="rounded border border-[var(--border-subtle)] bg-[var(--bg-root)] px-2 py-1 text-xs text-[var(--text-primary)] outline-none focus:border-red-600"
               />
             </div>
             <div>
-              <label className="mb-1 block text-[10px] uppercase tracking-wide text-gray-500">
+              <label className="mb-1 block text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">
                 End (24h)
               </label>
               <input
                 type="time"
                 value={draft.end}
                 onChange={(e) => setDraft((d) => ({ ...d, end: e.target.value }))}
-                className="rounded border border-gray-700 bg-black px-2 py-1 text-xs text-gray-200 outline-none focus:border-red-600"
+                className="rounded border border-[var(--border-subtle)] bg-[var(--bg-root)] px-2 py-1 text-xs text-[var(--text-primary)] outline-none focus:border-red-600"
               />
             </div>
             <div className="min-w-[140px] flex-1">
-              <label className="mb-1 block text-[10px] uppercase tracking-wide text-gray-500">
+              <label className="mb-1 block text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">
                 Timezone
               </label>
               <select
                 value={draft.timezone}
                 onChange={(e) => setDraft((d) => ({ ...d, timezone: e.target.value }))}
-                className="w-full rounded border border-gray-700 bg-black px-2 py-1 text-xs text-gray-200 outline-none focus:border-red-600"
+                className="w-full rounded border border-[var(--border-subtle)] bg-[var(--bg-root)] px-2 py-1 text-xs text-[var(--text-primary)] outline-none focus:border-red-600"
               >
                 {tzList.map((tz) => (
-                  <option key={tz} value={tz} className="bg-black">
+                  <option key={tz} value={tz} className="bg-[var(--bg-root)]">
                     {tz}
                   </option>
                 ))}
               </select>
             </div>
           </div>
-          <div className="text-[11px] text-gray-500">
+          <div className="text-[11px] text-[var(--text-tertiary)]">
             Notifications created between start and end (local to selected timezone) are suppressed.
           </div>
         </div>
       )}
-      <div className="mt-2 text-[11px] text-gray-500">Current: {label}</div>
+      <div className="mt-2 text-[11px] text-[var(--text-tertiary)]">Current: {label}</div>
       {error && <div className="mt-1 text-[11px] text-red-400">{error}</div>}
     </div>
   );

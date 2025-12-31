@@ -108,9 +108,9 @@ export default function ProfileTab({
 
   return (
     <div className={containerStyling}>
-      <div className="mb-8 border-b border-gray-800 pb-6">
-        <h2 className="text-2xl font-bold text-white">Profile Settings</h2>
-        <p className="mt-1 text-sm text-gray-400">
+      <div className="mb-8 border-b border-[var(--border-subtle)] pb-6">
+        <h2 className="text-2xl font-bold text-[var(--text-primary)]">Profile Settings</h2>
+        <p className="mt-1 text-sm text-[var(--text-tertiary)]">
           Manage your personal details and public profile appearance.
         </p>
       </div>
@@ -119,13 +119,15 @@ export default function ProfileTab({
         {/* Left Column: Forms (7 cols) */}
         <div className="space-y-8 lg:col-span-7">
           <section>
-            <h3 className="mb-4 text-lg font-medium text-white">Personal Information</h3>
+            <h3 className="mb-4 text-lg font-medium text-[var(--text-primary)]">
+              Personal Information
+            </h3>
             <form className="space-y-5" onSubmit={handleProfileUpdate}>
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <div>
                   <label
                     htmlFor="firstName"
-                    className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-gray-500"
+                    className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--text-tertiary)]"
                   >
                     First Name
                   </label>
@@ -142,7 +144,7 @@ export default function ProfileTab({
                 <div>
                   <label
                     htmlFor="lastName"
-                    className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-gray-500"
+                    className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--text-tertiary)]"
                   >
                     Last Name
                   </label>
@@ -161,7 +163,7 @@ export default function ProfileTab({
               <div>
                 <label
                   htmlFor="phoneNumber"
-                  className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-gray-500"
+                  className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--text-tertiary)]"
                 >
                   Phone Number
                 </label>
@@ -179,7 +181,7 @@ export default function ProfileTab({
               <div>
                 <label
                   htmlFor="email"
-                  className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-gray-500"
+                  className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--text-tertiary)]"
                 >
                   Email Address
                 </label>
@@ -201,7 +203,7 @@ export default function ProfileTab({
             </form>
           </section>
 
-          <div className="border-t border-gray-800 pt-8">
+          <div className="border-t border-[var(--border-subtle)] pt-8">
             <EditProfileForm
               inputStyling={inputStyling}
               buttonStyling={buttonStyling}
@@ -209,7 +211,7 @@ export default function ProfileTab({
             />
           </div>
 
-          <div className="border-t border-gray-800 pt-8">
+          <div className="border-t border-[var(--border-subtle)] pt-8">
             <ProfileSongForm
               inputStyling={inputStyling}
               buttonStyling={buttonStyling}
@@ -222,12 +224,12 @@ export default function ProfileTab({
         <div className="lg:col-span-5">
           <div className={`${cardStyling} sticky top-8`}>
             <div className="flex flex-col items-center text-center">
-              <h3 className="mb-6 text-sm font-semibold uppercase tracking-wide text-gray-400">
+              <h3 className="mb-6 text-sm font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">
                 Profile Picture
               </h3>
 
               <div className="group relative mb-6">
-                <div className="relative h-40 w-40 overflow-hidden rounded-md border-4 border-gray-800 shadow-2xl transition-all duration-300 group-hover:border-red-600/50">
+                <div className="relative h-40 w-40 overflow-hidden rounded-md border-4 border-[var(--border-subtle)] shadow-2xl transition-all duration-300 group-hover:border-red-600/50">
                   <Image
                     src={currentProfilePicture || '/assets/user.png'}
                     alt="Profile"
@@ -308,7 +310,7 @@ export default function ProfileTab({
                 <button
                   onClick={triggerFileInput}
                   disabled={isUploading}
-                  className="w-full rounded-md border border-gray-700 bg-gray-800/50 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 hover:text-red-400 disabled:opacity-50"
+                  className="w-full rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--bg-elev-1)] hover:text-red-400 disabled:opacity-50"
                 >
                   {isUploading ? 'Uploading...' : 'Change Photo'}
                 </button>
@@ -317,7 +319,7 @@ export default function ProfileTab({
                   <button
                     type="button"
                     onClick={handleRemoveImage}
-                    className="w-full text-xs text-gray-500 transition-colors hover:text-red-500"
+                    className="w-full text-xs text-[var(--text-tertiary)] transition-colors hover:text-red-500"
                   >
                     Remove current photo
                   </button>
@@ -326,7 +328,7 @@ export default function ProfileTab({
 
               {uploadError && <p className="mt-3 text-xs text-red-500">{uploadError}</p>}
 
-              <p className="mt-6 text-xs leading-relaxed text-gray-500">
+              <p className="mt-6 text-xs leading-relaxed text-[var(--text-tertiary)]">
                 Recommended: Square JPG or PNG, at least 400x400px.
               </p>
             </div>

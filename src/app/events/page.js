@@ -72,7 +72,7 @@ function EventsPageContent() {
 
       <div className="flex-grow">
         <div className="mx-auto max-w-7xl px-4 pb-16 pt-10 sm:px-6 sm:pt-12 lg:px-8">
-          <h1 className="mb-8 mt-8 text-center text-3xl font-bold tracking-tight text-gray-100">
+          <h1 className="mb-8 mt-8 text-center text-3xl font-bold tracking-tight text-[var(--text-primary)]">
             {events.length > 0 ? 'UPCOMING EVENTS' : 'NO EVENTS AT THIS TIME, PLEASE STAY TUNED!'}
           </h1>
 
@@ -90,7 +90,7 @@ function EventsPageContent() {
                 ))}
               </div>
             ) : error ? (
-              <div className="mt-6 rounded border border-gray-800 bg-gray-900/50 p-4 text-gray-200">
+              <div className="mt-6 rounded border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-4 text-[var(--text-secondary)]">
                 <p>{error}</p>
                 <div className="mt-3">
                   <button
@@ -135,7 +135,7 @@ export default function Events() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-black text-gray-200">
+        <div className="flex min-h-screen items-center justify-center bg-[var(--bg-root)] text-[var(--text-secondary)] transition-colors duration-200">
           <span>Loading events...</span>
         </div>
       }

@@ -175,14 +175,14 @@ export default function ProfileView({ params }) {
   }, [resolvedUid]);
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-[var(--bg-root)] text-[var(--text-primary)] transition-colors duration-200">
       {/* Header is rendered by layout.js */}
       <div className="mx-auto max-w-6xl px-4 pb-6 pt-24">
         {/* Top nav: Back */}
         <div className="mb-4">
           <button
             onClick={() => router.back()}
-            className="inline-flex items-center gap-2 text-sm text-gray-300 hover:text-white"
+            className="inline-flex items-center gap-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             aria-label="Go back"
           >
             <span aria-hidden>←</span> Back
@@ -193,11 +193,11 @@ export default function ProfileView({ params }) {
         <div className="grid gap-6 md:grid-cols-12">
           {/* Left column: profile card + song */}
           <aside className="space-y-6 md:col-span-4">
-            <div className="rounded-2xl border border-white/10 bg-[#0d0d0f] p-5">
+            <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-5 transition-colors duration-200">
               <div className="mb-4 flex items-center gap-4">
-                <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-md bg-white/10">
+                <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-md bg-[var(--bg-elev-2)]">
                   {profileLoading ? (
-                    <div className="h-full w-full animate-pulse bg-white/10" />
+                    <div className="h-full w-full animate-pulse bg-[var(--bg-elev-2)]" />
                   ) : profile.photoURL ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -212,8 +212,8 @@ export default function ProfileView({ params }) {
                 <div className="min-w-0 flex-1">
                   {profileLoading ? (
                     <div className="space-y-2">
-                      <div className="h-4 w-40 animate-pulse rounded bg-white/10" />
-                      <div className="h-3 w-24 animate-pulse rounded bg-white/5" />
+                      <div className="h-4 w-40 animate-pulse rounded bg-[var(--bg-elev-2)]" />
+                      <div className="h-3 w-24 animate-pulse rounded bg-[var(--bg-elev-2)]" />
                     </div>
                   ) : (
                     <>
@@ -222,19 +222,23 @@ export default function ProfileView({ params }) {
                         {profile.isVerified && <VerifiedBadge />}
                       </h1>
                       {profile.usernameLower && (
-                        <p className="text-xs text-gray-500">{profile.usernameLower}</p>
+                        <p className="text-xs text-[var(--text-tertiary)]">
+                          {profile.usernameLower}
+                        </p>
                       )}
                     </>
                   )}
                 </div>
               </div>
               {profile.bio && (
-                <p className="whitespace-pre-line text-sm text-gray-300">{profile.bio}</p>
+                <p className="whitespace-pre-line text-sm text-[var(--text-secondary)]">
+                  {profile.bio}
+                </p>
               )}
             </div>
 
             {profile.profileSongUrl ? (
-              <div className="rounded-2xl border border-white/10 bg-[#0d0d0f] p-4">
+              <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-4 transition-colors duration-200">
                 {/* Classic compact player on mobile */}
                 <div className="md:hidden">
                   <iframe
@@ -274,19 +278,21 @@ export default function ProfileView({ params }) {
               {posts.map((p) => (
                 <Post key={p.id} postData={{ ...p, usernameLower: profile.usernameLower }} />
               ))}
-              {loadingPosts && <p className="py-4 text-center text-gray-400">Loading…</p>}
+              {loadingPosts && (
+                <p className="py-4 text-center text-[var(--text-tertiary)]">Loading…</p>
+              )}
               {!loadingPosts && hasMore && (
                 <div className="flex justify-center py-4">
                   <button
                     onClick={loadPosts}
-                    className="rounded-lg border border-white/10 bg-[#16171a] px-4 py-2 text-sm font-semibold hover:bg-white/10"
+                    className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] px-4 py-2 text-sm font-semibold transition-colors duration-200 hover:bg-[var(--bg-elev-1)]"
                   >
                     Load more
                   </button>
                 </div>
               )}
               {!loadingPosts && !hasMore && posts.length === 0 && (
-                <p className="py-8 text-center text-gray-400">No posts yet.</p>
+                <p className="py-8 text-center text-[var(--text-tertiary)]">No posts yet.</p>
               )}
             </div>
           </main>

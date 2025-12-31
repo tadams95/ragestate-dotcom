@@ -204,7 +204,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-[var(--bg-root)] transition-colors duration-200">
       {/* Header is rendered by layout.js */}
 
       <div className="relative isolate flex min-h-[calc(100vh-80px)] flex-col items-center justify-center overflow-hidden px-6 py-12 lg:px-8">
@@ -218,18 +218,23 @@ export default function Login() {
             <div className="flex justify-center">
               <Image src="/assets/RSLogo2.png" alt="RAGESTATE" width={128} height={64} priority />
             </div>
-            <h2 className="text-3xl font-bold tracking-tight text-gray-100 sm:text-4xl">
+            <h2 className="text-3xl font-bold tracking-tight text-[var(--text-primary)] sm:text-4xl">
               Welcome Back
             </h2>
-            <p className="text-sm text-gray-400">Enter your credentials to access your account</p>
+            <p className="text-sm text-[var(--text-secondary)]">
+              Enter your credentials to access your account
+            </p>
           </div>
 
           {/* Form container with glass effect */}
-          <div className="mt-10 rounded-2xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur-lg">
+          <div className="mt-10 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-8 shadow-2xl backdrop-blur-lg">
             <form className="space-y-6" onSubmit={handleSignIn}>
               {/* Email field */}
               <div className="space-y-2">
-                <label htmlFor="email" className="block text-sm font-medium text-gray-300">
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-[var(--text-secondary)]"
+                >
                   Email address
                 </label>
                 <input
@@ -239,7 +244,7 @@ export default function Login() {
                   required
                   value={email}
                   onChange={handleEmailChange}
-                  className="w-full rounded-lg border border-gray-500 bg-black/30 px-4 py-3 text-gray-100 transition duration-200 placeholder:text-gray-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                  className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] px-4 py-3 text-[var(--text-primary)] transition duration-200 placeholder:text-[var(--text-tertiary)] focus:border-red-500 focus:ring-1 focus:ring-red-500"
                   placeholder="Enter your email"
                 />
               </div>
@@ -260,7 +265,10 @@ export default function Login() {
 
               {/* Password field */}
               <div className="space-y-2">
-                <label htmlFor="password" className="block text-sm font-medium text-gray-300">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-[var(--text-secondary)]"
+                >
                   Password
                 </label>
                 <input
@@ -270,7 +278,7 @@ export default function Login() {
                   required
                   value={password}
                   onChange={handlePasswordChange}
-                  className="w-full rounded-lg border border-gray-500 bg-black/30 px-4 py-3 text-gray-100 transition duration-200 placeholder:text-gray-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                  className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] px-4 py-3 text-[var(--text-primary)] transition duration-200 placeholder:text-[var(--text-tertiary)] focus:border-red-500 focus:ring-1 focus:ring-red-500"
                   placeholder="Enter your password"
                 />
               </div>
@@ -282,9 +290,9 @@ export default function Login() {
                     id="remember-me"
                     name="remember-me"
                     type="checkbox"
-                    className="h-4 w-4 rounded border-gray-500 bg-black/30 text-red-500 focus:ring-red-500"
+                    className="h-4 w-4 rounded border-[var(--border-subtle)] bg-[var(--bg-elev-2)] text-red-500 focus:ring-red-500"
                   />
-                  <label htmlFor="remember-me" className="text-sm text-gray-300">
+                  <label htmlFor="remember-me" className="text-sm text-[var(--text-secondary)]">
                     Remember me
                   </label>
                 </div>
@@ -336,7 +344,7 @@ export default function Login() {
 
               {/* Divider */}
               <div className="my-6 flex items-center justify-center">
-                <span className="text-sm text-gray-400">or continue with</span>
+                <span className="text-sm text-[var(--text-secondary)]">or continue with</span>
               </div>
 
               {/* Google Sign-in Button */}
@@ -344,7 +352,7 @@ export default function Login() {
                 type="button"
                 onClick={handleGoogleSignIn}
                 disabled={isGoogleLoading || isAuthenticating || !!rateLimitError}
-                className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-500 bg-white px-4 py-3 text-sm font-semibold text-gray-900 transition-all duration-200 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-3 rounded-lg border border-[var(--border-subtle)] bg-white px-4 py-3 text-sm font-semibold text-gray-900 transition-all duration-200 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isGoogleLoading ? (
                   <svg className="h-5 w-5 animate-spin text-gray-600" viewBox="0 0 24 24">
@@ -389,7 +397,7 @@ export default function Login() {
           </div>
 
           {/* Create account link */}
-          <p className="mt-10 text-center text-sm text-gray-400">
+          <p className="mt-10 text-center text-sm text-[var(--text-secondary)]">
             Not a member?{' '}
             <Link
               href="/create-account"

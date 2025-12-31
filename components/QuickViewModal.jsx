@@ -181,7 +181,7 @@ export default function QuickViewModal({ open, onClose, product }) {
     >
       <div
         ref={modalRef}
-        className="relative w-full max-w-3xl overflow-hidden rounded-xl border border-gray-800 bg-black p-4"
+        className="relative w-full max-w-3xl overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-4 transition-colors duration-200"
       >
         <button
           ref={closeBtnRef}
@@ -202,17 +202,17 @@ export default function QuickViewModal({ open, onClose, product }) {
             />
           </div>
           <div className="space-y-4">
-            <h3 id="qv-title" className="text-lg font-semibold text-white">
+            <h3 id="qv-title" className="text-lg font-semibold text-[var(--text-primary)]">
               {product?.title}
             </h3>
-            <div className="text-xl font-bold text-white">${displayPrice}</div>
+            <div className="text-xl font-bold text-[var(--text-primary)]">${displayPrice}</div>
 
             {/* Color */}
             <div>
-              <h4 className="mb-2 text-sm text-gray-200">Color</h4>
+              <h4 className="mb-2 text-sm text-[var(--text-secondary)]">Color</h4>
               <div className="flex flex-wrap gap-2">
                 {colorOptions.length === 0 && (
-                  <span className="text-sm text-gray-500">No color options</span>
+                  <span className="text-sm text-[var(--text-tertiary)]">No color options</span>
                 )}
                 {colorOptions.map((color) => {
                   const disabled = isColorDisabled(color);
@@ -237,10 +237,10 @@ export default function QuickViewModal({ open, onClose, product }) {
 
             {/* Size */}
             <div>
-              <h4 className="mb-2 text-sm text-gray-200">Size</h4>
+              <h4 className="mb-2 text-sm text-[var(--text-secondary)]">Size</h4>
               <div className="flex flex-wrap gap-2">
                 {sizeOptions.length === 0 && (
-                  <span className="text-sm text-gray-500">No size options</span>
+                  <span className="text-sm text-[var(--text-tertiary)]">No size options</span>
                 )}
                 {sizeOptions.map((size) => {
                   const disabled = isSizeDisabled(size);

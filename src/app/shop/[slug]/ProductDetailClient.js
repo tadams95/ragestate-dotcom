@@ -59,17 +59,17 @@ export default function ProductDetailClient({ product: initialProduct }) {
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-10">
               <div className="lg:col-span-7">
                 <div className="grid animate-pulse grid-cols-2 gap-4">
-                  <div className="col-span-2 h-[28rem] rounded-lg bg-gray-800 sm:h-[32rem]" />
-                  <div className="h-64 rounded-lg bg-gray-800 sm:h-72" />
-                  <div className="h-64 rounded-lg bg-gray-800 sm:h-72" />
+                  <div className="col-span-2 h-[28rem] rounded-lg bg-[var(--bg-elev-2)] sm:h-[32rem]" />
+                  <div className="h-64 rounded-lg bg-[var(--bg-elev-2)] sm:h-72" />
+                  <div className="h-64 rounded-lg bg-[var(--bg-elev-2)] sm:h-72" />
                 </div>
               </div>
               <div className="lg:col-span-3">
                 <div className="animate-pulse">
-                  <div className="h-6 w-2/3 rounded bg-gray-800" />
-                  <div className="mt-4 h-6 w-1/3 rounded bg-gray-800" />
-                  <div className="mt-6 h-10 w-48 rounded bg-gray-800" />
-                  <div className="mt-8 h-40 w-full rounded bg-gray-800" />
+                  <div className="h-6 w-2/3 rounded bg-[var(--bg-elev-2)]" />
+                  <div className="mt-4 h-6 w-1/3 rounded bg-[var(--bg-elev-2)]" />
+                  <div className="mt-6 h-10 w-48 rounded bg-[var(--bg-elev-2)]" />
+                  <div className="mt-8 h-40 w-full rounded bg-[var(--bg-elev-2)]" />
                 </div>
               </div>
             </div>
@@ -94,21 +94,24 @@ export default function ProductDetailClient({ product: initialProduct }) {
         })()}
         {/* Breadcrumbs + Share */}
         <div className="pointer-events-auto relative isolate z-50 mx-auto mb-4 flex max-w-7xl items-center justify-between">
-          <nav aria-label="Breadcrumb" className="text-sm text-gray-400">
+          <nav aria-label="Breadcrumb" className="text-sm text-[var(--text-secondary)]">
             <ol className="flex items-center gap-2">
               <li>
-                <Link href="/" className="hover:text-white">
+                <Link href="/" className="hover:text-[var(--text-primary)]">
                   Home
                 </Link>
               </li>
-              <li className="text-gray-600">/</li>
+              <li className="text-[var(--text-tertiary)]">/</li>
               <li>
-                <Link href="/shop" className="hover:text-white">
+                <Link href="/shop" className="hover:text-[var(--text-primary)]">
                   Shop
                 </Link>
               </li>
-              <li className="text-gray-600">/</li>
-              <li aria-current="page" className="line-clamp-1 max-w-[50vw] text-gray-300">
+              <li className="text-[var(--text-tertiary)]">/</li>
+              <li
+                aria-current="page"
+                className="line-clamp-1 max-w-[50vw] text-[var(--text-secondary)]"
+              >
                 {selectedProduct?.title}
               </li>
             </ol>
@@ -138,7 +141,7 @@ export default function ProductDetailClient({ product: initialProduct }) {
                 toast.success('Link copied');
               } catch (_) {}
             }}
-            className="relative z-20 rounded border border-gray-700 px-3 py-1 text-sm text-gray-200 hover:border-gray-500"
+            className="relative z-20 rounded border border-[var(--border-subtle)] px-3 py-1 text-sm text-[var(--text-secondary)] hover:border-[var(--text-secondary)]"
             aria-label="Share this product"
           >
             Share

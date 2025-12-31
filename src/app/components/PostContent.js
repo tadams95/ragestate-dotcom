@@ -331,8 +331,8 @@ export default function PostContent({
           <p
             className={
               shouldClamp && !expanded
-                ? 'line-clamp-5 whitespace-pre-line break-words text-[15px] leading-6 text-white'
-                : 'whitespace-pre-line break-words text-[15px] leading-6 text-white'
+                ? 'line-clamp-5 whitespace-pre-line break-words text-[15px] leading-6 text-[var(--text-primary)]'
+                : 'whitespace-pre-line break-words text-[15px] leading-6 text-[var(--text-primary)]'
             }
           >
             {linkifyAll(text)}
@@ -367,7 +367,7 @@ export default function PostContent({
               tabIndex={0}
               onClick={() => openLightbox(0)}
               onKeyDown={(e) => e.key === 'Enter' && openLightbox(0)}
-              className="relative cursor-pointer overflow-hidden bg-white/5"
+              className="relative cursor-pointer overflow-hidden bg-[var(--bg-elev-2)]"
               style={{ aspectRatio: '16/9', maxHeight: '510px' }}
             >
               <Image
@@ -388,7 +388,7 @@ export default function PostContent({
                 tabIndex={0}
                 onClick={() => openLightbox(idx)}
                 onKeyDown={(e) => e.key === 'Enter' && openLightbox(idx)}
-                className="relative cursor-pointer overflow-hidden bg-white/5"
+                className="relative cursor-pointer overflow-hidden bg-[var(--bg-elev-2)]"
                 style={{ aspectRatio: '1/1' }}
               >
                 <Image
@@ -409,7 +409,7 @@ export default function PostContent({
                 tabIndex={0}
                 onClick={() => openLightbox(0)}
                 onKeyDown={(e) => e.key === 'Enter' && openLightbox(0)}
-                className="relative row-span-2 cursor-pointer overflow-hidden bg-white/5"
+                className="relative row-span-2 cursor-pointer overflow-hidden bg-[var(--bg-elev-2)]"
                 style={{ aspectRatio: '4/5' }}
               >
                 <Image
@@ -429,7 +429,7 @@ export default function PostContent({
                     tabIndex={0}
                     onClick={() => openLightbox(idx + 1)}
                     onKeyDown={(e) => e.key === 'Enter' && openLightbox(idx + 1)}
-                    className="relative flex-1 cursor-pointer overflow-hidden bg-white/5"
+                    className="relative flex-1 cursor-pointer overflow-hidden bg-[var(--bg-elev-2)]"
                     style={{ aspectRatio: '4/5' }}
                   >
                     <Image
@@ -453,7 +453,7 @@ export default function PostContent({
                 tabIndex={0}
                 onClick={() => openLightbox(idx)}
                 onKeyDown={(e) => e.key === 'Enter' && openLightbox(idx)}
-                className="relative cursor-pointer overflow-hidden bg-white/5"
+                className="relative cursor-pointer overflow-hidden bg-[var(--bg-elev-2)]"
                 style={{ aspectRatio: '16/10' }}
               >
                 <Image

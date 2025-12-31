@@ -362,7 +362,7 @@ export default function ProductDetails({ product, focusRestoreRef }) {
   };
 
   return (
-    <div className="isolate bg-black">
+    <div className="isolate bg-[var(--bg-root)] transition-colors duration-200">
       {/* Screen reader live region for ATC and validation messages */}
       <div aria-live="polite" role="status" className="sr-only">
         {liveMsg}
@@ -374,8 +374,10 @@ export default function ProductDetails({ product, focusRestoreRef }) {
           <div className="lg:grid lg:auto-rows-min lg:grid-cols-10 lg:gap-x-8">
             <div className="lg:col-span-5 lg:col-start-8">
               <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold tracking-tight text-gray-100">{product.title}</h1>
-                <p className="flex items-center text-2xl font-bold text-white">
+                <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
+                  {product.title}
+                </h1>
+                <p className="flex items-center text-2xl font-bold text-[var(--text-primary)]">
                   ${displayPrice}
                   {currentVariant?.quantityAvailable != null &&
                     currentVariant.quantityAvailable > 0 &&
@@ -464,7 +466,7 @@ export default function ProductDetails({ product, focusRestoreRef }) {
                     );
                   })()
                 ) : (
-                  <div className="flex h-full items-center justify-center bg-gray-900 text-gray-400">
+                  <div className="flex h-full items-center justify-center bg-[var(--bg-elev-1)] text-[var(--text-tertiary)]">
                     No images
                   </div>
                 )}
@@ -515,10 +517,10 @@ export default function ProductDetails({ product, focusRestoreRef }) {
               <form onSubmit={handleAddToCart} className="space-y-6 xl:mx-auto xl:max-w-md">
                 {/* Color pills */}
                 <div>
-                  <h2 className="mb-3 text-sm font-medium text-gray-100">Color</h2>
+                  <h2 className="mb-3 text-sm font-medium text-[var(--text-secondary)]">Color</h2>
                   <div className="flex flex-wrap gap-2">
                     {colorOptions.length === 0 && (
-                      <span className="text-sm text-gray-400">No color options</span>
+                      <span className="text-sm text-[var(--text-tertiary)]">No color options</span>
                     )}
                     {colorOptions.map((color) => {
                       const disabled = isColorDisabled(color);
@@ -533,7 +535,9 @@ export default function ProductDetails({ product, focusRestoreRef }) {
                           onClick={() => setSelectedColor(color)}
                           className={classNames(
                             'rounded-md border px-3 py-2 text-sm',
-                            selected ? 'border-red-500 text-white' : 'border-white text-gray-100',
+                            selected
+                              ? 'border-red-500 text-[var(--text-primary)]'
+                              : 'border-[var(--border-subtle)] text-[var(--text-secondary)]',
                             disabled
                               ? 'cursor-not-allowed opacity-40'
                               : 'transition-colors duration-150 hover:border-red-500',
@@ -549,11 +553,11 @@ export default function ProductDetails({ product, focusRestoreRef }) {
                 {/* Size pills */}
                 <div>
                   <div className="mb-3 flex items-center justify-between">
-                    <h2 className="text-sm font-medium text-gray-100">Size</h2>
+                    <h2 className="text-sm font-medium text-[var(--text-secondary)]">Size</h2>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {sizeOptions.length === 0 && (
-                      <span className="text-sm text-gray-400">No size options</span>
+                      <span className="text-sm text-[var(--text-tertiary)]">No size options</span>
                     )}
                     {sizeOptions.map((size) => {
                       const disabled = isSizeDisabled(size);
@@ -568,7 +572,9 @@ export default function ProductDetails({ product, focusRestoreRef }) {
                           onClick={() => setSelectedSize(size)}
                           className={classNames(
                             'rounded-md border px-3 py-2 text-sm',
-                            selected ? 'border-red-500 text-white' : 'border-white text-gray-100',
+                            selected
+                              ? 'border-red-500 text-[var(--text-primary)]'
+                              : 'border-[var(--border-subtle)] text-[var(--text-secondary)]',
                             disabled
                               ? 'cursor-not-allowed opacity-40'
                               : 'transition-colors duration-150 hover:border-red-500',
@@ -582,7 +588,7 @@ export default function ProductDetails({ product, focusRestoreRef }) {
                 </div>
 
                 {/* Availability / stock */}
-                <div className="text-sm text-gray-300">
+                <div className="text-sm text-[var(--text-secondary)]">
                   {currentVariant ? (
                     isVariantAvailable(currentVariant) ? (
                       currentVariant?.quantityAvailable != null ? (
@@ -603,9 +609,9 @@ export default function ProductDetails({ product, focusRestoreRef }) {
                   type="submit"
                   disabled={!currentVariant || !isVariantAvailable(currentVariant)}
                   className={classNames(
-                    'hidden w-full items-center justify-center rounded-md px-8 py-3 text-base font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-900 sm:flex',
+                    'hidden w-full items-center justify-center rounded-md px-8 py-3 text-base font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-[var(--bg-root)] sm:flex',
                     !currentVariant || !isVariantAvailable(currentVariant)
-                      ? 'cursor-not-allowed bg-gray-700 text-gray-300'
+                      ? 'cursor-not-allowed bg-[var(--bg-elev-2)] text-[var(--text-tertiary)]'
                       : 'bg-red-600 text-white hover:bg-red-700',
                   )}
                 >
@@ -622,9 +628,9 @@ export default function ProductDetails({ product, focusRestoreRef }) {
                   onClick={handleAddToCart}
                   disabled={!currentVariant || !isVariantAvailable(currentVariant)}
                   className={classNames(
-                    'flex w-full items-center justify-center rounded-md px-8 py-3 text-base font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-900 sm:hidden',
+                    'flex w-full items-center justify-center rounded-md px-8 py-3 text-base font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-[var(--bg-root)] sm:hidden',
                     !currentVariant || !isVariantAvailable(currentVariant)
-                      ? 'cursor-not-allowed bg-gray-700 text-gray-300'
+                      ? 'cursor-not-allowed bg-[var(--bg-elev-2)] text-[var(--text-tertiary)]'
                       : 'bg-red-600 text-white hover:bg-red-700',
                   )}
                 >
@@ -638,14 +644,14 @@ export default function ProductDetails({ product, focusRestoreRef }) {
 
               {/* Product details */}
               <div className="mt-8">
-                <h2 className="mb-4 text-lg font-medium text-gray-100">Description</h2>
+                <h2 className="mb-4 text-lg font-medium text-[var(--text-primary)]">Description</h2>
                 <div
-                  className="prose prose-sm prose-invert mt-4 text-gray-300"
+                  className="prose prose-sm prose-invert mt-4 text-[var(--text-secondary)]"
                   dangerouslySetInnerHTML={{ __html: product.description }}
                 />
               </div>
 
-              <div className="mt-6 border-t border-gray-800 pt-6" />
+              <div className="mt-6 border-t border-[var(--border-subtle)] pt-6" />
 
               {/* Policies */}
               <section aria-labelledby="policies-heading" className="mt-0">
@@ -656,18 +662,20 @@ export default function ProductDetails({ product, focusRestoreRef }) {
                   {policies.map((policy) => (
                     <div
                       key={policy.name}
-                      className="rounded-lg border border-white bg-transparent bg-opacity-50 p-6 text-center transition-colors duration-200 hover:border-gray-700"
+                      className="rounded-lg border border-[var(--border-subtle)] bg-transparent bg-opacity-50 p-6 text-center transition-colors duration-200 hover:border-[var(--text-tertiary)]"
                     >
                       <dt>
                         <policy.icon
                           className="mx-auto h-6 w-6 flex-shrink-0 text-red-500"
                           aria-hidden="true"
                         />
-                        <span className="mt-4 text-sm font-medium text-gray-100">
+                        <span className="mt-4 text-sm font-medium text-[var(--text-primary)]">
                           {policy.name}
                         </span>
                       </dt>
-                      <dd className="mt-1 text-sm text-gray-400">{policy.description}</dd>
+                      <dd className="mt-1 text-sm text-[var(--text-tertiary)]">
+                        {policy.description}
+                      </dd>
                     </div>
                   ))}
                 </dl>

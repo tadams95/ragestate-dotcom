@@ -15,24 +15,112 @@
   }
 }
 
+/* ============================================
+   THEME COLOR SYSTEM
+   Light/Dark mode with semantic tokens
+   ============================================ */
+
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
+  /* Light mode (default for :root, dark applied via .dark class) */
+  --bg-root: #fafafa;
+  --bg-elev-1: #ffffff;
+  --bg-elev-2: #f0f0f2;
+  --bg-reverse: #050505;
+  --border-subtle: #e0e0e3;
+  --border-strong: #c8c8cc;
+  --text-primary: #111113;
+  --text-secondary: #555555;
+  --text-tertiary: #888888;
+
+  /* Accent colors (same in both modes) */
+  --accent: #ff1f42;
+  --accent-glow: #ff415f;
+  --accent-muted: rgba(255, 31, 66, 0.25);
+  --success: #22a55a;
+  --warning: #e6a020;
+  --danger: #e53935;
+  --focus-ring: #ff1f42;
+
+  /* Reaction colors */
+  --reaction-fire: #ff8a1f;
+  --reaction-wow: #ffd31f;
+  --reaction-like: #3d8bff;
+
+  /* Presence indicators */
+  --presence-online: #22a55a;
+  --presence-idle: #e6a020;
+
+  /* Legacy variables (for backwards compatibility) */
+  --foreground-rgb: 17, 17, 19;
+  --background-start-rgb: 250, 250, 250;
   --background-end-rgb: 255, 255, 255;
 }
 
+/* Dark mode - applied via .dark class on html element */
+.dark {
+  --bg-root: #050505;
+  --bg-elev-1: #0d0d0f;
+  --bg-elev-2: #16171a;
+  --bg-reverse: #ffffff;
+  --border-subtle: #242528;
+  --border-strong: #34363a;
+  --text-primary: #f5f6f7;
+  --text-secondary: #a1a5ab;
+  --text-tertiary: #5d6269;
+
+  /* Accent colors (preserved from light) */
+  --accent: #ff1f42;
+  --accent-glow: #ff415f;
+  --accent-muted: rgba(255, 31, 66, 0.25);
+  --success: #3ddc85;
+  --warning: #ffb347;
+  --danger: #ff4d4d;
+  --focus-ring: #ff1f42;
+
+  /* Reaction colors */
+  --reaction-fire: #ff8a1f;
+  --reaction-wow: #ffd31f;
+  --reaction-like: #3d8bff;
+
+  /* Presence indicators */
+  --presence-online: #3ddc85;
+  --presence-idle: #ffb347;
+
+  /* Legacy variables */
+  --foreground-rgb: 245, 246, 247;
+  --background-start-rgb: 5, 5, 5;
+  --background-end-rgb: 5, 5, 5;
+}
+
+/* System preference fallback (when no .dark class and user prefers dark) */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
+  :root:not(.light) {
+    --bg-root: #050505;
+    --bg-elev-1: #0d0d0f;
+    --bg-elev-2: #16171a;
+    --bg-reverse: #ffffff;
+    --border-subtle: #242528;
+    --border-strong: #34363a;
+    --text-primary: #f5f6f7;
+    --text-secondary: #a1a5ab;
+    --text-tertiary: #5d6269;
+    --success: #3ddc85;
+    --warning: #ffb347;
+    --danger: #ff4d4d;
+    --presence-online: #3ddc85;
+    --presence-idle: #ffb347;
+    --foreground-rgb: 245, 246, 247;
+    --background-start-rgb: 5, 5, 5;
+    --background-end-rgb: 5, 5, 5;
   }
 }
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(to bottom, transparent, rgb(var(--background-end-rgb)))
-    rgb(var(--background-start-rgb));
+  background: var(--bg-root);
+  transition:
+    background-color 200ms ease,
+    color 200ms ease;
 }
 
 @layer utilities {

@@ -383,43 +383,159 @@
 ## 5. Light/Dark Mode Toggle (Phase 2 — 4 hours)
 
 > **Goal**: User-selectable theme with system preference detection
-> **Status**: Not started — CSS variables already in place
+> **Status**: ✅ Infrastructure complete (CSS vars, provider, toggle) — Component audit needed
 
 ### CSS Variables (`src/app/globals.css`)
 
-- [ ] Add `:root` (light mode) color definitions
-- [ ] Add `.dark` class overrides for dark mode colors
-- [ ] Ensure all semantic tokens covered (`--bg-primary`, `--text-primary`, `--border-subtle`, etc.)
+- [x] Add `:root` (light mode) color definitions — full semantic token set
+- [x] Add `.dark` class overrides for dark mode colors — matches design spec
+- [x] Ensure all semantic tokens covered (`--bg-primary`, `--text-primary`, `--border-subtle`, etc.) — 20+ tokens including bg, text, border, accent, reactions, presence
 
 ### Theme Provider (`lib/context/ThemeContext.js`)
 
-- [ ] Create `ThemeProvider` context with `theme` state (`light` | `dark` | `system`)
-- [ ] Create `useTheme()` hook exposing `theme`, `setTheme`, `resolvedTheme`
-- [ ] Detect system preference via `matchMedia('(prefers-color-scheme: dark)')`
-- [ ] Apply `.dark` class to `<html>` element based on resolved theme
-- [ ] Persist preference to `localStorage` (key: `theme`)
-- [ ] SSR-safe: Avoid hydration mismatch (inline script or cookie-based)
+- [x] Create `ThemeProvider` context with `theme` state (`light` | `dark` | `system`)
+- [x] Create `useTheme()` hook exposing `theme`, `setTheme`, `resolvedTheme`
+- [x] Detect system preference via `matchMedia('(prefers-color-scheme: dark)')`
+- [x] Apply `.dark` class to `<html>` element based on resolved theme — useEffect applies/removes class
+- [x] Persist preference to `localStorage` (key: `theme`) — reads on init, writes on change
+- [x] SSR-safe: Avoid hydration mismatch (inline script or cookie-based) — inline script in layout.js + `suppressHydrationWarning`
 
 ### Toggle UI (`Header.js`)
 
-- [ ] Add theme toggle button (sun/moon icon)
-- [ ] Cycle through: Light → Dark → System (or simple toggle)
-- [ ] Icon animates on change (rotate/fade)
-- [ ] Tooltip shows current mode
+- [x] Add theme toggle button (sun/moon icon) — `ThemeToggle` component with Sun/Moon/System SVG icons
+- [x] Cycle through: Light → Dark → System (or simple toggle) — `cycleTheme` function: light → dark → system → light
+- [x] Icon animates on change (rotate/fade) — 200ms rotate-90 + scale + opacity transition
+- [x] Tooltip shows current mode — hover tooltip with "Light mode" / "Dark mode" / "System (dark/light)"
 
 ### Component Audit
 
-- [ ] Audit `Post.js`, `PostComposer.js`, `Feed.js` for hardcoded colors
-- [ ] Audit `Header.js`, `CommentsSheet.js` for hardcoded colors
-- [ ] Replace any hex values with CSS variable references
-- [ ] Test all components in both themes
+> **Scope**: Replace all hardcoded dark-mode colors with CSS variables for proper light/dark theming
+>
+> **Strategy**: Work in layers — start with layout/shell, then high-traffic pages (Feed, Auth), then secondary pages
+>
+> **CSS Variable Reference**:
+> | Hardcoded Value | CSS Variable | Usage |
+> |-----------------|--------------|-------|
+> | `bg-black`, `#050505` | `var(--bg-root)` | Page backgrounds |
+> | `bg-[#0d0d0f]` | `var(--bg-elev-1)` | Cards, modals |
+> | `bg-[#16171a]`, `bg-[#1a1a1c]` | `var(--bg-elev-2)` | Elevated surfaces, skeletons |
+> | `border-white/10`, `#242528` | `var(--border-subtle)` | Subtle borders |
+> | `text-white`, `text-gray-100`, `#f5f6f7` | `var(--text-primary)` | Primary text |
+> | `text-gray-400`, `#a1a5ab` | `var(--text-secondary)` | Secondary text |
+> | `text-gray-500`, `#5d6269` | `var(--text-tertiary)` | Muted text, timestamps |
+> | `#ff1f42` | `var(--accent)` | Brand accent (keep as-is) |
+
+#### Core Layout & Navigation
+
+- [x] `layout.js`: Update body classes to use `bg-[var(--bg-root)]` instead of fixed colors
+- [x] `Header.js`: Replace `bg-black`, `text-gray-100` with CSS variable equivalents
+- [x] `Header.js`: Mobile menu panel background + text colors
+- [x] `Footer.js`: Background, text, link colors to theme variables
+- [x] `page.js` (Home): Replace `bg-black`, gradient overlays with theme-aware variants
+
+#### Feed & Social Components
+
+- [x] `Feed.js`: Replace `bg-black`, `text-white` with `bg-[var(--bg-root)]`, `text-[var(--text-primary)]`
+- [x] `feed/page.js` + `feed/latest/page.js`: Page background + text colors
+- [x] `Post.js`: Card background (`bg-[#0d0d0f]` → `var(--bg-elev-1)`), text colors, borders
+- [x] `Post.js` (`EmbeddedPost`): Background, border, text colors for repost cards
+- [x] `PostSkeleton.js`: Skeleton pulse colors (`bg-[#1a1a1c]` → `var(--bg-elev-2)`)
+- [x] `PostHeader.js`: Author name, timestamp, menu background colors
+- [x] `PostActions.js`: Icon colors, dropdown menus, reaction pill backgrounds
+- [x] `PostContent.js`: Text colors, lightbox modal backgrounds
+- [x] `PostComposer.js`: Modal background, input borders, button colors
+- [x] `EditPostModal.jsx`: Dialog background, button states
+- [x] `CommentsSheet.js`: Sheet background, comment text, input styling, delete buttons
+
+#### Profile & Account
+
+- [x] `ProfileView.js`: Card backgrounds, stat containers, button styles
+- [x] `profile/[userId]/page.js`: Page background, text, profile card styling
+- [x] `ProfileTab.js`: Form labels, inputs, section headers
+- [x] `account/page.js` + subpages: Backgrounds, text, form elements
+
+#### Auth Pages
+
+- [x] `login/page.js`: Page background, form card (`bg-white/5`), input fields, labels
+- [x] `create-account/page.js`: Form card, inputs, verification section
+- [x] `SocialLogins.js`: Google button (keep brand colors, border adjusted)
+- [x] `forgot-password/page.js`: Form styling
+
+#### Commerce Pages
+
+- [x] `shop/page.js` + `shop/[slug]/`: Product cards, backgrounds
+- [x] `ProductDetailClient.js`: Detail page backgrounds, text
+- [x] `events/page.js` + `events/[slug]/`: Event cards, ticket forms, breadcrumbs
+- [x] `cart/page.js`: Cart items, summary, checkout styling
+- [x] `CartItemDisplay.js`: Item text, price colors, buttons
+
+#### Notifications
+
+- [x] `NotificationBell.js`: Badge colors (keep accent red)
+- [x] `notifications/page.js`: Notification list items, read/unread states
+- [x] `NotificationsTab.jsx` + `NotificationPreferences.jsx`: Toggle switches, section headers
+
+#### Utility Components
+
+- [x] `ErrorModal.js`: Modal background, text, button colors
+- [x] `SuccessModal.jsx`: Keep accent-based styling, adjust backgrounds
+- [x] `AuthGateModal.jsx`: Modal styling
+- [x] Toast styling in `layout.js` (Toaster config)
+
+#### Additional Shop Components
+
+- [x] `ProductDetail.js`: Container bg, title, price, labels, policy cards
+- [x] `QuickViewModal.jsx`: Panel bg, border, title, price, option labels
+- [x] `EmptyCart.jsx`: Background, text, border colors
+
+#### Admin Pages (Lower Priority)
+
+- [ ] `admin/*`: Dashboard, tables, forms (can keep dark-only if preferred)
 
 ### Polish
 
-- [ ] Smooth transition on theme change (`transition: background-color 200ms, color 200ms`)
-- [ ] Ensure sufficient contrast in both modes (WCAG AA)
-- [ ] Test media (images/video) appearance in light mode
-- [ ] Update design spec with light mode color tokens
+#### Transitions & Animation
+
+- [ ] Smooth transition on theme change (already in globals.css: `transition: background-color 200ms, color 200ms`)
+- [ ] Ensure no flash/flicker when navigating between pages
+- [ ] Test toggle animation feels responsive
+
+#### Accessibility & Contrast
+
+- [ ] Light mode: Ensure text-primary (#111113) on bg-root (#fafafa) passes WCAG AA (≥4.5:1)
+- [ ] Light mode: Ensure text-secondary (#555555) on bg-root passes WCAG AA
+- [ ] Light mode: Ensure accent (#ff1f42) buttons have readable text
+- [ ] Dark mode: Verify existing contrast ratios maintained
+- [ ] Focus states visible in both modes (--focus-ring)
+
+#### Media & Images
+
+- [ ] Test user avatars appearance in light mode (no harsh edges)
+- [ ] Test post images/videos don't look washed out in light mode
+- [ ] Logo visibility in both modes (may need light/dark logo variants)
+- [ ] Skeleton loaders visible in both modes
+
+#### Light Mode Specific Styling
+
+- [ ] Cards need subtle shadows in light mode (shadows less visible on white)
+- [ ] Borders may need adjustment (`border-subtle` appropriate contrast)
+- [ ] Hover states appropriate for light backgrounds
+- [ ] Input field backgrounds/borders in light mode
+
+#### Design Spec Updates
+
+- [ ] Update `docs/social-ui-design-spec.md` with light mode color tokens
+- [ ] Document component-to-variable mapping for future reference
+- [ ] Add light mode screenshots/mockups to spec
+
+#### QA & Testing
+
+- [ ] Test complete user flow in light mode (signup → feed → post → profile)
+- [ ] Test complete user flow in dark mode (verify no regressions)
+- [ ] Test system preference mode (toggle OS setting, verify app follows)
+- [ ] Test persistence (refresh page, theme should persist)
+- [ ] Test on mobile Safari (iOS) in both modes
+- [ ] Test on Chrome (Android) in both modes
 
 ---
 

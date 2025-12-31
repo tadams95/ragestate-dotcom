@@ -5,7 +5,7 @@ export default function Shop() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-transparent text-gray-200">
+        <div className="flex min-h-screen items-center justify-center bg-[var(--bg-root)] text-[var(--text-secondary)] transition-colors duration-200">
           <span>Loading shop...</span>
         </div>
       }

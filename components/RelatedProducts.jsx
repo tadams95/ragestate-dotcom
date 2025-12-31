@@ -32,7 +32,7 @@ const RelatedProducts = forwardRef(({ currentId, productType, limit = 8 }, ref) 
 
   return (
     <section ref={ref} className="mt-12">
-      <h2 className="mb-4 text-lg font-semibold text-white">Related products</h2>
+      <h2 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">Related products</h2>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         {items.map((p) => {
           const img = p?.images?.[0] || p?.featuredImage || p?.variants?.[0]?.image || null;
@@ -53,7 +53,7 @@ const RelatedProducts = forwardRef(({ currentId, productType, limit = 8 }, ref) 
                   className="object-cover object-center group-hover:opacity-80"
                 />
               </div>
-              <div className="mt-2 line-clamp-1 text-sm text-gray-100">{p.title}</div>
+              <div className="mt-2 line-clamp-1 text-sm text-[var(--text-primary)]">{p.title}</div>
             </Link>
           );
         })}

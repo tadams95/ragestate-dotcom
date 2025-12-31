@@ -18,7 +18,7 @@ export default function NotificationBell({ userId, className = '' }) {
     <Link
       href="/account/notifications"
       aria-label="Notifications"
-      className={`relative inline-flex items-center justify-center text-gray-100 active:opacity-80 ${className}`}
+      className={`relative inline-flex items-center justify-center text-[var(--text-primary)] active:opacity-80 ${className}`}
     >
       <BellIcon className="h-6 w-6" aria-hidden="true" />
       {unreadCount > 0 && (

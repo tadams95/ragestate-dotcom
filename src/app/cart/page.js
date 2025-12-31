@@ -224,7 +224,7 @@ export default function Cart() {
   const hasPhysicalItems = cartItems.some((item) => !item.isDigital);
 
   return (
-    <div className="isolate bg-black">
+    <div className="isolate bg-[var(--bg-root)] transition-colors duration-200">
       {/* Header is rendered by layout.js */}
       {errorMessage && (
         <div
@@ -244,7 +244,7 @@ export default function Cart() {
         <EmptyCart />
       ) : (
         <div className="mx-auto max-w-2xl px-4 pb-24 pt-32 sm:px-6 lg:max-w-7xl lg:px-8">
-          <h1 className="text-3xl font-bold tracking-tight text-gray-100 sm:text-4xl">
+          <h1 className="text-3xl font-bold tracking-tight text-[var(--text-primary)] sm:text-4xl">
             Shopping Cart
           </h1>
           <div className="mt-12 lg:grid lg:grid-cols-12 lg:items-start lg:gap-x-12 xl:gap-x-16">
@@ -255,7 +255,7 @@ export default function Cart() {
 
               <ul
                 role="list"
-                className="divide-y divide-gray-200 border-b border-t border-gray-100"
+                className="divide-y divide-[var(--border-subtle)] border-b border-t border-[var(--border-subtle)]"
               >
                 {cartItems.map((item, index) => (
                   <CartItemDisplay

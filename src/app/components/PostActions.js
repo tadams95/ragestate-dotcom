@@ -407,11 +407,11 @@ export default function PostActions({
   };
 
   return (
-    <div className="flex items-center space-x-4 text-[#a1a5ab]">
+    <div className="flex items-center space-x-4 text-[var(--text-secondary)]">
       {/* Reaction cluster */}
       {topReactions.length > 0 && (
         <div
-          className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-sm"
+          className="flex items-center gap-1 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] px-2 py-1 text-sm transition-colors duration-200"
           aria-label={topReactions.map(([e, c]) => `${e} ${c}`).join(', ')}
         >
           {topReactions.map(([e, c]) => (
@@ -425,7 +425,7 @@ export default function PostActions({
         </div>
       )}
       <button
-        className={`flex h-11 items-center space-x-1.5 rounded px-2 transition-colors hover:text-white active:opacity-80 ${
+        className={`flex h-11 items-center space-x-1.5 rounded px-2 transition-colors hover:text-[var(--text-primary)] active:opacity-80 ${
           hasLiked ? 'text-[#ff1f42]' : ''
         }`}
         onClick={onToggleLike}
@@ -444,7 +444,7 @@ export default function PostActions({
       </button>
 
       <button
-        className="flex h-11 items-center space-x-1.5 rounded px-2 transition-colors hover:text-white active:opacity-80"
+        className="flex h-11 items-center space-x-1.5 rounded px-2 transition-colors hover:text-[var(--text-primary)] active:opacity-80"
         onClick={onOpenComments}
         aria-label="Comments"
         title="Comments"
@@ -455,7 +455,7 @@ export default function PostActions({
 
       <div className="relative">
         <button
-          className={`flex h-11 items-center space-x-1.5 rounded px-2 transition-colors hover:text-white active:opacity-80 ${
+          className={`flex h-11 items-center space-x-1.5 rounded px-2 transition-colors hover:text-[var(--text-primary)] active:opacity-80 ${
             hasReposted ? 'text-green-500' : ''
           }`}
           onClick={onRepostClick}
@@ -472,11 +472,11 @@ export default function PostActions({
               onClick={() => setShowRepostMenu(false)}
               aria-hidden="true"
             />
-            <div className="absolute bottom-full left-1/2 z-20 mb-2 w-40 -translate-x-1/2 overflow-hidden rounded-lg border border-white/10 bg-[#1a1a1c] shadow-xl">
+            <div className="absolute bottom-full left-1/2 z-20 mb-2 w-40 -translate-x-1/2 overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] shadow-xl transition-colors duration-200">
               {hasReposted ? (
                 <button
                   onClick={onUndoRepost}
-                  className="flex w-full items-center px-4 py-3 text-sm text-red-500 hover:bg-white/5"
+                  className="flex w-full items-center px-4 py-3 text-sm text-red-500 hover:bg-[var(--bg-elev-1)]"
                 >
                   Undo Repost
                 </button>
@@ -484,13 +484,13 @@ export default function PostActions({
                 <>
                   <button
                     onClick={onSimpleRepost}
-                    className="flex w-full items-center px-4 py-3 text-sm text-white hover:bg-white/5"
+                    className="flex w-full items-center px-4 py-3 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-elev-1)]"
                   >
                     Repost
                   </button>
                   <button
                     onClick={onQuoteRepost}
-                    className="flex w-full items-center px-4 py-3 text-sm text-white hover:bg-white/5"
+                    className="flex w-full items-center px-4 py-3 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-elev-1)]"
                   >
                     Quote Repost
                   </button>
@@ -502,7 +502,7 @@ export default function PostActions({
       </div>
 
       <button
-        className="flex h-11 items-center rounded px-2 transition-colors hover:text-white active:opacity-80"
+        className="flex h-11 items-center rounded px-2 transition-colors hover:text-[var(--text-primary)] active:opacity-80"
         onClick={onShare}
         aria-label="Share"
         title="Share"
@@ -514,7 +514,7 @@ export default function PostActions({
       {showReactions && (
         <div
           ref={longPressRef}
-          className="absolute ml-2 mt-[-48px] flex items-center gap-2 rounded-full border border-white/10 bg-[#0d0d0f] px-2 py-1 shadow-lg"
+          className="absolute ml-2 mt-[-48px] flex items-center gap-2 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] px-2 py-1 shadow-lg transition-colors duration-200"
           role="dialog"
           aria-label="Add a reaction"
           onMouseLeave={() => setShowReactions(false)}

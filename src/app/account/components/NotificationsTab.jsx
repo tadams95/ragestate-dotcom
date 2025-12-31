@@ -163,24 +163,24 @@ export default function NotificationsTab({
   return (
     <div className={containerStyling}>
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-white">Notifications</h2>
+        <h2 className="text-lg font-semibold text-[var(--text-primary)]">Notifications</h2>
         <button
           onClick={markAllRead}
           disabled={!items.some((i) => !i.read)}
-          className="rounded border border-gray-700 px-3 py-1 text-sm text-gray-300 transition hover:border-red-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded border border-[var(--border-subtle)] px-3 py-1 text-sm text-[var(--text-secondary)] transition hover:border-red-600 hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
         >
           Mark all read
         </button>
       </div>
       {userId && pushStatus !== 'granted' && (
-        <div className="mb-6 flex items-center justify-between rounded-lg border border-gray-800 bg-gray-900/50 p-4">
+        <div className="mb-6 flex items-center justify-between rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-800">
-              <BellSlashIcon className="h-5 w-5 text-gray-400" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--bg-elev-1)]">
+              <BellSlashIcon className="h-5 w-5 text-[var(--text-tertiary)]" />
             </div>
             <div>
-              <p className="text-sm font-medium text-white">Push Notifications</p>
-              <p className="text-xs text-gray-500">
+              <p className="text-sm font-medium text-[var(--text-primary)]">Push Notifications</p>
+              <p className="text-xs text-[var(--text-tertiary)]">
                 {pushStatus === 'blocked'
                   ? 'Blocked — update browser settings to enable'
                   : 'Get notified about likes, comments, and more'}
@@ -210,13 +210,13 @@ export default function NotificationsTab({
         </div>
       )}
       {userId && pushStatus === 'granted' && (
-        <div className="mb-6 flex items-center justify-between rounded-lg border border-gray-800 bg-gray-900/50 p-4">
+        <div className="mb-6 flex items-center justify-between rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-900/30">
               <BellIcon className="h-5 w-5 text-green-400" />
             </div>
             <div>
-              <p className="text-sm font-medium text-white">Push Notifications</p>
+              <p className="text-sm font-medium text-[var(--text-primary)]">Push Notifications</p>
               <p className="text-xs text-green-500">Enabled — you&apos;ll receive push alerts</p>
             </div>
           </div>
@@ -237,16 +237,16 @@ export default function NotificationsTab({
                 setRegistering(false);
               }
             }}
-            className="rounded-full border border-gray-700 bg-transparent px-4 py-2 text-sm font-medium text-gray-300 transition hover:border-red-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-full border border-[var(--border-subtle)] bg-transparent px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition hover:border-red-600 hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {registering ? 'Disabling…' : 'Disable'}
           </button>
         </div>
       )}
       {loading ? (
-        <div className="py-12 text-center text-gray-400">Loading…</div>
+        <div className="py-12 text-center text-[var(--text-tertiary)]">Loading…</div>
       ) : !items.length ? (
-        <div className="py-12 text-center text-gray-500">No notifications yet.</div>
+        <div className="py-12 text-center text-[var(--text-tertiary)]">No notifications yet.</div>
       ) : (
         <ul className="space-y-2">
           {items.map((n) => (
@@ -256,7 +256,9 @@ export default function NotificationsTab({
             >
               <div className="flex-1">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-white">{n.title || n.type}</p>
+                  <p className="text-sm font-medium text-[var(--text-primary)]">
+                    {n.title || n.type}
+                  </p>
                   {!n.read && (
                     <button
                       onClick={() => markOneRead(n)}
@@ -266,8 +268,8 @@ export default function NotificationsTab({
                     </button>
                   )}
                 </div>
-                {n.body && <p className="mt-1 text-xs text-gray-400">{n.body}</p>}
-                <p className="mt-2 text-[10px] uppercase tracking-wide text-gray-500">
+                {n.body && <p className="mt-1 text-xs text-[var(--text-secondary)]">{n.body}</p>}
+                <p className="mt-2 text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">
                   {n.createdAt?.toDate ? n.createdAt.toDate().toLocaleString() : ''}
                 </p>
               </div>
@@ -280,13 +282,13 @@ export default function NotificationsTab({
           <button
             onClick={loadMore}
             disabled={loadingMore}
-            className="rounded border border-gray-700 px-4 py-1 text-sm text-gray-300 transition hover:border-red-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded border border-[var(--border-subtle)] px-4 py-1 text-sm text-[var(--text-secondary)] transition hover:border-red-600 hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
           >
             {loadingMore ? 'Loading…' : 'Load more'}
           </button>
         )}
       </div>
-      <div className="mt-10 border-t border-gray-800 pt-6">
+      <div className="mt-10 border-t border-[var(--border-subtle)] pt-6">
         <NotificationPreferences userId={userId} />
       </div>
     </div>

@@ -84,11 +84,11 @@ const navigation = {
 
 export default function Footer() {
   return (
-    <footer className="border-t border-gray-500 py-6 supports-[padding:env(safe-area-inset-bottom)]:pb-[max(24px,env(safe-area-inset-bottom))]">
+    <footer className="border-t border-[var(--border-subtle)] bg-[var(--bg-root)] py-6 transition-colors duration-200 supports-[padding:env(safe-area-inset-bottom)]:pb-[max(24px,env(safe-area-inset-bottom))]">
       <div className="container mx-auto px-4">
         <div className="flex flex-col items-center justify-between md:flex-row">
           <div className="mb-4 md:mb-0">
-            <p className="text-sm text-white">
+            <p className="text-sm text-[var(--text-primary)]">
               &copy; {new Date().getFullYear()} RAGESTATE, LLC. All rights reserved.
             </p>
           </div>
@@ -101,7 +101,7 @@ export default function Footer() {
                 <a
                   key={item.name}
                   href={item.href}
-                  className="text-white transition-colors hover:text-red-500"
+                  className="text-[var(--text-primary)] transition-colors hover:text-[var(--accent)]"
                   target="_blank"
                   rel="noopener noreferrer"
                 >

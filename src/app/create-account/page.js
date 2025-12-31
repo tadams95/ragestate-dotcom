@@ -311,7 +311,7 @@ export default function CreateAccount() {
   };
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-[var(--bg-root)] transition-colors duration-200">
       {/* Header is rendered by layout.js */}
 
       <div className="relative isolate flex min-h-[calc(100vh-80px)] flex-col items-center justify-center overflow-hidden px-6 py-12 lg:px-8">
@@ -324,10 +324,10 @@ export default function CreateAccount() {
             <Image src="/assets/RSLogo2.png" alt="RAGESTATE" width={128} height={64} priority />
           </div>
 
-          <h2 className="text-center text-3xl font-bold tracking-tight text-gray-100 sm:text-4xl">
+          <h2 className="text-center text-3xl font-bold tracking-tight text-[var(--text-primary)] sm:text-4xl">
             Create Account
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-400">
+          <p className="mt-2 text-center text-sm text-[var(--text-secondary)]">
             Already have an account?{' '}
             <Link href="/login" className="font-semibold leading-6 text-red-500 hover:text-red-400">
               Sign in here
@@ -338,13 +338,13 @@ export default function CreateAccount() {
         {/* Two-column layout on larger screens */}
         <div className="mt-10 grid w-full max-w-5xl grid-cols-1 items-start gap-8 sm:mx-auto md:grid-cols-5">
           {/* Form column */}
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur-lg md:col-span-3">
+          <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-8 shadow-2xl backdrop-blur-lg md:col-span-3">
             {/* Google Sign-up Button */}
             <button
               type="button"
               onClick={handleGoogleSignUp}
               disabled={isGoogleLoading || isLoading || isAuthenticating || !!rateLimitError}
-              className="mb-6 flex w-full items-center justify-center gap-3 rounded-lg border border-gray-500 bg-white px-4 py-3 text-sm font-semibold text-gray-900 transition-all duration-200 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className="mb-6 flex w-full items-center justify-center gap-3 rounded-lg border border-[var(--border-subtle)] bg-white px-4 py-3 text-sm font-semibold text-gray-900 transition-all duration-200 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isGoogleLoading ? (
                 <svg className="h-5 w-5 animate-spin text-gray-600" viewBox="0 0 24 24">
@@ -388,14 +388,17 @@ export default function CreateAccount() {
 
             {/* Divider */}
             <div className="mb-6 flex items-center justify-center">
-              <span className="text-sm text-gray-400">or create with email</span>
+              <span className="text-sm text-[var(--text-secondary)]">or create with email</span>
             </div>
 
             <form className="space-y-6" onSubmit={handleSignUp}>
               {/* Grid layout for form fields */}
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div>
-                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-300">
+                  <label
+                    htmlFor="firstName"
+                    className="block text-sm font-medium text-[var(--text-secondary)]"
+                  >
                     First Name
                   </label>
                   <input
@@ -411,7 +414,10 @@ export default function CreateAccount() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-300">
+                  <label
+                    htmlFor="lastName"
+                    className="block text-sm font-medium text-[var(--text-secondary)]"
+                  >
                     Last Name
                   </label>
                   <input
@@ -430,7 +436,10 @@ export default function CreateAccount() {
 
               {/* Single column fields */}
               <div>
-                <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-300">
+                <label
+                  htmlFor="phoneNumber"
+                  className="block text-sm font-medium text-[var(--text-secondary)]"
+                >
                   Phone Number
                 </label>
                 <input
@@ -447,7 +456,10 @@ export default function CreateAccount() {
               </div>
 
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-300">
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-[var(--text-secondary)]"
+                >
                   Email Address
                 </label>
                 <input
@@ -480,7 +492,10 @@ export default function CreateAccount() {
               {/* Password fields */}
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-300">
+                  <label
+                    htmlFor="password"
+                    className="block text-sm font-medium text-[var(--text-secondary)]"
+                  >
                     Password
                   </label>
                   <input
@@ -498,7 +513,7 @@ export default function CreateAccount() {
                 <div>
                   <label
                     htmlFor="confirmPassword"
-                    className="block text-sm font-medium text-gray-300"
+                    className="block text-sm font-medium text-[var(--text-secondary)]"
                   >
                     Confirm Password
                   </label>
@@ -579,7 +594,7 @@ export default function CreateAccount() {
                 <button
                   type="button"
                   onClick={cancelCreateHandler}
-                  className="text-sm font-medium text-gray-300 hover:text-red-500"
+                  className="text-sm font-medium text-[var(--text-secondary)] hover:text-red-500"
                 >
                   Cancel
                 </button>
@@ -590,8 +605,10 @@ export default function CreateAccount() {
           {/* Information column */}
           <div className="space-y-6 md:col-span-2">
             {/* Password requirements box */}
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl backdrop-blur-lg">
-              <h3 className="mb-4 text-lg font-medium text-gray-100">Password Requirements</h3>
+            <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-6 shadow-xl backdrop-blur-lg">
+              <h3 className="mb-4 text-lg font-medium text-[var(--text-primary)]">
+                Password Requirements
+              </h3>
               <ul className="space-y-3">
                 {[
                   { test: password.length >= 8, text: 'At least 8 characters' },
@@ -641,7 +658,9 @@ export default function CreateAccount() {
                         </svg>
                       )}
                     </span>
-                    <span className={`text-sm ${req.test ? 'text-green-500' : 'text-gray-400'}`}>
+                    <span
+                      className={`text-sm ${req.test ? 'text-green-500' : 'text-[var(--text-secondary)]'}`}
+                    >
                       {req.text}
                     </span>
                   </li>
@@ -650,8 +669,10 @@ export default function CreateAccount() {
             </div>
 
             {/* Benefits box */}
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl backdrop-blur-lg">
-              <h3 className="mb-4 text-lg font-medium text-gray-100">Account Benefits</h3>
+            <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-6 shadow-xl backdrop-blur-lg">
+              <h3 className="mb-4 text-lg font-medium text-[var(--text-primary)]">
+                Account Benefits
+              </h3>
               <ul className="space-y-2">
                 {[
                   'Faster checkout',
@@ -674,7 +695,7 @@ export default function CreateAccount() {
                         d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                       />
                     </svg>
-                    <span className="text-sm text-gray-300">{benefit}</span>
+                    <span className="text-sm text-[var(--text-secondary)]">{benefit}</span>
                   </li>
                 ))}
               </ul>
@@ -682,7 +703,7 @@ export default function CreateAccount() {
           </div>
         </div>
 
-        <p className="mb-4 mt-12 text-center text-xs text-gray-500">
+        <p className="mb-4 mt-12 text-center text-xs text-[var(--text-tertiary)]">
           By creating an account, you agree to the{' '}
           <a href="#" className="text-red-500 hover:text-red-400">
             Terms of Service

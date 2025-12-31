@@ -28,32 +28,34 @@ export default function OrderSummaryDisplay({
   return (
     <section
       aria-labelledby="summary-heading"
-      className="mt-16 rounded-lg border border-solid border-gray-100 bg-transparent px-4 py-6 sm:p-6 lg:col-span-5 lg:mt-0 lg:p-8"
+      className="mt-16 rounded-lg border border-solid border-[var(--border-subtle)] bg-[var(--bg-elev-1)] px-4 py-6 sm:p-6 lg:col-span-5 lg:mt-0 lg:p-8"
     >
-      <h2 id="summary-heading" className="text-lg font-medium text-gray-100">
+      <h2 id="summary-heading" className="text-lg font-medium text-[var(--text-primary)]">
         Order summary
       </h2>
 
       <dl className="mt-6 space-y-4">
         <div className="flex items-center justify-between">
-          <dt className="text-sm text-gray-100">Subtotal</dt>
-          <dd className="text-sm font-medium text-gray-100">${cartSubtotal.toFixed(2)}</dd>
+          <dt className="text-sm text-[var(--text-primary)]">Subtotal</dt>
+          <dd className="text-sm font-medium text-[var(--text-primary)]">
+            ${cartSubtotal.toFixed(2)}
+          </dd>
         </div>
-        <div className="flex items-center justify-between border-t border-gray-200 pt-4">
-          <dt className="flex items-center text-sm text-gray-100">
+        <div className="flex items-center justify-between border-t border-[var(--border-subtle)] pt-4">
+          <dt className="flex items-center text-sm text-[var(--text-primary)]">
             <span>Shipping</span>
           </dt>
-          <dd className="text-sm font-medium text-gray-100">${shipping.toFixed(2)}</dd>
+          <dd className="text-sm font-medium text-[var(--text-primary)]">${shipping.toFixed(2)}</dd>
         </div>
-        <div className="flex items-center justify-between border-t border-gray-200 pt-4">
-          <dt className="flex text-sm text-gray-100">
+        <div className="flex items-center justify-between border-t border-[var(--border-subtle)] pt-4">
+          <dt className="flex text-sm text-[var(--text-primary)]">
             <span>Tax</span>
           </dt>
-          <dd className="text-sm font-medium text-gray-100">${taxTotal}</dd>
+          <dd className="text-sm font-medium text-[var(--text-primary)]">${taxTotal}</dd>
         </div>
-        <div className="flex items-center justify-between border-t border-gray-200 pt-4">
-          <dt className="text-base font-medium text-gray-100">Order total</dt>
-          <dd className="text-base font-medium text-gray-100">${finalTotal}</dd>
+        <div className="flex items-center justify-between border-t border-[var(--border-subtle)] pt-4">
+          <dt className="text-base font-medium text-[var(--text-primary)]">Order total</dt>
+          <dd className="text-base font-medium text-[var(--text-primary)]">${finalTotal}</dd>
         </div>
       </dl>
 
@@ -94,7 +96,7 @@ export default function OrderSummaryDisplay({
 
       <div className="mt-6 text-center text-sm">
         <p>
-          <Link href="/shop" className="font-medium text-gray-100 hover:text-red-500">
+          <Link href="/shop" className="font-medium text-[var(--text-primary)] hover:text-red-500">
             Continue Shopping
             <span aria-hidden="true"> &rarr;</span>
           </Link>

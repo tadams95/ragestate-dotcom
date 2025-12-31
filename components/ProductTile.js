@@ -65,8 +65,10 @@ function ProductTile({ product, viewMode = 'grid' }) {
   if (viewMode === 'list') {
     const ListContent = (
       <motion.div
-        className={`group relative flex gap-x-6 rounded-lg bg-gray-900/30 p-4 ${
-          isOutOfStock ? 'cursor-not-allowed opacity-75' : 'transition-colors hover:bg-gray-900/50'
+        className={`group relative flex gap-x-6 rounded-lg bg-[var(--bg-elev-1)] p-4 ${
+          isOutOfStock
+            ? 'cursor-not-allowed opacity-75'
+            : 'transition-colors hover:bg-[var(--bg-elev-2)]'
         }`}
         whileHover={isOutOfStock || prefersReducedMotion ? undefined : { scale: 1.02 }}
         whileTap={isOutOfStock || prefersReducedMotion ? undefined : { scale: 0.98 }}
@@ -88,15 +90,15 @@ function ProductTile({ product, viewMode = 'grid' }) {
           )}
         </div>
         <div className="flex flex-1 flex-col">
-          <h3 className="text-lg font-semibold text-white transition-colors group-hover:text-red-500">
+          <h3 className="text-lg font-semibold text-[var(--text-primary)] transition-colors group-hover:text-red-500">
             {product.title}
           </h3>
           <p
-            className="mt-1 line-clamp-2 text-sm text-gray-400"
+            className="mt-1 line-clamp-2 text-sm text-[var(--text-secondary)]"
             dangerouslySetInnerHTML={{ __html: product.description }}
           />
           <div className="mt-auto flex items-center">
-            <p className="text-base font-medium text-white">${formattedPrice}</p>
+            <p className="text-base font-medium text-[var(--text-primary)]">${formattedPrice}</p>
             {isOutOfStock && <span className="ml-2 text-sm text-red-700">Out of Stock</span>}
           </div>
         </div>
@@ -137,11 +139,11 @@ function ProductTile({ product, viewMode = 'grid' }) {
         )}
       </div>
       <div className="mt-4">
-        <h3 className="text-sm font-medium text-white transition-colors group-hover:text-red-500">
+        <h3 className="text-sm font-medium text-[var(--text-primary)] transition-colors group-hover:text-red-500">
           {product.title}
         </h3>
         <div className="flex items-center gap-2">
-          <p className="mt-1 text-lg font-medium text-white">${formattedPrice}</p>
+          <p className="mt-1 text-lg font-medium text-[var(--text-primary)]">${formattedPrice}</p>
           {isOutOfStock && <span className="mt-1 text-sm text-red-700">Out of Stock</span>}
         </div>
       </div>

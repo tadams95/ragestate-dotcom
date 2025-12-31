@@ -518,25 +518,25 @@ export default function PostComposer() {
   if (!currentUser) return null; // Keep minimal per spec
 
   return (
-    <div className="mx-auto mb-6 max-w-2xl">
+    <div className="mx-auto mb-4 w-full max-w-2xl">
       {/* Collapsed trigger */}
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full rounded-[14px] border border-white/10 bg-[#0d0d0f] p-3 text-left text-gray-300 hover:text-white active:opacity-80"
+        className="w-full rounded-[14px] border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-4 text-left text-[var(--text-secondary)] shadow-[0_4px_12px_-4px_#000c] transition-colors duration-200 hover:text-[var(--text-primary)] active:opacity-80"
       >
         {savedDraft && !content ? 'Continue your draft…' : 'Share something…'}
       </button>
 
       <Dialog open={open} onClose={setOpen} className="relative z-50">
         <div className="fixed inset-0 bg-black/60" aria-hidden="true" />
-        <div className="fixed inset-0 flex items-end justify-center overflow-y-auto supports-[padding:env(safe-area-inset-bottom)]:pb-[env(safe-area-inset-bottom)] sm:items-center sm:overflow-visible">
-          <DialogPanel className="w-full rounded-t-[20px] border border-white/10 bg-[#0d0d0f] p-4 text-white shadow-[0_8px_28px_-8px_#000f] sm:max-w-2xl sm:rounded-[20px] sm:p-6">
+        <div className="fixed inset-0 flex items-end overflow-y-auto px-4 [scrollbar-gutter:stable] supports-[padding:env(safe-area-inset-bottom)]:pb-[env(safe-area-inset-bottom)] sm:items-center sm:px-6 lg:px-8">
+          <DialogPanel className="mx-auto w-full max-w-2xl rounded-t-[20px] border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-4 text-[var(--text-primary)] shadow-[0_8px_28px_-8px_#000f] transition-colors duration-200 sm:rounded-[20px] sm:p-6">
             <div className="mb-2 flex items-center justify-between">
               <h3 className="text-base font-semibold">Create post</h3>
               <button
                 onClick={() => setOpen(false)}
-                className="flex h-11 w-11 items-center justify-center text-gray-400 hover:text-white"
+                className="flex h-11 w-11 items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                 aria-label="Close"
               >
                 ✕
@@ -544,7 +544,7 @@ export default function PostComposer() {
             </div>
             {/* Recovery prompt */}
             {savedDraft && !content && (
-              <div className="mb-3 flex items-center justify-between rounded border border-white/10 bg-white/5 p-3 text-sm text-gray-300">
+              <div className="mb-3 flex items-center justify-between rounded border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-3 text-sm text-[var(--text-secondary)]">
                 <span>We found a saved draft.</span>
                 <div className="space-x-2">
                   <button
@@ -556,7 +556,7 @@ export default function PostComposer() {
                     Recover
                   </button>
                   <button
-                    className="text-gray-400 hover:text-white"
+                    className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                     onClick={() => {
                       try {
                         sessionStorage.removeItem(DRAFT_KEY);
@@ -572,7 +572,7 @@ export default function PostComposer() {
 
             <form onSubmit={onSubmit}>
               <textarea
-                className="min-h-[120px] w-full resize-none rounded-lg border border-white/10 bg-white/5 p-3 text-white placeholder-gray-500 outline-none focus:border-white/20"
+                className="min-h-[120px] w-full resize-none rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-3 text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none transition-colors duration-200 focus:border-[var(--border-strong)]"
                 placeholder="What's happening?"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
@@ -581,18 +581,20 @@ export default function PostComposer() {
               />
               {/* Compression progress indicator */}
               {isCompressing && (
-                <div className="mt-3 rounded-lg border border-white/10 bg-white/5 p-4">
+                <div className="mt-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-4">
                   <div className="mb-2 flex items-center justify-between text-sm">
-                    <span className="text-gray-300">Optimizing video…</span>
-                    <span className="font-medium text-white">{compressionProgress}%</span>
+                    <span className="text-[var(--text-secondary)]">Optimizing video…</span>
+                    <span className="font-medium text-[var(--text-primary)]">
+                      {compressionProgress}%
+                    </span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                  <div className="h-2 overflow-hidden rounded-full bg-[var(--bg-elev-1)]">
                     <div
                       className="h-full rounded-full bg-[#ff1f42] transition-all duration-200"
                       style={{ width: `${compressionProgress}%` }}
                     />
                   </div>
-                  <p className="mt-2 text-xs text-gray-500">
+                  <p className="mt-2 text-xs text-[var(--text-tertiary)]">
                     Compressing to 720p for faster uploads and playback
                   </p>
                 </div>
@@ -602,7 +604,7 @@ export default function PostComposer() {
                   {mediaType === 'video' ? (
                     <video
                       src={previewUrl}
-                      className="max-h-[60vh] w-full rounded-md border border-white/10 bg-black object-contain"
+                      className="max-h-[60vh] w-full rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] object-contain"
                       controls
                       muted
                       playsInline
@@ -613,14 +615,14 @@ export default function PostComposer() {
                     <img
                       src={previewUrl}
                       alt="Selected preview"
-                      className="max-h-[60vh] w-full rounded-md border border-white/10 object-contain"
+                      className="max-h-[60vh] w-full rounded-md border border-[var(--border-subtle)] object-contain"
                       loading="eager"
                     />
                   )}
                   <button
                     type="button"
                     onClick={onRemoveFile}
-                    className="absolute right-2 top-2 rounded bg-black/60 px-2 py-1 text-xs text-white hover:bg-black/80"
+                    className="absolute right-2 top-2 rounded border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] px-2 py-1 text-xs text-[var(--text-primary)] shadow-sm hover:bg-[var(--bg-elev-2)]"
                   >
                     Remove
                   </button>
@@ -628,7 +630,7 @@ export default function PostComposer() {
               )}
 
               {quotedPost && (
-                <div className="relative mt-3 rounded-xl border border-white/10 bg-white/5 p-3">
+                <div className="relative mt-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-3">
                   <div className="mb-2 flex items-center gap-2">
                     {quotedPost.avatarUrl && (
                       /* eslint-disable-next-line @next/next/no-img-element */
@@ -638,13 +640,17 @@ export default function PostComposer() {
                         className="h-5 w-5 rounded-full object-cover"
                       />
                     )}
-                    <span className="text-sm font-bold text-white">{quotedPost.author}</span>
+                    <span className="text-sm font-bold text-[var(--text-primary)]">
+                      {quotedPost.author}
+                    </span>
                   </div>
                   {quotedPost.content && (
-                    <p className="mb-2 line-clamp-3 text-sm text-white/80">{quotedPost.content}</p>
+                    <p className="mb-2 line-clamp-3 text-sm text-[var(--text-secondary)]">
+                      {quotedPost.content}
+                    </p>
                   )}
                   {quotedPost.mediaUrls?.length > 0 && (
-                    <div className="h-24 w-full overflow-hidden rounded-lg bg-black/20">
+                    <div className="h-24 w-full overflow-hidden rounded-lg bg-[var(--bg-elev-1)]">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={quotedPost.mediaUrls[0]}
@@ -656,7 +662,7 @@ export default function PostComposer() {
                   <button
                     type="button"
                     onClick={() => setQuotedPost(null)}
-                    className="absolute right-2 top-2 rounded bg-black/60 px-2 py-1 text-xs text-white hover:bg-black/80"
+                    className="absolute right-2 top-2 rounded border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] px-2 py-1 text-xs text-[var(--text-primary)] shadow-sm hover:bg-[var(--bg-elev-2)]"
                   >
                     Remove Quote
                   </button>
@@ -671,7 +677,7 @@ export default function PostComposer() {
               <div className="mt-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <label
-                    className="inline-flex h-11 cursor-pointer items-center text-gray-300 hover:text-white"
+                    className="inline-flex h-11 cursor-pointer items-center text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                     title="Add photo or video"
                   >
                     <input
@@ -680,7 +686,7 @@ export default function PostComposer() {
                       onChange={onPickFile}
                       className="hidden"
                     />
-                    <span className="inline-flex items-center justify-center rounded-lg border border-white/20 p-2.5 hover:bg-white/10 active:opacity-80">
+                    <span className="inline-flex items-center justify-center rounded-lg border border-[var(--border-subtle)] p-2.5 hover:bg-[var(--bg-elev-2)] active:opacity-80">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 24 24"
@@ -698,12 +704,14 @@ export default function PostComposer() {
                     </span>
                   </label>
                   {/* Privacy Toggle - Segmented Button */}
-                  <div className="flex h-11 items-center rounded-lg border border-white/20 bg-white/5 p-1">
+                  <div className="flex h-11 items-center rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-1">
                     <button
                       type="button"
                       onClick={() => setIsPublic(true)}
                       className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
-                        isPublic ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'
+                        isPublic
+                          ? 'bg-[var(--bg-elev-1)] text-[var(--text-primary)] shadow-sm'
+                          : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
                       }`}
                       aria-pressed={isPublic}
                     >
@@ -714,7 +722,9 @@ export default function PostComposer() {
                       type="button"
                       onClick={() => setIsPublic(false)}
                       className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
-                        !isPublic ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'
+                        !isPublic
+                          ? 'bg-[var(--bg-elev-1)] text-[var(--text-primary)] shadow-sm'
+                          : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
                       }`}
                       aria-pressed={!isPublic}
                     >
@@ -729,7 +739,7 @@ export default function PostComposer() {
                   className={`h-11 rounded-lg px-4 py-2.5 font-semibold active:opacity-80 ${
                     canSubmit
                       ? 'bg-[#ff1f42] text-white hover:bg-[#ff415f]'
-                      : 'cursor-not-allowed bg-gray-700 text-gray-400'
+                      : 'cursor-not-allowed bg-[var(--bg-elev-2)] text-[var(--text-tertiary)]'
                   }`}
                 >
                   {submitting ? 'Posting…' : 'Post'}

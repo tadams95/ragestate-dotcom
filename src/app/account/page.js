@@ -37,16 +37,16 @@ export default function Account() {
   const [unreadCount] = useUnreadNotificationsCount(userId);
 
   const inputStyling =
-    'block w-full bg-black pl-2 rounded-md border border-gray-800 py-1.5 px-1 text-gray-100 shadow-sm placeholder:text-gray-500 appearance-none focus:outline-none focus:border-red-700 focus:ring-1 focus:ring-red-700 sm:text-sm sm:leading-6';
+    'block w-full bg-[var(--bg-elev-2)] pl-2 rounded-md border border-[var(--border-subtle)] py-1.5 px-1 text-[var(--text-primary)] shadow-sm placeholder:text-[var(--text-tertiary)] appearance-none focus:outline-none focus:border-red-700 focus:ring-1 focus:ring-red-700 sm:text-sm sm:leading-6 transition-colors duration-200';
 
   const buttonStyling =
-    'flex justify-center rounded-md bg-transparent px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 border border-gray-700 transition-all duration-300';
+    'flex justify-center rounded-md bg-transparent px-3 py-1.5 text-sm font-semibold leading-6 text-[var(--text-primary)] shadow-sm hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 border border-[var(--border-subtle)] transition-all duration-300';
 
   const cardStyling =
-    'bg-tranparent p-5 rounded-lg border border-gray-800 shadow-md hover:border-red-500/30 transition-all duration-300';
+    'bg-transparent p-5 rounded-lg border border-[var(--border-subtle)] shadow-md hover:border-red-500/30 transition-all duration-300';
 
   const containerStyling =
-    'bg-gray-900/30 p-6 rounded-lg border border-gray-800 hover:border-red-500/30 transition-all duration-300 shadow-xl';
+    'bg-[var(--bg-elev-1)]/30 p-6 rounded-lg border border-[var(--border-subtle)] hover:border-red-500/30 transition-all duration-300 shadow-xl';
 
   const eventCardStyling =
     'bg-transparent p-2  rounded-lg  shadow-md hover:border-red-500/30 transition-all duration-300';
@@ -238,7 +238,7 @@ export default function Account() {
   );
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-[var(--bg-root)] transition-colors duration-200">
       {/* Header is rendered by layout.js */}
 
       <main className="flex-grow">
@@ -260,16 +260,16 @@ export default function Account() {
                     priority
                   />
                 </div>
-                <h1 className="text-center text-3xl font-bold leading-tight text-white">
+                <h1 className="text-center text-3xl font-bold leading-tight text-[var(--text-primary)]">
                   {userName ? `${userName}'s Account` : 'Your Account'}
                 </h1>
-                <p className="mt-2 max-w-2xl text-center text-gray-400">
+                <p className="mt-2 max-w-2xl text-center text-[var(--text-tertiary)]">
                   Manage your profile, view your QR code, and update your account settings.
                 </p>
               </div>
 
               <div className="mb-8 mt-6">
-                <div className="border-b border-zinc-700">
+                <div className="border-b border-[var(--border-subtle)]">
                   <div className={styles.tabScroll}>
                     <nav
                       className="-mb-px flex min-w-max justify-center space-x-8 px-1"
@@ -280,7 +280,7 @@ export default function Account() {
                         className={`${
                           activeTab === 'profile'
                             ? 'border-red-700 text-red-500'
-                            : 'border-transparent text-gray-400 hover:border-gray-300 hover:text-gray-300'
+                            : 'border-transparent text-[var(--text-tertiary)] hover:border-[var(--text-secondary)] hover:text-[var(--text-secondary)]'
                         } flex flex-shrink-0 items-center whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium`}
                       >
                         <UserCircleIcon className="mr-2 h-5 w-5" aria-hidden="true" />
@@ -291,7 +291,7 @@ export default function Account() {
                         className={`${
                           activeTab === 'tickets'
                             ? 'border-red-700 text-red-500'
-                            : 'border-transparent text-gray-400 hover:border-gray-300 hover:text-gray-300'
+                            : 'border-transparent text-[var(--text-tertiary)] hover:border-[var(--text-secondary)] hover:text-[var(--text-secondary)]'
                         } flex flex-shrink-0 items-center whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium`}
                       >
                         <TicketIcon className="mr-2 h-5 w-5" aria-hidden="true" />
@@ -302,7 +302,7 @@ export default function Account() {
                         className={`${
                           activeTab === 'qrcode'
                             ? 'border-red-700 text-red-500'
-                            : 'border-transparent text-gray-400 hover:border-gray-300 hover:text-gray-300'
+                            : 'border-transparent text-[var(--text-tertiary)] hover:border-[var(--text-secondary)] hover:text-[var(--text-secondary)]'
                         } flex flex-shrink-0 items-center whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium`}
                       >
                         <QrCodeIcon className="mr-2 h-5 w-5" aria-hidden="true" />
@@ -313,7 +313,7 @@ export default function Account() {
                         className={`${
                           activeTab === 'orders'
                             ? 'border-red-700 text-red-500'
-                            : 'border-transparent text-gray-400 hover:border-gray-300 hover:text-gray-300'
+                            : 'border-transparent text-[var(--text-tertiary)] hover:border-[var(--text-secondary)] hover:text-[var(--text-secondary)]'
                         } flex flex-shrink-0 items-center whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium`}
                       >
                         <ShoppingBagIcon className="mr-2 h-5 w-5" aria-hidden="true" />
@@ -324,7 +324,7 @@ export default function Account() {
                         className={`${
                           activeTab === 'notifications'
                             ? 'border-red-700 text-red-500'
-                            : 'border-transparent text-gray-400 hover:border-gray-300 hover:text-gray-300'
+                            : 'border-transparent text-[var(--text-tertiary)] hover:border-[var(--text-secondary)] hover:text-[var(--text-secondary)]'
                         } relative flex flex-shrink-0 items-center whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium`}
                       >
                         <BellIcon className="mr-2 h-5 w-5" aria-hidden="true" />
@@ -340,7 +340,7 @@ export default function Account() {
                         className={`${
                           activeTab === 'settings'
                             ? 'border-red-700 text-red-500'
-                            : 'border-transparent text-gray-400 hover:border-gray-300 hover:text-gray-300'
+                            : 'border-transparent text-[var(--text-tertiary)] hover:border-[var(--text-secondary)] hover:text-[var(--text-secondary)]'
                         } flex flex-shrink-0 items-center whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium`}
                       >
                         <Cog6ToothIcon className="mr-2 h-5 w-5" aria-hidden="true" />

@@ -23,7 +23,7 @@ function EmbeddedPost({ repostOf, isVerified = false }) {
 
   if (isUnavailable) {
     return (
-      <div className="mt-3 flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-4 text-gray-400">
+      <div className="mt-3 flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-4 text-[var(--text-tertiary)] transition-colors duration-200">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
@@ -46,7 +46,7 @@ function EmbeddedPost({ repostOf, isVerified = false }) {
   return (
     <Link
       href={`/post/${repostOf.postId}`}
-      className="mt-3 block rounded-xl border border-white/10 bg-white/5 p-3 transition-colors hover:bg-white/10"
+      className="mt-3 block rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-3 transition-colors duration-200 hover:opacity-80"
     >
       {/* Original author header */}
       <div className="mb-2 flex items-center gap-2">
@@ -58,7 +58,7 @@ function EmbeddedPost({ repostOf, isVerified = false }) {
             {(repostOf.authorName || 'U')[0].toUpperCase()}
           </div>
         )}
-        <span className="flex items-center text-sm font-semibold text-white">
+        <span className="flex items-center text-sm font-semibold text-[var(--text-primary)]">
           {repostOf.authorName || 'Unknown'}
           {isVerified && <VerifiedBadge />}
         </span>
@@ -66,7 +66,7 @@ function EmbeddedPost({ repostOf, isVerified = false }) {
 
       {/* Original content */}
       {repostOf.content && (
-        <p className="mb-2 line-clamp-4 whitespace-pre-line break-words text-sm text-white/80">
+        <p className="mb-2 line-clamp-4 whitespace-pre-line break-words text-sm text-[var(--text-secondary)]">
           {repostOf.content}
         </p>
       )}
@@ -92,7 +92,9 @@ function EmbeddedPost({ repostOf, isVerified = false }) {
             />
           )}
           {repostOf.mediaUrls.length > 1 && (
-            <div className="mt-1 text-xs text-white/50">+{repostOf.mediaUrls.length - 1} more</div>
+            <div className="mt-1 text-xs text-[var(--text-tertiary)]">
+              +{repostOf.mediaUrls.length - 1} more
+            </div>
           )}
         </div>
       )}
@@ -221,10 +223,10 @@ export default function Post({ postData, hideFollow = false }) {
   };
 
   return (
-    <div className="mb-4 rounded-[14px] border border-white/10 bg-[#0d0d0f] p-4 shadow-[0_4px_12px_-4px_#000c]">
+    <div className="mb-4 rounded-[14px] border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-4 shadow-[0_4px_12px_-4px_#000c] transition-colors duration-200">
       {/* Repost indicator */}
       {(liveData?.repostOf || postData?.repostOf) && (
-        <div className="mb-2 flex items-center gap-1.5 text-xs text-gray-400">
+        <div className="mb-2 flex items-center gap-1.5 text-xs text-[var(--text-tertiary)]">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -276,12 +278,12 @@ export default function Post({ postData, hideFollow = false }) {
       {/* Meta badges */}
       <div className="mb-2 flex items-center gap-2">
         {isAuthor && liveData?.isPublic === false && (
-          <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-gray-300">
+          <span className="inline-flex items-center gap-1 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-[var(--text-secondary)]">
             <span>🔒</span>
             <span>Private</span>
           </span>
         )}
-        {liveData?.edited && <span className="text-xs text-gray-500">Edited</span>}
+        {liveData?.edited && <span className="text-xs text-[var(--text-tertiary)]">Edited</span>}
       </div>
 
       {/* Check if this is a repost */}
