@@ -488,9 +488,32 @@
 - [x] `QuickViewModal.jsx`: Panel bg, border, title, price, option labels
 - [x] `EmptyCart.jsx`: Background, text, border colors
 
-#### Admin Pages (Lower Priority)
+#### Admin Pages (Revamp & Theming)
 
-- [ ] `admin/*`: Dashboard, tables, forms (can keep dark-only if preferred)
+> **Goal**: Professionalize the admin dashboard with full light/dark mode support and improved UX.
+
+- [ ] **Theming & Styling**
+  - [x] `admin/page.js`: Replace hardcoded `bg-gray-900`, `text-white` with `var(--bg-root)`, `var(--text-primary)`
+  - [x] `DashboardTab.js`: Update stats cards to use semantic colors (e.g., `bg-blue-500/20` → `var(--bg-accent-blue-subtle)`)
+  - [x] `OrdersTab.js` & `UsersTab.js`: Theme tables (headers, rows, hover states)
+  - [x] `events/new/page.js`: Update form inputs to use standard `inputClass` with theme variables
+  - [x] Ensure high contrast for text and borders in Light Mode
+
+- [x] **Component Refactoring**
+  - [x] Extract `AdminTable` component (standardized headers, rows, pagination) — `shared/AdminTable.js`
+  - [x] Extract `AdminStatCard` component — `shared/AdminStatCard.js`
+  - [x] Extract `AdminPageHeader` component (Title + Actions/Search) — `shared/AdminPageHeader.js`
+  - [x] Standardize button styles (Primary/Secondary) across all admin pages — `shared/adminStyles.js`
+
+- [x] **Functionality Enhancements**
+  - [x] Implement real search/filtering for Orders and Users — `OrdersTab.js` & `UsersTab.js` now filter by search query and status
+  - [x] Add "Skeleton" loading states for dashboard widgets — `shared/AdminSkeleton.js` (DashboardSkeleton, OrdersTabSkeleton, UsersTabSkeleton)
+  - [x] Add breadcrumb navigation for sub-pages — `shared/AdminBreadcrumb.js`, added to `events/new/page.js`
+  - [x] Improve error states — `shared/AdminErrorState.js` with user-friendly message mapping
+
+- [ ] **Specific Pages**
+  - [x] `admin/scanner/page.js`: Ensure QR scanner UI works in light mode
+  - [x] `admin/metrics/page.jsx`: Theme charts and data visualizations
 
 ### Polish
 

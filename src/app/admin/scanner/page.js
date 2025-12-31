@@ -462,19 +462,19 @@ export default function ScannerPage() {
       };
     }
     return {
-      border: 'border-gray-700',
-      bg: 'bg-gray-700/20',
+      border: 'border-[var(--border-subtle)]',
+      bg: 'bg-[var(--bg-elev-2)]',
       pill: 'bg-gray-600 text-white',
       label: 'Info',
     };
   };
 
   return (
-    <div className="mx-auto max-w-2xl px-4 pb-10 pt-20 text-white sm:px-6 sm:pt-24 lg:px-8">
+    <div className="mx-auto max-w-2xl px-4 pb-10 pt-20 text-[var(--text-primary)] sm:px-6 sm:pt-24 lg:px-8">
       <header className="mb-5 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Ticket Scanner</h1>
-          <p className="mt-1 text-sm text-gray-400">Scan account QR (user ID)</p>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">Scan account QR (user ID)</p>
         </div>
         <div className="flex items-center gap-2">
           <span className="rounded-full bg-[#ff1f42] px-2.5 py-1 text-xs font-semibold text-white">
@@ -483,7 +483,7 @@ export default function ScannerPage() {
         </div>
       </header>
 
-      <section className="relative mb-4 rounded-2xl border border-[#242528] bg-[#0d0d0f] p-3">
+      <section className="relative mb-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-3">
         {toast && (
           <div
             className={`pointer-events-none absolute left-1/2 top-2 z-10 -translate-x-1/2 rounded-md px-3 py-1 text-sm shadow ${
@@ -493,7 +493,7 @@ export default function ScannerPage() {
             {toast.message}
           </div>
         )}
-        <div className="aspect-video relative w-full overflow-hidden rounded-xl border border-[#34363a] bg-black">
+        <div className="aspect-video relative w-full overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-black">
           <video ref={videoRef} className="h-full w-full object-cover" muted playsInline />
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(transparent,transparent,rgba(0,0,0,0.4))]" />
           <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-2">
@@ -521,13 +521,13 @@ export default function ScannerPage() {
                     : 'Tap to enable camera and grant permission.'}
                 </p>
                 <button
-                  className="rounded-md border border-[#ff1f42] bg-[#1a1b1e] px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-[#241b1e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff1f42]"
+                  className="rounded-md border border-[#ff1f42] bg-[var(--bg-elev-2)] px-3 py-1.5 text-sm font-semibold text-[var(--text-primary)] shadow-sm hover:bg-[var(--bg-elev-3)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff1f42]"
                   onClick={attemptStart}
                 >
                   Enable Camera
                 </button>
                 {isIOS && (
-                  <p className="mt-2 text-[11px] text-gray-400">
+                  <p className="mt-2 text-[11px] text-[var(--text-tertiary)]">
                     iOS Chrome: Settings → Chrome → Camera → Allow
                   </p>
                 )}
@@ -537,8 +537,10 @@ export default function ScannerPage() {
         </div>
 
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="rounded-lg border border-[#34363a] bg-[#16171a] p-3">
-            <label className="mb-1 block text-xs font-medium text-gray-400">Event</label>
+          <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-3">
+            <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">
+              Event
+            </label>
             <select
               value={eventId}
               onChange={(e) => {
@@ -547,7 +549,7 @@ export default function ScannerPage() {
                   localStorage.setItem('scannerEventId', e.target.value || '');
                 } catch {}
               }}
-              className="w-full rounded-md border border-[#34363a] bg-[#0d0d0f] p-2 text-sm focus:border-[#ff1f42] focus:outline-none focus:ring-1 focus:ring-[#ff1f42]"
+              className="w-full rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-2 text-sm text-[var(--text-primary)] focus:border-[#ff1f42] focus:outline-none focus:ring-1 focus:ring-[#ff1f42]"
             >
               {!eventId && (
                 <option value="">{loadingEvents ? 'Loading events…' : 'Select event'}</option>
@@ -558,14 +560,16 @@ export default function ScannerPage() {
                 </option>
               ))}
             </select>
-            <p className="mt-1 text-[11px] text-gray-500">Required for UID scans</p>
+            <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">Required for UID scans</p>
           </div>
-          <div className="rounded-lg border border-[#34363a] bg-[#16171a] p-3">
-            <label className="mb-1 block text-xs font-medium text-gray-400">Camera</label>
+          <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-3">
+            <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">
+              Camera
+            </label>
             <select
               value={selectedDeviceId}
               onChange={(e) => onChangeCamera(e.target.value)}
-              className="w-full rounded-md border border-[#34363a] bg-[#0d0d0f] p-2 text-sm focus:border-[#ff1f42] focus:outline-none focus:ring-1 focus:ring-[#ff1f42]"
+              className="w-full rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-2 text-sm text-[var(--text-primary)] focus:border-[#ff1f42] focus:outline-none focus:ring-1 focus:ring-[#ff1f42]"
             >
               {devices.length === 0 && <option value="">Default</option>}
               {devices.map((d) => (
@@ -574,10 +578,12 @@ export default function ScannerPage() {
                 </option>
               ))}
             </select>
-            <p className="mt-1 text-[11px] text-gray-500">Switch if needed</p>
+            <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">Switch if needed</p>
           </div>
-          <div className="rounded-lg border border-[#34363a] bg-[#16171a] p-3">
-            <label className="mb-1 block text-xs font-medium text-gray-400">Feedback</label>
+          <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-3">
+            <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">
+              Feedback
+            </label>
             <div className="flex items-center justify-between gap-4">
               <label className="flex items-center gap-2">
                 <input
@@ -585,7 +591,7 @@ export default function ScannerPage() {
                   checked={prefs.sound}
                   onChange={(e) => setPrefs((p) => ({ ...p, sound: e.target.checked }))}
                 />
-                <span className="text-sm text-gray-300">Sound</span>
+                <span className="text-sm text-[var(--text-secondary)]">Sound</span>
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -593,13 +599,13 @@ export default function ScannerPage() {
                   checked={prefs.haptics}
                   onChange={(e) => setPrefs((p) => ({ ...p, haptics: e.target.checked }))}
                 />
-                <span className="text-sm text-gray-300">Haptics</span>
+                <span className="text-sm text-[var(--text-secondary)]">Haptics</span>
               </label>
             </div>
-            <p className="mt-1 text-[11px] text-gray-500">Operator prefs</p>
+            <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">Operator prefs</p>
           </div>
         </div>
-        {scanning && <p className="mt-2 text-xs text-gray-400">Starting camera…</p>}
+        {scanning && <p className="mt-2 text-xs text-[var(--text-secondary)]">Starting camera…</p>}
         {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
       </section>
 
@@ -608,7 +614,7 @@ export default function ScannerPage() {
           className={`rounded-2xl border ${statusStyling(result).border} ${statusStyling(result).bg} p-4`}
         >
           <div className="mb-2 flex items-center justify-between">
-            <div className="text-sm text-gray-300">Scan Result</div>
+            <div className="text-sm text-[var(--text-secondary)]">Scan Result</div>
             <span
               className={`rounded-full px-2 py-0.5 text-xs font-semibold ${statusStyling(result).pill}`}
             >
@@ -616,32 +622,34 @@ export default function ScannerPage() {
             </span>
           </div>
           <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-            <div className="rounded-lg border border-[#34363a] bg-[#0d0d0f] p-2">
-              <div className="text-xs text-gray-400">Event</div>
-              <div className="truncate text-gray-100">{result.eventId}</div>
+            <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-2">
+              <div className="text-xs text-[var(--text-secondary)]">Event</div>
+              <div className="truncate text-[var(--text-primary)]">{result.eventId}</div>
             </div>
-            <div className="rounded-lg border border-[#34363a] bg-[#0d0d0f] p-2">
-              <div className="text-xs text-gray-400">Rager</div>
-              <div className="truncate text-gray-100">{result.ragerId}</div>
+            <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-2">
+              <div className="text-xs text-[var(--text-secondary)]">Rager</div>
+              <div className="truncate text-[var(--text-primary)]">{result.ragerId}</div>
             </div>
-            <div className="rounded-lg border border-[#34363a] bg-[#0d0d0f] p-2">
-              <div className="text-xs text-gray-400">Status</div>
-              <div className="text-gray-100">{result.status}</div>
+            <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-2">
+              <div className="text-xs text-[var(--text-secondary)]">Status</div>
+              <div className="text-[var(--text-primary)]">{result.status}</div>
             </div>
-            <div className="rounded-lg border border-[#34363a] bg-[#0d0d0f] p-2">
-              <div className="text-xs text-gray-400">Remaining</div>
-              <div className="text-gray-100">{result.remaining}</div>
+            <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-2">
+              <div className="text-xs text-[var(--text-secondary)]">Remaining</div>
+              <div className="text-[var(--text-primary)]">{result.remaining}</div>
             </div>
           </div>
           {preview && (
             <div className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-              <div className="rounded-lg border border-[#34363a] bg-[#0d0d0f] p-2">
-                <div className="text-xs text-gray-400">Aggregate Remaining (pre-scan)</div>
-                <div className="text-gray-100">{preview.remainingTotal}</div>
+              <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-2">
+                <div className="text-xs text-[var(--text-secondary)]">
+                  Aggregate Remaining (pre-scan)
+                </div>
+                <div className="text-[var(--text-primary)]">{preview.remainingTotal}</div>
               </div>
-              <div className="rounded-lg border border-[#34363a] bg-[#0d0d0f] p-2">
-                <div className="text-xs text-gray-400">Next Candidate</div>
-                <div className="truncate text-gray-100">
+              <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-2">
+                <div className="text-xs text-[var(--text-secondary)]">Next Candidate</div>
+                <div className="truncate text-[var(--text-primary)]">
                   {preview.nextCandidate?.ragerId || '—'}
                   {typeof preview.nextCandidate?.remaining === 'number'
                     ? ` · remaining ${preview.nextCandidate.remaining}`

@@ -45,16 +45,18 @@ export default function AdminMetricsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-black px-4 pb-16 pt-28 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[var(--bg-root)] px-4 pb-16 pt-28 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-white">Event Metrics</h1>
-            <p className="mt-1 text-sm text-neutral-400">
+            <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
+              Event Metrics
+            </h1>
+            <p className="mt-1 text-sm text-[var(--text-secondary)]">
               Operational scanning & preview indicators per event.
             </p>
           </div>
-          <div className="text-xs font-medium text-neutral-500">
+          <div className="text-xs font-medium text-[var(--text-tertiary)]">
             {!loading && !error && `${events.length} event${events.length === 1 ? '' : 's'}`}
           </div>
         </div>
@@ -66,11 +68,11 @@ export default function AdminMetricsPage() {
         )}
 
         {loading && (
-          <div className="overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/40">
+          <div className="overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)]">
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead>
-                  <tr className="border-b border-neutral-800 bg-neutral-900/60 text-left text-neutral-300">
+                  <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-elev-2)] text-left text-[var(--text-secondary)]">
                     <th className="py-3 pl-4 pr-4 font-medium">Event</th>
                     <th className="py-3 pr-4 font-medium">Scans Accepted</th>
                     <th className="py-3 pr-4 font-medium">Scan Denials</th>
@@ -78,23 +80,23 @@ export default function AdminMetricsPage() {
                     <th className="py-3 pr-4 font-medium">Last Updated</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-neutral-800">
+                <tbody className="divide-y divide-[var(--border-subtle)]">
                   {Array.from({ length: 6 }).map((_, i) => (
                     <tr key={i} className="animate-pulse">
                       <td className="py-3 pl-4 pr-4">
-                        <div className="h-4 w-40 rounded bg-neutral-700/40" />
+                        <div className="h-4 w-40 rounded bg-[var(--bg-elev-2)]" />
                       </td>
                       <td className="py-3 pr-4">
-                        <div className="h-4 w-24 rounded bg-neutral-700/30" />
+                        <div className="h-4 w-24 rounded bg-[var(--bg-elev-2)]" />
                       </td>
                       <td className="py-3 pr-4">
-                        <div className="h-4 w-20 rounded bg-neutral-700/30" />
+                        <div className="h-4 w-20 rounded bg-[var(--bg-elev-2)]" />
                       </td>
                       <td className="py-3 pr-4">
-                        <div className="h-4 w-28 rounded bg-neutral-700/30" />
+                        <div className="h-4 w-28 rounded bg-[var(--bg-elev-2)]" />
                       </td>
                       <td className="py-3 pr-4">
-                        <div className="h-4 w-32 rounded bg-neutral-700/30" />
+                        <div className="h-4 w-32 rounded bg-[var(--bg-elev-2)]" />
                       </td>
                     </tr>
                   ))}
@@ -105,18 +107,20 @@ export default function AdminMetricsPage() {
         )}
 
         {!loading && !error && events.length === 0 && (
-          <div className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-10 text-center">
-            <p className="mb-2 text-lg font-medium text-neutral-200">No Events</p>
-            <p className="text-sm text-neutral-400">Create an event to start collecting metrics.</p>
+          <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-10 text-center">
+            <p className="mb-2 text-lg font-medium text-[var(--text-primary)]">No Events</p>
+            <p className="text-sm text-[var(--text-secondary)]">
+              Create an event to start collecting metrics.
+            </p>
           </div>
         )}
 
         {!loading && !error && events.length > 0 && (
-          <div className="overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/40 shadow">
+          <div className="overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] shadow">
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead>
-                  <tr className="border-b border-neutral-800 bg-neutral-900/60 text-left text-neutral-300">
+                  <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-elev-2)] text-left text-[var(--text-secondary)]">
                     <th className="py-3 pl-4 pr-4 font-medium">Event</th>
                     <th className="py-3 pr-4 font-medium">Scans Accepted</th>
                     <th className="py-3 pr-4 font-medium">Scan Denials</th>
@@ -124,14 +128,16 @@ export default function AdminMetricsPage() {
                     <th className="py-3 pr-4 font-medium">Last Updated</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-neutral-800 text-neutral-200">
+                <tbody className="divide-y divide-[var(--border-subtle)] text-[var(--text-primary)]">
                   {events.map((e) => (
-                    <tr key={e.id} className="hover:bg-neutral-800/60">
-                      <td className="py-3 pl-4 pr-4 font-medium text-white">{e.id}</td>
+                    <tr key={e.id} className="hover:bg-[var(--bg-elev-2)]">
+                      <td className="py-3 pl-4 pr-4 font-medium text-[var(--text-primary)]">
+                        {e.id}
+                      </td>
                       <td className="py-3 pr-4 tabular-nums">{e.scansAccepted}</td>
                       <td className="py-3 pr-4 tabular-nums">{e.scanDenials}</td>
                       <td className="py-3 pr-4 tabular-nums">{e.avgRemaining}</td>
-                      <td className="whitespace-nowrap py-3 pr-4 text-xs text-neutral-400">
+                      <td className="whitespace-nowrap py-3 pr-4 text-xs text-[var(--text-tertiary)]">
                         {e.lastUpdated}
                       </td>
                     </tr>

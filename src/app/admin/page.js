@@ -151,9 +151,9 @@ export default function AdminPage() {
   };
 
   const buttonStyling =
-    'flex justify-center rounded-md bg-transparent px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 border-2 border-gray-100 transition-all duration-200';
+    'flex justify-center rounded-md bg-transparent px-3 py-1.5 text-sm font-semibold leading-6 text-[var(--text-primary)] shadow-sm hover:bg-red-500 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 border-2 border-[var(--border-subtle)] transition-all duration-200';
   const inputStyling =
-    'block w-full bg-black pl-2 rounded-md border-2 py-1.5 px-1 text-gray-100 shadow-sm ring-1 ring-inset ring-gray-700 placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-red-500 sm:text-sm sm:leading-6';
+    'block w-full bg-[var(--bg-elev-2)] pl-2 rounded-md border-2 border-[var(--border-subtle)] py-1.5 px-1 text-[var(--text-primary)] shadow-sm ring-1 ring-inset ring-[var(--border-subtle)] placeholder:text-[var(--text-tertiary)] focus:ring-2 focus:ring-inset focus:ring-red-500 sm:text-sm sm:leading-6';
 
   // Render only the active tab to avoid evaluating all tabs on first paint
   const renderActiveTab = () => {
@@ -169,8 +169,6 @@ export default function AdminPage() {
             formatCurrency={formatCurrency}
             getStatusColor={getStatusColor}
             setActiveTab={setActiveTab}
-            loadingState={loadingState}
-            errorState={errorState}
           />
         );
       case 'orders':
@@ -184,9 +182,6 @@ export default function AdminPage() {
             getStatusColor={getStatusColor}
             viewOrderDetails={viewOrderDetails}
             inputStyling={inputStyling}
-            buttonStyling={buttonStyling}
-            loadingState={loadingState}
-            errorState={errorState}
           />
         );
       case 'users':
@@ -200,9 +195,6 @@ export default function AdminPage() {
             usersPerPage={usersPerPage}
             handleUserPageChange={handleUserPageChange}
             inputStyling={inputStyling}
-            buttonStyling={buttonStyling}
-            loadingState={loadingState}
-            errorState={errorState}
           />
         );
       case 'settings':
@@ -214,7 +206,7 @@ export default function AdminPage() {
 
   return (
     <AdminProtected>
-      <div className="min-h-screen bg-black">
+      <div className="min-h-screen bg-[var(--bg-root)] transition-colors duration-200">
         {/* Header is rendered by layout.js */}
         <main className="flex-grow">
           <div className="mx-auto max-w-7xl px-4 pb-24 pt-16 sm:px-6 lg:px-8">
@@ -223,15 +215,15 @@ export default function AdminPage() {
                 <div className="mb-4 mt-6 flex justify-center">
                   <img src="/assets/RSLogo2.png" alt="RAGESTATE" className="h-14 w-auto" />
                 </div>
-                <h1 className="text-center text-3xl font-bold leading-tight text-white">
+                <h1 className="text-center text-3xl font-bold leading-tight text-[var(--text-primary)]">
                   Admin Dashboard
                 </h1>
-                <p className="mt-2 max-w-2xl text-center text-gray-400">
+                <p className="mt-2 max-w-2xl text-center text-[var(--text-secondary)]">
                   Manage orders, users, and site settings in one place.
                 </p>
               </div>
               <div className="mb-8 mt-6">
-                <div className="border-b border-zinc-700">
+                <div className="border-b border-[var(--border-subtle)]">
                   <nav
                     className="-mb-px flex justify-center space-x-8 overflow-x-auto px-1"
                     aria-label="Tabs"
@@ -241,7 +233,7 @@ export default function AdminPage() {
                       className={`${
                         activeTab === 'dashboard'
                           ? 'border-red-700 text-red-500'
-                          : 'border-transparent text-gray-400 hover:border-gray-300 hover:text-gray-300'
+                          : 'border-transparent text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]'
                       } flex flex-shrink-0 items-center whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium`}
                     >
                       <ClipboardDocumentListIcon className="mr-2 h-5 w-5" aria-hidden="true" />
@@ -252,7 +244,7 @@ export default function AdminPage() {
                       className={`${
                         activeTab === 'orders'
                           ? 'border-red-700 text-red-500'
-                          : 'border-transparent text-gray-400 hover:border-gray-300 hover:text-gray-300'
+                          : 'border-transparent text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]'
                       } flex flex-shrink-0 items-center whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium`}
                     >
                       <ShoppingBagIcon className="mr-2 h-5 w-5" aria-hidden="true" />
@@ -263,7 +255,7 @@ export default function AdminPage() {
                       className={`${
                         activeTab === 'users'
                           ? 'border-red-700 text-red-500'
-                          : 'border-transparent text-gray-400 hover:border-gray-300 hover:text-gray-300'
+                          : 'border-transparent text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]'
                       } flex flex-shrink-0 items-center whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium`}
                     >
                       <UsersIcon className="mr-2 h-5 w-5" aria-hidden="true" />
@@ -274,7 +266,7 @@ export default function AdminPage() {
                       className={`${
                         activeTab === 'settings'
                           ? 'border-red-700 text-red-500'
-                          : 'border-transparent text-gray-400 hover:border-gray-300 hover:text-gray-300'
+                          : 'border-transparent text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]'
                       } flex flex-shrink-0 items-center whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium`}
                     >
                       <Cog6ToothIcon className="mr-2 h-5 w-5" aria-hidden="true" />

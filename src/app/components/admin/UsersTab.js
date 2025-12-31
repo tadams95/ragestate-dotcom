@@ -1,4 +1,7 @@
-import React from "react";
+'use client';
+
+import { useMemo, useState } from 'react';
+import { AdminErrorState, UsersTabSkeleton } from './shared';
 
 const UsersTab = ({
   loading,
@@ -9,161 +12,189 @@ const UsersTab = ({
   usersPerPage,
   handleUserPageChange,
   inputStyling,
-  buttonStyling,
-  loadingState,
-  errorState,
 }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  // Filter users based on search query and status
+  const filteredUsers = useMemo(() => {
+    return users.filter((user) => {
+      // Search filter
+      const query = searchQuery.toLowerCase();
+      const fullName =
+        user.firstName && user.lastName
+          ? `${user.firstName} ${user.lastName}`
+          : user.displayName || '';
+      const matchesSearch =
+        !query ||
+        fullName.toLowerCase().includes(query) ||
+        (user.email || '').toLowerCase().includes(query) ||
+        (user.id || '').toLowerCase().includes(query) ||
+        (user.phoneNumber || '').includes(query);
+
+      // Status filter
+      const matchesStatus =
+        statusFilter === 'all' ||
+        (statusFilter === 'admin' && user.isAdmin) ||
+        (statusFilter === 'disabled' && user.disabled) ||
+        (statusFilter === 'active' && !user.isAdmin && !user.disabled);
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [users, searchQuery, statusFilter]);
+
+  // Paginate filtered users
+  const paginatedUsers = useMemo(() => {
+    const start = (currentUserPage - 1) * usersPerPage;
+    return filteredUsers.slice(start, start + usersPerPage);
+  }, [filteredUsers, currentUserPage, usersPerPage]);
+
+  const totalFilteredPages = Math.ceil(filteredUsers.length / usersPerPage);
+
   return (
-    <div className="bg-gray-900/30 p-6 rounded-lg border border-gray-800 shadow-xl">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-white">User Management</h2>
-        <div className="flex space-x-2">
+    <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-6 shadow-xl">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-2xl font-bold text-[var(--text-primary)]">User Management</h2>
+        <div className="flex flex-col gap-2 sm:flex-row">
           <input
             type="text"
-            placeholder="Search users..."
-            className={inputStyling}
+            placeholder="Search by name, email, or ID..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className={inputStyling + ' sm:w-64'}
           />
-          <button className={buttonStyling}>Search</button>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className={inputStyling + ' sm:w-32'}
+          >
+            <option value="all">All Users</option>
+            <option value="active">Active</option>
+            <option value="admin">Admin</option>
+            <option value="disabled">Disabled</option>
+          </select>
         </div>
       </div>
 
       {loading ? (
-        loadingState
+        <UsersTabSkeleton />
       ) : error.users ? (
-        <div className="bg-red-500/20 border border-red-500 p-4 rounded-md text-white">
-          <h3 className="text-lg font-medium">Error loading users</h3>
-          <p>{error.users}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
-          >
-            Retry
-          </button>
-        </div>
+        <AdminErrorState
+          title="Error loading users"
+          message={error.users}
+          onRetry={() => window.location.reload()}
+        />
       ) : (
-        <div className="bg-gray-900/50 rounded-lg border border-gray-800 shadow-md overflow-hidden">
-          {users.length === 0 ? (
-            <div className="p-8 text-center text-gray-400">
-              No users found. Start by creating user accounts.
+        <div className="overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] shadow-md">
+          {filteredUsers.length === 0 ? (
+            <div className="p-8 text-center text-[var(--text-tertiary)]">
+              {searchQuery || statusFilter !== 'all'
+                ? 'No users match your search criteria.'
+                : 'No users found. Start by creating user accounts.'}
             </div>
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-700">
+                <table className="min-w-full divide-y divide-[var(--border-subtle)]">
                   <thead>
-                    <tr className="bg-gray-800/50">
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                    <tr className="bg-[var(--bg-elev-2)]">
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">
                         User ID
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">
                         Name
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">
                         Email
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">
                         Phone Number
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">
                         Status
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">
                         Actions
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-700">
-                    {users
-                      .slice(
-                        (currentUserPage - 1) * usersPerPage,
-                        currentUserPage * usersPerPage
-                      )
-                      .map((user) => (
-                        <tr
-                          key={user.id}
-                          className="hover:bg-gray-800/30 transition-colors"
-                        >
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-300">
-                            {user.id.substring(0, 12)}...
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                            {user.firstName && user.lastName
-                              ? `${user.firstName} ${user.lastName}`
-                              : user.displayName || "Unknown Name"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                            {user.email || "No Email"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                            {user.phoneNumber || "No Phone"}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span
-                              className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                user.isAdmin
-                                  ? "bg-purple-500/20 text-purple-500"
-                                  : user.disabled
-                                  ? "bg-red-500/20 text-red-500"
-                                  : "bg-green-500/20 text-green-500"
-                              }`}
-                            >
-                              {user.isAdmin
-                                ? "Admin"
+                  <tbody className="divide-y divide-[var(--border-subtle)]">
+                    {paginatedUsers.map((user) => (
+                      <tr key={user.id} className="transition-colors hover:bg-[var(--bg-elev-1)]">
+                        <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-[var(--text-secondary)]">
+                          {user.id.substring(0, 12)}...
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">
+                          {user.firstName && user.lastName
+                            ? `${user.firstName} ${user.lastName}`
+                            : user.displayName || 'Unknown Name'}
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">
+                          {user.email || 'No Email'}
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">
+                          {user.phoneNumber || 'No Phone'}
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4">
+                          <span
+                            className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold leading-5 ${
+                              user.isAdmin
+                                ? 'bg-purple-500/20 text-purple-500'
                                 : user.disabled
-                                ? "Disabled"
-                                : "Active"}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <button
-                              onClick={() => alert(`View user ${user.id}`)}
-                              className="text-red-500 hover:text-red-400 mr-3"
-                            >
-                              View
-                            </button>
-                            <button
-                              onClick={() => alert(`Edit user ${user.id}`)}
-                              className="text-blue-500 hover:text-blue-400"
-                            >
-                              Edit
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                                  ? 'bg-red-500/20 text-red-500'
+                                  : 'bg-green-500/20 text-green-500'
+                            }`}
+                          >
+                            {user.isAdmin ? 'Admin' : user.disabled ? 'Disabled' : 'Active'}
+                          </span>
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4 text-sm">
+                          <button
+                            onClick={() => alert(`View user ${user.id}`)}
+                            className="mr-3 text-red-500 hover:text-red-400"
+                          >
+                            View
+                          </button>
+                          <button
+                            onClick={() => alert(`Edit user ${user.id}`)}
+                            className="text-blue-500 hover:text-blue-400"
+                          >
+                            Edit
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
-              <div className="px-6 py-3 flex items-center justify-between border-t border-gray-700">
-                <div className="text-sm text-gray-400">
-                  Showing{" "}
+              <div className="flex items-center justify-between border-t border-[var(--border-subtle)] px-6 py-3">
+                <div className="text-sm text-[var(--text-tertiary)]">
+                  Showing{' '}
                   <span className="font-medium">
-                    {(currentUserPage - 1) * usersPerPage + 1}
-                  </span>{" "}
-                  to{" "}
+                    {filteredUsers.length > 0 ? (currentUserPage - 1) * usersPerPage + 1 : 0}
+                  </span>{' '}
+                  to{' '}
                   <span className="font-medium">
-                    {Math.min(currentUserPage * usersPerPage, userCount)}
-                  </span>{" "}
-                  of <span className="font-medium">{userCount}</span> users
+                    {Math.min(currentUserPage * usersPerPage, filteredUsers.length)}
+                  </span>{' '}
+                  of <span className="font-medium">{filteredUsers.length}</span> users
+                  {(searchQuery || statusFilter !== 'all') && ` (filtered from ${userCount})`}
                 </div>
                 <div className="flex space-x-2">
                   <button
-                    onClick={() => handleUserPageChange("prev")}
+                    onClick={() => handleUserPageChange('prev')}
                     disabled={currentUserPage === 1}
-                    className={`px-3 py-1 border border-gray-600 rounded-md text-gray-300 hover:bg-gray-700 ${
-                      currentUserPage === 1
-                        ? "opacity-50 cursor-not-allowed"
-                        : ""
+                    className={`rounded-md border border-[var(--border-subtle)] px-3 py-1 text-[var(--text-secondary)] hover:bg-[var(--bg-elev-2)] ${
+                      currentUserPage === 1 ? 'cursor-not-allowed opacity-50' : ''
                     }`}
                   >
                     Previous
                   </button>
                   <button
-                    onClick={() => handleUserPageChange("next")}
-                    disabled={currentUserPage * usersPerPage >= userCount}
-                    className={`px-3 py-1 border border-gray-600 rounded-md text-gray-300 hover:bg-gray-700 ${
-                      currentUserPage * usersPerPage >= userCount
-                        ? "opacity-50 cursor-not-allowed"
-                        : ""
+                    onClick={() => handleUserPageChange('next')}
+                    disabled={currentUserPage >= totalFilteredPages}
+                    className={`rounded-md border border-[var(--border-subtle)] px-3 py-1 text-[var(--text-secondary)] hover:bg-[var(--bg-elev-2)] ${
+                      currentUserPage >= totalFilteredPages ? 'cursor-not-allowed opacity-50' : ''
                     }`}
                   >
                     Next

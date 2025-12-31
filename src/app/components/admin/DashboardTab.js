@@ -1,6 +1,4 @@
-import React from "react";
-// Import helper functions if they are directly used here (already passed as props, so not strictly needed unless called directly)
-// import { formatDate, formatCurrency, getStatusColor } from "../../../utils/formatters";
+import { AdminErrorState, DashboardSkeleton } from './shared';
 
 const DashboardTab = ({
   loading,
@@ -11,68 +9,72 @@ const DashboardTab = ({
   formatCurrency, // Prop received from AdminPage
   getStatusColor, // Prop received from AdminPage
   setActiveTab,
-  loadingState,
-  errorState,
 }) => {
   return (
-    <div className="bg-gray-900/30 p-6 rounded-lg border border-gray-800 shadow-xl">
-      <h2 className="text-2xl font-bold text-white mb-6">Dashboard Overview</h2>
+    <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-6 shadow-xl">
+      <h2 className="mb-6 text-2xl font-bold text-[var(--text-primary)]">Dashboard Overview</h2>
 
       {loading ? (
-        loadingState
+        <DashboardSkeleton />
       ) : error.general ? (
-        errorState
+        <AdminErrorState
+          title="Error loading dashboard"
+          message={error.general}
+          onRetry={() => window.location.reload()}
+          variant="fullPage"
+        />
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-4">
             {[
               {
-                title: "Total Orders",
+                title: 'Total Orders',
                 value: orders.length,
-                icon: "📦",
-                color: "bg-blue-500/20 border-blue-500/40",
+                icon: '📦',
+                color:
+                  'bg-[var(--bg-accent-blue-subtle)] border-[var(--border-accent-blue-subtle)]',
               },
               {
-                title: "Total Revenue",
+                title: 'Total Revenue',
                 value: `$${orders
                   .reduce((sum, order) => {
                     const amount =
-                      typeof order.totalAmount === "number"
+                      typeof order.totalAmount === 'number'
                         ? order.totalAmount
-                        : typeof order.totalAmount === "string"
-                        ? parseFloat(order.totalAmount) || 0
-                        : 0;
+                        : typeof order.totalAmount === 'string'
+                          ? parseFloat(order.totalAmount) || 0
+                          : 0;
                     return sum + amount;
                   }, 0)
                   .toFixed(2)}`,
-                icon: "💰",
-                color: "bg-green-500/20 border-green-500/40",
+                icon: '💰',
+                color:
+                  'bg-[var(--bg-accent-green-subtle)] border-[var(--border-accent-green-subtle)]',
               },
               {
-                title: "Total Users",
+                title: 'Total Users',
                 value: userCount,
-                icon: "👥",
-                color: "bg-purple-500/20 border-purple-500/40",
+                icon: '👥',
+                color:
+                  'bg-[var(--bg-accent-purple-subtle)] border-[var(--border-accent-purple-subtle)]',
               },
               {
-                title: "Pending Orders",
+                title: 'Pending Orders',
                 value: orders.filter(
-                  (order) =>
-                    order.status === "pending" || order.status === "processing"
+                  (order) => order.status === 'pending' || order.status === 'processing',
                 ).length,
-                icon: "⏱️",
-                color: "bg-yellow-500/20 border-yellow-500/40",
+                icon: '⏱️',
+                color:
+                  'bg-[var(--bg-accent-yellow-subtle)] border-[var(--border-accent-yellow-subtle)]',
               },
             ].map((stat, idx) => (
               <div
                 key={idx}
-                className={`${stat.color} p-6 rounded-lg border shadow-md flex items-center justify-between`}
+                className={`${stat.color} flex items-center justify-between rounded-lg border p-6 shadow-md`}
               >
                 <div>
-                  <p className="text-gray-400 text-sm font-medium">
-                    {stat.title}
-                  </p>
-                  <h3 className="text-white text-2xl font-bold mt-1">
+                  <p className="text-sm font-medium text-[var(--text-secondary)]">{stat.title}</p>
+                  <h3 className="mt-1 text-2xl font-bold text-[var(--text-primary)]">
                     {stat.value}
                   </h3>
                 </div>
@@ -81,53 +83,51 @@ const DashboardTab = ({
             ))}
           </div>
 
-          <div className="bg-gray-900/50 p-5 rounded-lg border border-gray-800 shadow-md mb-8">
-            <h3 className="text-xl font-medium text-white mb-4">
-              Recent Orders
-            </h3>
+          <div className="mb-8 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-5 shadow-md">
+            <h3 className="mb-4 text-xl font-medium text-[var(--text-primary)]">Recent Orders</h3>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-700">
+              <table className="min-w-full divide-y divide-[var(--border-subtle)]">
                 <thead>
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">
                       Order ID
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">
                       Customer
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">
                       Date
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">
                       Total
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)]">
                       Status
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-700">
+                <tbody className="divide-y divide-[var(--border-subtle)]">
                   {orders.slice(0, 3).map((order) => (
                     <tr key={order.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">
                         {order.orderNumber || order.id}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                        {order.customerName || "Anonymous"}
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">
+                        {order.customerName || 'Anonymous'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">
                         {formatDate(order.orderDate)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                      <td className="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">
                         {formatCurrency(order.totalAmount)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="whitespace-nowrap px-6 py-4">
                         <span
-                          className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
-                            order.status
+                          className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold leading-5 ${getStatusColor(
+                            order.status,
                           )}`}
                         >
-                          {order.status || "N/A"}
+                          {order.status || 'N/A'}
                         </span>
                       </td>
                     </tr>
@@ -137,8 +137,8 @@ const DashboardTab = ({
             </div>
             <div className="mt-4 text-right">
               <button
-                onClick={() => setActiveTab("orders")}
-                className="text-red-500 hover:text-red-400 text-sm font-medium"
+                onClick={() => setActiveTab('orders')}
+                className="text-sm font-medium text-red-500 hover:text-red-400"
               >
                 View all orders →
               </button>

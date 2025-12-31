@@ -7,16 +7,17 @@ import toast from 'react-hot-toast';
 // Use root-based import (baseUrl='.') to avoid fragile deep relative paths
 import { useAuth, useFirebase } from '@fb/context/FirebaseContext';
 import AdminProtected from '../../../components/AdminProtected';
+import { AdminBreadcrumb } from '../../../components/admin/shared';
 // Removed global Header/Footer for streamlined admin creation view
 
 // Keep styling consistent with existing admin inputs/buttons
 const inputClass =
-  'block w-full bg-black border-2 border-zinc-700 rounded-md px-3 py-2 text-sm text-gray-100 placeholder:text-gray-500 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition';
-const labelClass = 'block text-sm font-medium text-gray-300 mb-1';
+  'block w-full bg-[var(--bg-elev-2)] border-2 border-[var(--border-subtle)] rounded-md px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition';
+const labelClass = 'block text-sm font-medium text-[var(--text-secondary)] mb-1';
 const buttonPrimary =
   'inline-flex items-center justify-center rounded-md bg-red-600 hover:bg-red-500 px-5 py-2 text-sm font-semibold text-white shadow transition disabled:opacity-50 disabled:cursor-not-allowed';
 const buttonSecondary =
-  'inline-flex items-center justify-center rounded-md border border-zinc-600 px-4 py-2 text-sm font-medium text-gray-200 hover:bg-zinc-800 transition';
+  'inline-flex items-center justify-center rounded-md border border-[var(--border-subtle)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-elev-2)] transition';
 
 export default function NewEventPage() {
   return (
@@ -178,13 +179,22 @@ function NewEventInner() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-black">
+    <div className="flex min-h-screen flex-col bg-[var(--bg-root)]">
       <main className="flex-grow px-4 pb-12 pt-24 sm:px-6 lg:px-10 lg:pt-28">
         <div className="mx-auto max-w-7xl">
+          <AdminBreadcrumb
+            items={[
+              { label: 'Admin', href: '/admin' },
+              { label: 'Events', href: '/admin' },
+              { label: 'New Event' },
+            ]}
+          />
           <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-white">Create Event</h1>
-              <p className="mt-2 text-sm text-gray-400">
+              <h1 className="text-3xl font-bold tracking-tight text-[var(--text-primary)]">
+                Create Event
+              </h1>
+              <p className="mt-2 text-sm text-[var(--text-tertiary)]">
                 Fill the details. Preview updates live. Events are always digital.
               </p>
             </div>
