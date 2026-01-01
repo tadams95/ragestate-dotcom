@@ -13,10 +13,84 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
+import TicketDetailModal from '../../../../components/TicketDetailModal';
+import { downloadEventICS } from '../../../../lib/utils/generateICS';
+
+/**
+ * Determine ticket status based on event date and scan status
+ * @param {Object} ticket - Ticket object with eventDate, usedCount, ticketQuantity
+ * @returns {{ status: string, label: string, className: string }}
+ */
+function getTicketStatus(ticket) {
+  const now = new Date();
+  const eventDateRaw = ticket.eventDate;
+
+  // Parse event date - handle ISO strings, Firestore Timestamps, or invalid values
+  let eventDate;
+  if (eventDateRaw?.toDate) {
+    // Firestore Timestamp
+    eventDate = eventDateRaw.toDate();
+  } else if (eventDateRaw) {
+    eventDate = new Date(eventDateRaw);
+  } else {
+    eventDate = null;
+  }
+
+  // If we can't parse the date, fall back to the original active/inactive status
+  if (!eventDate || isNaN(eventDate.getTime())) {
+    const isActive = ticket.status === 'active' || ticket.active;
+    return {
+      status: isActive ? 'active' : 'inactive',
+      label: isActive ? 'Active' : 'Inactive',
+      className: isActive ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400',
+    };
+  }
+
+  // Normalize dates to compare just the day
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const eventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+
+  // Check if ticket has been scanned (usedCount > 0)
+  const usedCount = ticket.usedCount || 0;
+  const ticketQty = ticket.ticketQuantity || ticket.quantity || 1;
+  const isUsed = usedCount >= ticketQty;
+
+  if (isUsed) {
+    return {
+      status: 'used',
+      label: '✓ Scanned',
+      className: 'bg-green-500/20 text-green-400',
+    };
+  }
+
+  if (eventDay < today) {
+    return {
+      status: 'past',
+      label: 'Past',
+      className: 'bg-gray-500/30 text-gray-400',
+    };
+  }
+
+  if (eventDay.getTime() === today.getTime()) {
+    return {
+      status: 'today',
+      label: '🎉 Today',
+      className: 'bg-amber-500/20 text-amber-400 font-semibold',
+    };
+  }
+
+  // Future event
+  return {
+    status: 'upcoming',
+    label: 'Upcoming',
+    className: 'bg-green-500/20 text-green-400',
+  };
+}
 
 export default function TicketsTab({ userId, cardStyling, eventCardStyling, containerStyling }) {
   const [tickets, setTickets] = useState([]);
   const [loadingTickets, setLoadingTickets] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState(null);
 
   // Fetch user tickets function
   const fetchUserTickets = useCallback(async () => {
@@ -68,11 +142,23 @@ export default function TicketsTab({ userId, cardStyling, eventCardStyling, cont
         const eventId = ragerDoc.ref.parent?.parent?.id;
         const eventData = (eventId && eventMap.get(eventId)) || {};
 
+        // Handle dateTime (new schema) or date (legacy) - could be Timestamp or string
+        const rawDate = eventData.dateTime || eventData.date;
+        let eventDate;
+        if (rawDate?.toDate) {
+          eventDate = rawDate.toDate().toISOString();
+        } else if (rawDate) {
+          eventDate = rawDate;
+        } else {
+          eventDate = null;
+        }
+
         return {
+          ...ticketData,
           id: ragerDoc.id,
           eventId,
           eventName: eventData.name || 'Unnamed Event',
-          eventDate: eventData.date || new Date().toISOString(),
+          eventDate,
           eventTime: eventData.time || 'TBA',
           location: eventData.location || 'TBA',
           ticketType: ticketData.ticketType || 'General Admission',
@@ -81,8 +167,12 @@ export default function TicketsTab({ userId, cardStyling, eventCardStyling, cont
           purchaseDate: ticketData.purchaseTimestamp
             ? new Date(ticketData.purchaseTimestamp).toISOString()
             : new Date().toISOString(),
-          price: ticketData.price ? `$${ticketData.price.toFixed(2)}` : 'N/A',
-          ...ticketData,
+          price:
+            ticketData.price != null
+              ? `$${Number(ticketData.price).toFixed(2)}`
+              : eventData.price != null
+                ? `$${Number(eventData.price).toFixed(2)}`
+                : 'N/A',
         };
       });
 
@@ -173,16 +263,16 @@ export default function TicketsTab({ userId, cardStyling, eventCardStyling, cont
                   </div>
                 )}
                 <div className="absolute left-2 top-2">
-                  <span
-                    className={
-                      `inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium shadow-sm backdrop-blur-md ` +
-                      (ticket.status === 'active'
-                        ? 'bg-green-500/20 text-green-500'
-                        : 'bg-red-500/20 text-red-500')
-                    }
-                  >
-                    {ticket.status}
-                  </span>
+                  {(() => {
+                    const { label, className } = getTicketStatus(ticket);
+                    return (
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium shadow-sm backdrop-blur-md ${className}`}
+                      >
+                        {label}
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -226,12 +316,47 @@ export default function TicketsTab({ userId, cardStyling, eventCardStyling, cont
                       </div>
                     )}
                   </div>
+
+                  {/* Quick Actions Bar */}
+                  <div className="mt-4 flex flex-col gap-2">
+                    <button
+                      onClick={() => setSelectedTicket(ticket)}
+                      className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-red-600 text-sm font-semibold text-white transition hover:bg-red-500"
+                    >
+                      📱 Show QR Code
+                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => downloadEventICS(ticket)}
+                        className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-transparent text-xs font-medium text-[var(--text-secondary)] transition hover:bg-[var(--bg-elev-2)] hover:text-[var(--text-primary)]"
+                      >
+                        📅 Add to Calendar
+                      </button>
+                      {ticket.location && ticket.location !== 'TBA' && (
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ticket.location)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-transparent text-xs font-medium text-[var(--text-secondary)] transition hover:bg-[var(--bg-elev-2)] hover:text-[var(--text-primary)]"
+                        >
+                          🗺 Get Directions
+                        </a>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      {/* Ticket Detail Modal */}
+      <TicketDetailModal
+        ticket={selectedTicket}
+        isOpen={!!selectedTicket}
+        onClose={() => setSelectedTicket(null)}
+      />
     </div>
   );
 }

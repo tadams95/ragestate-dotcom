@@ -2,7 +2,6 @@
 
 import BellIcon from '@heroicons/react/24/outline/BellIcon';
 import Cog6ToothIcon from '@heroicons/react/24/outline/Cog6ToothIcon';
-import QrCodeIcon from '@heroicons/react/24/outline/QrCodeIcon';
 import ShoppingBagIcon from '@heroicons/react/24/outline/ShoppingBagIcon';
 import TicketIcon from '@heroicons/react/24/outline/TicketIcon';
 import UserCircleIcon from '@heroicons/react/24/outline/UserCircleIcon';
@@ -19,7 +18,6 @@ import styles from './account.module.css';
 import storage from '@/utils/storage';
 import NotificationsTab from './components/NotificationsTab';
 import ProfileTab from './components/ProfileTab';
-import QrCodeTab from './components/QrCodeTab';
 import SettingsTab from './components/SettingsTab';
 import TicketsTab from './components/TicketsTab';
 
@@ -201,9 +199,6 @@ export default function Account() {
           containerStyling={containerStyling}
         />
       ),
-      qrcode: (
-        <QrCodeTab userId={userId} cardStyling={cardStyling} containerStyling={containerStyling} />
-      ),
       settings: (
         <SettingsTab
           inputStyling={inputStyling}
@@ -297,17 +292,7 @@ export default function Account() {
                         <TicketIcon className="mr-2 h-5 w-5" aria-hidden="true" />
                         My Tickets
                       </button>
-                      <button
-                        onClick={() => setActiveTab('qrcode')}
-                        className={`${
-                          activeTab === 'qrcode'
-                            ? 'border-red-700 text-red-500'
-                            : 'border-transparent text-[var(--text-tertiary)] hover:border-[var(--text-secondary)] hover:text-[var(--text-secondary)]'
-                        } flex flex-shrink-0 items-center whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium`}
-                      >
-                        <QrCodeIcon className="mr-2 h-5 w-5" aria-hidden="true" />
-                        QR Code
-                      </button>
+
                       <button
                         onClick={() => setActiveTab('orders')}
                         className={`${

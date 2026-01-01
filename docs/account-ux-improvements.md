@@ -42,118 +42,112 @@
 
 ---
 
-### 1.2 Merge QR Code into Tickets Tab (~2 hours)
+### 1.2 Ticket Detail Modal — "Event Day Hero" (~3 hours)
 
-> **Goal**: Eliminate redundant QR tab; show QR when user clicks a ticket
+> **Goal**: Transform tickets from static display to event-day hero experience
+> **Philosophy**: Optimize for the "get me in the door NOW" moment while still being useful for pre-event browsing
 
-#### Consolidation
+#### Why Modal (Not Expand-in-Place)?
 
-- [ ] `TicketsTab.js`: Add expand/collapse or modal for ticket details + QR
-- [ ] `TicketsTab.js`: On ticket click → show large QR code (scannable size)
-- [ ] `TicketsTab.js`: Include event details in expanded view (date, time, venue)
-- [ ] `src/app/account/page.js`: Consider removing QR Code tab from nav (or keep as quick-access alias)
+- **Focus**: QR code demands user's FULL attention for scanning
+- **Scannable**: Modal goes nearly full-screen, maximizing QR size
+- **Brightness**: Can auto-boost screen brightness on mobile
+- **Accidental taps**: Expand-in-place can collapse if user taps elsewhere
 
-#### QR Display
+#### Ticket Detail Modal (`components/TicketDetailModal.js`)
 
-- [ ] QR code sized for easy scanning (minimum 200x200px)
-- [ ] High contrast (black on white background regardless of theme)
-- [ ] Ticket holder name displayed below QR
+- [x] Create modal component with QR-focused layout
+- [x] Large QR code (280px minimum, scannable size)
+- [x] High contrast QR (black on white background, theme-independent)
+- [x] Ticket holder name prominently displayed
+- [x] Ticket count indicator ("Ticket #1 of 2")
+- [x] Event details section:
+  - [x] Event name (prominent)
+  - [x] Date and time with day-of-week
+  - [x] Venue name and address
+- [x] Quick action buttons row:
+  - [x] "Add to Calendar" button
+  - [x] "Get Directions" button
+- [x] Mobile-responsive (full-screen sheet on mobile, centered modal on desktop)
+- [x] Backdrop blur + close on backdrop click
+
+#### TicketsTab Updates (`TicketsTab.js`)
+
+- [x] Add state for `selectedTicket` + modal open/close
+- [x] "Show QR" button on each ticket card → opens modal
+- [x] Quick actions bar on ticket cards (Calendar, Directions, QR)
+
+#### Remove Redundant QR Tab
+
+- [x] `src/app/account/page.js`: Remove QR Code tab from navigation
+- [x] Keep `QrCodeTab.js` file for reference/backup (or delete)
 
 ---
 
-### 1.3 Add to Calendar Button (~1 hour)
+### 1.3 Simple Status Badges (~30 min)
 
-> **Goal**: One-tap calendar event creation for tickets
+> **Goal**: Clear ticket status at a glance (keep it simple)
 
 #### Implementation
 
-- [ ] Create `lib/utils/generateICS.js` helper function
-- [ ] Generate `.ics` file with:
-  - [ ] Event title (event name)
-  - [ ] Start date/time
-  - [ ] End date/time (if available, else +3 hours default)
-  - [ ] Location (venue name + address)
-  - [ ] Description (ticket details, QR code instructions)
-- [ ] `TicketsTab.js`: Add "Add to Calendar" button on each ticket card
-- [ ] Trigger file download on click
+- [x] `TicketsTab.js`: Implement `getTicketStatus()` helper function
+- [x] 4 status states (no animations):
+  - [x] **Upcoming**: Green badge — event date in future
+  - [x] **Today**: Highlighted/promoted — event is today
+  - [x] **Past**: Muted gray — event has passed
+  - [x] **Used**: "✓ Scanned" green checkmark — ticket was scanned
+- [x] Keep chronological sort (users expect this with 1-3 tickets)
 
 ---
 
-### 1.4 Get Directions Link (~15 min)
+### 1.4 Add to Calendar (.ics Export) (~45 min)
 
-> **Goal**: Quick access to venue navigation
+> **Goal**: One-tap calendar event creation
 
 #### Implementation
 
-- [ ] `TicketsTab.js`: Add "Get Directions" button/link on ticket cards
-- [ ] Link format: `https://www.google.com/maps/search/?api=1&query={encoded_address}`
-- [ ] Opens in new tab
-- [ ] Only show if venue address is available
+- [x] Create `lib/utils/generateICS.js` helper function
+- [x] Generate valid `.ics` file with:
+  - [x] `VEVENT` with `UID`, `DTSTAMP`
+  - [x] `SUMMARY`: Event name
+  - [x] `DTSTART`/`DTEND`: Event times (end = start + 3 hours if not specified)
+  - [x] `LOCATION`: Venue name + address
+  - [x] `DESCRIPTION`: Ticket details, "Show QR code at door"
+- [x] Trigger file download on button click
+- [x] Button in ticket card quick actions + modal
 
 ---
 
-### 1.5 Ticket Status Indicators (~1 hour)
+### 1.5 Get Directions Link (~15 min)
 
-> **Goal**: Help users quickly identify relevant tickets
-
-#### Status Types
-
-- [ ] `TicketsTab.js`: Add status badge to each ticket:
-  - [ ] **Upcoming** (green) — event date in future
-  - [ ] **Today** (amber/pulsing) — event is today
-  - [ ] **Past** (gray) — event date passed
-  - [ ] **Used** (gray + strikethrough) — `usedCount >= ticketQuantity`
-
-#### Sorting/Filtering
-
-- [ ] Default sort: Upcoming first, then by date ascending
-- [ ] Optional: Filter tabs (All / Upcoming / Past)
-
----
-
-### 1.6 Event Countdown (~30 min)
-
-> **Goal**: Build excitement for upcoming events
+> **Goal**: Instant navigation to venue
 
 #### Implementation
 
-- [ ] `TicketsTab.js`: Show countdown on upcoming tickets
-- [ ] Format: "3 days away" or "In 5 hours" or "Tomorrow"
-- [ ] For "Today" events: Show time until event starts
+- [x] `TicketsTab.js`: Add "Get Directions" button to quick actions bar
+- [x] `TicketDetailModal.js`: Add "Get Directions" button
+- [x] Link format: `https://www.google.com/maps/search/?api=1&query={encoded_address}`
+- [x] Opens in new tab
+- [x] Only show if venue address is available in event data
+
+---
+
+### 1.6 Quick Actions Bar on Ticket Cards (~30 min)
+
+> **Goal**: Surface common actions without requiring modal open
+
+#### Implementation
+
+- [x] `TicketsTab.js`: Add action button row to each ticket card
+- [x] Buttons: [📱 Show QR] [📅 Calendar] [🗺 Directions]
+- [x] 44px tap targets minimum
+- [x] Visually subtle but accessible (ghost/outline button style)
 
 ---
 
 ## Phase 2: Future Enhancements (Higher Effort)
 
-### 2.1 Dedicated Ticket Detail Page
-
-> **Goal**: Shareable/bookmarkable ticket URL
-
-#### Route & Page
-
-- [ ] Create `src/app/ticket/[ticketId]/page.js`
-- [ ] Fetch ticket data by token or `ragerId`
-- [ ] Auth check: Only ticket owner can view
-- [ ] SEO: No indexing (private content)
-
-#### Content
-
-- [ ] Large QR code (primary focus)
-- [ ] Event details (name, date, time, venue, address)
-- [ ] Ticket holder info
-- [ ] "Add to Calendar" button
-- [ ] "Get Directions" button
-- [ ] Back to account link
-
-#### Benefits
-
-- [ ] User can bookmark for quick event-day access
-- [ ] Works offline (PWA consideration)
-- [ ] Required for wallet pass integration
-
----
-
-### 2.2 Apple/Google Wallet Integration
+### 2.1 Apple/Google Wallet Integration
 
 > **Goal**: Native wallet passes for tickets
 
@@ -176,7 +170,7 @@
 
 ---
 
-### 2.3 Ticket Transfer
+### 2.2 Ticket Transfer
 
 > **Goal**: Allow users to transfer tickets to others
 
@@ -197,7 +191,7 @@
 
 ---
 
-### 2.4 Order Tracking & Shipping Updates
+### 2.3 Order Tracking & Shipping Updates
 
 > **Goal**: Real-time order status for physical merchandise
 
@@ -225,10 +219,10 @@
 ### Quick Access Flow (Reduce Friction)
 
 > **Current**: Account → Tickets Tab → QR Tab → Find Event → Tap to Reveal (5 steps)
-> **Target**: Account → Tickets → Tap Ticket (2-3 steps)
+> **Target**: Account → Tickets → Tap "Show QR" (2 steps)
 
-- [ ] Merge QR into Tickets (Phase 1.2)
-- [ ] Consider: Floating "My Tickets" button on event day
+- [ ] Implement Ticket Detail Modal (Phase 1.2)
+- [ ] Remove QR Code tab (Phase 1.2)
 - [ ] Consider: Push notification with deep link to ticket on event day
 
 ### Offline Support
@@ -241,18 +235,18 @@
 
 ## Priority Matrix
 
-| Item                     | Effort  | Impact | Priority |
-| ------------------------ | ------- | ------ | -------- |
-| Order Detail Modal       | Low     | Medium | P1       |
-| Merge QR into Tickets    | Medium  | High   | P1       |
-| Add to Calendar          | Low     | High   | P1       |
-| Get Directions           | Trivial | Medium | P1       |
-| Ticket Status Indicators | Low     | Medium | P1       |
-| Event Countdown          | Low     | Low    | P2       |
-| Dedicated Ticket Page    | Medium  | Medium | P2       |
-| Wallet Integration       | High    | High   | P3       |
-| Ticket Transfer          | High    | Medium | P3       |
-| Order Tracking           | High    | Medium | P3       |
+| Item                 | Effort  | Impact | Priority |
+| -------------------- | ------- | ------ | -------- |
+| Order Detail Modal   | Low     | Medium | P1 ✅    |
+| Ticket Detail Modal  | Medium  | High   | P1 ✅    |
+| Simple Status Badges | Trivial | Medium | P1 ✅    |
+| Add to Calendar      | Low     | High   | P1 ✅    |
+| Get Directions       | Trivial | Medium | P1 ✅    |
+| Quick Actions Bar    | Low     | Medium | P1 ✅    |
+| Remove QR Tab        | Trivial | Medium | P1 ✅    |
+| Wallet Integration   | High    | High   | P2       |
+| Ticket Transfer      | High    | Medium | P2       |
+| Order Tracking       | High    | Medium | P3       |
 
 ---
 
@@ -263,3 +257,47 @@
 - All new components should support light/dark mode
 - Mobile-first design (44px tap targets, safe areas)
 - Test on iPhone SE, iPhone 14, Android devices
+
+---
+
+## Modal Layout Reference
+
+```
+┌─────────────────────────────────────────┐
+│  [←]                              [✕]   │
+│                                         │
+│         ┌─────────────────┐            │
+│         │                 │            │
+│         │    QR CODE      │   ← 280px  │
+│         │   (scannable)   │            │
+│         │                 │            │
+│         └─────────────────┘            │
+│                                         │
+│         TYRELLE ADAMS                   │
+│         Ticket #1 of 2                  │
+│                                         │
+│  ─────────────────────────────────────  │
+│                                         │
+│  🎉 RAGESTATE NYE 2026                  │
+│  📅 Dec 31, 2025 • 10:00 PM             │
+│  📍 The Venue, 123 Main St              │
+│                                         │
+│  ┌──────────┐  ┌──────────────────┐    │
+│  │ 📅 Add   │  │ 🗺 Get Directions │    │
+│  │ Calendar │  │                  │    │
+│  └──────────┘  └──────────────────┘    │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+## Ticket Card Layout Reference
+
+```
+┌─────────────────────────────────────────────────┐
+│ [Event Image]  RAGESTATE NYE 2026               │
+│                🔥 TOMORROW • Dec 31             │
+│                2 tickets                         │
+│                                                  │
+│  [📱 Show QR]  [📅 Calendar]  [🗺 Directions]   │
+└─────────────────────────────────────────────────┘
+```
