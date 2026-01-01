@@ -4,6 +4,11 @@ import storage from '@/utils/storage';
 import { collection, getDocs, getFirestore } from 'firebase/firestore';
 import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
+import OrderDetailModal from './OrderDetailModal';
+
+// Simple SVG placeholder for missing product images
+const PLACEHOLDER_IMAGE =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Crect fill='%23374151' width='64' height='64'/%3E%3Cpath fill='%236B7280' d='M20 42l8-10 6 8 10-14 10 16H10z'/%3E%3Ccircle fill='%236B7280' cx='22' cy='24' r='6'/%3E%3C/svg%3E";
 
 const fetchUserPurchases = async (firestore, userId) => {
   try {
@@ -23,6 +28,7 @@ export default function OrderHistory() {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState('');
   const [orders, setOrders] = useState([]);
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   const firestore = useMemo(() => getFirestore(), []);
 
@@ -91,7 +97,7 @@ export default function OrderHistory() {
                 name: item.title,
                 price: `$${parseFloat(item.price || 0).toFixed(2)}`,
                 quantity: item.quantity || 1,
-                image: item.productImageSrc || item.image || '/assets/placeholder-product.jpg',
+                image: item.productImageSrc || item.image || PLACEHOLDER_IMAGE,
                 color: item.color,
                 size: item.size,
               })),
@@ -196,7 +202,7 @@ export default function OrderHistory() {
                   >
                     <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-[var(--border-subtle)]">
                       <Image
-                        src={item.image || '/assets/placeholder-product.jpg'}
+                        src={item.image || PLACEHOLDER_IMAGE}
                         alt={item.name}
                         width={64}
                         height={64}
@@ -221,10 +227,25 @@ export default function OrderHistory() {
                   </div>
                 ))}
               </div>
+
+              {/* View Details Button */}
+              <button
+                onClick={() => setSelectedOrder(order)}
+                className="mt-4 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] px-4 py-2.5 text-sm font-medium text-[var(--text-primary)] transition hover:border-red-500/50 hover:bg-red-500/10"
+              >
+                View Details
+              </button>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Order Detail Modal */}
+      <OrderDetailModal
+        order={selectedOrder}
+        isOpen={!!selectedOrder}
+        onClose={() => setSelectedOrder(null)}
+      />
     </div>
   );
 }
