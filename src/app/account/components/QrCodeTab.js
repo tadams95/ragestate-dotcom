@@ -8,7 +8,7 @@ export default function QrCodeTab({ userId, cardStyling, containerStyling }) {
 
   return (
     <div className={containerStyling}>
-      <h2 className="mb-6 text-2xl font-bold text-white">Your QR Code</h2>
+      <h2 className="mb-6 text-2xl font-bold text-[var(--text-primary)]">Your QR Code</h2>
 
       <div className="grid grid-cols-1 items-center gap-8 md:grid-cols-5">
         <div className="flex flex-col items-center md:col-span-3">
@@ -30,7 +30,7 @@ export default function QrCodeTab({ userId, cardStyling, containerStyling }) {
             </div>
             {isQrBlurred && (
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="rounded bg-white/40 px-3 py-1 font-medium text-gray-800">
+                <span className="rounded bg-white/60 px-3 py-1 font-medium text-gray-900 backdrop-blur-sm">
                   Tap to reveal
                 </span>
               </div>
@@ -40,7 +40,9 @@ export default function QrCodeTab({ userId, cardStyling, containerStyling }) {
 
         <div className="space-y-6 md:col-span-2">
           <div className={cardStyling}>
-            <h3 className="mb-4 text-lg font-medium text-gray-100">How To Use Your QR Code</h3>
+            <h3 className="mb-4 text-lg font-medium text-[var(--text-primary)]">
+              How To Use Your QR Code
+            </h3>
             <ul className="space-y-3">
               {[
                 'Present this QR code at RAGESTATE events for quick check-in',
@@ -63,15 +65,15 @@ export default function QrCodeTab({ userId, cardStyling, containerStyling }) {
                       d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                     />
                   </svg>
-                  <span className="text-sm text-gray-300">{item}</span>
+                  <span className="text-sm text-[var(--text-secondary)]">{item}</span>
                 </li>
               ))}
             </ul>
           </div>
 
           <div className={cardStyling}>
-            <h3 className="mb-3 text-lg font-medium text-gray-100">Security Notice</h3>
-            <p className="text-sm text-gray-300">
+            <h3 className="mb-3 text-lg font-medium text-[var(--text-primary)]">Security Notice</h3>
+            <p className="text-sm text-[var(--text-secondary)]">
               Your QR code contains a unique identifier linked to your account. Keep it hidden when
               not in use and don't share screenshots of your code with others to prevent
               unauthorized access to your account benefits.

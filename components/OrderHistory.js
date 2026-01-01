@@ -115,10 +115,10 @@ export default function OrderHistory() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[500px] items-center justify-center rounded-lg border border-gray-800 bg-gray-900/30 p-6">
+      <div className="flex min-h-[500px] items-center justify-center rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-6">
         <div className="text-center">
           <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-red-700"></div>
-          <p className="mt-4 text-gray-300">Loading your order history...</p>
+          <p className="mt-4 text-[var(--text-secondary)]">Loading your order history...</p>
         </div>
       </div>
     );
@@ -126,8 +126,8 @@ export default function OrderHistory() {
 
   if (orders.length === 0) {
     return (
-      <div className="flex min-h-[500px] flex-col items-center justify-center rounded-lg border border-gray-800 bg-gray-900/30 p-8">
-        <div className="mb-4 h-24 w-24 text-gray-400">
+      <div className="flex min-h-[500px] flex-col items-center justify-center rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-8">
+        <div className="mb-4 h-24 w-24 text-[var(--text-tertiary)]">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -142,11 +142,11 @@ export default function OrderHistory() {
             />
           </svg>
         </div>
-        <h3 className="text-xl font-medium text-white">No orders yet</h3>
-        <p className="mt-2 max-w-md text-center text-gray-400">
+        <h3 className="text-xl font-medium text-[var(--text-primary)]">No orders yet</h3>
+        <p className="mt-2 max-w-md text-center text-[var(--text-secondary)]">
           Once you make a purchase, your order history will appear here.
         </p>
-        <p className="mt-2 max-w-md text-center text-xs text-gray-400">
+        <p className="mt-2 max-w-md text-center text-xs text-[var(--text-tertiary)]">
           If you have any questions or concerns, email contact@ragestate.com or DM @ragestate on
           Instagram
         </p>
@@ -161,9 +161,9 @@ export default function OrderHistory() {
   }
 
   return (
-    <div className="min-h-[500px] rounded-lg bg-gray-900/30 p-6 ring-1 ring-white/10 transition-all duration-300 hover:ring-red-500/30">
-      <h2 className="mb-6 text-2xl font-bold text-white">Order History</h2>
-      <p className="mb-6 mt-2 text-sm text-gray-300">
+    <div className="min-h-[500px] rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-6 shadow-xl transition-all duration-300 hover:border-red-500/30">
+      <h2 className="mb-6 text-2xl font-bold text-[var(--text-primary)]">Order History</h2>
+      <p className="mb-6 mt-2 text-sm text-[var(--text-secondary)]">
         View your order history below, with most recent orders shown first. If you have any
         questions or concerns, email contact@ragestate.com or DM @ragestate on Instagram.
       </p>
@@ -173,24 +173,16 @@ export default function OrderHistory() {
         {orders.map((order) => (
           <div
             key={order.id}
-            className="relative overflow-hidden rounded-xl bg-gray-900/20 shadow-lg ring-1 ring-white/10 backdrop-blur-sm transition-all duration-300 hover:shadow-xl hover:ring-red-500/30"
+            className="group relative overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] shadow-md transition-all duration-300 hover:border-red-500/30 hover:shadow-lg"
           >
-            {/* Add gradient effect from About page */}
-            <div className="absolute -inset-px rounded-2xl bg-gradient-to-r from-red-500/0 to-purple-500/0 [mask-image:linear-gradient(black,transparent)] group-hover:from-red-500/10 group-hover:to-purple-500/10" />
-
             {/* Order header */}
-            <div className="relative border-b border-gray-700 bg-gray-900/20 px-4 py-3">
+            <div className="relative border-b border-[var(--border-subtle)] bg-[var(--bg-elev-3)] px-4 py-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-white">
-                    Order Date: <span className="text-gray-300">{order.date}</span>
+                  <p className="text-sm font-medium text-[var(--text-primary)]">
+                    Order Date: <span className="text-[var(--text-secondary)]">{order.date}</span>
                   </p>
                 </div>
-                {/* <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium `}
-                >
-                  {order.status}
-                </span> */}
               </div>
             </div>
 
@@ -200,9 +192,9 @@ export default function OrderHistory() {
                 {order.items.map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center rounded-lg bg-gray-900/20 p-3 ring-1 ring-white/10"
+                    className="flex items-center rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-3"
                   >
-                    <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-700">
+                    <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md border border-[var(--border-subtle)]">
                       <Image
                         src={item.image || '/assets/placeholder-product.jpg'}
                         alt={item.name}
@@ -212,27 +204,23 @@ export default function OrderHistory() {
                       />
                     </div>
                     <div className="ml-3 flex-1 pl-2">
-                      <h3 className="line-clamp-1 text-sm font-medium text-white">{item.name}</h3>
-                      <div className="mt-1 flex items-center space-x-2 text-xs text-gray-400">
+                      <h3 className="line-clamp-1 text-sm font-medium text-[var(--text-primary)]">
+                        {item.name}
+                      </h3>
+                      <div className="mt-1 flex items-center space-x-2 text-xs text-[var(--text-tertiary)]">
                         <span>Qty: {item.quantity}</span>
                         {item.size && <span>• Size: {item.size}</span>}
                         {item.color && <span>• Color: {item.color}</span>}
                       </div>
                     </div>
                     <div className="ml-4">
-                      <p className="text-sm font-semibold text-white">{item.price}</p>
+                      <p className="text-sm font-semibold text-[var(--text-primary)]">
+                        {item.price}
+                      </p>
                     </div>
                   </div>
                 ))}
               </div>
-
-              {/* Order footer */}
-              {/* <div className="mt-4 pt-3 border-t border-zinc-700 flex justify-between items-center">
-                <p className="text-lg font-bold text-white">Total: {order.total}</p>
-                <button className="text-xs bg-red-700 hover:bg-red-800 text-white font-medium px-3 py-1.5 rounded">
-                  Order Details
-                </button>
-              </div> */}
             </div>
           </div>
         ))}

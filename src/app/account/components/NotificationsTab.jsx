@@ -212,8 +212,8 @@ export default function NotificationsTab({
       {userId && pushStatus === 'granted' && (
         <div className="mb-6 flex items-center justify-between rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-900/30">
-              <BellIcon className="h-5 w-5 text-green-400" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500/20">
+              <BellIcon className="h-5 w-5 text-green-500" />
             </div>
             <div>
               <p className="text-sm font-medium text-[var(--text-primary)]">Push Notifications</p>
@@ -252,7 +252,7 @@ export default function NotificationsTab({
           {items.map((n) => (
             <li
               key={n.id}
-              className={`${cardStyling} flex items-start gap-3 border ${n.read ? 'opacity-60' : 'border-red-700/40'} p-4`}
+              className={`${cardStyling} flex items-start gap-3 border ${n.read ? 'opacity-60' : 'border-red-500/30'} p-4`}
             >
               <div className="flex-1">
                 <div className="flex items-center justify-between">
@@ -262,7 +262,7 @@ export default function NotificationsTab({
                   {!n.read && (
                     <button
                       onClick={() => markOneRead(n)}
-                      className="rounded bg-red-700/20 px-2 py-0.5 text-xs text-red-300 hover:bg-red-700/40"
+                      className="rounded bg-red-500/10 px-2 py-0.5 text-xs text-red-500 hover:bg-red-500/20"
                     >
                       Mark read
                     </button>

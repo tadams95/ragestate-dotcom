@@ -27,13 +27,13 @@ export default function SettingsTab({
 
   return (
     <div className={containerStyling}>
-      <h2 className="mb-6 text-2xl font-bold text-white">Account Settings</h2>
+      <h2 className="mb-6 text-2xl font-bold text-[var(--text-primary)]">Account Settings</h2>
 
       <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-5">
         {/* Password Change */}
         <div className="md:col-span-3">
           <div className={`${cardStyling} mb-6`}>
-            <h3 className="mb-4 text-xl font-medium text-white">Change Password</h3>
+            <h3 className="mb-4 text-xl font-medium text-[var(--text-primary)]">Change Password</h3>
             {/* <form className="space-y-4" onSubmit={handlePasswordUpdate}> */}
             <form className="space-y-4">
               {' '}
@@ -41,7 +41,7 @@ export default function SettingsTab({
               <div>
                 <label
                   htmlFor="current-password"
-                  className="block text-sm font-medium text-gray-300"
+                  className="block text-sm font-medium text-[var(--text-secondary)]"
                 >
                   Current Password
                 </label>
@@ -54,7 +54,10 @@ export default function SettingsTab({
                 />
               </div>
               <div>
-                <label htmlFor="new-password" className="block text-sm font-medium text-gray-300">
+                <label
+                  htmlFor="new-password"
+                  className="block text-sm font-medium text-[var(--text-secondary)]"
+                >
                   New Password
                 </label>
                 <input
@@ -68,7 +71,7 @@ export default function SettingsTab({
               <div>
                 <label
                   htmlFor="confirm-password"
-                  className="block text-sm font-medium text-gray-300"
+                  className="block text-sm font-medium text-[var(--text-secondary)]"
                 >
                   Confirm New Password
                 </label>
@@ -98,7 +101,9 @@ export default function SettingsTab({
         {/* Account Management and Details */}
         <div className="space-y-6 md:col-span-2">
           <div className={cardStyling}>
-            <h3 className="mb-4 text-lg font-medium text-gray-100">Account Management</h3>
+            <h3 className="mb-4 text-lg font-medium text-[var(--text-primary)]">
+              Account Management
+            </h3>
             <div className="space-y-4">
               <button
                 onClick={onLogout} // Use the passed handler

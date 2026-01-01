@@ -126,7 +126,7 @@ export default function TicketsTab({ userId, cardStyling, eventCardStyling, cont
 
   return (
     <div className={containerStyling}>
-      <h2 className="mb-6 text-2xl font-bold text-white">My Tickets</h2>
+      <h2 className="mb-6 text-2xl font-bold text-[var(--text-primary)]">My Tickets</h2>
 
       {loadingTickets ? (
         <div className="flex items-center justify-center py-20">
@@ -134,11 +134,11 @@ export default function TicketsTab({ userId, cardStyling, eventCardStyling, cont
         </div>
       ) : tickets.length === 0 ? (
         <div className="py-10 text-center">
-          <div className="mx-auto h-12 w-12 text-gray-400">
+          <div className="mx-auto h-12 w-12 text-[var(--text-tertiary)]">
             <TicketIcon className="h-full w-full" aria-hidden="true" />
           </div>
-          <h3 className="mt-2 text-sm font-medium text-gray-200">No tickets yet</h3>
-          <p className="mt-1 text-sm text-gray-500">
+          <h3 className="mt-2 text-sm font-medium text-[var(--text-primary)]">No tickets yet</h3>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">
             Get started by purchasing tickets to an upcoming event.
           </p>
           <div className="mt-6">
@@ -151,68 +151,80 @@ export default function TicketsTab({ userId, cardStyling, eventCardStyling, cont
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           {tickets.map((ticket) => (
-            <div key={ticket.id} className={`${cardStyling} overflow-hidden`}>
-              <div key={ticket.id} className={`${eventCardStyling} overflow-hidden`}>
-                {/* Two-column grid: left for the image, right for event details */}
-                <div className="grid h-full grid-cols-1 md:grid-cols-2">
-                  {/* Left Column: Image */}
-                  <div className="relative min-h-[150px] md:min-h-full">
-                    {' '}
-                    {/* Added min-height */}
-                    {ticket.imageUrl ? (
-                      <Image
-                        src={ticket.imageUrl}
-                        alt={ticket.eventName}
-                        fill
-                        style={{ objectFit: 'cover' }}
-                        className="rounded-md object-cover"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center rounded-md bg-gray-800">
-                        <TicketIcon className="h-16 w-16 text-gray-500" />
-                      </div>
-                    )}
-                    <div className="absolute right-0 top-0 mr-2 mt-2">
-                      <span
-                        className={
-                          `inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ` +
-                          (ticket.status === 'active'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800')
-                        }
-                      >
-                        {ticket.status}
+            <div
+              key={ticket.id}
+              className={`${cardStyling} group flex flex-col overflow-hidden !p-0 sm:flex-row`}
+            >
+              {/* Left Column: Image */}
+              <div className="relative h-48 w-full shrink-0 bg-[var(--bg-elev-3)] sm:h-auto sm:w-48">
+                {ticket.imageUrl ? (
+                  <Image
+                    src={ticket.imageUrl}
+                    alt={ticket.eventName}
+                    fill
+                    style={{ objectFit: 'cover' }}
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center">
+                    <TicketIcon className="h-12 w-12 text-[var(--text-tertiary)]" />
+                  </div>
+                )}
+                <div className="absolute left-2 top-2">
+                  <span
+                    className={
+                      `inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium shadow-sm backdrop-blur-md ` +
+                      (ticket.status === 'active'
+                        ? 'bg-green-500/20 text-green-500'
+                        : 'bg-red-500/20 text-red-500')
+                    }
+                  >
+                    {ticket.status}
+                  </span>
+                </div>
+              </div>
+
+              {/* Right Column: Event Details */}
+              <div className="flex flex-grow flex-col justify-between p-4">
+                <div>
+                  <h3 className="line-clamp-1 text-lg font-bold text-[var(--text-primary)]">
+                    {ticket.eventName}
+                  </h3>
+                  <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                    {new Date(ticket.eventDate).toLocaleDateString('en-US', {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                    {ticket.eventTime && ticket.eventTime !== 'TBA' ? ` • ${ticket.eventTime}` : ''}
+                  </p>
+                  <p className="mt-1 line-clamp-1 text-xs text-[var(--text-tertiary)]">
+                    {ticket.location}
+                  </p>
+                </div>
+
+                <div className="mt-4 border-t border-[var(--border-subtle)] pt-3">
+                  <div className="flex items-end justify-between">
+                    <div>
+                      <span className="block text-[10px] uppercase tracking-wider text-[var(--text-tertiary)]">
+                        Ticket Type
+                      </span>
+                      <span className="text-sm font-medium text-[var(--text-primary)]">
+                        {ticket.ticketType}
                       </span>
                     </div>
-                  </div>
-
-                  {/* Right Column: Event Details */}
-                  <div className="flex flex-col gap-4 p-4 md:ml-6">
-                    <h3 className="text-lg font-medium text-white">{ticket.eventName}</h3>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <p className="col-span-2 text-sm text-gray-400">
-                        {new Date(ticket.eventDate).toLocaleDateString('en-US', {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                        })}
-                        {ticket.eventTime && ticket.eventTime !== 'TBA'
-                          ? ` at ${ticket.eventTime}`
-                          : ''}
-                      </p>
-                      <p className="col-span-2 text-sm text-gray-400">{ticket.location}</p>
-                    </div>
-
-                    <div className="mt-auto border-t border-gray-700 pt-3">
-                      <div>
-                        <span className="block text-xs text-gray-500">Ticket Type</span>
-                        <span className="text-sm text-white">{ticket.ticketType}</span>
+                    {ticket.price && (
+                      <div className="text-right">
+                        <span className="block text-[10px] uppercase tracking-wider text-[var(--text-tertiary)]">
+                          Price
+                        </span>
+                        <span className="text-sm font-medium text-[var(--text-primary)]">
+                          {ticket.price}
+                        </span>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>

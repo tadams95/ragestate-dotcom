@@ -181,16 +181,16 @@ export default function NotificationPreferences({ userId, className = '' }) {
             label={quietHoursLabel}
             error={qhError}
           />
-          {error && <div className="text-xs text-red-400">{error}</div>}
+          {error && <div className="text-xs text-red-500">{error}</div>}
           <div className="flex items-center gap-3 pt-2">
             <button
               onClick={save}
               disabled={saving}
-              className="rounded bg-red-700/30 px-3 py-1 text-xs font-semibold text-red-200 transition hover:bg-red-700/50 disabled:opacity-50"
+              className="rounded bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-500/20 disabled:opacity-50"
             >
               {saving ? 'Saving…' : 'Save Preferences'}
             </button>
-            {saved && !saving && <span className="text-[11px] text-green-400">Saved</span>}
+            {saved && !saving && <span className="text-[11px] text-green-600">Saved</span>}
           </div>
         </div>
       )}
@@ -283,7 +283,7 @@ function QuietHoursEditor({ draft, setDraft, label, error }) {
         </div>
       )}
       <div className="mt-2 text-[11px] text-[var(--text-tertiary)]">Current: {label}</div>
-      {error && <div className="mt-1 text-[11px] text-red-400">{error}</div>}
+      {error && <div className="mt-1 text-[11px] text-red-500">{error}</div>}
     </div>
   );
 }
