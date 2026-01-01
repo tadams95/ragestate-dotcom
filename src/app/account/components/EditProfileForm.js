@@ -146,19 +146,21 @@ export default function EditProfileForm({ inputStyling, buttonStyling, cardStyli
   return (
     <div className={cardStyling}>
       <div className="mb-6">
-        <h3 className="text-lg font-medium text-white">Public Profile</h3>
-        <p className="text-xs text-gray-400">
+        <h3 className="text-lg font-medium text-[var(--text-primary)]">Public Profile</h3>
+        <p className="text-xs text-[var(--text-secondary)]">
           This information will be displayed on your public profile page.
         </p>
       </div>
 
       {loading ? (
-        <div className="py-8 text-center text-sm text-gray-500">Loading profile data…</div>
+        <div className="py-8 text-center text-sm text-[var(--text-tertiary)]">
+          Loading profile data…
+        </div>
       ) : (
         <form onSubmit={onSubmit} className="space-y-6">
           {/* Display Name */}
           <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-gray-500">
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--text-tertiary)]">
               Display Name
             </label>
             <input
@@ -172,12 +174,12 @@ export default function EditProfileForm({ inputStyling, buttonStyling, cardStyli
 
           {/* Username */}
           <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-gray-500">
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--text-tertiary)]">
               Username
             </label>
             <div className="relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                <span className="text-sm text-gray-500">ragestate.com/</span>
+                <span className="text-sm text-[var(--text-tertiary)]">ragestate.com/</span>
               </div>
               <input
                 type="text"
@@ -192,7 +194,7 @@ export default function EditProfileForm({ inputStyling, buttonStyling, cardStyli
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
                 {availability === 'checking' && (
                   <svg
-                    className="h-4 w-4 animate-spin text-gray-500"
+                    className="h-4 w-4 animate-spin text-[var(--text-tertiary)]"
                     fill="none"
                     viewBox="0 0 24 24"
                   >
@@ -240,10 +242,10 @@ export default function EditProfileForm({ inputStyling, buttonStyling, cardStyli
               <span
                 className={`${
                   availability === 'taken'
-                    ? 'text-red-400'
+                    ? 'text-red-500'
                     : availability === 'available' && username !== initialUsername
-                      ? 'text-green-400'
-                      : 'text-gray-500'
+                      ? 'text-green-500'
+                      : 'text-[var(--text-tertiary)]'
                 }`}
               >
                 {availability === 'taken'
@@ -258,11 +260,11 @@ export default function EditProfileForm({ inputStyling, buttonStyling, cardStyli
           {/* Bio */}
           <div>
             <div className="mb-1.5 flex items-center justify-between">
-              <label className="block text-xs font-medium uppercase tracking-wide text-gray-500">
+              <label className="block text-xs font-medium uppercase tracking-wide text-[var(--text-tertiary)]">
                 Bio
               </label>
               <span
-                className={`text-[10px] ${bio.length > 450 ? 'text-yellow-500' : 'text-gray-600'}`}
+                className={`text-[10px] ${bio.length > 450 ? 'text-yellow-500' : 'text-[var(--text-tertiary)]'}`}
               >
                 {bio.length}/500
               </span>
@@ -278,20 +280,20 @@ export default function EditProfileForm({ inputStyling, buttonStyling, cardStyli
           </div>
 
           {error && (
-            <div className="rounded border border-red-900/50 bg-red-900/20 p-3 text-sm text-red-200">
+            <div className="rounded border border-red-500/50 bg-red-500/10 p-3 text-sm text-red-500">
               {error}
             </div>
           )}
 
           {message && (
-            <div className="flex items-center justify-between rounded border border-green-900/50 bg-green-900/20 p-3 text-sm text-green-200">
+            <div className="flex items-center justify-between rounded border border-green-500/50 bg-green-500/10 p-3 text-sm text-green-500">
               <span>{message}</span>
               {username && (
                 <a
                   href={`/${username}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs font-medium underline underline-offset-2 hover:text-white"
+                  className="text-xs font-medium underline underline-offset-2 hover:text-[var(--text-primary)]"
                 >
                   View Profile &rarr;
                 </a>

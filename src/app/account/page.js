@@ -37,16 +37,16 @@ export default function Account() {
   const [unreadCount] = useUnreadNotificationsCount(userId);
 
   const inputStyling =
-    'block w-full bg-[var(--bg-elev-2)] pl-2 rounded-md border border-[var(--border-subtle)] py-1.5 px-1 text-[var(--text-primary)] shadow-sm placeholder:text-[var(--text-tertiary)] appearance-none focus:outline-none focus:border-red-700 focus:ring-1 focus:ring-red-700 sm:text-sm sm:leading-6 transition-colors duration-200';
+    'block w-full bg-[var(--bg-elev-2)] rounded-md border-0 py-1.5 px-3 text-[var(--text-primary)] shadow-sm ring-1 ring-inset ring-[var(--border-subtle)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-red-500 sm:text-sm sm:leading-6 transition-shadow duration-200';
 
   const buttonStyling =
-    'flex justify-center rounded-md bg-transparent px-3 py-1.5 text-sm font-semibold leading-6 text-[var(--text-primary)] shadow-sm hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 border border-[var(--border-subtle)] transition-all duration-300';
+    'flex justify-center rounded-md bg-transparent px-3 py-1.5 text-sm font-semibold leading-6 text-[var(--text-primary)] shadow-sm hover:bg-red-700 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 border border-[var(--border-subtle)] transition-all duration-300';
 
   const cardStyling =
-    'bg-transparent p-5 rounded-lg border border-[var(--border-subtle)] shadow-md hover:border-red-500/30 transition-all duration-300';
+    'bg-[var(--bg-elev-2)] p-5 rounded-lg border border-[var(--border-subtle)] shadow-md hover:border-red-500/30 transition-all duration-300';
 
   const containerStyling =
-    'bg-[var(--bg-elev-1)]/30 p-6 rounded-lg border border-[var(--border-subtle)] hover:border-red-500/30 transition-all duration-300 shadow-xl';
+    'bg-[var(--bg-elev-1)] p-6 rounded-lg border border-[var(--border-subtle)] hover:border-red-500/30 transition-all duration-300 shadow-xl';
 
   const eventCardStyling =
     'bg-transparent p-2  rounded-lg  shadow-md hover:border-red-500/30 transition-all duration-300';

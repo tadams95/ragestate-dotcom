@@ -13,7 +13,7 @@ export const adminButtonOutline =
   'rounded-md border border-[var(--border-subtle)] px-3 py-1 text-[var(--text-secondary)] hover:bg-[var(--bg-elev-2)] transition-colors';
 
 export const adminInput =
-  'block w-full bg-[var(--bg-elev-2)] pl-2 rounded-md border-2 border-[var(--border-subtle)] py-1.5 px-1 text-[var(--text-primary)] shadow-sm ring-1 ring-inset ring-[var(--border-subtle)] placeholder:text-[var(--text-tertiary)] focus:ring-2 focus:ring-inset focus:ring-red-500 sm:text-sm sm:leading-6';
+  'block w-full bg-[var(--bg-elev-2)] rounded-md border-0 py-1.5 px-3 text-[var(--text-primary)] shadow-sm ring-1 ring-inset ring-[var(--border-subtle)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-red-500 sm:text-sm sm:leading-6';
 
 export const adminCard =
   'rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-6 shadow-xl';

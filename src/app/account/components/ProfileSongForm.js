@@ -97,8 +97,8 @@ export default function ProfileSongForm({ inputStyling, buttonStyling, cardStyli
 
   return (
     <div className={cardStyling}>
-      <h3 className="mb-4 text-xl font-medium text-white">Profile Song</h3>
-      <p className="mb-3 text-sm text-gray-400">
+      <h3 className="mb-4 text-xl font-medium text-[var(--text-primary)]">Profile Song</h3>
+      <p className="mb-3 text-sm text-[var(--text-secondary)]">
         Paste a SoundCloud track URL. This will appear on your public profile.
       </p>
       <form onSubmit={onSave} className="space-y-3">
@@ -117,7 +117,7 @@ export default function ProfileSongForm({ inputStyling, buttonStyling, cardStyli
           <button
             type="button"
             onClick={onClear}
-            className="rounded-md border border-white/20 px-3 py-2 text-sm text-gray-200 hover:bg-white/10"
+            className="rounded-md border border-[var(--border-subtle)] px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-elev-2)]"
           >
             Clear
           </button>
@@ -136,7 +136,9 @@ export default function ProfileSongForm({ inputStyling, buttonStyling, cardStyli
           />
         </div>
       )}
-      <p className="mt-2 text-xs text-gray-500">We currently support SoundCloud tracks.</p>
+      <p className="mt-2 text-xs text-[var(--text-tertiary)]">
+        We currently support SoundCloud tracks.
+      </p>
     </div>
   );
 }

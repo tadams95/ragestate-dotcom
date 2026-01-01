@@ -153,7 +153,7 @@ export default function AdminPage() {
   const buttonStyling =
     'flex justify-center rounded-md bg-transparent px-3 py-1.5 text-sm font-semibold leading-6 text-[var(--text-primary)] shadow-sm hover:bg-red-500 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 border-2 border-[var(--border-subtle)] transition-all duration-200';
   const inputStyling =
-    'block w-full bg-[var(--bg-elev-2)] pl-2 rounded-md border-2 border-[var(--border-subtle)] py-1.5 px-1 text-[var(--text-primary)] shadow-sm ring-1 ring-inset ring-[var(--border-subtle)] placeholder:text-[var(--text-tertiary)] focus:ring-2 focus:ring-inset focus:ring-red-500 sm:text-sm sm:leading-6';
+    'block w-full bg-[var(--bg-elev-2)] rounded-md border-0 py-1.5 px-3 text-[var(--text-primary)] shadow-sm ring-1 ring-inset ring-[var(--border-subtle)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-red-500 sm:text-sm sm:leading-6';
 
   // Render only the active tab to avoid evaluating all tabs on first paint
   const renderActiveTab = () => {
