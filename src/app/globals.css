@@ -50,6 +50,14 @@
   --presence-online: #22a55a;
   --presence-idle: #e6a020;
 
+  /* Shadows - softer gray for light backgrounds */
+  --shadow-card: 0 4px 12px -4px rgba(0, 0, 0, 0.08);
+  --shadow-modal: 0 8px 28px -8px rgba(0, 0, 0, 0.12);
+  --shadow-dropdown: 0 4px 16px -2px rgba(0, 0, 0, 0.1);
+
+  /* Hover backgrounds */
+  --bg-hover: rgba(0, 0, 0, 0.04);
+
   /* Admin Dashboard Stats */
   --bg-accent-blue-subtle: rgba(59, 130, 246, 0.1);
   --border-accent-blue-subtle: rgba(59, 130, 246, 0.2);
@@ -95,6 +103,14 @@
   /* Presence indicators */
   --presence-online: #3ddc85;
   --presence-idle: #ffb347;
+
+  /* Shadows - deeper for dark backgrounds */
+  --shadow-card: 0 4px 12px -4px rgba(0, 0, 0, 0.5);
+  --shadow-modal: 0 8px 28px -8px rgba(0, 0, 0, 0.6);
+  --shadow-dropdown: 0 4px 16px -2px rgba(0, 0, 0, 0.5);
+
+  /* Hover backgrounds */
+  --bg-hover: rgba(255, 255, 255, 0.05);
 
   /* Admin Dashboard Stats */
   --bg-accent-blue-subtle: rgba(59, 130, 246, 0.2);

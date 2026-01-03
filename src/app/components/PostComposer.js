@@ -523,7 +523,7 @@ export default function PostComposer() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full rounded-[14px] border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-4 text-left text-[var(--text-secondary)] shadow-[0_4px_12px_-4px_#000c] transition-colors duration-200 hover:text-[var(--text-primary)] active:opacity-80"
+        className="w-full rounded-[14px] border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-4 text-left text-[var(--text-secondary)] shadow-[var(--shadow-card)] transition-colors duration-200 hover:text-[var(--text-primary)] active:opacity-80"
       >
         {savedDraft && !content ? 'Continue your draft…' : 'Share something…'}
       </button>
@@ -531,7 +531,7 @@ export default function PostComposer() {
       <Dialog open={open} onClose={setOpen} className="relative z-50">
         <div className="fixed inset-0 bg-black/60" aria-hidden="true" />
         <div className="fixed inset-0 flex items-end overflow-y-auto px-4 [scrollbar-gutter:stable] supports-[padding:env(safe-area-inset-bottom)]:pb-[env(safe-area-inset-bottom)] sm:items-center sm:px-6 lg:px-8">
-          <DialogPanel className="mx-auto w-full max-w-2xl rounded-t-[20px] border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-4 text-[var(--text-primary)] shadow-[0_8px_28px_-8px_#000f] transition-colors duration-200 sm:rounded-[20px] sm:p-6">
+          <DialogPanel className="mx-auto w-full max-w-2xl rounded-t-[20px] border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-4 text-[var(--text-primary)] shadow-[var(--shadow-modal)] transition-colors duration-200 sm:rounded-[20px] sm:p-6">
             <div className="mb-2 flex items-center justify-between">
               <h3 className="text-base font-semibold">Create post</h3>
               <button

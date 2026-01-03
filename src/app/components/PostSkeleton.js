@@ -1,6 +1,6 @@
 export default function PostSkeleton() {
   return (
-    <div className="mb-4 overflow-hidden rounded-[14px] border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-4 shadow-[0_4px_12px_-4px_#000c] transition-colors duration-200">
+    <div className="mb-4 overflow-hidden rounded-[14px] border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-4 shadow-[var(--shadow-card)] transition-colors duration-200">
       <div className="mb-3 flex items-center space-x-2">
         <div className="h-8 w-8 animate-pulse rounded-md bg-[var(--bg-elev-2)]" />
         <div className="flex-1">

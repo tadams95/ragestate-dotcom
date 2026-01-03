@@ -35,7 +35,11 @@ KPIs: Time-to-first-post, Scroll depth, DAU retention, Message reply latency, Po
 
 ## 3. Foundations
 
-### 3.1 Color Tokens (Dark Mode Primary)
+### 3.1 Color Tokens
+
+The design system supports both dark and light modes via CSS variables defined in `src/app/globals.css`. The `.dark` class on `<html>` toggles between themes.
+
+#### Dark Mode (`.dark` class applied)
 
 ```
 --bg-root: #050505;
@@ -49,7 +53,7 @@ KPIs: Time-to-first-post, Scroll depth, DAU retention, Message reply latency, Po
 --text-tertiary: #5d6269;
 --accent: #ff1f42; (RAGESTATE red)
 --accent-glow: #ff415f;
---accent-muted: #ff1f4240;
+--accent-muted: rgba(255, 31, 66, 0.25);
 --success: #3ddc85;
 --warning: #ffb347;
 --danger: #ff4d4d;
@@ -59,9 +63,56 @@ KPIs: Time-to-first-post, Scroll depth, DAU retention, Message reply latency, Po
 --reaction-like: #3d8bff;
 --presence-online: #3ddc85;
 --presence-idle: #ffb347;
+--shadow-card: 0 4px 12px -4px rgba(0, 0, 0, 0.5);
+--shadow-modal: 0 8px 28px -8px rgba(0, 0, 0, 0.6);
+--shadow-dropdown: 0 4px 16px -2px rgba(0, 0, 0, 0.5);
+--bg-hover: rgba(255, 255, 255, 0.05);
 ```
 
-Light mode: invert bg tokens (bg-root → #fafafa; elev surfaces progressively darker) while preserving accent contrast; text-secondary shifts to #555.
+#### Light Mode (`:root` default, no `.dark` class)
+
+```
+--bg-root: #fafafa;
+--bg-elev-1: #ffffff;
+--bg-elev-2: #f0f0f2;
+--bg-reverse: #050505;
+--border-subtle: #e0e0e3;
+--border-strong: #c8c8cc;
+--text-primary: #111113;
+--text-secondary: #555555;
+--text-tertiary: #888888;
+--accent: #ff1f42; (preserved)
+--accent-glow: #ff415f;
+--accent-muted: rgba(255, 31, 66, 0.25);
+--success: #22a55a;
+--warning: #e6a020;
+--danger: #e53935;
+--focus-ring: #ff1f42;
+--reaction-fire: #ff8a1f;
+--reaction-wow: #ffd31f;
+--reaction-like: #3d8bff;
+--presence-online: #22a55a;
+--presence-idle: #e6a020;
+--shadow-card: 0 4px 12px -4px rgba(0, 0, 0, 0.08);
+--shadow-modal: 0 8px 28px -8px rgba(0, 0, 0, 0.12);
+--shadow-dropdown: 0 4px 16px -2px rgba(0, 0, 0, 0.1);
+--bg-hover: rgba(0, 0, 0, 0.04);
+```
+
+#### WCAG Contrast Compliance
+
+| Combination                   | Light Mode | Dark Mode | AA Requirement        |
+| ----------------------------- | ---------- | --------- | --------------------- |
+| text-primary on bg-root       | 15.9:1 ✅  | 18.9:1 ✅ | 4.5:1                 |
+| text-secondary on bg-root     | 7.0:1 ✅   | 9.3:1 ✅  | 4.5:1                 |
+| accent on bg-elev-1 (buttons) | 4.0:1 ✅   | 4.5:1 ✅  | 3.0:1 (UI components) |
+
+#### Theme Implementation Notes
+
+- **Theme Provider**: `lib/context/ThemeContext.js` manages `light | dark | system` preference
+- **Persistence**: Stored in `localStorage` under key `theme`
+- **Flash Prevention**: Inline script in `layout.js` sets `.dark` class before React hydration
+- **System Detection**: `matchMedia('(prefers-color-scheme: dark)')` listener for `system` mode
 
 ### 3.2 Typography Scale
 
@@ -136,6 +187,68 @@ Baseline target devices: 360×740, 390×844, 414×896 (iOS/Android modern). Use 
 - Images & media:
   - Use `next/image` with `sizes="(max-width: 640px) 100vw, 640px"` for feed media.
   - Lazy-load offscreen; prefetch only the first in-viewport media.
+
+### 3.7 Component-to-Variable Mapping
+
+Reference for which CSS variables to use when theming components:
+
+| Component / Surface                    | Background                              | Border                 | Text                    | Shadow                   |
+| -------------------------------------- | --------------------------------------- | ---------------------- | ----------------------- | ------------------------ |
+| **Page backgrounds**                   | `var(--bg-root)`                        | —                      | —                       | —                        |
+| **Cards (Post, Profile)**              | `var(--bg-elev-1)`                      | `var(--border-subtle)` | `var(--text-primary)`   | `var(--shadow-card)`     |
+| **Elevated surfaces (modals, sheets)** | `var(--bg-elev-1)`                      | `var(--border-subtle)` | `var(--text-primary)`   | `var(--shadow-modal)`    |
+| **Skeleton loaders**                   | `var(--bg-elev-2)`                      | —                      | —                       | —                        |
+| **Input fields**                       | `var(--bg-elev-2)`                      | `var(--border-subtle)` | `var(--text-primary)`   | —                        |
+| **Dropdowns / Menus**                  | `var(--bg-elev-1)`                      | `var(--border-subtle)` | `var(--text-primary)`   | `var(--shadow-dropdown)` |
+| **Hover states**                       | `var(--bg-hover)` or `var(--bg-elev-1)` | —                      | —                       | —                        |
+| **Author names**                       | —                                       | —                      | `var(--text-primary)`   | —                        |
+| **Timestamps / Meta**                  | —                                       | —                      | `var(--text-tertiary)`  | —                        |
+| **Secondary text**                     | —                                       | —                      | `var(--text-secondary)` | —                        |
+| **Primary buttons**                    | `var(--accent)`                         | —                      | `#ffffff`               | —                        |
+| **Focus rings**                        | —                                       | `var(--focus-ring)`    | —                       | —                        |
+
+#### Tailwind Usage Examples
+
+```jsx
+// Page background
+<div className="bg-[var(--bg-root)]">
+
+// Post card
+<article className="bg-[var(--bg-elev-1)] border border-[var(--border-subtle)] shadow-[var(--shadow-card)]">
+
+// Modal
+<div className="bg-[var(--bg-elev-1)] shadow-[var(--shadow-modal)]">
+
+// Input field
+<input className="bg-[var(--bg-elev-2)] border border-[var(--border-subtle)] text-[var(--text-primary)]" />
+
+// Skeleton
+<div className="bg-[var(--bg-elev-2)] animate-pulse">
+
+// Text hierarchy
+<h2 className="text-[var(--text-primary)]">Title</h2>
+<p className="text-[var(--text-secondary)]">Description</p>
+<span className="text-[var(--text-tertiary)]">12h ago</span>
+
+// Hover state
+<button className="hover:bg-[var(--bg-hover)]">
+```
+
+#### Migration Notes
+
+When updating legacy hardcoded colors:
+
+| Legacy Value                             | Replace With                    |
+| ---------------------------------------- | ------------------------------- |
+| `bg-black`, `#050505`                    | `bg-[var(--bg-root)]`           |
+| `bg-[#0d0d0f]`                           | `bg-[var(--bg-elev-1)]`         |
+| `bg-[#16171a]`, `bg-[#1a1a1c]`           | `bg-[var(--bg-elev-2)]`         |
+| `border-white/10`, `#242528`             | `border-[var(--border-subtle)]` |
+| `text-white`, `text-gray-100`, `#f5f6f7` | `text-[var(--text-primary)]`    |
+| `text-gray-400`, `#a1a5ab`               | `text-[var(--text-secondary)]`  |
+| `text-gray-500`, `#5d6269`               | `text-[var(--text-tertiary)]`   |
+| `shadow-[0_4px_12px_-4px_#000c]`         | `shadow-[var(--shadow-card)]`   |
+| `shadow-[0_8px_28px_-8px_#000f]`         | `shadow-[var(--shadow-modal)]`  |
 
 ---
 
