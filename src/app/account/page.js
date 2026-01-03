@@ -1,5 +1,6 @@
 'use client';
 
+import ArrowsRightLeftIcon from '@heroicons/react/24/outline/ArrowsRightLeftIcon';
 import BellIcon from '@heroicons/react/24/outline/BellIcon';
 import Cog6ToothIcon from '@heroicons/react/24/outline/Cog6ToothIcon';
 import ShoppingBagIcon from '@heroicons/react/24/outline/ShoppingBagIcon';
@@ -20,6 +21,7 @@ import NotificationsTab from './components/NotificationsTab';
 import ProfileTab from './components/ProfileTab';
 import SettingsTab from './components/SettingsTab';
 import TicketsTab from './components/TicketsTab';
+import TransferHistoryTab from './components/TransferHistoryTab';
 
 export default function Account() {
   const router = useRouter();
@@ -215,6 +217,13 @@ export default function Account() {
           cardStyling={cardStyling}
         />
       ),
+      transfers: (
+        <TransferHistoryTab
+          userId={userId}
+          containerStyling={containerStyling}
+          cardStyling={cardStyling}
+        />
+      ),
     }),
     [
       userId,
@@ -319,6 +328,17 @@ export default function Account() {
                             {unreadCount > 99 ? '99+' : unreadCount}
                           </span>
                         )}
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('transfers')}
+                        className={`${
+                          activeTab === 'transfers'
+                            ? 'border-red-700 text-red-500'
+                            : 'border-transparent text-[var(--text-tertiary)] hover:border-[var(--text-secondary)] hover:text-[var(--text-secondary)]'
+                        } flex flex-shrink-0 items-center whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium`}
+                      >
+                        <ArrowsRightLeftIcon className="mr-2 h-5 w-5" aria-hidden="true" />
+                        Transfers
                       </button>
                       <button
                         onClick={() => setActiveTab('settings')}

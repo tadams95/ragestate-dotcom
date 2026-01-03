@@ -1621,7 +1621,7 @@ app.post('/transfer-ticket', async (req, res) => {
 });
 
 /**
- * Cancel a pending ticket transfer (sender only)
+ * Cancel a pending ticket transfer (sender only, or admin override)
  * Restores the original ticket to active state
  */
 app.post('/cancel-transfer', async (req, res) => {
@@ -1634,10 +1634,15 @@ app.post('/cancel-transfer', async (req, res) => {
       }
     }
 
-    const { transferId, senderUserId } = req.body || {};
+    const { transferId, senderUserId, isAdmin } = req.body || {};
 
-    if (!transferId || !senderUserId) {
-      return res.status(400).json({ error: 'Missing required fields: transferId, senderUserId' });
+    if (!transferId) {
+      return res.status(400).json({ error: 'Missing required field: transferId' });
+    }
+
+    // Non-admin requests require senderUserId
+    if (!isAdmin && !senderUserId) {
+      return res.status(400).json({ error: 'Missing required field: senderUserId' });
     }
 
     // Atomic transaction to cancel transfer
@@ -1652,8 +1657,8 @@ app.post('/cancel-transfer', async (req, res) => {
 
       const transferData = transferSnap.data();
 
-      // 2. Verify sender owns this transfer
-      if (transferData.fromUserId !== senderUserId) {
+      // 2. Verify sender owns this transfer (skip if admin)
+      if (!isAdmin && transferData.fromUserId !== senderUserId) {
         throw new Error('You cannot cancel this transfer');
       }
 
@@ -1683,10 +1688,14 @@ app.post('/cancel-transfer', async (req, res) => {
       }
 
       // 5. Update transfer status
-      t.update(transferRef, {
+      const updateData = {
         status: 'cancelled',
         cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
+      };
+      if (isAdmin) {
+        updateData.cancelledByAdmin = true;
+      }
+      t.update(transferRef, updateData);
 
       return {
         eventId: transferData.eventId,
@@ -1694,6 +1703,7 @@ app.post('/cancel-transfer', async (req, res) => {
         toEmail: transferData.toEmail,
         toUsername: transferData.toUsername,
         recipientUserId: transferData.toUserId,
+        senderUserId: transferData.fromUserId,
       };
     });
 
@@ -1713,10 +1723,27 @@ app.post('/cancel-transfer', async (req, res) => {
       });
     }
 
+    // Notify sender if admin cancelled (so they know their ticket is restored)
+    if (isAdmin && result.senderUserId) {
+      await createTransferNotification({
+        uid: result.senderUserId,
+        type: 'ticket_transfer_cancelled',
+        title: 'Transfer Cancelled by Support',
+        body: `Your ticket transfer for ${result.eventName} was cancelled and your ticket has been restored`,
+        data: {
+          eventId: result.eventId,
+          eventName: result.eventName,
+          transferId,
+        },
+        link: '/account?tab=tickets',
+      });
+    }
+
     logger.info('Ticket transfer cancelled', {
       transferId,
       eventId: result.eventId,
-      fromUserId: senderUserId,
+      fromUserId: result.senderUserId,
+      isAdmin: !!isAdmin,
     });
 
     return res.json({ ok: true, message: 'Transfer cancelled successfully' });

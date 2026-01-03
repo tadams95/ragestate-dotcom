@@ -405,7 +405,7 @@ match /ticketTransfers/{transferId} {
 
 - [x] Cancel transfer flow
 - [x] Expired transfer handling
-- [ ] Transfer history in account
+- [x] Transfer history in account
 - [ ] Admin view for support
 
 ---

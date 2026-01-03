@@ -207,9 +207,13 @@
 
 - [x] Cancel transfer flow (sender only, before claim)
 - [x] Expired transfer handling (72-hour TTL) — on-demand check at claim time and preview
-- [ ] Transfer history in account page
-- [ ] Admin view for support tickets
-- [ ] Block refunds for transferred tickets
+- [x] Transfer history in account page
+- [x] Admin view for support tickets
+  - [x] Search transfers by token, user email, or event
+  - [x] View full transfer history for a user (sent/received)
+  - [x] Manually cancel stuck/problematic transfers
+
+> **Note**: "Block refunds for transferred tickets" moved to [refund-infrastructure-spec.md](./refund-infrastructure-spec.md) — no refund system exists yet.
 
 #### Data Model
 
