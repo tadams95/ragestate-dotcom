@@ -127,6 +127,7 @@ function ThemeToggle() {
 const navigation = [
   // { name: 'ABOUT', href: '/about' },
   { name: 'EVENTS', href: '/events' },
+  { name: 'FEED', href: '/feed' },
   { name: 'SHOP', href: '/shop' },
   // { name: "PRODUCTS", href: "/products" },
   // { name: "BLOG", href: "/blog" },
