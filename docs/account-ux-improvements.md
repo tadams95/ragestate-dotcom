@@ -170,24 +170,57 @@
 
 ---
 
-### 2.2 Ticket Transfer
+### 2.2 Ticket Transfer ⭐ EXPANDED
 
-> **Goal**: Allow users to transfer tickets to others
+> **Goal**: Allow users to transfer tickets via email, @username, or follower quick-pick
+> **Full Spec**: See [ticket-transfer-spec.md](./ticket-transfer-spec.md)
 
-#### Flow
+#### Phase 2.2a: MVP Transfer (Email)
 
-- [ ] "Transfer Ticket" button on ticket card
-- [ ] Enter recipient email
-- [ ] Generate transfer link (or direct transfer if recipient has account)
-- [ ] Original ticket marked as transferred
-- [ ] New ticket created for recipient
+- [ ] Create `ticketTransfers` collection + Firestore rules
+- [ ] Cloud Function: `POST /transfer-ticket` (email-only)
+- [ ] Cloud Function: `POST /claim-ticket`
+- [ ] Cloud Function: `POST /cancel-transfer`
+- [ ] Email template (Resend): claim link
+- [ ] UI: `TransferTicketModal.js` with email input
+- [ ] UI: `ClaimTicketPage.js` (`/claim-ticket?t={token}`)
+- [ ] Notifications: ticket_transfer_sent, ticket_transfer_received, ticket_transfer_claimed
 
-#### Backend
+#### Phase 2.2b: Username Transfers (Social)
 
-- [ ] Cloud Function for secure transfer
-- [ ] Update `ragers` doc ownership
-- [ ] Generate new `ticketToken`
-- [ ] Email notifications to both parties
+- [ ] Extend `/transfer-ticket` to accept `recipientUsername`
+- [ ] Resolve username → uid via `usernames/{usernameLower}`
+- [ ] UI: `RecipientSearch.js` with @username autocomplete
+- [ ] Profile preview (photo, name, verified badge) before confirming
+
+#### Phase 2.2c: Follower Quick-Pick (Social)
+
+- [ ] Fetch followers via `follows` where `followedId === currentUser.uid`
+- [ ] Batch-fetch `profiles/{followerId}` for display
+- [ ] UI: Follower cards in TransferTicketModal
+- [ ] Filter to users with verified emails
+
+#### Phase 2.2d: Polish & Edge Cases
+
+- [ ] Cancel transfer flow (sender only, before claim)
+- [ ] Expired transfer handling (72-hour TTL)
+- [ ] Transfer history in account page
+- [ ] Admin view for support tickets
+- [ ] Block refunds for transferred tickets
+
+#### Data Model
+
+- [ ] `ticketTransfers/{transferId}`: fromUserId, toUserId, toEmail, toUsername, eventId, ragerId, status, claimToken, expiresAt
+- [ ] Update rager: `transferredTo`, `transferredAt`, `active: false`
+- [ ] New rager for recipient with fresh `ticketToken`
+
+#### Security
+
+- [ ] Rate limit: 10 transfers/hour/user
+- [ ] Cannot transfer used tickets (usedCount > 0)
+- [ ] Cannot transfer to self
+- [ ] Claim token is hashed in Firestore, raw token in email
+- [ ] 72-hour expiration on pending transfers
 
 ---
 
