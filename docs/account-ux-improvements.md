@@ -175,23 +175,26 @@
 > **Goal**: Allow users to transfer tickets via email, @username, or follower quick-pick
 > **Full Spec**: See [ticket-transfer-spec.md](./ticket-transfer-spec.md)
 
-#### Phase 2.2a: MVP Transfer (Email)
+#### Phase 2.2a: MVP Transfer (Email) ✅ COMPLETE
 
-- [ ] Create `ticketTransfers` collection + Firestore rules
-- [ ] Cloud Function: `POST /transfer-ticket` (email-only)
-- [ ] Cloud Function: `POST /claim-ticket`
+- [x] Create `ticketTransfers` collection + Firestore rules
+- [x] Cloud Function: `POST /transfer-ticket` (email-only)
+- [x] Cloud Function: `POST /claim-ticket`
+- [x] Cloud Function: `GET /transfer-preview`
 - [ ] Cloud Function: `POST /cancel-transfer`
-- [ ] Email template (Resend): claim link
-- [ ] UI: `TransferTicketModal.js` with email input
-- [ ] UI: `ClaimTicketPage.js` (`/claim-ticket?t={token}`)
-- [ ] Notifications: ticket_transfer_sent, ticket_transfer_received, ticket_transfer_claimed
+- [x] Email template (SES): claim link
+- [x] UI: `TransferTicketModal.js` with email input
+- [x] UI: `ClaimTicketPage.js` (`/claim-ticket?t={token}`)
+- [x] API proxies: `/api/payments/transfer-ticket`, `/api/payments/claim-ticket`, `/api/payments/transfer-preview`
+- [x] Notifications: ticket_transfer_sent, ticket_transfer_received, ticket_transfer_claimed
+- [x] Transfer button integrated into TicketDetailModal
 
-#### Phase 2.2b: Username Transfers (Social)
+#### Phase 2.2b: Username Transfers (Social) ✅ COMPLETE
 
-- [ ] Extend `/transfer-ticket` to accept `recipientUsername`
-- [ ] Resolve username → uid via `usernames/{usernameLower}`
-- [ ] UI: `RecipientSearch.js` with @username autocomplete
-- [ ] Profile preview (photo, name, verified badge) before confirming
+- [x] Extend `/transfer-ticket` to accept `recipientUsername`
+- [x] Resolve username → uid via `usernames/{usernameLower}`
+- [x] UI: @username detection in TransferTicketModal with debounced lookup
+- [x] Profile preview (photo, name, verified badge) before confirming
 
 #### Phase 2.2c: Follower Quick-Pick (Social)
 

@@ -380,6 +380,17 @@ service cloud.firestore {
         && (!request.resource.data.keys().hasAny(['unreadNotifications']) || request.resource.data.unreadNotifications == resource.data.unreadNotifications);
     }
 
+    // Ticket Transfers: sender/recipient can read, backend-only writes
+    match /ticketTransfers/{transferId} {
+      allow read: if isAuthenticated() && (
+        resource.data.fromUserId == request.auth.uid ||
+        resource.data.toUserId == request.auth.uid ||
+        resource.data.toEmail == request.auth.token.email
+      );
+      // Create/update/delete via Cloud Functions only (Admin SDK bypasses rules)
+      allow create, update, delete: if false;
+    }
+
     // Default deny
     match /{document=**} {
       allow read, write: if false;

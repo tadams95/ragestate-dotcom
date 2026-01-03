@@ -360,35 +360,40 @@ match /ticketTransfers/{transferId} {
 
 ### ⚠️ Pre-requisite: Amazon SES Migration
 
-> **BLOCKER**: Complete SES migration before starting Phase 2.2a
-> **Spec**: See [ses-migration-spec.md](./ses-migration-spec.md)
-
-**Why?**
-
-- Ticket transfers will 2-3x email volume (sender + recipient + claimed notifications)
-- Resend's 3K monthly limit already exceeded once
-- New claim link email template needed anyway
-- Better to test SES with existing purchase flow first
-
-**Timeline**: ~1 week (2 days code + AWS approval wait)
+> ✅ **COMPLETED**: SES migration done — see [ses-migration-spec.md](./ses-migration-spec.md)
 
 ---
 
-### Phase 2.2a: MVP Transfer (1-2 weeks)
+### Phase 2.2a: MVP Transfer ✅ COMPLETE
 
-- [ ] `ticketTransfers` collection + rules
-- [ ] Cloud Function: `/transfer-ticket` (email-only)
-- [ ] Cloud Function: `/claim-ticket`
-- [ ] Email template (SES): claim link — see [ses-migration-spec.md](./ses-migration-spec.md#ticket-transfer-claim-email)
-- [ ] UI: TransferTicketModal with email input
-- [ ] UI: ClaimTicketPage
-- [ ] Notifications: sent/received/claimed
+- [x] `ticketTransfers` collection + rules
+- [x] Cloud Function: `/transfer-ticket` (email-only)
+- [x] Cloud Function: `/claim-ticket`
+- [x] Cloud Function: `/transfer-preview` (for claim page to show ticket details)
+- [x] Email template (SES): claim link
+- [x] UI: TransferTicketModal with email input — [components/TransferTicketModal.js](../components/TransferTicketModal.js)
+- [x] UI: ClaimTicketPage — [src/app/claim-ticket/page.js](../src/app/claim-ticket/page.js)
+- [x] API proxies: `/api/payments/transfer-ticket`, `/api/payments/claim-ticket`, `/api/payments/transfer-preview`
+- [x] Notifications: sent/received/claimed (in-app via createTransferNotification)
+- [x] Transfer button integrated into TicketDetailModal
+
+**Files Created/Modified:**
+
+- `components/TransferTicketModal.js` — Beautiful multi-step modal (email → confirm → success)
+- `components/TicketDetailModal.js` — Added transfer button + pending notice
+- `src/app/claim-ticket/page.js` — Claim page with auth gate
+- `src/app/claim-ticket/claim-ticket.client.js` — Client component
+- `src/app/api/payments/transfer-ticket/route.js` — API proxy
+- `src/app/api/payments/claim-ticket/route.js` — API proxy
+- `src/app/api/payments/transfer-preview/route.js` — API proxy
+- `functions/stripe.js` — Added /transfer-ticket, /claim-ticket, /transfer-preview endpoints + notifications
+- `firestore.rules` — ticketTransfers collection rules
 
 ### Phase 2.2b: Username Transfers (3-4 days)
 
-- [ ] Extend `/transfer-ticket` to accept username
-- [ ] UI: RecipientSearch with @username support
-- [ ] Profile preview before confirming
+- [x] Extend `/transfer-ticket` to accept `recipientUsername`
+- [x] UI: RecipientSearch with @username support + profile preview
+- [ ] Profile preview before confirming (included in above)
 
 ### Phase 2.2c: Social Quick-Pick (3-4 days)
 

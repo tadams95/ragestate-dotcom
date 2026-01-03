@@ -356,6 +356,11 @@ export default function TicketsTab({ userId, cardStyling, eventCardStyling, cont
         ticket={selectedTicket}
         isOpen={!!selectedTicket}
         onClose={() => setSelectedTicket(null)}
+        onTransferComplete={() => {
+          // Refresh tickets after successful transfer
+          setSelectedTicket(null);
+          fetchUserTickets();
+        }}
       />
     </div>
   );

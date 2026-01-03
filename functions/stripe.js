@@ -10,12 +10,17 @@ const cors = require('cors');
 const { admin, db } = require('./admin');
 const { createShopifyOrder, isShopifyConfigured } = require('./shopifyAdmin');
 const { checkRateLimit } = require('./rateLimit');
+const { sendEmail } = require('./sesEmail');
 
 // Secret Manager: define secrets. Also support process.env for local dev.
 const STRIPE_SECRET = defineSecret('STRIPE_SECRET');
 const PROXY_KEY = defineSecret('PROXY_KEY');
 const SHOPIFY_ADMIN_ACCESS_TOKEN = defineSecret('SHOPIFY_ADMIN_ACCESS_TOKEN');
 const SHOPIFY_SHOP_NAME = defineSecret('SHOPIFY_SHOP_NAME');
+// AWS SES secrets for ticket transfer emails
+const AWS_ACCESS_KEY_ID = defineSecret('AWS_ACCESS_KEY_ID');
+const AWS_SECRET_ACCESS_KEY = defineSecret('AWS_SECRET_ACCESS_KEY');
+const AWS_SES_REGION = defineSecret('AWS_SES_REGION');
 let stripeClient;
 function getStripe() {
   const key = STRIPE_SECRET.value() || process.env.STRIPE_SECRET;
@@ -46,6 +51,57 @@ async function incrementEventMetrics(eventId, increments) {
     try {
       logger.warn('incrementEventMetrics failed (non-fatal)', { message: e?.message });
     } catch (_e) {}
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// IN-APP NOTIFICATION HELPER
+// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Create an in-app notification for a user
+ * Simplified version for ticket transfer notifications
+ */
+async function createTransferNotification({
+  uid,
+  type,
+  title,
+  body,
+  data = {},
+  link = '/',
+  sendPush = true,
+}) {
+  if (!uid) return null;
+  try {
+    const notifRef = db.collection('users').doc(uid).collection('notifications').doc();
+    const payload = {
+      type,
+      title,
+      body,
+      data,
+      link,
+      deepLink: `ragestate://${link.replace(/^\//, '')}`,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      seenAt: null,
+      read: false,
+      sendPush,
+      pushSentAt: null,
+      pushStatus: 'pending',
+    };
+    await db.runTransaction(async (tx) => {
+      tx.set(notifRef, payload);
+      // Increment unread counter
+      const userRef = db.collection('users').doc(uid);
+      const userSnap = await tx.get(userRef);
+      const current =
+        userSnap.exists && typeof userSnap.data().unreadNotifications === 'number'
+          ? userSnap.data().unreadNotifications
+          : 0;
+      tx.update(userRef, { unreadNotifications: current + 1 });
+    });
+    return notifRef.id;
+  } catch (err) {
+    logger.warn('createTransferNotification failed (non-fatal)', { uid, type, error: String(err) });
+    return null;
   }
 }
 
@@ -1167,6 +1223,630 @@ app.post('/test-send-purchase-email', async (req, res) => {
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// TICKET TRANSFER ENDPOINTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Preview a transfer without claiming it
+ * Used by the claim page to show ticket details before claiming
+ */
+app.get('/transfer-preview', async (req, res) => {
+  try {
+    const expectedProxyKey = PROXY_KEY.value() || process.env.PROXY_KEY;
+    if (expectedProxyKey) {
+      const provided = req.get('x-proxy-key');
+      if (!provided || provided !== expectedProxyKey) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+    }
+
+    const token = req.query.t;
+    if (!token) {
+      return res.status(400).json({ error: 'Missing token parameter' });
+    }
+
+    const crypto = require('crypto');
+    const hashToken = (t) => crypto.createHash('sha256').update(t).digest('hex');
+    const claimTokenHash = hashToken(token);
+
+    // Find transfer by token hash
+    const transfersQuery = await db
+      .collection('ticketTransfers')
+      .where('claimTokenHash', '==', claimTokenHash)
+      .limit(1)
+      .get();
+
+    if (transfersQuery.empty) {
+      return res.status(404).json({ error: 'Transfer not found' });
+    }
+
+    const transferDoc = transfersQuery.docs[0];
+    const transferData = transferDoc.data();
+
+    // Check if already claimed
+    if (transferData.status === 'claimed') {
+      return res.status(404).json({ error: 'Transfer has already been claimed' });
+    }
+
+    // Check expiration
+    const expiresAt = transferData.expiresAt?.toDate
+      ? transferData.expiresAt.toDate()
+      : new Date(transferData.expiresAt);
+    if (expiresAt < new Date()) {
+      return res.status(410).json({ error: 'Transfer link has expired' });
+    }
+
+    // Return preview data (don't expose sensitive fields)
+    return res.json({
+      eventName: transferData.eventName,
+      eventDate: transferData.eventDate,
+      ticketQuantity: transferData.ticketQuantity || 1,
+      fromName: transferData.fromName || null,
+      toEmail: transferData.toEmail,
+      expiresAt: transferData.expiresAt,
+    });
+  } catch (err) {
+    logger.error('transfer-preview error', { error: String(err) });
+    return res.status(500).json({ error: 'Failed to get transfer preview' });
+  }
+});
+
+/**
+ * Transfer a ticket to another user via email or username
+ * Creates a pending transfer with a secure claim token
+ */
+app.post('/transfer-ticket', async (req, res) => {
+  try {
+    const expectedProxyKey = PROXY_KEY.value() || process.env.PROXY_KEY;
+    if (expectedProxyKey) {
+      const provided = req.get('x-proxy-key');
+      if (!provided || provided !== expectedProxyKey) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+    }
+
+    const { ragerId, eventId, recipientEmail, recipientUsername, senderUserId, senderEmail, senderName } =
+      req.body || {};
+
+    // Validate required fields - need either email OR username
+    if (!ragerId || !eventId || !senderUserId) {
+      return res
+        .status(400)
+        .json({ error: 'Missing required fields: ragerId, eventId, senderUserId' });
+    }
+
+    if (!recipientEmail && !recipientUsername) {
+      return res
+        .status(400)
+        .json({ error: 'Must provide either recipientEmail or recipientUsername' });
+    }
+
+    // Variables to hold resolved recipient info
+    let resolvedEmail = recipientEmail?.toLowerCase();
+    let resolvedUsername = recipientUsername?.toLowerCase()?.replace(/^@/, ''); // Strip @ prefix
+    let resolvedUserId = null;
+    let resolvedDisplayName = null;
+
+    // If username provided, resolve it to uid and email
+    if (recipientUsername) {
+      const usernameDoc = await db.collection('usernames').doc(resolvedUsername).get();
+      if (!usernameDoc.exists) {
+        return res.status(404).json({ error: `Username @${resolvedUsername} not found` });
+      }
+      const { uid } = usernameDoc.data();
+      resolvedUserId = uid;
+
+      // Fetch profile/customer for email
+      const [profileSnap, customerSnap] = await Promise.all([
+        db.collection('profiles').doc(uid).get(),
+        db.collection('customers').doc(uid).get(),
+      ]);
+
+      const profileData = profileSnap.data() || {};
+      const customerData = customerSnap.data() || {};
+
+      resolvedEmail = customerData.email || profileData.email;
+      resolvedDisplayName = profileData.displayName || resolvedUsername;
+
+      if (!resolvedEmail) {
+        return res.status(400).json({ error: `User @${resolvedUsername} does not have an email on file` });
+      }
+    }
+
+    // Validate email format (for both direct email and resolved from username)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(resolvedEmail)) {
+      return res.status(400).json({ error: 'Invalid recipient email format' });
+    }
+
+    // Cannot transfer to self (check both email and uid)
+    if (senderEmail && resolvedEmail === senderEmail.toLowerCase()) {
+      return res.status(400).json({ error: 'Cannot transfer ticket to yourself' });
+    }
+    if (resolvedUserId && resolvedUserId === senderUserId) {
+      return res.status(400).json({ error: 'Cannot transfer ticket to yourself' });
+    }
+
+    // Rate limit: 10 transfers per hour per user
+    const rateLimitKey = `transfer:${senderUserId}`;
+    const rateLimitResult = await checkRateLimit(rateLimitKey, 10, 3600);
+    if (!rateLimitResult.allowed) {
+      return res.status(429).json({ error: 'Transfer rate limit exceeded. Try again later.' });
+    }
+
+    const crypto = require('crypto');
+    const generateClaimToken = () => crypto.randomBytes(24).toString('hex');
+    const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
+
+    // Atomic transaction
+    const result = await db.runTransaction(async (t) => {
+      // 1. Fetch the rager (ticket)
+      const ragerRef = db.collection('events').doc(eventId).collection('ragers').doc(ragerId);
+      const ragerSnap = await t.get(ragerRef);
+
+      if (!ragerSnap.exists) {
+        throw new Error('Ticket not found');
+      }
+
+      const ragerData = ragerSnap.data();
+
+      // 2. Verify ownership
+      if (ragerData.firebaseId !== senderUserId) {
+        throw new Error('You do not own this ticket');
+      }
+
+      // 3. Verify ticket is active and not already transferred
+      if (ragerData.active === false) {
+        throw new Error('Ticket is not active');
+      }
+      if (ragerData.transferredTo) {
+        throw new Error('Ticket has already been transferred');
+      }
+
+      // 4. Verify ticket hasn't been used
+      const usedCount = ragerData.usedCount || 0;
+      if (usedCount > 0) {
+        throw new Error('Cannot transfer a ticket that has been used');
+      }
+
+      // 5. Fetch event to verify it hasn't passed
+      const eventRef = db.collection('events').doc(eventId);
+      const eventSnap = await t.get(eventRef);
+      if (!eventSnap.exists) {
+        throw new Error('Event not found');
+      }
+      const eventData = eventSnap.data();
+      const eventDate = eventData.date?.toDate ? eventData.date.toDate() : new Date(eventData.date);
+      if (eventDate < new Date()) {
+        throw new Error('Cannot transfer tickets for past events');
+      }
+
+      // 6. If we haven't resolved user from username, check by email
+      let recipientUserId = resolvedUserId;
+      if (!recipientUserId) {
+        const customersQuery = await db
+          .collection('customers')
+          .where('email', '==', resolvedEmail)
+          .limit(1)
+          .get();
+        if (!customersQuery.empty) {
+          recipientUserId = customersQuery.docs[0].id;
+        }
+      }
+
+      // 7. Generate claim token
+      const claimToken = generateClaimToken();
+      const claimTokenHash = hashToken(claimToken);
+
+      // 8. Create transfer doc
+      const transferRef = db.collection('ticketTransfers').doc();
+      const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000); // 72 hours
+
+      t.set(transferRef, {
+        fromUserId: senderUserId,
+        fromEmail: senderEmail || null,
+        fromName: senderName || null,
+        toUserId: recipientUserId,
+        toEmail: resolvedEmail,
+        toUsername: resolvedUsername || null,
+        toDisplayName: resolvedDisplayName || null,
+        eventId,
+        eventName: eventData.name || eventData.title || 'Event',
+        eventDate: eventData.date || null,
+        ragerId,
+        ticketQuantity: ragerData.ticketQuantity || 1,
+        status: 'pending',
+        claimTokenHash,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
+      });
+
+      // 9. Mark original rager as pending transfer (but still active until claimed)
+      t.update(ragerRef, {
+        pendingTransferTo: resolvedUsername ? `@${resolvedUsername}` : resolvedEmail,
+        pendingTransferId: transferRef.id,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      return {
+        transferId: transferRef.id,
+        claimToken,
+        eventName: eventData.name || eventData.title || 'Event',
+        eventDate,
+        ticketQuantity: ragerData.ticketQuantity || 1,
+        recipientUserId,
+        recipientUsername: resolvedUsername || null,
+        recipientDisplayName: resolvedDisplayName || null,
+        recipientEmail: resolvedEmail,
+      };
+    });
+
+    // 10. Send claim email via SES
+    try {
+      process.env.AWS_ACCESS_KEY_ID = AWS_ACCESS_KEY_ID.value();
+      process.env.AWS_SECRET_ACCESS_KEY = AWS_SECRET_ACCESS_KEY.value();
+      process.env.AWS_SES_REGION = AWS_SES_REGION.value() || 'us-east-1';
+
+      const claimUrl = `https://ragestate.com/claim-ticket?t=${result.claimToken}`;
+      const eventDateStr = result.eventDate?.toDate
+        ? result.eventDate.toDate().toLocaleDateString('en-US', {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric',
+          })
+        : '';
+
+      await sendEmail({
+        to: result.recipientEmail,
+        from: 'RAGESTATE <support@ragestate.com>',
+        replyTo: 'support@ragestate.com',
+        subject: `🎫 ${senderName || 'Someone'} sent you a ticket!`,
+        text: `${senderName || 'A RAGESTATE user'} sent you a ticket for ${result.eventName}${eventDateStr ? ` on ${eventDateStr}` : ''}!\n\nClaim your ticket: ${claimUrl}\n\nThis link expires in 72 hours.`,
+        html: `
+          <div style="background:#f6f6f6;padding:24px 0">
+            <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #eee;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+              <div style="padding:16px 24px;background:#000;color:#fff;text-align:center">
+                <img src="https://firebasestorage.googleapis.com/v0/b/ragestate-app.appspot.com/o/RSLogo2.png?alt=media&token=d13ebc08-9d8d-4367-99ec-ace3627132d2" alt="RAGESTATE" width="120" style="display:inline-block;border:0;outline:none;text-decoration:none;height:auto" />
+              </div>
+              <div style="height:3px;background:#E12D39"></div>
+              <div style="padding:24px">
+                <h2 style="margin:0 0 16px;font-size:22px;color:#111;text-align:center">🎫 You've received a ticket!</h2>
+                <p style="margin:0 0 12px;color:#111;font-size:16px;line-height:24px;text-align:center">
+                  <b>${senderName || 'A RAGESTATE user'}</b> sent you a ticket for:
+                </p>
+                <div style="background:#f9f9f9;border-radius:8px;padding:16px;margin:16px 0;text-align:center">
+                  <p style="margin:0 0 4px;font-size:18px;font-weight:bold;color:#111">${result.eventName}</p>
+                  ${eventDateStr ? `<p style="margin:0;font-size:14px;color:#666">${eventDateStr}</p>` : ''}
+                  <p style="margin:8px 0 0;font-size:14px;color:#666">${result.ticketQuantity} ticket${result.ticketQuantity > 1 ? 's' : ''}</p>
+                </div>
+                <div style="text-align:center;margin:24px 0">
+                  <a href="${claimUrl}" style="display:inline-block;background:#E12D39;color:#fff;text-decoration:none;padding:14px 28px;border-radius:8px;font-size:16px;font-weight:bold">Claim Your Ticket</a>
+                </div>
+                <p style="margin:16px 0 0;color:#6b7280;font-size:12px;line-height:18px;text-align:center">
+                  This link expires in 72 hours. If you didn't expect this ticket, you can ignore this email.
+                </p>
+              </div>
+              <div style="padding:16px 24px;border-top:1px solid #eee;color:#6b7280;font-size:12px;line-height:18px;text-align:center">
+                <p style="margin:0">RAGESTATE — Your ticket to the next level</p>
+              </div>
+            </div>
+          </div>
+        `,
+        region: process.env.AWS_SES_REGION,
+      });
+
+      // Update transfer with email sent status
+      await db.collection('ticketTransfers').doc(result.transferId).update({
+        emailSentAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    } catch (emailErr) {
+      logger.error('Failed to send transfer claim email', {
+        error: String(emailErr),
+        transferId: result.transferId,
+      });
+      // Don't fail the transfer - email can be resent
+    }
+
+    // Recipient display: prefer @username, fallback to email
+    const recipientDisplay = result.recipientUsername 
+      ? `@${result.recipientUsername}` 
+      : result.recipientEmail;
+
+    // Send in-app notification to sender (transfer initiated)
+    await createTransferNotification({
+      uid: senderUserId,
+      type: 'ticket_transfer_sent',
+      title: 'Ticket Transfer Sent',
+      body: `Your ticket for ${result.eventName} was sent to ${recipientDisplay}`,
+      data: {
+        eventId,
+        eventName: result.eventName,
+        recipientEmail: result.recipientEmail,
+        recipientUsername: result.recipientUsername,
+        transferId: result.transferId,
+      },
+      link: '/account?tab=tickets',
+    });
+
+    // If recipient has an account, notify them too
+    if (result.recipientUserId) {
+      await createTransferNotification({
+        uid: result.recipientUserId,
+        type: 'ticket_transfer_received',
+        title: '🎫 You received a ticket!',
+        body: `${senderName || 'Someone'} sent you a ticket for ${result.eventName}`,
+        data: {
+          eventId,
+          eventName: result.eventName,
+          fromUserId: senderUserId,
+          fromName: senderName || null,
+          transferId: result.transferId,
+        },
+        link: '/account?tab=tickets',
+      });
+    }
+
+    logger.info('Ticket transfer initiated', {
+      transferId: result.transferId,
+      eventId,
+      ragerId,
+      fromUserId: senderUserId,
+      toEmail: result.recipientEmail,
+      toUsername: result.recipientUsername || null,
+    });
+
+    return res.json({
+      ok: true,
+      transferId: result.transferId,
+      recipientHasAccount: !!result.recipientUserId,
+      recipientUsername: result.recipientUsername || null,
+      recipientDisplayName: result.recipientDisplayName || null,
+    });
+  } catch (err) {
+    logger.error('transfer-ticket error', { error: String(err) });
+    const message = err.message || 'Failed to transfer ticket';
+    return res.status(400).json({ error: message });
+  }
+});
+
+/**
+ * Claim a transferred ticket using the claim token
+ */
+app.post('/claim-ticket', async (req, res) => {
+  try {
+    const expectedProxyKey = PROXY_KEY.value() || process.env.PROXY_KEY;
+    if (expectedProxyKey) {
+      const provided = req.get('x-proxy-key');
+      if (!provided || provided !== expectedProxyKey) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+    }
+
+    const { claimToken, claimerUserId, claimerEmail, claimerName } = req.body || {};
+
+    if (!claimToken || !claimerUserId) {
+      return res.status(400).json({ error: 'Missing required fields: claimToken, claimerUserId' });
+    }
+
+    const crypto = require('crypto');
+    const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
+    const claimTokenHash = hashToken(claimToken);
+
+    // Find transfer by token hash
+    const transfersQuery = await db
+      .collection('ticketTransfers')
+      .where('claimTokenHash', '==', claimTokenHash)
+      .where('status', '==', 'pending')
+      .limit(1)
+      .get();
+
+    if (transfersQuery.empty) {
+      return res.status(404).json({ error: 'Transfer not found or already claimed' });
+    }
+
+    const transferDoc = transfersQuery.docs[0];
+    const transferData = transferDoc.data();
+
+    // Check expiration
+    const expiresAt = transferData.expiresAt?.toDate
+      ? transferData.expiresAt.toDate()
+      : new Date(transferData.expiresAt);
+    if (expiresAt < new Date()) {
+      return res.status(410).json({ error: 'Transfer link has expired' });
+    }
+
+    // Verify claimer matches recipient (by uid or email)
+    const claimerEmailLower = (claimerEmail || '').toLowerCase();
+    if (transferData.toUserId && transferData.toUserId !== claimerUserId) {
+      // If transfer was to a specific user, must be that user
+      if (transferData.toEmail !== claimerEmailLower) {
+        return res.status(403).json({ error: 'This ticket was sent to someone else' });
+      }
+    } else if (transferData.toEmail !== claimerEmailLower) {
+      // Otherwise check email match
+      return res.status(403).json({ error: 'This ticket was sent to a different email address' });
+    }
+
+    const generateTicketToken = () => crypto.randomBytes(16).toString('hex');
+
+    // Atomic transaction to claim ticket
+    const result = await db.runTransaction(async (t) => {
+      // Re-fetch transfer in transaction
+      const transferRef = db.collection('ticketTransfers').doc(transferDoc.id);
+      const transferSnap = await t.get(transferRef);
+      const transfer = transferSnap.data();
+
+      if (transfer.status !== 'pending') {
+        throw new Error('Transfer is no longer pending');
+      }
+
+      // Fetch original rager
+      const originalRagerRef = db
+        .collection('events')
+        .doc(transfer.eventId)
+        .collection('ragers')
+        .doc(transfer.ragerId);
+      const originalRagerSnap = await t.get(originalRagerRef);
+
+      if (!originalRagerSnap.exists) {
+        throw new Error('Original ticket not found');
+      }
+
+      const originalRager = originalRagerSnap.data();
+
+      // Create new rager for recipient
+      const newRagerRef = db.collection('events').doc(transfer.eventId).collection('ragers').doc();
+      const newTicketToken = generateTicketToken();
+
+      t.set(newRagerRef, {
+        firebaseId: claimerUserId,
+        email: claimerEmailLower,
+        name: claimerName || originalRager.name || '',
+        ticketQuantity: originalRager.ticketQuantity || 1,
+        usedCount: 0,
+        active: true,
+        ticketToken: newTicketToken,
+        previousOwner: transfer.fromUserId,
+        claimedFromTransfer: transferDoc.id,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      // Create ticketToken lookup
+      const tokenRef = db.collection('ticketTokens').doc(newTicketToken);
+      t.set(tokenRef, {
+        eventId: transfer.eventId,
+        ragerId: newRagerRef.id,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      // Deactivate original rager
+      t.update(originalRagerRef, {
+        active: false,
+        transferredTo: claimerUserId,
+        transferredAt: admin.firestore.FieldValue.serverTimestamp(),
+        pendingTransferTo: admin.firestore.FieldValue.delete(),
+        pendingTransferId: admin.firestore.FieldValue.delete(),
+      });
+
+      // Invalidate old ticketToken lookup if exists
+      if (originalRager.ticketToken) {
+        const oldTokenRef = db.collection('ticketTokens').doc(originalRager.ticketToken);
+        t.delete(oldTokenRef);
+      }
+
+      // Update transfer status
+      t.update(transferRef, {
+        status: 'claimed',
+        claimedAt: admin.firestore.FieldValue.serverTimestamp(),
+        claimedByUserId: claimerUserId,
+        newRagerId: newRagerRef.id,
+      });
+
+      return {
+        newRagerId: newRagerRef.id,
+        eventId: transfer.eventId,
+        eventName: transfer.eventName,
+        ticketQuantity: originalRager.ticketQuantity || 1,
+        fromUserId: transfer.fromUserId,
+        fromName: transfer.fromName,
+      };
+    });
+
+    // Send confirmation email to original sender (best effort)
+    try {
+      if (transferData.fromEmail) {
+        process.env.AWS_ACCESS_KEY_ID = AWS_ACCESS_KEY_ID.value();
+        process.env.AWS_SECRET_ACCESS_KEY = AWS_SECRET_ACCESS_KEY.value();
+        process.env.AWS_SES_REGION = AWS_SES_REGION.value() || 'us-east-1';
+
+        await sendEmail({
+          to: transferData.fromEmail,
+          from: 'RAGESTATE <support@ragestate.com>',
+          replyTo: 'support@ragestate.com',
+          subject: `✅ Your ticket transfer was claimed`,
+          text: `${claimerName || claimerEmail || 'The recipient'} has claimed the ticket you sent for ${result.eventName}.\n\nView your tickets: https://ragestate.com/account`,
+          html: `
+            <div style="background:#f6f6f6;padding:24px 0">
+              <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #eee;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+                <div style="padding:16px 24px;background:#000;color:#fff;text-align:center">
+                  <img src="https://firebasestorage.googleapis.com/v0/b/ragestate-app.appspot.com/o/RSLogo2.png?alt=media&token=d13ebc08-9d8d-4367-99ec-ace3627132d2" alt="RAGESTATE" width="120" style="display:inline-block;border:0;outline:none;text-decoration:none;height:auto" />
+                </div>
+                <div style="height:3px;background:#E12D39"></div>
+                <div style="padding:24px">
+                  <h2 style="margin:0 0 16px;font-size:18px;color:#111">✅ Ticket Transfer Complete</h2>
+                  <p style="margin:0 0 12px;color:#111;font-size:14px;line-height:20px">
+                    <b>${claimerName || claimerEmail || 'The recipient'}</b> has claimed the ticket you sent for <b>${result.eventName}</b>.
+                  </p>
+                  <div style="margin:16px 0">
+                    <a href="https://ragestate.com/account" style="display:inline-block;background:#E12D39;color:#fff;text-decoration:none;padding:10px 14px;border-radius:6px;font-size:14px">View My Tickets</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `,
+          region: process.env.AWS_SES_REGION,
+        });
+      }
+    } catch (emailErr) {
+      logger.warn('Failed to send claim confirmation email', { error: String(emailErr) });
+    }
+
+    // Send in-app notifications for the claim
+    // Notify the claimer
+    await createTransferNotification({
+      uid: claimerUserId,
+      type: 'ticket_transfer_claimed',
+      title: '🎫 Ticket Claimed!',
+      body: `You've claimed a ticket for ${result.eventName}`,
+      data: {
+        eventId: result.eventId,
+        eventName: result.eventName,
+        ragerId: result.newRagerId,
+        fromUserId: result.fromUserId,
+      },
+      link: '/account?tab=tickets',
+    });
+
+    // Notify the original sender
+    if (result.fromUserId) {
+      await createTransferNotification({
+        uid: result.fromUserId,
+        type: 'ticket_transfer_claimed',
+        title: '✅ Transfer Complete',
+        body: `${claimerName || claimerEmail || 'The recipient'} claimed your ticket for ${result.eventName}`,
+        data: {
+          eventId: result.eventId,
+          eventName: result.eventName,
+          claimerUserId,
+          claimerName: claimerName || null,
+        },
+        link: '/account?tab=tickets',
+      });
+    }
+
+    logger.info('Ticket transfer claimed', {
+      transferId: transferDoc.id,
+      newRagerId: result.newRagerId,
+      eventId: result.eventId,
+      claimerUserId,
+    });
+
+    return res.json({
+      ok: true,
+      ragerId: result.newRagerId,
+      eventId: result.eventId,
+      eventName: result.eventName,
+      ticketQuantity: result.ticketQuantity,
+    });
+  } catch (err) {
+    logger.error('claim-ticket error', { error: String(err) });
+    const message = err.message || 'Failed to claim ticket';
+    return res.status(400).json({ error: message });
+  }
+});
+
 // Admin utility: manually create a ticket + purchase for a user and event
 app.post('/manual-create-ticket', async (req, res) => {
   try {
@@ -1894,7 +2574,15 @@ function generateOrderNumber() {
 
 exports.stripePayment = onRequest(
   {
-    secrets: [STRIPE_SECRET, PROXY_KEY, SHOPIFY_ADMIN_ACCESS_TOKEN, SHOPIFY_SHOP_NAME],
+    secrets: [
+      STRIPE_SECRET,
+      PROXY_KEY,
+      SHOPIFY_ADMIN_ACCESS_TOKEN,
+      SHOPIFY_SHOP_NAME,
+      AWS_ACCESS_KEY_ID,
+      AWS_SECRET_ACCESS_KEY,
+      AWS_SES_REGION,
+    ],
     invoker: 'public',
   },
   app,

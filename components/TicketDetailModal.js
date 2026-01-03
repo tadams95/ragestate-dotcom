@@ -1,14 +1,48 @@
 'use client';
 
+import { GiftIcon } from '@heroicons/react/24/outline';
 import QRCode from 'qrcode.react';
+import { useState } from 'react';
 import { downloadEventICS } from '../lib/utils/generateICS';
+import TransferTicketModal from './TransferTicketModal';
 
 /**
  * Ticket Detail Modal - "Event Day Hero" experience
  * Optimized for the "get me in the door NOW" moment
+ * Now with ticket transfer capability
  */
-export default function TicketDetailModal({ ticket, isOpen, onClose }) {
+export default function TicketDetailModal({ ticket, isOpen, onClose, onTransferComplete }) {
+  const [showTransferModal, setShowTransferModal] = useState(false);
+
   if (!isOpen || !ticket) return null;
+
+  // Determine if ticket can be transferred
+  // Cannot transfer: used tickets, past events, tickets already pending transfer
+  const canTransfer = (() => {
+    if (!ticket) return false;
+    if (ticket.usedCount > 0) return false;
+    if (ticket.pendingTransferTo) return false;
+    if (ticket.status === 'inactive' || ticket.active === false) return false;
+
+    // Check if event is in the past
+    if (ticket.eventDate) {
+      const eventDate = new Date(ticket.eventDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (eventDate < today) return false;
+    }
+
+    return true;
+  })();
+
+  const handleTransferComplete = (result) => {
+    setShowTransferModal(false);
+    if (onTransferComplete) {
+      onTransferComplete(result);
+    }
+    // Close the main modal after successful transfer
+    onClose();
+  };
 
   // Generate QR value - uses ticketToken if available, otherwise falls back to eventId-oderId pattern
   const qrValue = ticket.ticketToken || `${ticket.eventId}-${ticket.id}`;
@@ -125,8 +159,36 @@ export default function TicketDetailModal({ ticket, isOpen, onClose }) {
               </a>
             )}
           </div>
+
+          {/* Transfer Ticket Button */}
+          {canTransfer && (
+            <button
+              onClick={() => setShowTransferModal(true)}
+              className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-red-500/30 bg-red-600/20 text-sm font-medium text-[var(--text-primary)] transition hover:bg-red-600/30"
+            >
+              <GiftIcon className="h-5 w-5 text-red-500" />
+              Transfer to a Friend
+            </button>
+          )}
+
+          {/* Pending Transfer Notice */}
+          {ticket.pendingTransferTo && (
+            <div className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-center">
+              <p className="text-sm text-amber-400">
+                ⏳ Transfer pending to {ticket.pendingTransferTo}
+              </p>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Transfer Ticket Modal */}
+      <TransferTicketModal
+        ticket={ticket}
+        isOpen={showTransferModal}
+        onClose={() => setShowTransferModal(false)}
+        onTransferComplete={handleTransferComplete}
+      />
     </div>
   );
 }
