@@ -1,36 +1,96 @@
 # RAGESTATE Acquisition Master Plan
 
-> **Last Reviewed**: December 26, 2025 | **Consultant**: AI Acquisitions Review
+> **Last Reviewed**: January 2, 2026 | **Consultant**: AI Acquisitions Review
 
 ---
 
 ## Executive Summary
 
-RAGESTATE is a Next.js 14 event ticketing and social platform with integrated Stripe payments, Firebase backend, and emerging social features. The codebase demonstrates **production-ready payment flows**, **robust security rules**, and a **modular architecture** suitable for scaling. Key acquisition value lies in the integrated ticketing + social + payments stack—a rare combination appealing to event platforms (Eventbrite, Dice) or social/community apps (Meta, Discord).
+RAGESTATE is a Next.js 14 event ticketing and social platform with integrated Stripe payments, Firebase backend, and production social features. The codebase demonstrates **production-ready payment flows**, **robust security rules**, and a **modular architecture** suitable for scaling. Key acquisition value lies in the integrated ticketing + social + merch stack—a rare combination appealing to social event platforms (Posh, Radiate), ticketing giants (Eventbrite, Dice), or social/community apps (Meta, Discord).
 
 **Estimated Valuation Range**: $1-5M (contingent on user metrics, revenue, and feature completeness)  
 **Target Exit Window**: Q2-Q4 2026  
-**Primary Gaps**: No native mobile app, incomplete notifications, chat stub only
+**Primary Gaps**: No native mobile app, chat stub only
 
-**Competitive Moat**: Differentiates from Eventbrite (basic social) and Meta (no ticketing) via integrated payments/social stack; TAM: $50B+ event market; SAM: $5B+ for social ticketing.
+**Competitive Moat**: Differentiates from Posh (no social transfers), Radiate (no merch), and Eventbrite (no social) via **@username ticket transfers** + integrated payments/social/merch stack; TAM: $50B+ event market; SAM: $5B+ for social ticketing.
 
 ---
 
-## Status Update (Codebase Review: December 2025)
+## Competitive Landscape Analysis
+
+### Direct Competitors (Social-First Event Ticketing)
+
+| Feature                         | RAGESTATE                   | Posh.vip          | Radiate           | Eventbrite     | Dice              |
+| ------------------------------- | --------------------------- | ----------------- | ----------------- | -------------- | ----------------- |
+| **Social Feed**                 | ✅ Posts, reposts, comments | ✅ Event-centric  | ✅ Community feed | ❌ None        | ❌ None           |
+| **Follow System**               | ✅ User follows             | ⚠️ Event follows  | ✅ User follows   | ❌ None        | ✅ Artist follows |
+| **@Username Transfers**         | ✅ **Unique**               | ❌ Email only     | ❌ None           | ❌ None        | ❌ None           |
+| **Profile Preview on Transfer** | ✅ **Unique**               | ❌ None           | ❌ None           | ❌ None        | ❌ None           |
+| **Merch Integration**           | ✅ Shopify                  | ❌ None           | ❌ None           | ⚠️ Basic       | ❌ None           |
+| **In-App Notifications**        | ✅ Push + feed              | ✅ Push           | ✅ Push           | ⚠️ Email only  | ✅ Push           |
+| **QR Ticket Scanning**          | ✅ Token-based              | ✅ Yes            | ✅ Yes            | ✅ Yes         | ✅ Yes            |
+| **Native Mobile App**           | ❌ Web only                 | ✅ iOS/Android    | ✅ iOS/Android    | ✅ iOS/Android | ✅ iOS/Android    |
+| **Target Audience**             | Rave/EDM                    | Nightlife/Upscale | Festival/Rave     | General        | Music venues      |
+
+### Competitive Positioning
+
+**Posh.vip** (~$10M+ raised)
+
+- Strengths: Polished mobile app, strong in nightlife/NYC market, table reservations
+- Weaknesses: Less social depth, no merch, limited transfer options
+- **RAGESTATE advantage**: @username transfers, social feed with reposts, merch integration
+
+**Radiate** (~$5M+ raised)
+
+- Strengths: Strong rave/festival community, dating-adjacent features, established brand
+- Weaknesses: Cluttered UX, no merch, transfers limited
+- **RAGESTATE advantage**: Cleaner UX, @username transfers, unified commerce (tickets + merch)
+
+**Eventbrite** (Public, $1B+ market cap)
+
+- Strengths: Market leader, massive event inventory, enterprise features
+- Weaknesses: Zero social features, feels transactional, generic
+- **RAGESTATE advantage**: Community-first, sticky social features they can't easily build
+
+**Dice** (~$120M raised)
+
+- Strengths: Artist-forward, no-scalping model, great music venue partnerships
+- Weaknesses: Limited social beyond artist follows, no merch
+- **RAGESTATE advantage**: User-to-user social graph, merch, @username transfers
+
+### RAGESTATE's Unique Moat: Social Transfers
+
+**No competitor has @username ticket transfers.** This is a genuine differentiator:
+
+| Transfer Method                  | RAGESTATE     | Everyone Else   |
+| -------------------------------- | ------------- | --------------- |
+| Email link                       | ✅            | ✅              |
+| @username lookup                 | ✅ **Unique** | ❌              |
+| Profile preview before send      | ✅ **Unique** | ❌              |
+| Follower quick-pick              | 🔜 Building   | ❌              |
+| In-app notification to recipient | ✅            | ⚠️ Push at best |
+
+This creates **network effects**: users invite friends → friends join → more transfers → stronger graph → harder to leave.
+
+---
+
+## Status Update (Codebase Review: January 2, 2026)
 
 ### Functionality ✅ Mostly Complete
 
-- **Core Payments Flow** (✅ Production-Ready): Full Stripe integration via `functions/stripe.js` (~1,600 LOC). Supports PaymentIntent creation, idempotent order fulfillment (`fulfillments/{piId}`), atomic inventory decrement, and ticket token generation. Transactional integrity prevents double-charges and partial failures.
+- **Core Payments Flow** (✅ Production-Ready): Full Stripe integration via `functions/stripe.js` (~2,700 LOC). Supports PaymentIntent creation, idempotent order fulfillment (`fulfillments/{piId}`), atomic inventory decrement, and ticket token generation. Transactional integrity prevents double-charges and partial failures.
 - **Ticket Scanning** (✅ Operational): Token-based O(1) lookups via `ticketTokens/{token}` map. Fallback by `userId + eventId`. Atomic `usedCount` increment with `active` flag management. Admin scanner UI at `src/app/admin/scanner/`.
-- **Social Feed** (⚠️ 80% Complete): Posts, likes, comments with server-side counters (`functions/feed.js`). Real-time via Firestore `onSnapshot`. Rate limiting (3 posts/5 min). **Missing**: edit/delete posts, full privacy toggles (public/private working but UI incomplete), pagination edge cases.
-- **Notifications** (⚠️ 60% Complete): `functions/notifications.js` (721 LOC) implements quiet hours, aggregation, and push sender logic. FCM web tokens work. **Missing**: device registry UI, preference management, iOS/Android push.
+- **Ticket Transfers** (✅ Production-Ready): **Unique differentiator**. Supports email AND @username transfers with profile preview. `ticketTransfers` collection with 72-hour claim expiration. Secure hashed claim tokens. In-app notifications for sender/recipient. Amazon SES for transactional emails (50k/day limit).
+- **Social Feed** (⚠️ 80% Complete): Posts, likes, comments with server-side counters (`functions/feed.js`). Real-time via Firestore `onSnapshot`. Rate limiting (3 posts/5 min). **Missing**: edit/delete posts, full privacy toggles.
+- **Notifications** (✅ 90% Complete): `functions/notifications.js` (721 LOC) implements quiet hours, aggregation, and push sender logic. FCM web tokens work. Transfer notifications integrated. **Missing**: iOS/Android push.
 - **Admin Tools** (✅ Functional): Event creation (`src/app/api/admin/events/create/`), scanner, moderation hooks (`functions/moderation.js` with hate/incitement filters).
+- **Account UX** (✅ Complete): Order detail modal, ticket detail modal with QR, status badges, add-to-calendar (.ics), get directions, quick actions bar.
 - **Chat** (❌ Stub Only): `src/app/chat/page.js` is a local-state placeholder—no persistence, no real-time messaging.
 - **Merch/Shopify** (⚠️ Partial): `functions/shopifyAdmin.js` has TODOs for fulfillment status sync and inventory sync.
 
 ### Technical Health ✅ Strong Foundation
 
-- **Stack**: Next.js 14 (App Router) + Firebase (Firestore, RTDB, Storage, Auth) + Redux Toolkit + Stripe + Resend. Modern, well-supported stack with clear upgrade paths.
+- **Stack**: Next.js 14 (App Router) + Firebase (Firestore, RTDB, Storage, Auth) + Redux Toolkit + Stripe + Amazon SES. Modern, well-supported stack with clear upgrade paths. Migrated from Resend to SES for 50k/day email capacity.
 - **Code Quality**:
   - Clean separation: `components/`, `src/app/`, `functions/`, `lib/features/`
   - Server logic in Firebase Functions v2 (callable + Express HTTP)
@@ -68,11 +128,10 @@ RAGESTATE is a Next.js 14 event ticketing and social platform with integrated St
 ### Risks ⚠️ Address Before Sale
 
 1. **No Native App**: 100% web. React Native mentioned in docs but no code exists. Limits mobile engagement and app store presence. **Impact**: 30% lower mobile engagement vs. competitors. **Mitigation**: Launch PWA interim (1 week effort) while building React Native; Cost: $5k for PWA tools.
-2. **Incomplete Notifications**: Push sender works but no user-facing preference UI or device management. **Impact**: User churn if notifications feel intrusive. **Mitigation**: A/B test UI pre-launch; complete by Phase 1 end.
-3. **Chat Placeholder**: Would need 4-8 weeks to productionize with Firestore or dedicated chat service. **Impact**: Missed social engagement opportunities. **Mitigation**: Defer to Phase 3; monitor feed metrics for urgency.
-4. **Feed Privacy**: `isPublic` field exists but toggle UI not prominent; no private-only feed mode. **Impact**: Privacy concerns could lead to regulatory issues. **Mitigation**: Prioritize in Phase 1.1; add GDPR-compliant settings.
-5. **Security Audit Pending**: Rules look solid but no third-party penetration test or formal audit documented. **Impact**: Acquisition due diligence delays. **Mitigation**: Complete by Phase 2 end; Vendor: HackerOne; Budget: $10k; Contingency: Self-audit with OWASP checklist.
-6. **Market Saturation**: Eventbrite/Dice dominate; Mitigation: Target niche (rave/events) with viral social features; SWOT: Strengths (tech stack), Weaknesses (no app), Opportunities (AI try-on), Threats (economic downturns).
+2. **Chat Placeholder**: Would need 4-8 weeks to productionize with Firestore or dedicated chat service. **Impact**: Missed social engagement opportunities. **Mitigation**: Defer to Phase 3; monitor feed metrics for urgency.
+3. **Feed Privacy**: `isPublic` field exists but toggle UI not prominent; no private-only feed mode. **Impact**: Privacy concerns could lead to regulatory issues. **Mitigation**: Prioritize in Phase 1.1; add GDPR-compliant settings.
+4. **Security Audit Pending**: Rules look solid but no third-party penetration test or formal audit documented. **Impact**: Acquisition due diligence delays. **Mitigation**: Complete by Phase 2 end; Vendor: HackerOne; Budget: $10k; Contingency: Self-audit with OWASP checklist.
+5. **Market Saturation**: Posh/Radiate have funding + mobile apps; Eventbrite/Dice dominate general market. **Mitigation**: Lean into @username transfers as unique differentiator; target niche (rave/events) with viral social features; SWOT: Strengths (tech stack, transfers), Weaknesses (no app), Opportunities (AI try-on, follower transfers), Threats (economic downturns).
 
 ## Gameplan for Development
 
@@ -164,10 +223,39 @@ Prioritize features enhancing acquisition appeal: user growth (social/notificati
 
 ## Exit Playbook
 
-**Target Acquirers**: Eventbrite (ticketing expansion), Ticketmaster (social integration), Meta (community features).  
-**Outreach Strategy**: Attend TechCrunch Disrupt, network via LinkedIn; engage advisors for warm intros.  
-**Pitch Deck Elements**: User metrics, tech demo, integration plan, financial projections.  
-**Post-Acquisition Integration**: Firebase data migration via scripts, API handoff for payments/social; 3-month transition period.
+### Target Acquirers (Prioritized)
+
+**Tier 1 — Direct Competitors (Acqui-hire + Tech + Users)**
+
+- **Posh.vip** — Would gain @username transfers, merch, eliminate competitor
+- **Radiate** — Would gain cleaner tech stack, merch integration, transfer system
+- **Dice** — Would gain social features beyond artist follows
+
+**Tier 2 — Platform Giants (Tech Acquisition)**
+
+- **Eventbrite** — Needs social layer desperately, can't build internally
+- **Ticketmaster/Live Nation** — Social engagement for younger demographics
+- **Spotify** — Event discovery tied to listening (artists → shows)
+
+**Tier 3 — Adjacent Players (Strategic)**
+
+- **Discord** — IRL events for gaming/music communities
+- **Meta** — Events feature enhancement for Facebook/Instagram
+- **Snap** — Local events for younger users
+
+### Acquisition Interest Matrix
+
+| Acquirer                       | Why They'd Want RAGESTATE                  | Strategic Fit |
+| ------------------------------ | ------------------------------------------ | ------------- |
+| Posh/Radiate                   | Eliminate competitor, acquire tech + users | High          |
+| Eventbrite/Dice                | Bolt-on social layer they can't build      | High          |
+| Spotify/SoundCloud             | Event discovery + ticketing for artists    | Medium        |
+| Discord/Meta                   | Real-world event integration               | Medium        |
+| PE Rollup (Vista, Thoma Bravo) | Consolidating event tech                   | Medium        |
+
+**Outreach Strategy**: Warm intros via LinkedIn to product/corp dev; attend TechCrunch Disrupt, SXSW; engage M&A advisors with event-tech relationships.  
+**Pitch Deck Elements**: User metrics, @username transfer demo video, tech architecture, integration plan, financial projections.  
+**Post-Acquisition Integration**: Firebase data migration via scripts, API handoff for payments/social; 3-month transition period with founder involvement.
 
 ---
 

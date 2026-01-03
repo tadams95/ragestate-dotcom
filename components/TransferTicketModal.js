@@ -5,13 +5,16 @@ import {
   ArrowRightIcon,
   AtSymbolIcon,
   CheckCircleIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
   EnvelopeIcon,
   GiftIcon,
   TicketIcon,
   UserCircleIcon,
+  UserGroupIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
-import { doc, getDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import Image from 'next/image';
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../firebase/context/FirebaseContext';
@@ -21,7 +24,7 @@ import { db } from '../firebase/firebase';
  * Transfer Ticket Modal - Beautiful, intuitive ticket transfer experience
  *
  * Flow:
- * 1. ENTER_RECIPIENT - User enters recipient email OR @username
+ * 1. ENTER_RECIPIENT - User enters recipient email OR @username, or picks from followers
  * 2. CONFIRM - Review transfer details before sending
  * 3. SENDING - Processing transfer request
  * 4. SUCCESS - Transfer complete, claim email sent
@@ -41,10 +44,81 @@ export default function TransferTicketModal({ ticket, isOpen, onClose, onTransfe
   const [recipientInput, setRecipientInput] = useState('');
   const [inputError, setInputError] = useState('');
   const [transferError, setTransferError] = useState('');
-  
+
   // Resolved recipient info
   const [resolvedRecipient, setResolvedRecipient] = useState(null);
   const [isLookingUp, setIsLookingUp] = useState(false);
+
+  // Followers quick-pick
+  const [followers, setFollowers] = useState([]);
+  const [isLoadingFollowers, setIsLoadingFollowers] = useState(false);
+  const [showFollowers, setShowFollowers] = useState(true);
+
+  // Fetch followers when modal opens
+  useEffect(() => {
+    if (!isOpen || !currentUser?.uid) return;
+
+    const fetchFollowers = async () => {
+      setIsLoadingFollowers(true);
+      try {
+        // Query follows where followedId === current user (people who follow me)
+        const followsQuery = query(
+          collection(db, 'follows'),
+          where('followedId', '==', currentUser.uid),
+        );
+        const followsSnap = await getDocs(followsQuery);
+
+        if (followsSnap.empty) {
+          setFollowers([]);
+          setIsLoadingFollowers(false);
+          return;
+        }
+
+        // Get follower UIDs
+        const followerIds = followsSnap.docs.map((d) => d.data().followerId);
+
+        // Batch fetch profiles (limit to 20 for performance)
+        const limitedIds = followerIds.slice(0, 20);
+        const profilePromises = limitedIds.map((uid) =>
+          getDoc(doc(db, 'profiles', uid)).then((snap) => ({
+            uid,
+            ...snap.data(),
+          })),
+        );
+
+        const profiles = await Promise.all(profilePromises);
+
+        // Also fetch usernames for each profile
+        const usernamePromises = profiles.map(async (profile) => {
+          // Try to find username by querying usernames collection
+          const usernamesQuery = query(
+            collection(db, 'usernames'),
+            where('uid', '==', profile.uid),
+          );
+          const usernameSnap = await getDocs(usernamesQuery);
+          const username = usernameSnap.empty ? null : usernameSnap.docs[0].id;
+          return { ...profile, username };
+        });
+
+        const followersWithUsernames = await Promise.all(usernamePromises);
+
+        // Filter to users with accounts (must have username to receive transfers)
+        // Users without usernames can't be sent tickets via quick-pick
+        const validFollowers = followersWithUsernames.filter(
+          (f) => f.username && (f.displayName || f.username),
+        );
+
+        setFollowers(validFollowers);
+      } catch (err) {
+        console.error('Error fetching followers:', err);
+        setFollowers([]);
+      } finally {
+        setIsLoadingFollowers(false);
+      }
+    };
+
+    fetchFollowers();
+  }, [isOpen, currentUser?.uid]);
 
   // Reset state when modal opens/closes
   const handleClose = useCallback(() => {
@@ -68,54 +142,72 @@ export default function TransferTicketModal({ ticket, isOpen, onClose, onTransfe
     return emailRegex.test(email);
   };
 
+  // Select a follower from the quick-pick list
+  const handleSelectFollower = (follower) => {
+    setResolvedRecipient({
+      type: 'username',
+      username: follower.username,
+      uid: follower.uid,
+      displayName: follower.displayName || follower.username,
+      photoURL: follower.photoURL || null,
+      isVerified: follower.isVerified || false,
+    });
+    setRecipientInput(`@${follower.username}`);
+    setInputError('');
+    setStep(STEPS.CONFIRM);
+  };
+
   // Lookup username in Firestore
-  const lookupUsername = useCallback(async (username) => {
-    const cleanUsername = username.toLowerCase().replace(/^@/, '');
-    if (cleanUsername.length < 2) {
-      setResolvedRecipient(null);
-      return;
-    }
-
-    setIsLookingUp(true);
-    try {
-      // Check usernames collection
-      const usernameDoc = await getDoc(doc(db, 'usernames', cleanUsername));
-      if (!usernameDoc.exists()) {
+  const lookupUsername = useCallback(
+    async (username) => {
+      const cleanUsername = username.toLowerCase().replace(/^@/, '');
+      if (cleanUsername.length < 2) {
         setResolvedRecipient(null);
-        setIsLookingUp(false);
         return;
       }
 
-      const { uid } = usernameDoc.data();
-      
-      // Cannot transfer to self
-      if (uid === currentUser?.uid) {
+      setIsLookingUp(true);
+      try {
+        // Check usernames collection
+        const usernameDoc = await getDoc(doc(db, 'usernames', cleanUsername));
+        if (!usernameDoc.exists()) {
+          setResolvedRecipient(null);
+          setIsLookingUp(false);
+          return;
+        }
+
+        const { uid } = usernameDoc.data();
+
+        // Cannot transfer to self
+        if (uid === currentUser?.uid) {
+          setResolvedRecipient(null);
+          setInputError("You can't transfer a ticket to yourself");
+          setIsLookingUp(false);
+          return;
+        }
+
+        // Fetch profile for display info
+        const profileDoc = await getDoc(doc(db, 'profiles', uid));
+        const profileData = profileDoc.data() || {};
+
+        setResolvedRecipient({
+          type: 'username',
+          username: cleanUsername,
+          uid,
+          displayName: profileData.displayName || cleanUsername,
+          photoURL: profileData.photoURL || null,
+          isVerified: profileData.isVerified || false,
+        });
+        setInputError('');
+      } catch (err) {
+        console.error('Username lookup error:', err);
         setResolvedRecipient(null);
-        setInputError("You can't transfer a ticket to yourself");
+      } finally {
         setIsLookingUp(false);
-        return;
       }
-
-      // Fetch profile for display info
-      const profileDoc = await getDoc(doc(db, 'profiles', uid));
-      const profileData = profileDoc.data() || {};
-
-      setResolvedRecipient({
-        type: 'username',
-        username: cleanUsername,
-        uid,
-        displayName: profileData.displayName || cleanUsername,
-        photoURL: profileData.photoURL || null,
-        isVerified: profileData.isVerified || false,
-      });
-      setInputError('');
-    } catch (err) {
-      console.error('Username lookup error:', err);
-      setResolvedRecipient(null);
-    } finally {
-      setIsLookingUp(false);
-    }
-  }, [currentUser?.uid]);
+    },
+    [currentUser?.uid],
+  );
 
   // Debounced username lookup
   useEffect(() => {
@@ -333,6 +425,92 @@ export default function TransferTicketModal({ ticket, isOpen, onClose, onTransfe
               {/* Step: Enter Recipient (Email or @Username) */}
               {step === STEPS.ENTER_RECIPIENT && (
                 <div className="space-y-4">
+                  {/* Followers Quick-Pick Section */}
+                  {followers.length > 0 && (
+                    <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elev-2)]">
+                      <button
+                        type="button"
+                        onClick={() => setShowFollowers(!showFollowers)}
+                        className="flex w-full items-center justify-between px-4 py-3 text-left"
+                      >
+                        <div className="flex items-center gap-2">
+                          <UserGroupIcon className="h-5 w-5 text-red-500" />
+                          <span className="text-sm font-medium text-[var(--text-primary)]">
+                            Your Followers
+                          </span>
+                          <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-xs font-medium text-red-500">
+                            {followers.length}
+                          </span>
+                        </div>
+                        {showFollowers ? (
+                          <ChevronUpIcon className="h-4 w-4 text-[var(--text-tertiary)]" />
+                        ) : (
+                          <ChevronDownIcon className="h-4 w-4 text-[var(--text-tertiary)]" />
+                        )}
+                      </button>
+
+                      {showFollowers && (
+                        <div className="max-h-48 overflow-y-auto border-t border-[var(--border-subtle)] px-2 py-1.5">
+                          {followers.map((follower) => (
+                            <button
+                              key={follower.uid}
+                              type="button"
+                              onClick={() => handleSelectFollower(follower)}
+                              className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition hover:bg-[var(--bg-elev-3)]"
+                            >
+                              {follower.photoURL ? (
+                                <Image
+                                  src={follower.photoURL}
+                                  alt={follower.displayName || follower.username}
+                                  width={36}
+                                  height={36}
+                                  className="h-9 w-9 rounded-full object-cover"
+                                />
+                              ) : (
+                                <UserCircleIcon className="h-9 w-9 text-[var(--text-tertiary)]" />
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="truncate text-sm font-medium text-[var(--text-primary)]">
+                                    {follower.displayName || follower.username}
+                                  </span>
+                                  {follower.isVerified && (
+                                    <CheckCircleIcon className="h-3.5 w-3.5 flex-shrink-0 text-red-500" />
+                                  )}
+                                </div>
+                                {follower.username && (
+                                  <span className="text-xs text-[var(--text-tertiary)]">
+                                    @{follower.username}
+                                  </span>
+                                )}
+                              </div>
+                              <ArrowRightIcon className="h-4 w-4 flex-shrink-0 text-[var(--text-tertiary)]" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Loading followers indicator */}
+                  {isLoadingFollowers && (
+                    <div className="flex items-center justify-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] px-4 py-3">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--border-subtle)] border-t-red-500"></div>
+                      <span className="text-sm text-[var(--text-tertiary)]">
+                        Loading followers...
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Divider when followers exist */}
+                  {followers.length > 0 && (
+                    <div className="flex items-center gap-3">
+                      <div className="h-px flex-1 bg-[var(--border-subtle)]"></div>
+                      <span className="text-xs text-[var(--text-tertiary)]">or enter manually</span>
+                      <div className="h-px flex-1 bg-[var(--border-subtle)]"></div>
+                    </div>
+                  )}
+
                   <div>
                     <label
                       htmlFor="recipient-input"
@@ -360,7 +538,6 @@ export default function TransferTicketModal({ ticket, isOpen, onClose, onTransfe
                             ? 'border-red-500 focus:ring-red-500/30'
                             : 'border-[var(--border-subtle)] focus:border-red-500/50 focus:ring-red-500/30'
                         }`}
-                        autoFocus
                       />
                       {isLookingUp && (
                         <div className="absolute inset-y-0 right-0 flex items-center pr-4">
@@ -391,10 +568,12 @@ export default function TransferTicketModal({ ticket, isOpen, onClose, onTransfe
                             {resolvedRecipient.displayName}
                           </span>
                           {resolvedRecipient.isVerified && (
-                            <CheckCircleIcon className="h-4 w-4 text-blue-500" />
+                            <CheckCircleIcon className="h-4 w-4 text-red-500" />
                           )}
                         </div>
-                        <span className="text-sm text-green-500">@{resolvedRecipient.username}</span>
+                        <span className="text-sm text-green-500">
+                          @{resolvedRecipient.username}
+                        </span>
                       </div>
                       <CheckCircleIcon className="h-5 w-5 flex-shrink-0 text-green-500" />
                     </div>
@@ -402,13 +581,15 @@ export default function TransferTicketModal({ ticket, isOpen, onClose, onTransfe
 
                   <p className="text-center text-xs text-[var(--text-tertiary)]">
                     {isUsernameInput(recipientInput)
-                      ? 'They\'ll receive a notification and email with a claim link.'
-                      : 'We\'ll send them an email with a link to claim this ticket.'}
+                      ? "They'll receive a notification and email with a claim link."
+                      : "We'll send them an email with a link to claim this ticket."}
                   </p>
 
                   <button
                     onClick={handleContinue}
-                    disabled={isLookingUp || (isUsernameInput(recipientInput) && !resolvedRecipient)}
+                    disabled={
+                      isLookingUp || (isUsernameInput(recipientInput) && !resolvedRecipient)
+                    }
                     className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-red-600 text-base font-semibold text-white transition hover:bg-red-500 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Continue

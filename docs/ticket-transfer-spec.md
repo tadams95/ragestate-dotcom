@@ -395,16 +395,16 @@ match /ticketTransfers/{transferId} {
 - [x] UI: RecipientSearch with @username support + profile preview
 - [ ] Profile preview before confirming (included in above)
 
-### Phase 2.2c: Social Quick-Pick (3-4 days)
+### Phase 2.2c: Social Quick-Pick (3-4 days) ✅ COMPLETE
 
-- [ ] Fetch followers for quick-pick list
-- [ ] UI: Follower cards in TransferTicketModal
-- [ ] Filter to users with accounts
+- [x] Fetch followers for quick-pick list
+- [x] UI: Follower cards in TransferTicketModal
+- [x] Filter to users with accounts (require username)
 
 ### Phase 2.2d: Polish & Edge Cases (1 week)
 
-- [ ] Cancel transfer flow
-- [ ] Expired transfer handling
+- [x] Cancel transfer flow
+- [x] Expired transfer handling
 - [ ] Transfer history in account
 - [ ] Admin view for support
 

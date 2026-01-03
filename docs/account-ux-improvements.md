@@ -196,17 +196,17 @@
 - [x] UI: @username detection in TransferTicketModal with debounced lookup
 - [x] Profile preview (photo, name, verified badge) before confirming
 
-#### Phase 2.2c: Follower Quick-Pick (Social)
+#### Phase 2.2c: Follower Quick-Pick (Social) ✅ COMPLETE
 
-- [ ] Fetch followers via `follows` where `followedId === currentUser.uid`
-- [ ] Batch-fetch `profiles/{followerId}` for display
-- [ ] UI: Follower cards in TransferTicketModal
-- [ ] Filter to users with verified emails
+- [x] Fetch followers via `follows` where `followedId === currentUser.uid`
+- [x] Batch-fetch `profiles/{followerId}` for display
+- [x] UI: Follower cards in TransferTicketModal
+- [x] Filter to users with accounts (require username)
 
 #### Phase 2.2d: Polish & Edge Cases
 
-- [ ] Cancel transfer flow (sender only, before claim)
-- [ ] Expired transfer handling (72-hour TTL)
+- [x] Cancel transfer flow (sender only, before claim)
+- [x] Expired transfer handling (72-hour TTL) — on-demand check at claim time and preview
 - [ ] Transfer history in account page
 - [ ] Admin view for support tickets
 - [ ] Block refunds for transferred tickets

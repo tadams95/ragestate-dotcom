@@ -1,8 +1,9 @@
 'use client';
 
-import { GiftIcon } from '@heroicons/react/24/outline';
+import { GiftIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import QRCode from 'qrcode.react';
 import { useState } from 'react';
+import { useAuth } from '../firebase/context/FirebaseContext';
 import { downloadEventICS } from '../lib/utils/generateICS';
 import TransferTicketModal from './TransferTicketModal';
 
@@ -12,7 +13,10 @@ import TransferTicketModal from './TransferTicketModal';
  * Now with ticket transfer capability
  */
 export default function TicketDetailModal({ ticket, isOpen, onClose, onTransferComplete }) {
+  const { currentUser } = useAuth();
   const [showTransferModal, setShowTransferModal] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState('');
 
   if (!isOpen || !ticket) return null;
 
@@ -34,6 +38,42 @@ export default function TicketDetailModal({ ticket, isOpen, onClose, onTransferC
 
     return true;
   })();
+
+  // Handle cancel transfer
+  const handleCancelTransfer = async () => {
+    if (!ticket.pendingTransferId || !currentUser?.uid) return;
+
+    setIsCancelling(true);
+    setCancelError('');
+
+    try {
+      const response = await fetch('/api/payments/cancel-transfer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transferId: ticket.pendingTransferId,
+          senderUserId: currentUser.uid,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to cancel transfer');
+      }
+
+      // Notify parent to refresh tickets
+      if (onTransferComplete) {
+        onTransferComplete({ cancelled: true });
+      }
+      onClose();
+    } catch (err) {
+      console.error('Cancel transfer error:', err);
+      setCancelError(err.message || 'Failed to cancel transfer');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   const handleTransferComplete = (result) => {
     setShowTransferModal(false);
@@ -171,12 +211,32 @@ export default function TicketDetailModal({ ticket, isOpen, onClose, onTransferC
             </button>
           )}
 
-          {/* Pending Transfer Notice */}
+          {/* Pending Transfer Notice with Cancel Button */}
           {ticket.pendingTransferTo && (
-            <div className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-center">
-              <p className="text-sm text-amber-400">
+            <div className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+              <p className="text-center text-sm text-amber-400">
                 ⏳ Transfer pending to {ticket.pendingTransferTo}
               </p>
+              {cancelError && (
+                <p className="mt-2 text-center text-xs text-red-400">{cancelError}</p>
+              )}
+              <button
+                onClick={handleCancelTransfer}
+                disabled={isCancelling}
+                className="mt-3 flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-red-500/30 bg-red-600/20 text-sm font-medium text-red-400 transition hover:bg-red-600/30 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isCancelling ? (
+                  <>
+                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-red-400/30 border-t-red-400"></div>
+                    Cancelling...
+                  </>
+                ) : (
+                  <>
+                    <XMarkIcon className="h-4 w-4" />
+                    Cancel Transfer
+                  </>
+                )}
+              </button>
             </div>
           )}
         </div>

@@ -1306,8 +1306,15 @@ app.post('/transfer-ticket', async (req, res) => {
       }
     }
 
-    const { ragerId, eventId, recipientEmail, recipientUsername, senderUserId, senderEmail, senderName } =
-      req.body || {};
+    const {
+      ragerId,
+      eventId,
+      recipientEmail,
+      recipientUsername,
+      senderUserId,
+      senderEmail,
+      senderName,
+    } = req.body || {};
 
     // Validate required fields - need either email OR username
     if (!ragerId || !eventId || !senderUserId) {
@@ -1350,7 +1357,9 @@ app.post('/transfer-ticket', async (req, res) => {
       resolvedDisplayName = profileData.displayName || resolvedUsername;
 
       if (!resolvedEmail) {
-        return res.status(400).json({ error: `User @${resolvedUsername} does not have an email on file` });
+        return res
+          .status(400)
+          .json({ error: `User @${resolvedUsername} does not have an email on file` });
       }
     }
 
@@ -1550,8 +1559,8 @@ app.post('/transfer-ticket', async (req, res) => {
     }
 
     // Recipient display: prefer @username, fallback to email
-    const recipientDisplay = result.recipientUsername 
-      ? `@${result.recipientUsername}` 
+    const recipientDisplay = result.recipientUsername
+      ? `@${result.recipientUsername}`
       : result.recipientEmail;
 
     // Send in-app notification to sender (transfer initiated)
@@ -1607,6 +1616,113 @@ app.post('/transfer-ticket', async (req, res) => {
   } catch (err) {
     logger.error('transfer-ticket error', { error: String(err) });
     const message = err.message || 'Failed to transfer ticket';
+    return res.status(400).json({ error: message });
+  }
+});
+
+/**
+ * Cancel a pending ticket transfer (sender only)
+ * Restores the original ticket to active state
+ */
+app.post('/cancel-transfer', async (req, res) => {
+  try {
+    const expectedProxyKey = PROXY_KEY.value() || process.env.PROXY_KEY;
+    if (expectedProxyKey) {
+      const provided = req.get('x-proxy-key');
+      if (!provided || provided !== expectedProxyKey) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+    }
+
+    const { transferId, senderUserId } = req.body || {};
+
+    if (!transferId || !senderUserId) {
+      return res.status(400).json({ error: 'Missing required fields: transferId, senderUserId' });
+    }
+
+    // Atomic transaction to cancel transfer
+    const result = await db.runTransaction(async (t) => {
+      // 1. Fetch the transfer
+      const transferRef = db.collection('ticketTransfers').doc(transferId);
+      const transferSnap = await t.get(transferRef);
+
+      if (!transferSnap.exists) {
+        throw new Error('Transfer not found');
+      }
+
+      const transferData = transferSnap.data();
+
+      // 2. Verify sender owns this transfer
+      if (transferData.fromUserId !== senderUserId) {
+        throw new Error('You cannot cancel this transfer');
+      }
+
+      // 3. Verify transfer is still pending
+      if (transferData.status !== 'pending') {
+        throw new Error(
+          transferData.status === 'claimed'
+            ? 'Transfer has already been claimed'
+            : `Transfer is ${transferData.status}`,
+        );
+      }
+
+      // 4. Restore original rager
+      const ragerRef = db
+        .collection('events')
+        .doc(transferData.eventId)
+        .collection('ragers')
+        .doc(transferData.ragerId);
+      const ragerSnap = await t.get(ragerRef);
+
+      if (ragerSnap.exists) {
+        t.update(ragerRef, {
+          pendingTransferTo: admin.firestore.FieldValue.delete(),
+          pendingTransferId: admin.firestore.FieldValue.delete(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+
+      // 5. Update transfer status
+      t.update(transferRef, {
+        status: 'cancelled',
+        cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      return {
+        eventId: transferData.eventId,
+        eventName: transferData.eventName,
+        toEmail: transferData.toEmail,
+        toUsername: transferData.toUsername,
+        recipientUserId: transferData.toUserId,
+      };
+    });
+
+    // Notify recipient if they have an account (transfer cancelled)
+    if (result.recipientUserId) {
+      await createTransferNotification({
+        uid: result.recipientUserId,
+        type: 'ticket_transfer_cancelled',
+        title: 'Transfer Cancelled',
+        body: `The ticket transfer for ${result.eventName} was cancelled`,
+        data: {
+          eventId: result.eventId,
+          eventName: result.eventName,
+          transferId,
+        },
+        link: '/account?tab=tickets',
+      });
+    }
+
+    logger.info('Ticket transfer cancelled', {
+      transferId,
+      eventId: result.eventId,
+      fromUserId: senderUserId,
+    });
+
+    return res.json({ ok: true, message: 'Transfer cancelled successfully' });
+  } catch (err) {
+    logger.error('cancel-transfer error', { error: String(err) });
+    const message = err.message || 'Failed to cancel transfer';
     return res.status(400).json({ error: message });
   }
 });
