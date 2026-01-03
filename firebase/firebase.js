@@ -3,7 +3,11 @@
 import { initializeApp } from 'firebase/app';
 import { browserLocalPersistence, getAuth, setPersistence } from 'firebase/auth';
 import { getDatabase } from 'firebase/database';
-import { getFirestore } from 'firebase/firestore';
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 import { api, key } from '../lib/features/todos/userSlice';
@@ -40,8 +44,12 @@ setPersistence(auth, browserLocalPersistence).catch((error) => {
   console.error('Auth persistence error:', error);
 });
 
-// Initialize Firebase Firestore
-const db = getFirestore(app);
+// Initialize Firebase Firestore with offline persistence
+// - persistentLocalCache: caches all reads in IndexedDB for offline access
+// - persistentMultipleTabManager: syncs cache across browser tabs
+const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+});
 
 // Initialize Firebase Realtime Database
 const rtdb = getDatabase(app);

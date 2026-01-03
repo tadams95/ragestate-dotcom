@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { posts } from '../../../blog-posts/blogPosts';
 import BlogStyling from '../components/styling/BlogStyling';
@@ -37,11 +38,12 @@ export default function Blog() {
                 >
                   <article className="relative isolate flex h-[400px] flex-col justify-end overflow-hidden rounded-2xl bg-gray-900/50 shadow-xl ring-1 ring-gray-800/10 backdrop-blur-sm md:h-[450px]">
                     <div className="absolute inset-0 overflow-hidden">
-                      <img
+                      <Image
                         src={post.imageUrl}
                         alt={`Cover image for ${post.title}`}
-                        className="absolute inset-0 mx-auto my-auto h-[95%] w-[95%] object-cover transition-transform duration-300 group-hover:scale-105"
-                        loading="lazy"
+                        fill
+                        sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+                        className="mx-auto my-auto object-cover transition-transform duration-300 group-hover:scale-105"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
                     </div>
@@ -53,10 +55,12 @@ export default function Blog() {
                         </time>
                         <div className="flex items-center gap-x-2">
                           <span>•</span>
-                          <img
+                          <Image
                             src={post.author.imageUrl}
                             alt=""
-                            className="h-6 w-6 rounded-full border border-gray-700"
+                            width={24}
+                            height={24}
+                            className="rounded-full border border-gray-700"
                           />
                           <span className="font-medium">{post.author.name}</span>
                         </div>

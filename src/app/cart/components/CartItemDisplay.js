@@ -3,6 +3,7 @@
 import DevicePhoneMobileIcon from '@heroicons/react/20/solid/DevicePhoneMobileIcon';
 import TruckIcon from '@heroicons/react/20/solid/TruckIcon';
 import XMarkIcon from '@heroicons/react/20/solid/XMarkIcon';
+import Image from 'next/image';
 
 export default function CartItemDisplay({
   item,
@@ -16,11 +17,13 @@ export default function CartItemDisplay({
 
   return (
     <li className="flex py-6 sm:py-10">
-      <div className="flex-shrink-0">
-        <img
+      <div className="relative h-32 w-32 flex-shrink-0 sm:h-48 sm:w-48">
+        <Image
           src={item.productImageSrc[0]?.src || item.productImageSrc}
           alt={item.title}
-          className="h-32 w-32 rounded-md object-cover object-center sm:h-48 sm:w-48"
+          fill
+          sizes="(min-width: 640px) 192px, 128px"
+          className="rounded-md object-cover object-center"
         />
       </div>
 

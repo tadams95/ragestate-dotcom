@@ -1,5 +1,6 @@
 // Import helper functions if they are directly used here (already passed as props, so not strictly needed unless called directly)
 // import { formatDate, formatCurrency, getStatusColor } from "../../../utils/formatters";
+import Image from 'next/image';
 
 const OrderDetailsModal = ({
   selectedOrder,
@@ -85,11 +86,15 @@ const OrderDetailsModal = ({
                         <td className="whitespace-nowrap px-4 py-3 text-sm">
                           <div className="flex items-center">
                             {item.productImageSrc && (
-                              <img
-                                src={item.productImageSrc}
-                                alt={item.title}
-                                className="mr-3 h-10 w-10 rounded object-cover"
-                              />
+                              <div className="relative mr-3 h-10 w-10">
+                                <Image
+                                  src={item.productImageSrc}
+                                  alt={item.title}
+                                  fill
+                                  sizes="40px"
+                                  className="rounded object-cover"
+                                />
+                              </div>
                             )}
                             <div>
                               <p className="font-medium text-[var(--text-primary)]">{item.title}</p>

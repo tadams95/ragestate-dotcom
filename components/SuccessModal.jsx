@@ -2,6 +2,7 @@
 
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/react';
 import { CheckCircleIcon } from '@heroicons/react/24/outline';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 
@@ -69,10 +70,9 @@ export default function SuccessModal({ orderNumber, items = [], userEmail, onClo
                 <ul className="max-h-56 divide-y divide-gray-800 overflow-auto rounded-md border border-gray-800 bg-gray-900/60">
                   {displayItems.map((it) => (
                     <li key={it.id} className="flex items-center gap-3 p-3">
-                      <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-md bg-gray-800 ring-1 ring-gray-700">
+                      <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-md bg-gray-800 ring-1 ring-gray-700">
                         {it.image ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={it.image} alt="" className="h-full w-full object-cover" />
+                          <Image src={it.image} alt="" fill sizes="48px" className="object-cover" />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center text-xs text-gray-500">
                             No image

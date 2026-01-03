@@ -6,6 +6,7 @@ import Cog6ToothIcon from '@heroicons/react/24/outline/Cog6ToothIcon';
 import ShoppingBagIcon from '@heroicons/react/24/outline/ShoppingBagIcon';
 import UsersIcon from '@heroicons/react/24/outline/UsersIcon';
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { useAuth, useFirebase } from '../../../firebase/context/FirebaseContext';
 import { formatCurrency, formatDate, getStatusColor } from '../../utils/formatters';
@@ -223,7 +224,13 @@ export default function AdminPage() {
             <div className="mx-auto max-w-6xl">
               <div className="mb-8 flex flex-col items-center">
                 <div className="mb-4 mt-6 flex justify-center">
-                  <img src="/assets/RSLogo2.png" alt="RAGESTATE" className="h-14 w-auto" />
+                  <Image
+                    src="/assets/RSLogo2.png"
+                    alt="RAGESTATE"
+                    width={56}
+                    height={56}
+                    className="h-14 w-auto"
+                  />
                 </div>
                 <h1 className="text-center text-3xl font-bold leading-tight text-[var(--text-primary)]">
                   Admin Dashboard

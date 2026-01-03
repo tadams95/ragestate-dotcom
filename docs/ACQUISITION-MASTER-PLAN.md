@@ -1,6 +1,7 @@
 # RAGESTATE Acquisition Master Plan
 
-> **Last Reviewed**: January 2, 2026 | **Consultant**: AI Acquisitions Review
+> **Last Reviewed**: January 3, 2026 | **Consultant**: AI Acquisitions Review
+> **Phase 1 Status**: ✅ **COMPLETE** (January 3, 2026)
 
 ---
 
@@ -10,7 +11,8 @@ RAGESTATE is a Next.js 14 event ticketing and social platform with integrated St
 
 **Estimated Valuation Range**: $1-5M (contingent on user metrics, revenue, and feature completeness)  
 **Target Exit Window**: Q2-Q4 2026  
-**Primary Gaps**: No native mobile app, chat stub only
+**Primary Gaps**: No native mobile app, chat stub only  
+**Current Phase**: Phase 2 — Scalability & Monetization
 
 **Competitive Moat**: Differentiates from Posh (no social transfers), Radiate (no merch), and Eventbrite (no social) via **@username ticket transfers** + integrated payments/social/merch stack; TAM: $50B+ event market; SAM: $5B+ for social ticketing.
 
@@ -81,8 +83,8 @@ This creates **network effects**: users invite friends → friends join → more
 - **Core Payments Flow** (✅ Production-Ready): Full Stripe integration via `functions/stripe.js` (~2,700 LOC). Supports PaymentIntent creation, idempotent order fulfillment (`fulfillments/{piId}`), atomic inventory decrement, and ticket token generation. Transactional integrity prevents double-charges and partial failures.
 - **Ticket Scanning** (✅ Operational): Token-based O(1) lookups via `ticketTokens/{token}` map. Fallback by `userId + eventId`. Atomic `usedCount` increment with `active` flag management. Admin scanner UI at `src/app/admin/scanner/`.
 - **Ticket Transfers** (✅ Production-Ready): **Unique differentiator**. Supports email AND @username transfers with profile preview. `ticketTransfers` collection with 72-hour claim expiration. Secure hashed claim tokens. In-app notifications for sender/recipient. Amazon SES for transactional emails (50k/day limit).
-- **Social Feed** (⚠️ 80% Complete): Posts, likes, comments with server-side counters (`functions/feed.js`). Real-time via Firestore `onSnapshot`. Rate limiting (3 posts/5 min). **Missing**: edit/delete posts, full privacy toggles.
-- **Notifications** (✅ 90% Complete): `functions/notifications.js` (721 LOC) implements quiet hours, aggregation, and push sender logic. FCM web tokens work. Transfer notifications integrated. **Missing**: iOS/Android push.
+- **Social Feed** (✅ Production-Ready): Posts, likes, comments, reposts with server-side counters (`functions/feed.js`). Real-time via Firestore `onSnapshot`. Rate limiting (3 posts/5 min). Edit/delete posts, privacy toggles, comment threading + likes, post detail pages with SEO. Video uploads with server-side transcoding.
+- **Notifications** (✅ Production-Ready): `functions/notifications.js` implements quiet hours, aggregation, and push sender logic. FCM web push, in-app notification feed, device registry, user preferences. Transfer + repost + mention notifications integrated.
 - **Admin Tools** (✅ Functional): Event creation (`src/app/api/admin/events/create/`), scanner, moderation hooks (`functions/moderation.js` with hate/incitement filters).
 - **Account UX** (✅ Complete): Order detail modal, ticket detail modal with QR, status badges, add-to-calendar (.ics), get directions, quick actions bar.
 - **Chat** (❌ Stub Only): `src/app/chat/page.js` is a local-state placeholder—no persistence, no real-time messaging.
@@ -110,7 +112,7 @@ This creates **network effects**: users invite friends → friends join → more
 - **Design System**: Tailwind CSS + Framer Motion. Responsive layouts verified via mobile QA checklists in `docs/`.
 - **Key Components**: Feed, PostComposer, CommentsSheet, CheckoutForm, EventDetails—all functional with touch-friendly sizing (≥44px targets).
 - **Analytics**: Vercel Analytics + Speed Insights integrated in `layout.js`. Custom `track()` events in feed/post actions.
-- **Gaps**: UI consistency per `social-ui-design-spec.md` not fully applied (badges, menus). No dark/light theme toggle.
+- **Completed**: Full light/dark mode theming (50+ components), design spec applied, verification badges, skeleton loaders, mobile QA passed.
 
 ### Business Metrics 💰 Revenue-Ready
 
@@ -129,7 +131,7 @@ This creates **network effects**: users invite friends → friends join → more
 
 1. **No Native App**: 100% web. React Native mentioned in docs but no code exists. Limits mobile engagement and app store presence. **Impact**: 30% lower mobile engagement vs. competitors. **Mitigation**: Launch PWA interim (1 week effort) while building React Native; Cost: $5k for PWA tools.
 2. **Chat Placeholder**: Would need 4-8 weeks to productionize with Firestore or dedicated chat service. **Impact**: Missed social engagement opportunities. **Mitigation**: Defer to Phase 3; monitor feed metrics for urgency.
-3. **Feed Privacy**: `isPublic` field exists but toggle UI not prominent; no private-only feed mode. **Impact**: Privacy concerns could lead to regulatory issues. **Mitigation**: Prioritize in Phase 1.1; add GDPR-compliant settings.
+3. ~~**Feed Privacy**~~: ✅ Resolved — Privacy toggle prominent in composer, private posts visible only to author on profile.
 4. **Security Audit Pending**: Rules look solid but no third-party penetration test or formal audit documented. **Impact**: Acquisition due diligence delays. **Mitigation**: Complete by Phase 2 end; Vendor: HackerOne; Budget: $10k; Contingency: Self-audit with OWASP checklist.
 5. **Market Saturation**: Posh/Radiate have funding + mobile apps; Eventbrite/Dice dominate general market. **Mitigation**: Lean into @username transfers as unique differentiator; target niche (rave/events) with viral social features; SWOT: Strengths (tech stack, transfers), Weaknesses (no app), Opportunities (AI try-on, follower transfers), Threats (economic downturns).
 
@@ -139,16 +141,23 @@ Prioritize features enhancing acquisition appeal: user growth (social/notificati
 
 **Team Composition**: 2-5 devs (1 frontend, 1 backend, 1 mobile/full-stack); Key Hires: Mobile dev for Phase 3 ($100k/year); Burn Rate: $20k/month (salaries + Firebase).
 
-### Phase 1: Core Completion (1-3 Months, High Impact)
+### Phase 1: Core Completion ✅ COMPLETE (January 3, 2026)
 
-| #   | Task                           | Timeline  | Files/Areas                                                                                                  | Success Metric                                                                                      |
-| --- | ------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
-| 1   | **Finalize Feed Enhancements** | 1-2 weeks | `src/app/components/Post.js`, `PostComposer.js`, `functions/feed.js`                                         | Edit/delete posts, prominent privacy toggle, infinite scroll without dupes. 20% engagement boost.   |
-| 2   | **Ship Notifications v1**      | 2-4 weeks | `functions/notifications.js`, new `src/app/components/NotificationBell.js`, `src/app/account/notifications/` | In-app notification feed + FCM web push. Device registry UI, prefs page. 30% return-visit increase. |
-| 3   | **Social UI Polish & QA**      | 1-2 weeks | `src/app/components/Header.js`, `Feed.js`, apply `docs/social-ui-design-spec.md`                             | Consistent badges, menus, skeleton loaders. Pass mobile QA checklist.                               |
-| 4   | **Abuse Gates**                | 1 week    | `src/app/create-account/page.js`, `src/app/login/page.js`, consider Cloudflare Turnstile                     | Rate limits, CAPTCHA on auth. <1% spam accounts.                                                    |
+| #   | Task                           | Status  | Completed                                                                                           |
+| --- | ------------------------------ | ------- | --------------------------------------------------------------------------------------------------- |
+| 1   | **Finalize Feed Enhancements** | ✅ Done | Edit/delete, privacy, infinite scroll, media uploads, video transcoding, reposts, comment threading |
+| 2   | **Ship Notifications v1**      | ✅ Done | In-app feed, FCM push, device registry, preferences, quiet hours, aggregation                       |
+| 3   | **Social UI Polish & QA**      | ✅ Done | Design spec applied, skeletons, verification badges, mobile QA passed                               |
+| 4   | **Abuse Gates**                | ✅ Done | Rate limits (auth + posts + functions), honeypots, disposable email blocking                        |
 
-**Phase 1 Deliverable**: Fully functional social feed + notifications = sticky user base for acquirer due diligence.
+**Bonus Completed**:
+
+- ✅ Google Sign-In (social login with profile sync)
+- ✅ Light/Dark Mode (full theming, 50+ components, WCAG compliant)
+- ✅ Post Detail Pages (shareable links with SEO)
+- ✅ Comment Likes + Reply Threading
+
+**Phase 1 Deliverable**: ✅ Fully functional social feed + notifications = sticky user base for acquirer due diligence.
 
 ---
 
@@ -261,7 +270,7 @@ Prioritize features enhancing acquisition appeal: user growth (social/notificati
 
 ## Acquisition Readiness Checklist
 
-- [ ] **Phase 1 Complete**: Feed + notifications fully functional
+- [x] **Phase 1 Complete**: Feed + notifications fully functional ✅ (January 3, 2026)
 - [ ] **Phase 2 Complete**: Metrics dashboard + Shopify sync
 - [ ] **Security Audit**: Third-party pentest completed, findings remediated
 - [ ] **Documentation**: API docs, data model, deployment runbook
@@ -273,4 +282,6 @@ Prioritize features enhancing acquisition appeal: user growth (social/notificati
 ---
 
 **This plan positions RAGESTATE for $1-5M exit by Q2-Q4 2026, contingent on user growth and revenue metrics.**
-Prepared by AI Acquisitions Review | December 26, 2025
+
+Prepared by AI Acquisitions Review | December 26, 2025  
+Phase 1 Completed | January 3, 2026

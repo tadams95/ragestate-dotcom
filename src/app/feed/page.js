@@ -1,5 +1,19 @@
-import Feed from '../components/Feed'; // Import the Feed component
-import PostComposer from '../components/PostComposer';
+import dynamic from 'next/dynamic';
+
+// Lazy-load heavy feed components - PostComposer loads immediately for interaction,
+// Feed can load after since it requires data fetch anyway
+const Feed = dynamic(() => import('../components/Feed'), {
+  loading: () => (
+    <div className="flex justify-center py-8">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-red-500 border-t-transparent" />
+    </div>
+  ),
+});
+
+const PostComposer = dynamic(() => import('../components/PostComposer'), {
+  ssr: false,
+  loading: () => <div className="h-32 animate-pulse rounded-xl bg-[var(--bg-elev-1)]" />,
+});
 
 export default function FeedPage() {
   return (
