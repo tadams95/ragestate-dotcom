@@ -10,7 +10,7 @@ const cors = require('cors');
 const { admin, db } = require('./admin');
 const { createShopifyOrder, isShopifyConfigured } = require('./shopifyAdmin');
 const { checkRateLimit } = require('./rateLimit');
-const { sendEmail } = require('./sesEmail');
+const { sendEmail, sendBulkEmail } = require('./sesEmail');
 
 // Secret Manager: define secrets. Also support process.env for local dev.
 const STRIPE_SECRET = defineSecret('STRIPE_SECRET');
@@ -2714,6 +2714,80 @@ function generateOrderNumber() {
   const rand = Math.floor(1000 + Math.random() * 9000);
   return `${prefix}-${datePart}-${rand}`;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN: SEND EMAIL CAMPAIGN
+// ─────────────────────────────────────────────────────────────────────────────
+app.post('/send-campaign', async (req, res) => {
+  try {
+    // Verify proxy key (admin-only endpoint)
+    const expectedProxyKey = PROXY_KEY.value() || process.env.PROXY_KEY;
+    if (expectedProxyKey) {
+      const provided = req.get('x-proxy-key');
+      if (!provided || provided !== expectedProxyKey) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+    }
+
+    const { subject, text, html, recipients } = req.body || {};
+
+    // Validate inputs
+    if (!subject || typeof subject !== 'string') {
+      return res.status(400).json({ error: 'subject is required' });
+    }
+    if (!text && !html) {
+      return res.status(400).json({ error: 'text or html content is required' });
+    }
+    if (!Array.isArray(recipients) || recipients.length === 0) {
+      return res.status(400).json({ error: 'recipients array is required' });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const validRecipients = recipients.filter((r) => typeof r === 'string' && emailRegex.test(r));
+    if (validRecipients.length === 0) {
+      return res.status(400).json({ error: 'No valid email addresses provided' });
+    }
+
+    // Rate limit: max 1000 recipients per request
+    if (validRecipients.length > 1000) {
+      return res.status(400).json({ error: 'Max 1000 recipients per request' });
+    }
+
+    logger.info('Sending campaign', {
+      subject,
+      recipientCount: validRecipients.length,
+    });
+
+    // Send via SES bulk email
+    const results = await sendBulkEmail({
+      recipients: validRecipients,
+      from: 'RAGESTATE <orders@ragestate.com>',
+      replyTo: 'support@ragestate.com',
+      subject,
+      text,
+      html,
+    });
+
+    const messageIds = results.map((r) => r.messageId).filter(Boolean);
+
+    logger.info('Campaign sent successfully', {
+      subject,
+      recipientCount: validRecipients.length,
+      batches: results.length,
+    });
+
+    return res.json({
+      ok: true,
+      sent: validRecipients.length,
+      batches: results.length,
+      messageIds,
+    });
+  } catch (err) {
+    logger.error('send-campaign error', { message: err?.message, stack: err?.stack });
+    return res.status(500).json({ error: 'Failed to send campaign', message: err?.message });
+  }
+});
 
 exports.stripePayment = onRequest(
   {

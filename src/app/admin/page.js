@@ -3,6 +3,7 @@
 import ArrowsRightLeftIcon from '@heroicons/react/24/outline/ArrowsRightLeftIcon';
 import ClipboardDocumentListIcon from '@heroicons/react/24/outline/ClipboardDocumentListIcon';
 import Cog6ToothIcon from '@heroicons/react/24/outline/Cog6ToothIcon';
+import EnvelopeIcon from '@heroicons/react/24/outline/EnvelopeIcon';
 import ShoppingBagIcon from '@heroicons/react/24/outline/ShoppingBagIcon';
 import UsersIcon from '@heroicons/react/24/outline/UsersIcon';
 import dynamic from 'next/dynamic';
@@ -41,6 +42,13 @@ const SettingsTab = dynamic(() => import('../components/admin/SettingsTab'), {
   ),
 });
 const TransfersTab = dynamic(() => import('../components/admin/TransfersTab'), {
+  loading: () => (
+    <div className="flex h-32 items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-red-500"></div>
+    </div>
+  ),
+});
+const CampaignsTab = dynamic(() => import('../components/admin/CampaignsTab'), {
   loading: () => (
     <div className="flex h-32 items-center justify-center">
       <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-red-500"></div>
@@ -210,6 +218,8 @@ export default function AdminPage() {
         return <SettingsTab inputStyling={inputStyling} buttonStyling={buttonStyling} />;
       case 'transfers':
         return <TransfersTab inputStyling={inputStyling} />;
+      case 'campaigns':
+        return <CampaignsTab />;
       default:
         return null;
     }
@@ -288,6 +298,17 @@ export default function AdminPage() {
                     >
                       <ArrowsRightLeftIcon className="mr-2 h-5 w-5" aria-hidden="true" />
                       Transfers
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('campaigns')}
+                      className={`${
+                        activeTab === 'campaigns'
+                          ? 'border-red-700 text-red-500'
+                          : 'border-transparent text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]'
+                      } flex flex-shrink-0 items-center whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium`}
+                    >
+                      <EnvelopeIcon className="mr-2 h-5 w-5" aria-hidden="true" />
+                      Campaigns
                     </button>
                     <button
                       onClick={() => setActiveTab('settings')}

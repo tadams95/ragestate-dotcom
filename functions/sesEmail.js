@@ -76,7 +76,7 @@ async function sendEmail({ to, from, replyTo, subject, text, html, region }) {
 }
 
 /**
- * Send bulk emails (batches recipients into groups of 50)
+ * Send bulk emails individually (one per recipient for privacy)
  * For marketing campaigns or batch notifications
  * @param {Object} params
  * @param {string[]} params.recipients - Array of recipient emails
@@ -86,30 +86,49 @@ async function sendEmail({ to, from, replyTo, subject, text, html, region }) {
  * @param {string} [params.text] - Plain text body
  * @param {string} [params.html] - HTML body
  * @param {string} [params.region] - AWS region
- * @returns {Promise<{messageId: string}[]>}
+ * @returns {Promise<{messageId: string, email: string}[]>}
  */
 async function sendBulkEmail({ recipients, from, replyTo, subject, text, html, region }) {
-  // SES allows up to 50 recipients per SendEmail call
-  const BATCH_SIZE = 50;
+  // Send emails individually to protect recipient privacy
+  // Process in batches of 10 concurrent sends to avoid rate limits
+  const CONCURRENCY = 10;
   const results = [];
+  const errors = [];
 
-  for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
-    const batch = recipients.slice(i, i + BATCH_SIZE);
-    const result = await sendEmail({
-      to: batch,
-      from,
-      replyTo,
-      subject,
-      text,
-      html,
-      region,
+  for (let i = 0; i < recipients.length; i += CONCURRENCY) {
+    const batch = recipients.slice(i, i + CONCURRENCY);
+    const batchResults = await Promise.allSettled(
+      batch.map(async (email) => {
+        const result = await sendEmail({
+          to: email,
+          from,
+          replyTo,
+          subject,
+          text,
+          html,
+          region,
+        });
+        return { ...result, email };
+      }),
+    );
+
+    batchResults.forEach((r, idx) => {
+      if (r.status === 'fulfilled') {
+        results.push(r.value);
+      } else {
+        errors.push({ email: batch[idx], error: r.reason?.message || 'Unknown error' });
+        logger.warn('SES bulk email: individual send failed', {
+          email: batch[idx],
+          error: r.reason?.message,
+        });
+      }
     });
-    results.push(result);
   }
 
-  logger.info('SES bulk email sent', {
+  logger.info('SES bulk email completed', {
     totalRecipients: recipients.length,
-    batches: results.length,
+    successful: results.length,
+    failed: errors.length,
   });
 
   return results;

@@ -391,6 +391,17 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // Email Captures: anyone can subscribe (for marketing), only admins can read/manage
+    match /emailCaptures/{captureId} {
+      // Anyone can create (submit their email)
+      allow create: if request.resource.data.keys().hasOnly(['email', 'source', 'eventId', 'capturedAt', 'subscribed'])
+        && request.resource.data.email is string
+        && request.resource.data.email.size() > 0
+        && request.resource.data.subscribed == true;
+      // Only admins can read the list or modify entries
+      allow read, update, delete: if isAdmin();
+    }
+
     // Default deny
     match /{document=**} {
       allow read, write: if false;

@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import EmailCaptureModal from '../../../../components/EmailCaptureModal';
 import EventDetails from '../../../../components/EventDetails';
 
 // Slugs are stored exactly as generated (kebab-case). No title-casing for lookup.
@@ -24,6 +25,7 @@ export default function EventDetail() {
   const [draftBlocked, setDraftBlocked] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [toggling, setToggling] = useState(false);
+  const [showEmailCapture, setShowEmailCapture] = useState(false);
 
   const selectedEvent = typeof window !== 'undefined' ? storage.getJSON('selectedEvent') : null;
 
@@ -62,6 +64,19 @@ export default function EventDetail() {
       cancelled = true;
     };
   }, [pathname, searchParams, db, currentUser]);
+
+  // Email capture modal: show after 30s for non-logged-in users (once per session)
+  useEffect(() => {
+    // Skip if user is logged in or modal already shown this session
+    if (currentUser) return;
+    if (typeof window !== 'undefined' && sessionStorage.getItem('emailCaptureShown')) return;
+
+    const timer = setTimeout(() => {
+      setShowEmailCapture(true);
+    }, 30000); // 30 seconds
+
+    return () => clearTimeout(timer);
+  }, [currentUser]);
 
   const toggleActive = async (nextActive) => {
     if (!event || toggling) return;
@@ -258,6 +273,15 @@ export default function EventDetail() {
       </main>
 
       {/* Footer is rendered globally in RootLayout */}
+
+      {/* Email capture modal for non-logged-in users */}
+      <EmailCaptureModal
+        open={showEmailCapture}
+        onClose={() => setShowEmailCapture(false)}
+        source="event_page"
+        eventId={pathname.split('/events/')[1]}
+        eventName={(selectedEvent || event)?.name}
+      />
     </div>
   );
 }
