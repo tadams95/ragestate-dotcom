@@ -91,7 +91,11 @@ export default function OrderHistory() {
                           : parseFloat(purchase.total || purchase.totalAmount || 0).toFixed(2)
                     }`
                   : 'N/A',
-              status: purchase.status || 'Completed',
+              status: purchase.status || 'Completed', // Shipping fields from Printify webhooks
+              shippingStatus: purchase.shippingStatus || null,
+              trackingNumber: purchase.trackingNumber || null,
+              carrier: purchase.carrier || null,
+              trackingUrl: purchase.trackingUrl || null,
               items: itemsArray.map((item, itemIdx) => ({
                 id: `ITEM-${orderId}-${itemIdx}`,
                 name: item.title,
@@ -227,6 +231,62 @@ export default function OrderHistory() {
                   </div>
                 ))}
               </div>
+
+              {/* Shipping Status */}
+              {order.shippingStatus && (
+                <div className="mt-3 flex items-center justify-between rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    {order.shippingStatus === 'delivered' ? (
+                      <>
+                        <svg
+                          className="h-4 w-4 text-green-500"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span className="text-sm text-green-500">Delivered</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          className="h-4 w-4 text-yellow-500"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                          />
+                        </svg>
+                        <span className="text-sm text-yellow-500">
+                          Shipped{order.carrier ? ` via ${order.carrier}` : ''}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  {order.trackingUrl && order.shippingStatus !== 'delivered' && (
+                    <a
+                      href={order.trackingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium text-red-500 hover:text-red-400"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Track →
+                    </a>
+                  )}
+                </div>
+              )}
 
               {/* View Details Button */}
               <button

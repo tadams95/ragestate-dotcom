@@ -24,11 +24,15 @@ const { FieldValue } = require('firebase-admin/firestore');
 const { db } = require('./admin');
 
 const { validateWebhookSignature } = require('./printify');
+const { sendEmail } = require('./sesEmail');
 
 // Secrets
 const PRINTIFY_WEBHOOK_SECRET = defineSecret('PRINTIFY_WEBHOOK_SECRET');
 const PRINTIFY_API_TOKEN = defineSecret('PRINTIFY_API_TOKEN');
 const PRINTIFY_SHOP_ID = defineSecret('PRINTIFY_SHOP_ID');
+const AWS_ACCESS_KEY_ID = defineSecret('AWS_ACCESS_KEY_ID');
+const AWS_SECRET_ACCESS_KEY = defineSecret('AWS_SECRET_ACCESS_KEY');
+const AWS_SES_REGION = defineSecret('AWS_SES_REGION');
 
 /**
  * Map Printify order status to our internal status.
@@ -136,7 +140,40 @@ async function handleShipmentCreated(payload) {
     }
   }
 
-  return { updated: true, trackingNumber, carrier };
+  // Send shipping confirmation email
+  const customerEmail = fulfillment.data.customerEmail;
+  if (customerEmail && trackingNumber) {
+    try {
+      // Set AWS creds for SES
+      process.env.AWS_ACCESS_KEY_ID = AWS_ACCESS_KEY_ID.value();
+      process.env.AWS_SECRET_ACCESS_KEY = AWS_SECRET_ACCESS_KEY.value();
+      process.env.AWS_SES_REGION = AWS_SES_REGION.value() || 'us-east-1';
+
+      await sendEmail({
+        to: customerEmail,
+        from: 'RAGESTATE <orders@ragestate.com>',
+        subject: '📦 Your RAGESTATE order has shipped!',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #000;">Your order is on its way!</h1>
+            <p>Great news! Your RAGESTATE order has shipped.</p>
+            <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 24px 0;">
+              <p style="margin: 0 0 8px 0;"><strong>Carrier:</strong> ${carrier || 'Standard Shipping'}</p>
+              <p style="margin: 0 0 8px 0;"><strong>Tracking Number:</strong> ${trackingNumber}</p>
+              ${trackingUrl ? `<p style="margin: 0;"><a href="${trackingUrl}" style="color: #000; font-weight: bold;">Track Your Package →</a></p>` : ''}
+            </div>
+            <p>Thanks for raging with us! 🔥</p>
+            <p style="color: #666; font-size: 14px;">— The RAGESTATE Team</p>
+          </div>
+        `,
+      });
+      logger.info('Shipping confirmation email sent', { customerEmail, trackingNumber });
+    } catch (emailErr) {
+      logger.warn('Failed to send shipping email', { error: emailErr.message, customerEmail });
+    }
+  }
+
+  return { updated: true, trackingNumber, carrier, emailSent: !!customerEmail };
 }
 
 /**
@@ -307,7 +344,14 @@ async function handleWebhook(req, res) {
 // Export the Cloud Function
 exports.printifyWebhook = onRequest(
   {
-    secrets: [PRINTIFY_WEBHOOK_SECRET, PRINTIFY_API_TOKEN, PRINTIFY_SHOP_ID],
+    secrets: [
+      PRINTIFY_WEBHOOK_SECRET,
+      PRINTIFY_API_TOKEN,
+      PRINTIFY_SHOP_ID,
+      AWS_ACCESS_KEY_ID,
+      AWS_SECRET_ACCESS_KEY,
+      AWS_SES_REGION,
+    ],
     invoker: 'public', // Printify needs to call this publicly
   },
   handleWebhook,

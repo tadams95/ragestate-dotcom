@@ -321,9 +321,9 @@ curl https://us-central1-ragestate-app.cloudfunctions.net/stripePayment/printify
 
 ### Order Status Sync
 
-- [ ] Update `purchases` docs with fulfillment status from Printify
-- [ ] Show shipping status in user's order history (`/account` page)
-- [ ] Send email notification when `order:shipment:created` fires (tracking info)
+- [x] Update `purchases` docs with fulfillment status from Printify — Already handled by `printifyWebhook.js` (updates `shippingStatus`, `trackingNumber`, `carrier`, `trackingUrl`)
+- [x] Show shipping status in user's order history (`/account` page) — Added to `OrderHistory.js` + `OrderDetailModal.js`
+- [x] Send email notification when `order:shipment:created` fires (tracking info) — Added to `printifyWebhook.js` `handleShipmentCreated()` using SES
 
 ### SKU Mapping Strategy
 

@@ -52,11 +52,47 @@ export default function OrderDetailModal({ order, isOpen, onClose }) {
             </div>
             <div className="text-right">
               <p className="text-xs uppercase tracking-wide text-[var(--text-tertiary)]">Status</p>
-              <span className="mt-1 inline-block rounded-full bg-green-500/20 px-3 py-1 text-xs font-medium text-green-600">
-                {order.status}
-              </span>
+              {order.shippingStatus === 'shipped' ? (
+                <span className="mt-1 inline-block rounded-full bg-yellow-500/20 px-3 py-1 text-xs font-medium text-yellow-500">
+                  Shipped
+                </span>
+              ) : order.shippingStatus === 'delivered' ? (
+                <span className="mt-1 inline-block rounded-full bg-green-500/20 px-3 py-1 text-xs font-medium text-green-500">
+                  Delivered
+                </span>
+              ) : (
+                <span className="mt-1 inline-block rounded-full bg-green-500/20 px-3 py-1 text-xs font-medium text-green-600">
+                  {order.status}
+                </span>
+              )}
             </div>
           </div>
+
+          {/* Tracking Info */}
+          {order.shippingStatus && order.trackingNumber && (
+            <div className="mb-6 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-[var(--text-tertiary)]">
+                    Tracking{order.carrier ? ` (${order.carrier})` : ''}
+                  </p>
+                  <p className="mt-1 font-mono text-sm text-[var(--text-primary)]">
+                    {order.trackingNumber}
+                  </p>
+                </div>
+                {order.trackingUrl && (
+                  <a
+                    href={order.trackingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-lg bg-red-500/10 px-3 py-2 text-sm font-medium text-red-500 transition hover:bg-red-500/20"
+                  >
+                    Track Package →
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Items */}
           <div className="mb-6">
