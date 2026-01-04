@@ -1,7 +1,6 @@
 'use client';
 
-import { PlusIcon } from '@heroicons/react/20/solid';
-import Image from 'next/image';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
@@ -10,7 +9,8 @@ import { fetchShopifyProducts } from '../../../../shopify/shopifyService';
 
 /**
  * CrossSellSection - Shows related merch suggestions on the cart page
- * Minimal implementation: fetches Shopify products, excludes items in cart, shows 4 max
+ * - Products with multiple variants (sizes/colors) link to product page
+ * - Single-variant products can be quick-added
  */
 export default function CrossSellSection({ cartItems = [] }) {
   const dispatch = useDispatch();
@@ -24,7 +24,10 @@ export default function CrossSellSection({ cartItems = [] }) {
     let mounted = true;
 
     // Get IDs of items already in cart to filter them out
-    const cartProductIds = new Set(cartItems.map((item) => item.productId));
+    // Normalize IDs: cart may have GID or handle, so check both
+    const cartProductIds = new Set(
+      cartItems.flatMap((item) => [item.productId, item.productId?.toString()].filter(Boolean)),
+    );
 
     const loadSuggestions = async () => {
       try {
@@ -34,8 +37,10 @@ export default function CrossSellSection({ cartItems = [] }) {
         // Filter out items already in cart, limit to 4
         const filtered = products
           .filter((p) => {
-            const id = p?.id?.toString() || p?.handle;
-            return !cartProductIds.has(id);
+            // Check both ID and handle to ensure no duplicates
+            const id = p?.id?.toString();
+            const handle = p?.handle;
+            return !cartProductIds.has(id) && !cartProductIds.has(handle);
           })
           .slice(0, 4);
 
@@ -53,6 +58,19 @@ export default function CrossSellSection({ cartItems = [] }) {
     };
   }, [cartItems]);
 
+  // Check if product has multiple variants (sizes/colors)
+  const hasMultipleVariants = (product) => {
+    const variants = product?.variants;
+    const variantCount = Array.isArray(variants) ? variants.length : variants?.length || 0;
+    return variantCount > 1;
+  };
+
+  // Get product slug for linking to product page
+  // Always prefer handle (authoritative) — title-based fallback may cause 404s
+  const getProductSlug = (product) => {
+    return product?.handle || '';
+  };
+
   const handleQuickAdd = (product) => {
     const variant = product?.variants?.[0];
     const img = product?.images?.[0] || product?.featuredImage || variant?.image;
@@ -62,12 +80,16 @@ export default function CrossSellSection({ cartItems = [] }) {
       product?.priceRange?.minVariantPrice?.amount ||
       '0';
 
+    // Get image URL - handle Shopify's various image formats
+    const imgSrc = img?.src || img?.transformedSrc || img?.url || '/assets/user.png';
+
     const cartItem = {
       productId: product?.id?.toString() || product?.handle,
       title: product.title,
-      productImageSrc: img?.src || img?.transformedSrc || '/assets/user.png',
+      productImageSrc: imgSrc,
       selectedQuantity: 1,
       price: parseFloat(price),
+      variantId: variant?.id || null, // Required for Shopify checkout
       selectedColor: null,
       selectedSize: null,
       isDigital: false,
@@ -82,55 +104,111 @@ export default function CrossSellSection({ cartItems = [] }) {
     });
   };
 
+  // Helper to get image URL from Shopify product
+  // Shopify-buy SDK returns array-like objects, not true Arrays
+  const getImageUrl = (product) => {
+    // Try images array (could be array-like)
+    const images = product?.images;
+    const firstImage = Array.isArray(images) ? images[0] : images?.[0];
+
+    // Try featuredImage
+    const featuredImage = product?.featuredImage;
+
+    // Try variant image
+    const variants = product?.variants;
+    const variantImage = Array.isArray(variants) ? variants[0]?.image : variants?.[0]?.image;
+
+    const img = firstImage || featuredImage || variantImage;
+
+    // Handle various Shopify image URL formats
+    return img?.src || img?.transformedSrc || img?.url || null;
+  };
+
   // Don't show if no suggestions or still loading
   if (loading || suggestions.length === 0) return null;
 
   return (
     <section className="mt-8 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-4">
-      <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
+      <h3 className="mb-4 text-sm font-semibold text-[var(--text-primary)]">
         {hasTickets ? 'Complete the Look' : 'You Might Also Like'}
       </h3>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {suggestions.map((product) => {
-          const img =
-            product?.images?.[0] || product?.featuredImage || product?.variants?.[0]?.image;
-          const src = img?.src || img?.transformedSrc || '/assets/user.png';
+          const imgUrl = getImageUrl(product);
           const variant = product?.variants?.[0];
           const price =
             variant?.price?.amount ||
             variant?.price ||
             product?.priceRange?.minVariantPrice?.amount;
+          const needsVariantSelection = hasMultipleVariants(product);
+          const productSlug = getProductSlug(product);
 
           return (
-            <div key={product.id} className="group relative">
-              <div className="aspect-square relative overflow-hidden rounded-md bg-[var(--bg-elev-2)]">
-                <Image
-                  src={src}
-                  alt={product.title}
-                  fill
-                  sizes="(min-width: 640px) 25vw, 50vw"
-                  className="object-cover object-center"
-                />
-                {/* Quick Add overlay */}
-                <button
-                  onClick={() => handleQuickAdd(product)}
-                  className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100"
-                  aria-label={`Add ${product.title} to cart`}
+            <div key={product.id} className="group flex flex-col">
+              {/* Image container - link to product for multi-variant items */}
+              {needsVariantSelection ? (
+                <Link
+                  href={`/shop/${productSlug}`}
+                  className="aspect-square relative overflow-hidden rounded-md bg-[var(--bg-elev-2)]"
                 >
-                  <span className="flex items-center gap-1 rounded-full bg-red-600 px-3 py-1.5 text-xs font-medium text-white">
-                    <PlusIcon className="h-4 w-4" />
-                    Add
-                  </span>
-                </button>
-              </div>
-              <p className="mt-1.5 line-clamp-1 text-xs text-[var(--text-secondary)]">
+                  {imgUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={imgUrl}
+                      alt={product.title}
+                      className="h-full w-full object-cover object-center transition-transform group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-[var(--text-tertiary)]">
+                      <span className="text-xs">No image</span>
+                    </div>
+                  )}
+                </Link>
+              ) : (
+                <div className="aspect-square relative overflow-hidden rounded-md bg-[var(--bg-elev-2)]">
+                  {imgUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={imgUrl}
+                      alt={product.title}
+                      className="h-full w-full object-cover object-center transition-transform group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-[var(--text-tertiary)]">
+                      <span className="text-xs">No image</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Product info */}
+              <p className="mt-2 line-clamp-1 text-xs text-[var(--text-secondary)]">
                 {product.title}
               </p>
               {price && (
                 <p className="text-xs font-medium text-[var(--text-primary)]">
                   ${parseFloat(price).toFixed(2)}
                 </p>
+              )}
+
+              {/* Conditional button: Quick add for single-variant, link for multi-variant */}
+              {needsVariantSelection ? (
+                <Link
+                  href={`/shop/${productSlug}`}
+                  className="mt-2 flex w-full items-center justify-center gap-1 rounded-md border border-[var(--accent)] px-2 py-1.5 text-xs font-medium text-[var(--accent)] transition-colors hover:bg-[var(--accent)] hover:text-white"
+                  aria-label={`Select options for ${product.title}`}
+                >
+                  Select Options
+                </Link>
+              ) : (
+                <button
+                  onClick={() => handleQuickAdd(product)}
+                  className="mt-2 flex w-full items-center justify-center gap-1 rounded-md bg-[var(--accent)] px-2 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[var(--accent-glow)]"
+                  aria-label={`Add ${product.title} to cart`}
+                >
+                  Add to Cart
+                </button>
               )}
             </div>
           );

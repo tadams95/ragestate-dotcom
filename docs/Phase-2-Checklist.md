@@ -179,11 +179,11 @@ campaignLogs/{docId}
 
 > **Cost**: ~$0.10/1,000 emails via SES (62k free/month from Lambda)
 
-### Cross-Sell at Checkout
+### Cross-Sell at Checkout ✅
 
-- [ ] Show related merch on ticket checkout page — `src/app/cart/components/CrossSellSection.js`
-- [ ] "Complete the look" section with event-themed items
-- [ ] Track cross-sell conversion rate (simple: count adds from section)
+- [x] Show related merch on ticket checkout page — `src/app/cart/components/CrossSellSection.js`
+- [x] "Complete the look" section with event-themed items — Dynamic heading based on cart contents
+- [ ] Track cross-sell conversion rate (simple: count adds from section) — Optional, deferred
 
 **Cross-Sell Design (Jan 3, 2026)**:
 
@@ -224,27 +224,116 @@ campaignLogs/{docId}
 
 ---
 
-## 4. Shopify Fulfillment Sync (2-3 Weeks)
+## 4. Printify Fulfillment Integration (2-3 Weeks)
 
-> **Goal**: Complete merch integration for unified commerce
+> **Goal**: Automate print-on-demand fulfillment via Printify API
+> **Note**: Products are displayed from Shopify Storefront but created/fulfilled via Printify
+
+### Architecture Decision (Jan 3, 2026)
+
+**Current Flow** (manual):
+
+```
+Customer Purchase → Stripe PI → fulfillments/{pi} → Manual order in Printify
+```
+
+**Target Flow** (automated):
+
+```
+Customer Purchase → Stripe PI → fulfillments/{pi} → Cloud Function → Printify Order API
+                                                  ↓
+                                   Printify Webhook → order:shipment:created
+                                                  ↓
+                                   Update fulfillments/{pi} with tracking
+                                                  ↓
+                                   Email customer with shipping info
+```
+
+### Printify API Setup ✅
+
+- [x] Generate Personal Access Token in Printify dashboard (Account → Connections → API) — Added to `.env`
+- [x] Connect API store in Printify (My Stores → Add new store → API) — Shop ID: `3482930` ("Rage State", Shopify channel)
+- [x] Store secrets in Firebase: `firebase functions:secrets:set PRINTIFY_API_TOKEN PRINTIFY_SHOP_ID` — Done ✅
+- [x] Create `functions/printify.js` module with API client — Complete (see API reference below)
+
+**Printify Module API Reference (`functions/printify.js`)**:
+| Function | Description |
+|----------|-------------|
+| `isPrintifyConfigured()` | Check if API token & shop ID are set |
+| `createOrder({ externalId, lineItems, shippingAddress })` | Submit order to Printify |
+| `getOrder(orderId)` | Fetch order details |
+| `getProducts(page, limit)` | List all products |
+| `findByVariantSku(sku)` | Lookup product/variant by SKU |
+| `buildSkuMap()` | Build full SKU → Printify ID mapping |
+| `calculateShipping({ lineItems, addressTo })` | Get shipping cost estimate |
+| `createWebhook({ topic, url, secret })` | Register webhook endpoint |
+| `validateWebhookSignature(payload, signature, secret)` | Verify webhook HMAC |
+
+### Order Submission
+
+- [ ] On `finalize-order` for merch items: submit to Printify via `POST /v1/shops/{shop_id}/orders.json`
+- [ ] Map Shopify variant SKU → Printify product_id + variant_id (requires SKU mapping table)
+- [ ] Include shipping address from checkout form
+- [ ] Store Printify order ID in `fulfillments/{pi}.printifyOrderId`
+- [ ] Handle mixed carts: tickets go to `ragers`, merch goes to Printify
 
 ### Webhook Implementation
 
-- [ ] Complete TODO at `functions/shopifyAdmin.js:408` — `onShopifyFulfillmentUpdate`
-- [ ] Complete TODO at `functions/shopifyAdmin.js:424` — inventory sync
-- [ ] Test webhook delivery from Shopify admin
+- [ ] Create `functions/printifyWebhook.js` HTTP endpoint
+- [ ] Register webhooks via Printify API for:
+  - `order:shipment:created` → tracking available
+  - `order:shipment:delivered` → delivery confirmed
+  - `order:updated` → status changes (in-production, fulfilled, etc.)
+- [ ] Validate webhook signature (`X-Pfy-Signature` header with HMAC SHA256)
+- [ ] Update `fulfillments/{pi}` with: `status`, `trackingNumber`, `carrier`, `shippedAt`
 
 ### Order Status Sync
 
-- [ ] Update `purchases` docs with Shopify fulfillment status
-- [ ] Show shipping status in user's order history
-- [ ] Send notification when order ships
+- [ ] Update `purchases` docs with fulfillment status from Printify
+- [ ] Show shipping status in user's order history (`/account` page)
+- [ ] Send email notification when `order:shipment:created` fires (tracking info)
 
-### Inventory Sync
+### SKU Mapping Strategy
 
-- [ ] Pull Shopify inventory levels to Firestore
-- [ ] Show "low stock" / "sold out" badges on products
-- [ ] Prevent overselling with real-time stock checks
+Products exist in both Shopify (storefront) and Printify (fulfillment). Need to map:
+
+| Shopify SKU    | Printify Product ID | Printify Variant ID |
+| -------------- | ------------------- | ------------------- |
+| `RS-TEE-BLK-M` | `abc123...`         | `17887`             |
+| ...            | ...                 | ...                 |
+
+**Options**:
+
+1. **Manual mapping collection**: `printifySkuMap/{shopifySku}` → `{ printifyProductId, printifyVariantId }`
+2. **Unified SKU**: Use same SKU in both systems, query Printify by SKU at order time
+3. **Sync script**: Periodic job to sync Shopify ↔ Printify product mappings
+
+### Printify Webhook Events Reference
+
+| Event                      | Payload Data                                                   | Action                         |
+| -------------------------- | -------------------------------------------------------------- | ------------------------------ |
+| `order:created`            | `{ shop_id }`                                                  | Log order created              |
+| `order:updated`            | `{ shop_id, status }`                                          | Update fulfillment status      |
+| `order:sent-to-production` | `{ shop_id }`                                                  | Mark as "in production"        |
+| `order:shipment:created`   | `{ carrier, tracking_number, tracking_url, shipped_at, skus }` | Store tracking, email customer |
+| `order:shipment:delivered` | `{ carrier, tracking_number, delivered_at }`                   | Mark delivered                 |
+
+### Environment & Secrets
+
+```bash
+# Functions secrets
+firebase functions:secrets:set PRINTIFY_API_TOKEN    # Personal Access Token from Printify
+firebase functions:secrets:set PRINTIFY_SHOP_ID      # Shop ID from /v1/shops.json
+firebase functions:secrets:set PRINTIFY_WEBHOOK_SECRET  # For signature validation
+```
+
+### Shopify Module Status
+
+`functions/shopifyAdmin.js` is **stubbed** — Shopify Admin API not needed since:
+
+- Products displayed via Shopify Storefront API (read-only, no admin token)
+- Fulfillment handled by Printify
+- Inventory managed in Printify (syncs to Shopify automatically if connected)
 
 ---
 
@@ -286,8 +375,8 @@ campaignLogs/{docId}
 | Item                                            | Effort   | Status |
 | ----------------------------------------------- | -------- | ------ |
 | Rename `lib/features/todos/` → `lib/features/`  | 1 hour   | [ ]    |
-| Complete Shopify TODOs                          | 2-3 days | [ ]    |
-| Run bundle analyzer, document findings          | 2 hours  | [ ]    |
+| Create `functions/printify.js` API client       | 2-3 days | [x]    |
+| Run bundle analyzer, document findings          | 2 hours  | [x]    |
 | Add `.env.local.example`                        | 30 min   | [ ]    |
 | Document all Function endpoints in `.http` file | 2 hours  | [ ]    |
 
@@ -295,25 +384,25 @@ campaignLogs/{docId}
 
 ## Success Metrics
 
-| Metric              | Target | Baseline   | Current |
-| ------------------- | ------ | ---------- | ------- |
-| LCP                 | <3s    | [Measure]  | —       |
-| JS Bundle Size      | <200KB | [Measure]  | —       |
-| Checkout Conversion | +15%   | [Baseline] | —       |
-| Cross-sell Rate     | 10%    | 0%         | —       |
-| Dashboard Load Time | <2s    | —          | —       |
+| Metric              | Target | Baseline   | Current   |
+| ------------------- | ------ | ---------- | --------- |
+| LCP                 | <3s    | [Measure]  | —         |
+| JS Bundle Size      | <200KB | [Measure]  | 87.7KB ✅ |
+| Checkout Conversion | +15%   | [Baseline] | —         |
+| Cross-sell Rate     | 10%    | 0%         | —         |
+| Dashboard Load Time | <2s    | —          | —         |
 
 ---
 
 ## Files Reference
 
-| Area         | Files                                                    |
-| ------------ | -------------------------------------------------------- |
-| Performance  | `next.config.mjs`, image components, `npm run analyze`   |
-| Realtime     | `src/app/chat/page.js`, evaluate Socket.io/Ably          |
-| Monetization | `components/CheckoutForm.js`, `functions/stripe.js`      |
-| Shopify      | `functions/shopifyAdmin.js` lines 408, 424               |
-| Metrics      | `src/app/admin/metrics/page.jsx`, Firestore aggregations |
+| Area         | Files                                                                 |
+| ------------ | --------------------------------------------------------------------- |
+| Performance  | `next.config.mjs`, image components, `npm run analyze`                |
+| Realtime     | `firebase/firebase.js` (persistentLocalCache)                         |
+| Monetization | `components/CheckoutForm.js`, `functions/stripe.js`                   |
+| Printify     | `functions/printify.js` (TODO), `functions/printifyWebhook.js` (TODO) |
+| Metrics      | `src/app/admin/metrics/page.jsx`, Firestore aggregations              |
 
 ---
 
