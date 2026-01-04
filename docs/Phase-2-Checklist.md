@@ -181,9 +181,33 @@ campaignLogs/{docId}
 
 ### Cross-Sell at Checkout
 
-- [ ] Show related merch on ticket checkout page
+- [ ] Show related merch on ticket checkout page — `src/app/cart/components/CrossSellSection.js`
 - [ ] "Complete the look" section with event-themed items
-- [ ] Track cross-sell conversion rate
+- [ ] Track cross-sell conversion rate (simple: count adds from section)
+
+**Cross-Sell Design (Jan 3, 2026)**:
+
+| Element     | Implementation                                                     |
+| ----------- | ------------------------------------------------------------------ |
+| Component   | `CrossSellSection.js` — below cart items, above fold               |
+| Data Source | `fetchShopifyProducts()` — reuses existing Shopify cache           |
+| Logic       | If cart has tickets → show merch. Filter out items already in cart |
+| Quick Add   | One-click add with toast confirmation, no page navigation          |
+| Limit       | 4 items max to avoid overwhelming checkout flow                    |
+| Tracking    | Optional: log `crossSellAdds` count in purchase doc                |
+
+```
+┌─────────────────────────────────────────────────────┐
+│  Cart Items (lg:col-span-7)  │  Order Summary       │
+│  ─────────────────────────── │  (lg:col-span-5)     │
+│  • Event Ticket x2           │                      │
+│  • T-Shirt x1                │  Subtotal: $50       │
+│  ─────────────────────────── │  Tax: $3.75          │
+│  🎁 Complete the Look        │  Total: $53.75       │
+│  [Hoodie] [Hat] [Tee] [Tank] │  [Pay Now]           │
+│  +Add    +Add  +Add   +Add   │                      │
+└─────────────────────────────────────────────────────┘
+```
 
 ### Promo Codes
 

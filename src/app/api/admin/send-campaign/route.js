@@ -41,7 +41,7 @@ export async function POST(req) {
     const body = await req.json().catch(() => null);
     if (!body) return err('INVALID_JSON', 'Malformed JSON body');
 
-    const { subject, message, recipients, filterSource, filterEventId, idempotencyKey } = body;
+    const { subject, message, recipients, filterSource, filterEventId } = body;
 
     // Validate required fields
     if (!subject || typeof subject !== 'string' || !subject.trim()) {

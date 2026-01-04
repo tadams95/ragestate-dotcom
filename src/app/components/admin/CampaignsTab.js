@@ -283,7 +283,7 @@ export default function CampaignsTab() {
             <p className="mt-3 text-xs text-[var(--text-tertiary)]">
               — RAGESTATE Team
               <br />
-              <span className="text-[var(--text-tertiary)]/60">
+              <span className="text-[var(--text-tertiary)] opacity-60">
                 Unsubscribe: support@ragestate.com
               </span>
             </p>

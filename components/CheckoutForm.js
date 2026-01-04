@@ -235,7 +235,7 @@ export default function CheckoutForm({
 
       {/* FIX: Show address validation message for physical items */}
       {addressMissing && (
-        <div className="mt-4 rounded-md border border-yellow-500/50 bg-yellow-500/10 p-3 text-sm text-yellow-200">
+        <div className="border-[var(--warning)]/50 bg-[var(--warning)]/10 mt-4 rounded-md border p-3 text-sm text-[var(--warning)]">
           <p>
             <strong>Shipping address required:</strong> Please enter your complete shipping address
             above to continue with checkout for physical items.
@@ -246,10 +246,10 @@ export default function CheckoutForm({
       <button
         disabled={isButtonDisabled}
         id="submit"
-        className={`mt-6 w-full rounded-md border border-transparent px-4 py-2 text-base font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+        className={`mt-6 w-full rounded-md border border-transparent px-4 py-2 text-base font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[var(--bg-root)] ${
           isButtonDisabled
-            ? 'cursor-not-allowed bg-gray-500 text-gray-300'
-            : 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500'
+            ? 'cursor-not-allowed bg-[var(--text-tertiary)] text-[var(--bg-root)]'
+            : 'bg-[var(--accent)] text-white hover:bg-[var(--accent-glow)] focus:ring-[var(--accent)]'
         }`}
       >
         <span id="button-text">{buttonText}</span>
@@ -257,7 +257,7 @@ export default function CheckoutForm({
       {message && (
         <div
           id="payment-message"
-          className={`mt-4 text-sm ${message.includes('success') ? 'text-green-500' : 'text-red-500'}`}
+          className={`mt-4 text-sm ${message.includes('success') ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}
         >
           {message}
         </div>

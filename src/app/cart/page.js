@@ -16,9 +16,11 @@ import {
 
 import storage from '@/utils/storage';
 import EmptyCart from '../../../components/EmptyCart';
+import { useTheme } from '../../../lib/context/ThemeContext';
 
 // Import new components
 import CartItemDisplay from './components/CartItemDisplay';
+import CrossSellSection from './components/CrossSellSection';
 import OrderSummaryDisplay from './components/OrderSummaryDisplay';
 // Promo code functionality removed
 
@@ -205,15 +207,51 @@ export default function Cart() {
     }
   }, [state.userName, state.userEmail, state.userId, cartItems, stripeTotal]);
 
+  // Get current theme for Stripe appearance
+  const { resolvedTheme } = useTheme();
+
+  // Stripe PaymentElement appearance - synced with light/dark mode
   const appearance = useMemo(
     () => ({
-      theme: 'stripe',
+      theme: resolvedTheme === 'dark' ? 'night' : 'stripe',
       variables: {
-        colorText: '#ffffff',
-        colorBackground: '#000000',
+        // Colors from CSS variables (hardcoded here since Stripe doesn't read CSS vars)
+        colorPrimary: '#ff1f42', // --accent
+        colorBackground: resolvedTheme === 'dark' ? '#0d0d0f' : '#ffffff', // --bg-elev-1
+        colorText: resolvedTheme === 'dark' ? '#f5f6f7' : '#111113', // --text-primary
+        colorTextSecondary: resolvedTheme === 'dark' ? '#a1a5ab' : '#555555', // --text-secondary
+        colorDanger: resolvedTheme === 'dark' ? '#ff4d4d' : '#e53935', // --danger
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        borderRadius: '8px',
+        spacingUnit: '4px',
+      },
+      rules: {
+        '.Input': {
+          backgroundColor: resolvedTheme === 'dark' ? '#16171a' : '#f0f0f2', // --bg-elev-2
+          borderColor: resolvedTheme === 'dark' ? '#242528' : '#e0e0e3', // --border-subtle
+          color: resolvedTheme === 'dark' ? '#f5f6f7' : '#111113',
+        },
+        '.Input:focus': {
+          borderColor: '#ff1f42', // --accent
+          boxShadow: '0 0 0 1px #ff1f42',
+        },
+        '.Label': {
+          color: resolvedTheme === 'dark' ? '#a1a5ab' : '#555555', // --text-secondary
+        },
+        '.Tab': {
+          backgroundColor: resolvedTheme === 'dark' ? '#16171a' : '#f0f0f2',
+          borderColor: resolvedTheme === 'dark' ? '#242528' : '#e0e0e3',
+        },
+        '.Tab:hover': {
+          backgroundColor: resolvedTheme === 'dark' ? '#242528' : '#e0e0e3',
+        },
+        '.Tab--selected': {
+          borderColor: '#ff1f42',
+          backgroundColor: resolvedTheme === 'dark' ? '#0d0d0f' : '#ffffff',
+        },
       },
     }),
-    [],
+    [resolvedTheme],
   );
 
   const options = useMemo(
@@ -267,6 +305,9 @@ export default function Cart() {
                   />
                 ))}
               </ul>
+
+              {/* Cross-sell suggestions */}
+              <CrossSellSection cartItems={cartItems} />
             </section>
 
             <OrderSummaryDisplay
