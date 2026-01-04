@@ -205,7 +205,7 @@ export default function Header() {
   return (
     <div className="bg-[var(--bg-root)] transition-colors duration-200">
       <header className="absolute inset-x-0 top-0 z-50">
-        <nav className="flex items-center justify-between p-6 lg:px-8" aria-label="Global">
+        <nav className="relative flex items-center justify-between p-6 lg:px-8" aria-label="Global">
           <div className="flex lg:flex-1">
             <Link href="/" className="-m-1.5 p-1.5">
               <span className="sr-only">RAGESTATE</span>
@@ -230,7 +230,7 @@ export default function Header() {
               <Bars3Icon className="h-5 w-5" aria-hidden="true" />
             </button>
           </div>
-          <div className="hidden lg:flex lg:gap-x-12">
+          <div className="hidden lg:absolute lg:left-1/2 lg:flex lg:-translate-x-1/2 lg:gap-x-12">
             {navigation.map((item) => (
               <Link
                 key={item.name}
