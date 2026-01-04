@@ -1,8 +1,10 @@
+import Link from 'next/link';
+
 const navigation = {
   main: [
-    { name: 'About', href: '/about' },
-    { name: 'Blog', href: '/blog' },
-    { name: 'Privacy Policy', href: '/privacy-policy' },
+    { name: 'ABOUT', href: '/about' },
+    // { name: 'Blog', href: '/blog' },
+    { name: 'PRIVACY POLICY', href: '/privacy-policy' },
   ],
   social: [
     {
@@ -86,14 +88,29 @@ export default function Footer() {
   return (
     <footer className="border-t border-[var(--border-subtle)] bg-[var(--bg-root)] py-6 transition-colors duration-200 supports-[padding:env(safe-area-inset-bottom)]:pb-[max(24px,env(safe-area-inset-bottom))]">
       <div className="container mx-auto px-4">
-        <div className="flex flex-col items-center justify-between md:flex-row">
-          <div className="mb-4 md:mb-0">
+        <div className="relative flex flex-col items-center justify-between gap-6 md:flex-row">
+          {/* Copyright - Mobile: Bottom, Desktop: Left */}
+          <div className="order-3 md:order-1">
             <p className="text-sm text-[var(--text-primary)]">
               &copy; {new Date().getFullYear()} RAGESTATE, LLC. All rights reserved.
             </p>
           </div>
 
-          <div className="flex space-x-6">
+          {/* Navigation Links - Mobile: Top, Desktop: Center (Absolute) */}
+          <div className="order-1 flex gap-x-8 md:absolute md:left-1/2 md:-translate-x-1/2">
+            {navigation.main.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                className="text-sm font-semibold leading-6 text-[var(--text-primary)] transition-colors hover:text-[var(--accent)]"
+              >
+                {item.name}
+              </Link>
+            ))}
+          </div>
+
+          {/* Social Icons - Mobile: Middle, Desktop: Right */}
+          <div className="order-2 flex space-x-6 md:order-3">
             {/* Filter social links to only show Instagram, TikTok, X (Twitter), and GitHub */}
             {navigation.social
               .filter((item) => ['Instagram', 'TikTok', 'X', 'GitHub'].includes(item.name))
