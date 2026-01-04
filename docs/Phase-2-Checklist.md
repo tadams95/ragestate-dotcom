@@ -439,14 +439,22 @@ firebase functions:secrets:set PRINTIFY_WEBHOOK_SECRET  # For signature validati
 
 ### Admin Metrics Page
 
-- [ ] Create `src/app/admin/metrics/page.jsx` (basic structure exists)
-- [ ] Revenue chart: daily/weekly/monthly ticket sales
-- [ ] User growth chart: signups over time
-- [ ] Feed engagement: posts/day, comments/post, DAU/MAU
+- [x] Create `src/app/admin/metrics/page.jsx` (basic structure exists)
+- [x] Revenue chart: daily/weekly/monthly ticket sales
+- [x] User growth chart: signups over time
+- [x] Feed engagement: posts/day, comments/post, DAU/MAU
+
+**Admin Metrics Implementation (Jan 2026)**:
+| Feature | Implementation | Notes |
+|---------|----------------|-------|
+| Revenue Chart | `RevenueChart.jsx` | Recharts AreaChart, daily/weekly/monthly toggle |
+| User Growth | `UserGrowthChart.jsx` | Recharts LineChart, daily signups + cumulative |
+| Feed Engagement | `FeedEngagement.jsx` | Stat cards + progress bars for engagement metrics |
+| Data Hook | `useMetricsData.js` | Fetches from `purchases`, `customers`, `posts` collections |
 
 ### Key Metrics to Track
 
-- [ ] Total revenue (tickets + merch)
+- [x] Total revenue (tickets + merch) — Displayed in RevenueChart with all-time total
 - [ ] Monthly Recurring Revenue (MRR) if applicable
 - [ ] Customer Acquisition Cost (CAC) — ad spend / new users
 - [ ] Lifetime Value (LTV) — avg revenue per user
@@ -460,9 +468,117 @@ firebase functions:secrets:set PRINTIFY_WEBHOOK_SECRET  # For signature validati
 
 ### Firestore Aggregations
 
-- [ ] Daily aggregation Cloud Function for stats
-- [ ] Store in `analytics/{date}` collection
-- [ ] Avoid expensive real-time queries on dashboard load
+> **Goal**: Server-side metrics aggregation for accurate, scalable business intelligence
+
+**Architecture**:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Daily Scheduled Function (Cloud Scheduler @ 2am UTC)           │
+│  ─────────────────────────────────────────────────────────────  │
+│  1. Query purchases from yesterday → aggregate revenue          │
+│  2. Query customers from yesterday → count new signups          │
+│  3. Query posts from yesterday → count posts, sum likes/comments│
+│  4. Write to analytics/{YYYY-MM-DD}                             │
+│  5. Update analytics/totals (running cumulative)                │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**`analytics/{YYYY-MM-DD}` Schema**:
+
+```js
+analytics/{date}
+├── date: "2026-01-04"           // For querying
+├── revenue: {
+│   ├── total: 15000,            // Cents
+│   ├── ticketRevenue: 10000,
+│   ├── merchRevenue: 5000,
+│   └── orderCount: 12
+│ }
+├── users: {
+│   ├── newSignups: 5,
+│   └── cumulative: 793          // Running total
+│ }
+├── feed: {
+│   ├── newPosts: 8,
+│   ├── newLikes: 45,
+│   ├── newComments: 12,
+│   └── activePosters: 6         // Unique users who posted
+│ }
+├── computedAt: Timestamp
+└── version: 1                   // Schema version for migrations
+```
+
+**`analytics/totals` Schema** (always up-to-date):
+
+```js
+analytics/totals
+├── totalRevenue: 1250000        // All-time revenue (cents)
+├── totalOrders: 450
+├── totalUsers: 793
+├── totalPosts: 1250
+├── totalLikes: 8500
+├── totalComments: 2100
+├── lastUpdated: Timestamp
+└── lastDate: "2026-01-04"       // Most recent aggregation
+```
+
+**Implementation Checklist**:
+
+- [ ] Create `functions/analytics.js` with scheduled aggregation function
+  - `aggregateDailyMetrics` — runs daily via Cloud Scheduler
+  - Queries: `purchases`, `customers`, `posts` for previous day
+  - Writes: `analytics/{date}` + updates `analytics/totals`
+  - Idempotent: safe to re-run (overwrites same date doc)
+
+- [ ] Add date-range query helpers
+  - `getDateRange(date)` — returns start/end Timestamps for a day
+  - Handle timezone: aggregate in UTC, display in user's locale
+
+- [ ] Create admin endpoint: `POST /run-daily-aggregation`
+  - Manual trigger for testing or backfill single day
+  - Accepts `{ date: "YYYY-MM-DD" }` param
+  - Protected by `x-proxy-key`
+
+- [ ] Create backfill script: `scripts/backfillAnalytics.js`
+  - One-time run to populate historical `analytics/{date}` docs
+  - Iterates from earliest purchase date to yesterday
+  - Can be run locally or as admin endpoint
+
+- [ ] Update `useMetricsData.js` to read from aggregations
+  - Primary: Read `analytics/totals` for headline numbers
+  - Charts: Query `analytics/{date}` for last 30 days (30 reads vs 500+)
+  - Fallback: Keep current logic if aggregations don't exist yet
+
+- [ ] Deploy scheduled function
+  - `firebase.json`: Add Cloud Scheduler config
+  - Schedule: Daily at 2:00 AM UTC (after midnight in all US timezones)
+  - Memory: 256MB (sufficient for aggregation queries)
+  - Timeout: 60s
+
+- [ ] Add Firestore indexes for date-range queries
+  - `purchases`: composite index on `orderDate` + `status`
+  - `customers`: index on `createdAt`
+  - `posts`: index on `createdAt`
+
+- [ ] Test aggregation accuracy
+  - Compare aggregated totals vs manual Firestore console queries
+  - Verify revenue matches Stripe dashboard
+  - Confirm user count matches Firebase Auth
+
+**Estimated Effort**: 4-6 hours total
+| Task | Time |
+|------|------|
+| `analytics.js` function | 2h |
+| Backfill script | 1h |
+| Update dashboard hook | 1h |
+| Testing & deployment | 1-2h |
+
+**Cost Impact**: ~$0/month (within free tier)
+
+- 1 scheduled invocation/day = 30/month
+- ~100 reads per aggregation = 3,000 reads/month
+- 31 writes/month (daily docs + totals)
 
 ---
 

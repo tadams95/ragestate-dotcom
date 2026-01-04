@@ -1,12 +1,31 @@
 'use client';
 import { collection, doc, getDoc, getDocs, getFirestore } from 'firebase/firestore';
+import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import { app } from '../../../../firebase/firebase';
+import { useMetricsData } from './hooks/useMetricsData';
+
+// Dynamically import chart components to avoid SSR issues with Recharts
+const RevenueChart = dynamic(() => import('./components/RevenueChart'), { ssr: false });
+const UserGrowthChart = dynamic(() => import('./components/UserGrowthChart'), { ssr: false });
+const FeedEngagement = dynamic(() => import('./components/FeedEngagement'), { ssr: false });
 
 export default function AdminMetricsPage() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Fetch business metrics
+  const {
+    loading: metricsLoading,
+    error: metricsError,
+    revenueData,
+    totalRevenue,
+    userGrowthData,
+    totalUsers,
+    feedStats,
+    refetch,
+  } = useMetricsData();
 
   useEffect(() => {
     let cancelled = false;
@@ -47,11 +66,83 @@ export default function AdminMetricsPage() {
   return (
     <div className="min-h-screen bg-[var(--bg-root)] px-4 pb-16 pt-28 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        {/* Page Header */}
+        <div className="mb-8 flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
-              Event Metrics
+              Admin Metrics
             </h1>
+            <p className="mt-1 text-sm text-[var(--text-secondary)]">
+              Business intelligence and operational metrics dashboard.
+            </p>
+          </div>
+          <button
+            onClick={refetch}
+            disabled={metricsLoading}
+            className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors hover:bg-[var(--bg-elev-2)] disabled:opacity-50"
+            style={{
+              borderColor: 'var(--border-subtle)',
+              color: 'var(--text-secondary)',
+            }}
+          >
+            <svg
+              className={`h-4 w-4 ${metricsLoading ? 'animate-spin' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            Refresh
+          </button>
+        </div>
+
+        {/* Business Metrics Section */}
+        <div className="mb-12 space-y-6">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Business Metrics</h2>
+
+          {metricsError && (
+            <div className="rounded-md border border-red-700/40 bg-red-600/10 px-4 py-3 text-sm text-red-300">
+              {metricsError}
+            </div>
+          )}
+
+          {metricsLoading ? (
+            <div className="grid gap-6 lg:grid-cols-2">
+              {[1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="h-80 animate-pulse rounded-xl border bg-[var(--bg-elev-1)]"
+                  style={{ borderColor: 'var(--border-subtle)' }}
+                />
+              ))}
+              <div
+                className="col-span-full h-64 animate-pulse rounded-xl border bg-[var(--bg-elev-1)]"
+                style={{ borderColor: 'var(--border-subtle)' }}
+              />
+            </div>
+          ) : (
+            <div className="grid gap-6 lg:grid-cols-2">
+              <RevenueChart data={revenueData} totalRevenue={totalRevenue} />
+              <UserGrowthChart data={userGrowthData} totalUsers={totalUsers} />
+              <div className="lg:col-span-2">
+                <FeedEngagement stats={feedStats} />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Event Scanning Metrics Section */}
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight text-[var(--text-primary)]">
+              Event Scanning Metrics
+            </h2>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">
               Operational scanning & preview indicators per event.
             </p>
