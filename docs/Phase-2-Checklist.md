@@ -269,23 +269,55 @@ Customer Purchase → Stripe PI → fulfillments/{pi} → Cloud Function → Pri
 | `createWebhook({ topic, url, secret })` | Register webhook endpoint |
 | `validateWebhookSignature(payload, signature, secret)` | Verify webhook HMAC |
 
-### Order Submission
+### Order Submission ✅
 
-- [ ] On `finalize-order` for merch items: submit to Printify via `POST /v1/shops/{shop_id}/orders.json`
-- [ ] Map Shopify variant SKU → Printify product_id + variant_id (requires SKU mapping table)
-- [ ] Include shipping address from checkout form
-- [ ] Store Printify order ID in `fulfillments/{pi}.printifyOrderId`
-- [ ] Handle mixed carts: tickets go to `ragers`, merch goes to Printify
+- [x] On `finalize-order` for merch items: submit to Printify via `POST /v1/shops/{shop_id}/orders.json` — Integrated in `stripe.js`
+- [x] Map Shopify variant SKU → Printify product_id + variant_id — Uses `findByVariantSku()` lookup
+- [x] Include shipping address from checkout form — Pulls from `addressDetails`
+- [x] Store Printify order ID in `fulfillments/{pi}.printifyOrderId` — Also in `purchases` and `merchandiseOrders`
+- [x] Handle mixed carts: tickets go to `ragers`, merch goes to Printify — Categorized before processing
+
+**Integration Details (Jan 3, 2026)**:
+
+- Added `defineSecret` for `PRINTIFY_API_TOKEN` and `PRINTIFY_SHOP_ID` in `stripe.js`
+- Added secrets to `stripePayment` export array
+- Merchandise flow: save to `merchandiseOrders` → lookup SKU in Printify → create order → update docs
+- Graceful fallback: if Printify not configured or SKU lookup fails, orders stay in Firestore for manual fulfillment
+- Enhanced purchase/fulfillment docs with: `printifyOrderId`, `fulfillmentProvider`, `printifyStatus`
 
 ### Webhook Implementation
 
-- [ ] Create `functions/printifyWebhook.js` HTTP endpoint
-- [ ] Register webhooks via Printify API for:
+- [x] Create `functions/printifyWebhook.js` HTTP endpoint — Handles shipment:created, shipment:delivered, order:updated
+- [x] Register webhooks via Printify API for:
   - `order:shipment:created` → tracking available
   - `order:shipment:delivered` → delivery confirmed
   - `order:updated` → status changes (in-production, fulfilled, etc.)
-- [ ] Validate webhook signature (`X-Pfy-Signature` header with HMAC SHA256)
-- [ ] Update `fulfillments/{pi}` with: `status`, `trackingNumber`, `carrier`, `shippedAt`
+- [x] Validate webhook signature (`X-Pfy-Signature` header with HMAC SHA256) — Uses `validateWebhookSignature()` from printify.js
+- [x] Update `fulfillments/{pi}` with: `status`, `trackingNumber`, `carrier`, `shippedAt` — Also updates `purchases` docs
+
+**Webhook Implementation Details (Jan 4, 2026)**:
+| File | Purpose |
+|------|---------|
+| `functions/printifyWebhook.js` | HTTP endpoint for receiving Printify webhooks |
+| `functions/index.js` | Re-exports `printifyWebhook` function |
+| `functions/stripe.js` | Admin endpoints: `POST /register-printify-webhooks`, `GET /printify-webhooks` |
+
+**Registration Commands**:
+
+```bash
+# Set webhook secret
+firebase functions:secrets:set PRINTIFY_WEBHOOK_SECRET
+
+# After deploy, register webhooks (one-time)
+curl -X POST https://us-central1-ragestate-app.cloudfunctions.net/stripePayment/register-printify-webhooks \
+  -H "x-proxy-key: $PROXY_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"secret": "<your-webhook-secret>"}'
+
+# List registered webhooks
+curl https://us-central1-ragestate-app.cloudfunctions.net/stripePayment/printify-webhooks \
+  -H "x-proxy-key: $PROXY_KEY"
+```
 
 ### Order Status Sync
 

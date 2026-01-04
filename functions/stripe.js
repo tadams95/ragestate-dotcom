@@ -11,6 +11,13 @@ const { admin, db } = require('./admin');
 const { createShopifyOrder, isShopifyConfigured } = require('./shopifyAdmin');
 const { checkRateLimit } = require('./rateLimit');
 const { sendEmail, sendBulkEmail } = require('./sesEmail');
+const {
+  isPrintifyConfigured,
+  createOrder: createPrintifyOrder,
+  findByVariantSku,
+  createWebhook: createPrintifyWebhook,
+  getWebhooks: getPrintifyWebhooks,
+} = require('./printify');
 
 // Secret Manager: define secrets. Also support process.env for local dev.
 const STRIPE_SECRET = defineSecret('STRIPE_SECRET');
@@ -21,6 +28,10 @@ const SHOPIFY_SHOP_NAME = defineSecret('SHOPIFY_SHOP_NAME');
 const AWS_ACCESS_KEY_ID = defineSecret('AWS_ACCESS_KEY_ID');
 const AWS_SECRET_ACCESS_KEY = defineSecret('AWS_SECRET_ACCESS_KEY');
 const AWS_SES_REGION = defineSecret('AWS_SES_REGION');
+// Printify fulfillment secrets
+const PRINTIFY_API_TOKEN = defineSecret('PRINTIFY_API_TOKEN');
+const PRINTIFY_SHOP_ID = defineSecret('PRINTIFY_SHOP_ID');
+const PRINTIFY_WEBHOOK_SECRET = defineSecret('PRINTIFY_WEBHOOK_SECRET');
 let stripeClient;
 function getStripe() {
   const key = STRIPE_SECRET.value() || process.env.STRIPE_SECRET;
@@ -898,78 +909,186 @@ app.post('/finalize-order', async (req, res) => {
     }
 
     // ============================================================================
-    // CREATE SHOPIFY ORDER (if we have merchandise items and Shopify is configured)
+    // CREATE PRINTIFY ORDER (if we have merchandise items and Printify is configured)
+    // Printify handles print-on-demand fulfillment; Shopify is display-only
     // ============================================================================
+    let printifyOrderResult = null;
     if (merchItemsForShopify.length > 0) {
-      logger.info('Finalize-order: Creating Shopify order for merchandise', {
+      const printifyConfigured = isPrintifyConfigured();
+      logger.info('Finalize-order: Processing merchandise fulfillment', {
         orderNumber,
         itemCount: merchItemsForShopify.length,
-        shopifyConfigured: isShopifyConfigured(),
+        printifyConfigured,
+        shopifyConfigured: isShopifyConfigured(), // Legacy, kept for logging
       });
 
-      try {
-        const shopifyResult = await createShopifyOrder({
-          items: merchItemsForShopify,
-          email: userEmail || pi.receipt_email || '',
-          orderNumber: orderNumber,
-          customerName: userName || '',
-          shippingAddress: addressDetails
-            ? {
-                name: addressDetails.name || userName || '',
-                line1: addressDetails.address?.line1 || '',
-                line2: addressDetails.address?.line2 || '',
-                city: addressDetails.address?.city || '',
-                state: addressDetails.address?.state || '',
-                postalCode: addressDetails.address?.postal_code || '',
-                country: addressDetails.address?.country || 'US',
-              }
-            : null,
-        });
+      // Attempt Printify order if configured
+      if (printifyConfigured && addressDetails) {
+        try {
+          // Build line items with Printify product/variant IDs
+          // Strategy: Use SKU lookup or fall back to stored mapping
+          const printifyLineItems = [];
+          const skuLookupErrors = [];
 
-        if (shopifyResult && shopifyResult.success) {
-          // Update all merchandise orders with Shopify order info
-          const batch = db.batch();
           for (const merchItem of merchItemsForShopify) {
-            const merchDocRef = db.collection('merchandiseOrders').doc(merchItem.firestoreId);
-            batch.update(merchDocRef, {
-              shopifyOrderId: shopifyResult.shopifyOrderId,
-              shopifyOrderNumber: shopifyResult.shopifyOrderNumber,
-              shopifyOrderName: shopifyResult.orderName || null,
-              shopifyStatusUrl: shopifyResult.statusUrl || null,
-              status: 'sent_to_shopify',
-              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            // Try to find Printify product by SKU if variantId looks like a Shopify GID
+            const sku = merchItem.sku || null;
+            let printifyProductId = null;
+            let printifyVariantId = null;
+
+            // Check if item has Printify IDs stored (from SKU mapping or product sync)
+            if (merchItem.printifyProductId && merchItem.printifyVariantId) {
+              printifyProductId = merchItem.printifyProductId;
+              printifyVariantId = merchItem.printifyVariantId;
+            } else if (sku) {
+              // Try SKU lookup in Printify
+              try {
+                const skuResult = await findByVariantSku(sku);
+                if (skuResult) {
+                  printifyProductId = skuResult.productId;
+                  printifyVariantId = skuResult.variantId;
+                  logger.info('Finalize-order: Found Printify product by SKU', {
+                    sku,
+                    printifyProductId,
+                    printifyVariantId,
+                  });
+                }
+              } catch (skuErr) {
+                logger.warn('Finalize-order: SKU lookup failed', { sku, error: skuErr?.message });
+              }
+            }
+
+            if (printifyProductId && printifyVariantId) {
+              printifyLineItems.push({
+                printifyProductId,
+                printifyVariantId,
+                quantity: merchItem.quantity,
+                firestoreId: merchItem.firestoreId,
+              });
+            } else {
+              skuLookupErrors.push({
+                productId: merchItem.productId,
+                title: merchItem.title,
+                reason: 'No Printify mapping found',
+              });
+            }
+          }
+
+          if (printifyLineItems.length > 0) {
+            // Build shipping address for Printify
+            const printifyShippingAddress = {
+              name: addressDetails.name || userName || '',
+              email: userEmail || pi.receipt_email || '',
+              phone: addressDetails.phone || '',
+              line1: addressDetails.address?.line1 || '',
+              line2: addressDetails.address?.line2 || '',
+              city: addressDetails.address?.city || '',
+              state: addressDetails.address?.state || '',
+              postalCode: addressDetails.address?.postal_code || '',
+              country: addressDetails.address?.country || 'US',
+            };
+
+            // Create Printify order
+            printifyOrderResult = await createPrintifyOrder({
+              externalId: pi.id, // Use PaymentIntent ID for correlation
+              lineItems: printifyLineItems,
+              shippingAddress: printifyShippingAddress,
+              sendToProduction: true, // Auto-send to production
+            });
+
+            if (printifyOrderResult && printifyOrderResult.id) {
+              // Update all merchandise orders with Printify order info
+              const batch = db.batch();
+              for (const lineItem of printifyLineItems) {
+                const merchDocRef = db.collection('merchandiseOrders').doc(lineItem.firestoreId);
+                batch.update(merchDocRef, {
+                  printifyOrderId: printifyOrderResult.id,
+                  printifyStatus: printifyOrderResult.status || 'pending',
+                  fulfillmentProvider: 'printify',
+                  status: 'sent_to_printify',
+                  updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                });
+              }
+              await batch.commit();
+
+              logger.info('Finalize-order: Printify order created and linked', {
+                orderNumber,
+                printifyOrderId: printifyOrderResult.id,
+                itemCount: printifyLineItems.length,
+                skuLookupErrors: skuLookupErrors.length,
+              });
+            }
+          } else {
+            logger.warn('Finalize-order: No items could be mapped to Printify', {
+              orderNumber,
+              skuLookupErrors,
             });
           }
-          await batch.commit();
 
-          logger.info('Finalize-order: Shopify order created and linked', {
-            orderNumber,
-            shopifyOrderId: shopifyResult.shopifyOrderId,
-            shopifyOrderNumber: shopifyResult.shopifyOrderNumber,
-            itemCount: merchItemsForShopify.length,
-          });
-        } else if (shopifyResult && shopifyResult.reason === 'not_configured') {
-          // Shopify not configured - orders remain in Firestore for manual fulfillment
-          logger.info(
-            'Finalize-order: Shopify not configured, merchandise orders saved to Firestore only',
-            {
+          // Log items that couldn't be mapped (need manual fulfillment or SKU sync)
+          if (skuLookupErrors.length > 0) {
+            logger.warn('Finalize-order: Some items lack Printify mapping', {
               orderNumber,
-              itemCount: merchItemsForShopify.length,
-            },
-          );
-        } else {
-          // Shopify API error - log but don't fail the order (Firestore has the data)
-          logger.warn('Finalize-order: Shopify order creation failed, falling back to Firestore', {
+              unmappedCount: skuLookupErrors.length,
+              items: skuLookupErrors,
+            });
+          }
+        } catch (printifyError) {
+          // Non-fatal: Printify failed but Firestore orders exist for manual fulfillment
+          logger.error('Finalize-order: Printify order creation failed', {
             orderNumber,
-            shopifyResult,
+            error: printifyError?.message,
+            stack: printifyError?.stack,
           });
         }
-      } catch (shopifyError) {
-        // Non-fatal: Shopify failed but Firestore orders exist
-        logger.error('Finalize-order: Shopify order creation exception', {
+      } else if (!addressDetails) {
+        logger.warn('Finalize-order: No shipping address for merchandise', { orderNumber });
+      } else {
+        logger.info('Finalize-order: Printify not configured, orders saved to Firestore only', {
           orderNumber,
-          error: shopifyError?.message,
+          itemCount: merchItemsForShopify.length,
         });
+      }
+
+      // Legacy: Attempt Shopify order if configured (fallback/parallel)
+      // This is kept for potential future use but Shopify Admin is currently stubbed
+      if (isShopifyConfigured()) {
+        try {
+          const shopifyResult = await createShopifyOrder({
+            items: merchItemsForShopify,
+            email: userEmail || pi.receipt_email || '',
+            orderNumber: orderNumber,
+            customerName: userName || '',
+            shippingAddress: addressDetails
+              ? {
+                  name: addressDetails.name || userName || '',
+                  line1: addressDetails.address?.line1 || '',
+                  line2: addressDetails.address?.line2 || '',
+                  city: addressDetails.address?.city || '',
+                  state: addressDetails.address?.state || '',
+                  postalCode: addressDetails.address?.postal_code || '',
+                  country: addressDetails.address?.country || 'US',
+                }
+              : null,
+          });
+
+          if (shopifyResult && shopifyResult.success) {
+            const batch = db.batch();
+            for (const merchItem of merchItemsForShopify) {
+              const merchDocRef = db.collection('merchandiseOrders').doc(merchItem.firestoreId);
+              batch.update(merchDocRef, {
+                shopifyOrderId: shopifyResult.shopifyOrderId,
+                shopifyOrderNumber: shopifyResult.shopifyOrderNumber,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+              });
+            }
+            await batch.commit();
+          }
+        } catch (shopifyError) {
+          logger.warn('Finalize-order: Shopify fallback failed (non-fatal)', {
+            error: shopifyError?.message,
+          });
+        }
       }
     }
 
@@ -1060,6 +1179,16 @@ app.post('/finalize-order', async (req, res) => {
       hasMerchandiseItems,
       eventItemCount: eventItems.length,
       merchandiseItemCount: merchandiseItems.length,
+      // Fulfillment tracking
+      printifyOrderId: printifyOrderResult?.id || null,
+      fulfillmentProvider: printifyOrderResult?.id
+        ? 'printify'
+        : hasMerchandiseItems
+          ? 'manual'
+          : null,
+      // Stripe payment details for reference
+      stripePaymentMethod: pi.payment_method_types?.[0] || null,
+      stripeLast4: pi.charges?.data?.[0]?.payment_method_details?.card?.last4 || null,
     };
 
     // Write purchases in both collections
@@ -1129,6 +1258,14 @@ app.post('/finalize-order', async (req, res) => {
           // FIX: Include any partial failures
           errors: errors.length > 0 ? errors : null,
           partialSuccess: errors.length > 0 && totalItemsProcessed > 0,
+          // Printify fulfillment tracking
+          printifyOrderId: printifyOrderResult?.id || null,
+          printifyStatus: printifyOrderResult?.status || null,
+          fulfillmentProvider: printifyOrderResult?.id
+            ? 'printify'
+            : hasMerchandiseItems
+              ? 'manual'
+              : null,
           // backfill summary fields for triggers
           email: (userEmail && String(userEmail).trim()) || pi.receipt_email || '',
           items: items.map((i) => ({
@@ -1149,6 +1286,7 @@ app.post('/finalize-order', async (req, res) => {
       orderNumber,
       createdTickets: created.length,
       createdMerchOrders: merchOrdersCreated.length,
+      printifyOrderId: printifyOrderResult?.id || null,
       errors: errors.length,
       itemTypes,
     });
@@ -1162,6 +1300,7 @@ app.post('/finalize-order', async (req, res) => {
       details: created,
       merchandiseDetails: merchOrdersCreated,
       itemTypes,
+      printifyOrderId: printifyOrderResult?.id || null,
       // Include partial failure info if some items failed
       partialFailure: errors.length > 0 ? { count: errors.length, errors } : null,
     });
@@ -2572,6 +2711,92 @@ app.post('/backfill-ticket-tokens', async (req, res) => {
   }
 });
 
+// Admin: register Printify webhooks for order status updates
+// Call once after deploy to set up webhook listeners
+app.post('/register-printify-webhooks', async (req, res) => {
+  try {
+    const expectedProxyKey = PROXY_KEY.value() || process.env.PROXY_KEY;
+    if (expectedProxyKey) {
+      const provided = req.get('x-proxy-key');
+      if (!provided || provided !== expectedProxyKey) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+    }
+
+    if (!isPrintifyConfigured()) {
+      return res.status(503).json({ error: 'Printify not configured' });
+    }
+
+    const { baseUrl, secret } = req.body || {};
+    // Default to production URL if not provided
+    const webhookBaseUrl =
+      baseUrl || 'https://us-central1-ragestate-app.cloudfunctions.net/printifyWebhook';
+    const webhookSecret = secret || process.env.PRINTIFY_WEBHOOK_SECRET;
+
+    if (!webhookSecret) {
+      return res.status(400).json({
+        error: 'Webhook secret required',
+        hint: 'Set PRINTIFY_WEBHOOK_SECRET or pass secret in body',
+      });
+    }
+
+    // Topics to register
+    const topics = ['order:shipment:created', 'order:shipment:delivered', 'order:updated'];
+
+    // Check existing webhooks to avoid duplicates
+    const existing = await getPrintifyWebhooks();
+    const existingTopics = new Set((existing || []).map((w) => w.topic));
+
+    const results = [];
+    for (const topic of topics) {
+      if (existingTopics.has(topic)) {
+        results.push({ topic, status: 'already_registered' });
+        continue;
+      }
+
+      try {
+        const webhook = await createPrintifyWebhook({
+          topic,
+          url: webhookBaseUrl,
+          secret: webhookSecret,
+        });
+        results.push({ topic, status: 'registered', id: webhook.id });
+      } catch (err) {
+        results.push({ topic, status: 'failed', error: err.message });
+      }
+    }
+
+    logger.info('Printify webhooks registration', { results });
+    return res.json({ ok: true, webhookUrl: webhookBaseUrl, results });
+  } catch (err) {
+    logger.error('register-printify-webhooks error', err);
+    return res.status(500).json({ error: 'Failed to register webhooks', message: err?.message });
+  }
+});
+
+// Admin: list registered Printify webhooks
+app.get('/printify-webhooks', async (req, res) => {
+  try {
+    const expectedProxyKey = PROXY_KEY.value() || process.env.PROXY_KEY;
+    if (expectedProxyKey) {
+      const provided = req.get('x-proxy-key');
+      if (!provided || provided !== expectedProxyKey) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+    }
+
+    if (!isPrintifyConfigured()) {
+      return res.status(503).json({ error: 'Printify not configured' });
+    }
+
+    const webhooks = await getPrintifyWebhooks();
+    return res.json({ ok: true, webhooks: webhooks || [] });
+  } catch (err) {
+    logger.error('get-printify-webhooks error', err);
+    return res.status(500).json({ error: 'Failed to get webhooks', message: err?.message });
+  }
+});
+
 // Admin: reconcile eventUsers summaries for a specific event from ragers
 app.post('/reconcile-event-users', async (req, res) => {
   try {
@@ -2799,6 +3024,9 @@ exports.stripePayment = onRequest(
       AWS_ACCESS_KEY_ID,
       AWS_SECRET_ACCESS_KEY,
       AWS_SES_REGION,
+      PRINTIFY_API_TOKEN,
+      PRINTIFY_SHOP_ID,
+      PRINTIFY_WEBHOOK_SECRET,
     ],
     invoker: 'public',
   },
