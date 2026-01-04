@@ -98,6 +98,13 @@ service cloud.firestore {
       // Reverted: Prevent direct client writes now that Cloud Function handles it.
       allow write: if false;
     }
+
+    // Promo codes: read for auth users (for validation), write admin-only
+    // Usage tracking handled by Cloud Functions (finalize-order)
+    match /promoCodes/{codeId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
     
     // Purchases collection - modified to allow creating new purchases
     match /purchases/{purchaseId} {

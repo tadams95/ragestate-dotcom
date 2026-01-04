@@ -5,6 +5,7 @@ import ClipboardDocumentListIcon from '@heroicons/react/24/outline/ClipboardDocu
 import Cog6ToothIcon from '@heroicons/react/24/outline/Cog6ToothIcon';
 import EnvelopeIcon from '@heroicons/react/24/outline/EnvelopeIcon';
 import ShoppingBagIcon from '@heroicons/react/24/outline/ShoppingBagIcon';
+import TicketIcon from '@heroicons/react/24/outline/TicketIcon';
 import UsersIcon from '@heroicons/react/24/outline/UsersIcon';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
@@ -49,6 +50,13 @@ const TransfersTab = dynamic(() => import('../components/admin/TransfersTab'), {
   ),
 });
 const CampaignsTab = dynamic(() => import('../components/admin/CampaignsTab'), {
+  loading: () => (
+    <div className="flex h-32 items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-red-500"></div>
+    </div>
+  ),
+});
+const PromoCodesTab = dynamic(() => import('../components/admin/PromoCodesTab'), {
   loading: () => (
     <div className="flex h-32 items-center justify-center">
       <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-red-500"></div>
@@ -220,6 +228,8 @@ export default function AdminPage() {
         return <TransfersTab inputStyling={inputStyling} />;
       case 'campaigns':
         return <CampaignsTab />;
+      case 'promo-codes':
+        return <PromoCodesTab />;
       default:
         return null;
     }
@@ -309,6 +319,17 @@ export default function AdminPage() {
                     >
                       <EnvelopeIcon className="mr-2 h-5 w-5" aria-hidden="true" />
                       Campaigns
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('promo-codes')}
+                      className={`${
+                        activeTab === 'promo-codes'
+                          ? 'border-red-700 text-red-500'
+                          : 'border-transparent text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]'
+                      } flex flex-shrink-0 items-center whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium`}
+                    >
+                      <TicketIcon className="mr-2 h-5 w-5" aria-hidden="true" />
+                      Promo Codes
                     </button>
                     <button
                       onClick={() => setActiveTab('settings')}

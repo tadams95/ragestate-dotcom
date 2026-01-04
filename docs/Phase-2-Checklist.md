@@ -211,10 +211,74 @@ campaignLogs/{docId}
 
 ### Promo Codes
 
-- [ ] Create `promoCodes` collection in Firestore
-- [ ] Add promo code input to checkout form
-- [ ] Validate codes: percentage off, fixed amount, expiration
-- [ ] Track redemption in `fulfillments` docs
+> **Status**: Server-side promo code flow complete. Cart UI and Admin UI pending.
+
+**MVP Schema (`promoCodes/{codeLower}`)**:
+
+```js
+promoCodes/{codeLower}  // doc ID = lowercase code for O(1) lookup
+├── code: "RAGER20"           // Original case for display
+├── type: "percentage"        // "percentage" | "fixed"
+├── value: 20                 // 20% or $20 off (cents for fixed)
+├── active: true              // Admin toggle
+├── expiresAt: Timestamp|null // null = never expires
+├── maxUses: null             // null = unlimited
+├── currentUses: 0            // Incremented on redemption
+├── minPurchase: 0            // Minimum cart total (cents)
+├── createdAt: Timestamp
+└── createdBy: "admin-uid"
+```
+
+**MVP Tasks**:
+
+- [x] Create validation endpoint: `POST /validate-promo-code` in `stripe.js`
+  - Input: `{ code, cartTotal }`
+  - Validates: exists, active, not expired, under maxUses, minPurchase met
+  - Returns: `{ valid, discountAmount, displayCode, message, promoId, promoCollection }`
+- [x] Integrate promo into payment flow: `POST /create-payment-intent` accepts `promoCode`
+  - Server-side re-validation (prevents client tampering)
+  - Applies discount to PI amount
+  - Stores promo metadata in PI for finalize-order
+  - Returns `{ client_secret, promo: { applied, code, discountAmount, finalAmount } }`
+- [x] Track promo usage: `/finalize-order` increments `currentUses` atomically
+  - Uses `incrementPromoCodeUsage()` helper
+  - Supports both `promoCodes` and legacy `promoterCodes` collections
+  - Reads promo info from PI metadata or `appliedPromoCode` body param
+- [x] Re-add cart UI: Promo code input in `OrderSummaryDisplay.js`
+  - Input field + "Apply" button → calls `/validate-promo-code`
+  - Pass validated `promoCode` to `/create-payment-intent`
+  - Show discount line in order summary (green with checkmark when applied)
+  - Auto re-validates when cart changes
+  - Allow removal of applied code
+- [x] Admin management UI: New tab in admin panel (`PromoCodesTab.js`)
+  - List all codes with status, usage stats
+  - Create new code form (code, type, value, expiry, maxUses, minPurchase)
+  - Toggle active/inactive
+  - Delete code
+- [x] Update Firestore rules: `promoCodes` read for auth users, write admin-only
+
+**Implementation Details (Jan 4, 2026)**:
+
+| Component                     | File                                                | Purpose                                   |
+| ----------------------------- | --------------------------------------------------- | ----------------------------------------- |
+| Validation API Route          | `src/app/api/payments/validate-promo-code/route.js` | Next.js proxy to Cloud Function           |
+| Order Summary UI              | `src/app/cart/components/OrderSummaryDisplay.js`    | Promo input, applied state, discount line |
+| Cart Page State               | `src/app/cart/page.js`                              | Promo state management, API calls         |
+| `validatePromoCodeInternal()` | `functions/stripe.js`                               | Reusable validation helper                |
+| `incrementPromoCodeUsage()`   | `functions/stripe.js`                               | Atomic usage counter increment            |
+| `PromoCodesTab`               | `src/app/components/admin/PromoCodesTab.js`         | Admin view: list codes, stats, filtering  |
+| `POST /validate-promo-code`   | `functions/stripe.js`                               | Cart-time validation (preview)            |
+| `POST /create-payment-intent` | `functions/stripe.js`                               | Payment-time validation + discount        |
+| `POST /finalize-order`        | `functions/stripe.js`                               | Usage tracking after success              |
+
+**Deferred to Post-MVP**:
+
+- Influencer attribution (`promoterId`, `commissionRate`, `totalSales`)
+- Per-event or per-product restrictions
+- Single-use-per-user tracking
+- CSV export of promo code usage
+
+**Estimated Effort**: ~~6-8 hours total~~ 4 hours remaining (Admin UI + Firestore rules)
 
 ### Upsells
 

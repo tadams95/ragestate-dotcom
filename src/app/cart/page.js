@@ -1,7 +1,7 @@
 'use client';
 
 import { loadStripe } from '@stripe/stripe-js';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
 import XMarkIcon from '@heroicons/react/20/solid/XMarkIcon';
@@ -22,7 +22,6 @@ import { useTheme } from '../../../lib/context/ThemeContext';
 import CartItemDisplay from './components/CartItemDisplay';
 import CrossSellSection from './components/CrossSellSection';
 import OrderSummaryDisplay from './components/OrderSummaryDisplay';
-// Promo code functionality removed
 
 // Call our Next.js API proxy to avoid CORS/redirects
 const API_PROXY = '/api/payments';
@@ -30,11 +29,16 @@ const API_PROXY = '/api/payments';
 export default function Cart() {
   const dispatch = useDispatch();
   const cartItems = useSelector(selectCartItems);
-  // Promo code functionality removed
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [addressDetails, setAddressDetails] = useState(null);
-  // Discount and promo-related state removed
+
+  // Promo code state
+  const [promoCode, setPromoCode] = useState(null); // { code, promoId, promoCollection }
+  const [promoDiscount, setPromoDiscount] = useState(0); // discount in cents
+  const [promoDisplayCode, setPromoDisplayCode] = useState('');
+  const [promoError, setPromoError] = useState('');
+  const [promoLoading, setPromoLoading] = useState(false);
 
   const [state, setState] = useState({
     cartSubtotal: 0,
@@ -47,8 +51,6 @@ export default function Cart() {
     idToken: null,
     refreshToken: null,
   });
-
-  // Promo code validation removed
 
   const handleRemoveFromCart = (productId, selectedColor, selectedSize) => {
     dispatch(removeFromCart({ productId, selectedColor, selectedSize }));
@@ -69,7 +71,97 @@ export default function Cart() {
       addressDetails: address,
     }));
   };
-  // Promo code application removed
+
+  // Promo code validation
+  const handleApplyPromo = useCallback(
+    async (code) => {
+      if (!code || promoLoading) return;
+
+      setPromoLoading(true);
+      setPromoError('');
+
+      try {
+        // Calculate cart total in cents for validation
+        const cartTotalCents = Math.round(state.cartSubtotal * 100);
+
+        const response = await fetch(`${API_PROXY}/validate-promo-code`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, cartTotal: cartTotalCents }),
+        });
+
+        const data = await response.json();
+
+        if (data.valid) {
+          setPromoCode({
+            code: data.promoId,
+            promoId: data.promoId,
+            promoCollection: data.promoCollection,
+          });
+          setPromoDiscount(data.discountAmount);
+          setPromoDisplayCode(data.displayCode);
+          setPromoError('');
+        } else {
+          setPromoError(data.message || 'Invalid promo code');
+          setPromoCode(null);
+          setPromoDiscount(0);
+          setPromoDisplayCode('');
+        }
+      } catch (error) {
+        console.error('Promo code validation failed:', error);
+        setPromoError('Failed to validate promo code. Please try again.');
+        setPromoCode(null);
+        setPromoDiscount(0);
+        setPromoDisplayCode('');
+      } finally {
+        setPromoLoading(false);
+      }
+    },
+    [state.cartSubtotal, promoLoading],
+  );
+
+  const handleRemovePromo = useCallback(() => {
+    setPromoCode(null);
+    setPromoDiscount(0);
+    setPromoDisplayCode('');
+    setPromoError('');
+  }, []);
+
+  // Re-validate promo when cart items change (not on every subtotal recalc)
+  const cartItemsKey = useMemo(
+    () => cartItems.map((i) => `${i.productId}-${i.quantity}`).join(','),
+    [cartItems],
+  );
+
+  useEffect(() => {
+    if (promoCode && promoDisplayCode && state.cartSubtotal > 0) {
+      // Silently re-validate to update discount amount
+      const revalidate = async () => {
+        try {
+          const cartTotalCents = Math.round(state.cartSubtotal * 100);
+          const response = await fetch(`${API_PROXY}/validate-promo-code`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: promoCode.code, cartTotal: cartTotalCents }),
+          });
+          const data = await response.json();
+          if (data.valid) {
+            setPromoDiscount(data.discountAmount);
+          } else {
+            // Promo no longer valid (e.g., cart below minimum)
+            handleRemovePromo();
+            setPromoError(data.message || 'Promo code no longer applies');
+          }
+        } catch (e) {
+          // Silently fail on revalidation
+          console.warn('Promo revalidation failed:', e);
+        }
+      };
+      revalidate();
+    }
+    // Only re-validate when cart items actually change, not on every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartItemsKey]);
 
   useEffect(() => {
     const newCartSubtotal = cartItems.reduce((accumulator, item) => {
@@ -123,12 +215,22 @@ export default function Cart() {
   const shipping = cartItems.some((item) => !item.isDigital) ? 0.0 : 0.0;
   const total = (parseFloat(state.cartSubtotal) + parseFloat(taxTotal) + shipping).toFixed(2);
   const finalTotal = Math.max(0, parseFloat(total)).toFixed(2);
-  const stripeTotal = Math.round(Math.max(0, parseFloat(finalTotal) * 100));
+
+  // Stable key for payment intent - only changes when cart items or promo code identity changes
+  const paymentKey = useMemo(
+    () => `${cartItemsKey}-${promoCode?.code || 'none'}`,
+    [cartItemsKey, promoCode?.code],
+  );
 
   useEffect(() => {
     const fetchClientSecret = async () => {
+      // Calculate current stripe total inside effect to use latest values
+      const currentStripeTotal = Math.round(
+        Math.max(0, parseFloat(finalTotal) * 100 - promoDiscount),
+      );
+
       try {
-        if (!cartItems.length || stripeTotal <= 0) {
+        if (!cartItems.length || currentStripeTotal <= 0) {
           setState((prevState) =>
             prevState.clientSecret ? { ...prevState, clientSecret: '' } : prevState,
           );
@@ -137,12 +239,12 @@ export default function Cart() {
         }
 
         const MIN_STRIPE_AMOUNT = 50; // 50 cents, Stripe's typical minimum
-        if (stripeTotal < MIN_STRIPE_AMOUNT) {
+        if (currentStripeTotal < MIN_STRIPE_AMOUNT) {
           console.warn(
-            `Stripe total amount ${stripeTotal} cents is below minimum ${MIN_STRIPE_AMOUNT} cents. Payment intent not created.`,
+            `Stripe total amount ${currentStripeTotal} cents is below minimum ${MIN_STRIPE_AMOUNT} cents. Payment intent not created.`,
           );
           setErrorMessage(
-            `Order total ($${(stripeTotal / 100).toFixed(
+            `Order total ($${(currentStripeTotal / 100).toFixed(
               2,
             )}) is below the minimum processing amount of $${(MIN_STRIPE_AMOUNT / 100).toFixed(
               2,
@@ -162,28 +264,48 @@ export default function Cart() {
         console.log(
           '[Cart] Creating payment intent via proxy:',
           `${API_PROXY}/create-payment-intent`,
+          promoCode ? `with promo: ${promoCode.code}` : '',
         );
+
+        // Build request body with optional promo code
+        const requestBody = {
+          amount: currentStripeTotal,
+          customerEmail: state.userEmail,
+          name: state.userName,
+          firebaseId: state.userId,
+          cartItems,
+        };
+
+        // Include promo code if applied (server will re-validate)
+        if (promoCode && promoCode.code) {
+          requestBody.promoCode = promoCode.code;
+        }
+
         const response = await fetch(`${API_PROXY}/create-payment-intent`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            amount: stripeTotal,
-            customerEmail: state.userEmail,
-            name: state.userName,
-            firebaseId: state.userId,
-            cartItems,
-          }),
+          body: JSON.stringify(requestBody),
         });
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.message || `Error: HTTP status ${response.status}`);
+          // Handle promo code rejection from server
+          if (errorData.promoError) {
+            setPromoError(errorData.promoError);
+            handleRemovePromo();
+          }
+          throw new Error(
+            errorData.message || errorData.error || `Error: HTTP status ${response.status}`,
+          );
         }
 
-        const { client_secret } = await response.json();
-        setState((prevState) => ({ ...prevState, clientSecret: client_secret }));
+        const data = await response.json();
+        setState((prevState) => ({ ...prevState, clientSecret: data.client_secret }));
+
+        // Note: Don't update promoDiscount from server response here to avoid re-render loops
+        // The discount is already calculated client-side and server validates it
         // Do not persist clientSecret; avoid accidentally reusing a succeeded intent
       } catch (error) {
         console.error('Error fetching payment intent:', error.message);
@@ -205,7 +327,9 @@ export default function Cart() {
         prevState.clientSecret ? { ...prevState, clientSecret: '' } : prevState,
       );
     }
-  }, [state.userName, state.userEmail, state.userId, cartItems, stripeTotal]);
+    // Use paymentKey to stabilize - only re-fetch when cart items or promo code identity changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.userName, state.userEmail, state.userId, paymentKey]);
 
   // Get current theme for Stripe appearance
   const { resolvedTheme } = useTheme();
@@ -327,6 +451,14 @@ export default function Cart() {
               userId={state.userId}
               userName={state.userName}
               userEmail={state.userEmail}
+              // Promo code props
+              promoCode={promoCode}
+              promoDiscount={promoDiscount}
+              promoDisplayCode={promoDisplayCode}
+              promoError={promoError}
+              promoLoading={promoLoading}
+              onApplyPromo={handleApplyPromo}
+              onRemovePromo={handleRemovePromo}
             />
           </div>
         </div>

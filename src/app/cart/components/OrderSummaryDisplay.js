@@ -22,9 +22,38 @@ export default function OrderSummaryDisplay({
   handleAddressChange,
   addressDetails,
   isLoading, // General loading state from parent
+  // Promo code props
+  promoCode,
+  promoDiscount,
+  promoDisplayCode,
+  promoError,
+  promoLoading,
+  onApplyPromo,
+  onRemovePromo,
 }) {
   const [showAuthGate, setShowAuthGate] = useState(false);
+  const [promoInput, setPromoInput] = useState('');
   const pathname = usePathname?.() || '/cart';
+
+  const handleApplyPromo = () => {
+    if (promoInput.trim() && onApplyPromo) {
+      onApplyPromo(promoInput.trim());
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleApplyPromo();
+    }
+  };
+
+  // Calculate totals with discount
+  const discountedSubtotal = Math.max(0, cartSubtotal - (promoDiscount || 0) / 100);
+  const displayTotal = promoDiscount
+    ? Math.max(0, parseFloat(finalTotal) - promoDiscount / 100).toFixed(2)
+    : finalTotal;
+
   return (
     <section
       aria-labelledby="summary-heading"
@@ -41,6 +70,91 @@ export default function OrderSummaryDisplay({
             ${cartSubtotal.toFixed(2)}
           </dd>
         </div>
+
+        {/* Promo Code Section */}
+        <div className="border-t border-[var(--border-subtle)] pt-4">
+          <label htmlFor="promo-code" className="mb-2 block text-sm text-[var(--text-primary)]">
+            Promo Code
+          </label>
+          {promoCode && promoDisplayCode ? (
+            // Applied promo code display
+            <div className="flex items-center justify-between rounded-md bg-green-50 px-3 py-2 dark:bg-green-900/20">
+              <div className="flex items-center gap-2">
+                <svg
+                  className="h-4 w-4 text-green-600 dark:text-green-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                <span className="text-sm font-medium text-green-700 dark:text-green-400">
+                  {promoDisplayCode}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={onRemovePromo}
+                className="text-sm text-[var(--text-secondary)] transition-colors hover:text-red-500"
+              >
+                Remove
+              </button>
+            </div>
+          ) : (
+            // Promo code input
+            <div className="flex gap-2">
+              <input
+                type="text"
+                id="promo-code"
+                value={promoInput}
+                onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                onKeyDown={handleKeyDown}
+                placeholder="Enter code"
+                disabled={promoLoading}
+                className="flex-1 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 disabled:opacity-50"
+              />
+              <button
+                type="button"
+                onClick={handleApplyPromo}
+                disabled={promoLoading || !promoInput.trim()}
+                className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elev-3)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {promoLoading ? (
+                  <span className="flex items-center gap-1">
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                  </span>
+                ) : (
+                  'Apply'
+                )}
+              </button>
+            </div>
+          )}
+          {promoError && <p className="mt-2 text-sm text-red-500">{promoError}</p>}
+        </div>
+
+        {/* Discount line (when promo applied) */}
+        {promoDiscount > 0 && (
+          <div className="flex items-center justify-between text-green-600 dark:text-green-400">
+            <dt className="text-sm">Discount</dt>
+            <dd className="text-sm font-medium">-${(promoDiscount / 100).toFixed(2)}</dd>
+          </div>
+        )}
+
         <div className="flex items-center justify-between border-t border-[var(--border-subtle)] pt-4">
           <dt className="flex items-center text-sm text-[var(--text-primary)]">
             <span>Shipping</span>
@@ -55,7 +169,14 @@ export default function OrderSummaryDisplay({
         </div>
         <div className="flex items-center justify-between border-t border-[var(--border-subtle)] pt-4">
           <dt className="text-base font-medium text-[var(--text-primary)]">Order total</dt>
-          <dd className="text-base font-medium text-[var(--text-primary)]">${finalTotal}</dd>
+          <dd className="text-base font-medium text-[var(--text-primary)]">
+            {promoDiscount > 0 && (
+              <span className="mr-2 text-sm text-[var(--text-secondary)] line-through">
+                ${finalTotal}
+              </span>
+            )}
+            ${displayTotal}
+          </dd>
         </div>
       </dl>
 

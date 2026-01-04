@@ -350,7 +350,15 @@ app.post('/create-payment-intent', async (req, res) => {
         return res.status(403).json({ error: 'Forbidden' });
       }
     }
-    const { amount, currency = 'usd', customerEmail, name, firebaseId, cartItems } = req.body || {};
+    const {
+      amount,
+      currency = 'usd',
+      customerEmail,
+      name,
+      firebaseId,
+      cartItems,
+      promoCode, // NEW: Optional promo code
+    } = req.body || {};
 
     // Basic input validation (server-side)
     const parsedAmount = Number.isFinite(amount) ? Math.floor(Number(amount)) : 0;
@@ -359,11 +367,33 @@ app.post('/create-payment-intent', async (req, res) => {
       return res.status(400).json({ error: 'Invalid amount' });
     }
 
+    // Validate and apply promo code if provided
+    let finalAmount = parsedAmount;
+    let promoValidation = null;
+    if (promoCode && typeof promoCode === 'string' && promoCode.trim()) {
+      promoValidation = await validatePromoCodeInternal(promoCode.trim(), parsedAmount);
+      if (promoValidation.valid) {
+        finalAmount = Math.max(MIN_AMOUNT, parsedAmount - promoValidation.discountAmount);
+        logger.info('Promo code applied to payment intent', {
+          originalAmount: parsedAmount,
+          discountAmount: promoValidation.discountAmount,
+          finalAmount,
+          promoCode: promoValidation.promoId,
+        });
+      } else {
+        // Promo code invalid - return error so client can handle
+        return res.status(400).json({
+          error: 'Invalid promo code',
+          promoError: promoValidation.message,
+        });
+      }
+    }
+
     const idempotencyKey = req.get('x-idempotency-key') || undefined;
 
     const pi = await stripe.paymentIntents.create(
       {
-        amount: parsedAmount,
+        amount: finalAmount,
         currency,
         automatic_payment_methods: { enabled: true },
         metadata: {
@@ -371,11 +401,32 @@ app.post('/create-payment-intent', async (req, res) => {
           email: customerEmail || '',
           name: name || '',
           cartSize: Array.isArray(cartItems) ? String(cartItems.length) : '0',
+          // Store promo info for finalize-order to use
+          promoCode: promoValidation?.promoId || '',
+          promoCollection: promoValidation?.promoCollection || '',
+          promoDiscountAmount: promoValidation?.discountAmount
+            ? String(promoValidation.discountAmount)
+            : '',
+          originalAmount: promoValidation?.valid ? String(parsedAmount) : '',
         },
       },
       idempotencyKey ? { idempotencyKey } : undefined,
     );
-    res.json({ client_secret: pi.client_secret });
+
+    // Return client secret plus promo info for UI
+    const response = { client_secret: pi.client_secret };
+    if (promoValidation?.valid) {
+      response.promo = {
+        applied: true,
+        code: promoValidation.displayCode,
+        discountAmount: promoValidation.discountAmount,
+        originalAmount: parsedAmount,
+        finalAmount,
+        promoId: promoValidation.promoId,
+        promoCollection: promoValidation.promoCollection,
+      };
+    }
+    res.json(response);
   } catch (err) {
     logger.error('create-payment-intent error', err);
     res.status(500).json({ error: 'Failed to create payment intent' });
@@ -585,6 +636,168 @@ function categorizeCartItems(items) {
 
   return { eventItems, merchandiseItems };
 }
+
+/**
+ * Internal helper to validate a promo code
+ * Reusable by both /validate-promo-code endpoint and /create-payment-intent
+ * @param {string} code - The promo code to validate
+ * @param {number} cartTotalCents - Cart total in cents
+ * @returns {Object} Validation result
+ */
+async function validatePromoCodeInternal(code, cartTotalCents) {
+  if (!code || typeof code !== 'string') {
+    return { valid: false, message: 'Promo code is required' };
+  }
+
+  const codeLower = code.trim().toLowerCase();
+  if (!codeLower) {
+    return { valid: false, message: 'Promo code is required' };
+  }
+
+  // Look up promo code - try new collection first, fall back to legacy
+  let promoDoc = await db.collection('promoCodes').doc(codeLower).get();
+  let collectionUsed = 'promoCodes';
+
+  if (!promoDoc.exists) {
+    promoDoc = await db.collection('promoterCodes').doc(codeLower).get();
+    collectionUsed = 'promoterCodes';
+  }
+
+  if (!promoDoc.exists) {
+    return { valid: false, message: 'Invalid promo code' };
+  }
+
+  const promo = promoDoc.data();
+
+  // Check if active
+  if (promo.active === false) {
+    return { valid: false, message: 'This promo code is no longer active' };
+  }
+
+  // Check expiration
+  if (promo.expiresAt) {
+    const expiresAt = promo.expiresAt.toDate ? promo.expiresAt.toDate() : new Date(promo.expiresAt);
+    if (expiresAt < new Date()) {
+      return { valid: false, message: 'This promo code has expired' };
+    }
+  }
+
+  // Check max uses
+  const currentUses = promo.currentUses || 0;
+  const maxUses = promo.maxUses;
+  if (maxUses !== null && maxUses !== undefined && currentUses >= maxUses) {
+    return { valid: false, message: 'This promo code has reached its usage limit' };
+  }
+
+  // Check minimum purchase
+  const minPurchase = promo.minPurchase || 0;
+  if (cartTotalCents < minPurchase) {
+    const minDollars = (minPurchase / 100).toFixed(2);
+    return { valid: false, message: `Minimum purchase of $${minDollars} required` };
+  }
+
+  // Calculate discount amount
+  let discountAmount = 0;
+  const type = promo.type || 'percentage';
+  const value = promo.value || 0;
+
+  if (type === 'percentage') {
+    discountAmount = Math.round(cartTotalCents * (value / 100));
+  } else if (type === 'fixed') {
+    discountAmount = Math.min(value, cartTotalCents);
+  }
+
+  const displayCode = promo.code || code.toUpperCase();
+
+  return {
+    valid: true,
+    discountAmount,
+    displayCode,
+    type,
+    value,
+    message: `Code "${displayCode}" applied!`,
+    promoId: promoDoc.id,
+    promoCollection: collectionUsed,
+  };
+}
+
+/**
+ * Increment promo code usage after successful order
+ * @param {string} promoId - The promo code document ID (lowercase code)
+ * @param {string} promoCollection - 'promoCodes' or 'promoterCodes'
+ * @param {string} orderNumber - Order number for audit trail
+ */
+async function incrementPromoCodeUsage(promoId, promoCollection, orderNumber) {
+  if (!promoId || !promoCollection) return;
+
+  try {
+    const promoRef = db.collection(promoCollection).doc(promoId);
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(promoRef);
+      if (!snap.exists) {
+        logger.warn('Promo code not found for usage increment', { promoId, promoCollection });
+        return;
+      }
+      const data = snap.data() || {};
+      const newUses = Number(data.currentUses || 0) + 1;
+      tx.update(promoRef, {
+        currentUses: newUses,
+        lastUsed: admin.firestore.FieldValue.serverTimestamp(),
+        lastOrderNumber: orderNumber,
+      });
+    });
+    logger.info('Promo code usage incremented', { promoId, promoCollection, orderNumber });
+  } catch (e) {
+    logger.warn('Promo code usage increment failed (non-fatal)', {
+      promoId,
+      promoCollection,
+      error: e?.message,
+    });
+  }
+}
+
+/**
+ * Validate a promo code
+ * POST /validate-promo-code
+ * Input: { code, cartTotal }
+ * Returns: { valid, discountAmount, displayCode, message }
+ */
+app.post('/validate-promo-code', async (req, res) => {
+  try {
+    const { code, cartTotal } = req.body;
+    const cartTotalCents = parseInt(cartTotal, 10) || 0;
+
+    const result = await validatePromoCodeInternal(code, cartTotalCents);
+
+    if (!result.valid) {
+      return res.json({
+        valid: false,
+        discountAmount: 0,
+        displayCode: null,
+        message: result.message,
+      });
+    }
+
+    logger.info('Promo code validated via endpoint', {
+      code: result.promoId,
+      collection: result.promoCollection,
+      type: result.type,
+      value: result.value,
+      discountAmount: result.discountAmount,
+      cartTotalCents,
+    });
+
+    return res.json(result);
+  } catch (err) {
+    logger.error('Promo code validation error', { error: err.message, stack: err.stack });
+    return res.status(500).json({
+      valid: false,
+      discountAmount: 0,
+      displayCode: null,
+      message: 'Error validating promo code',
+    });
+  }
+});
 
 // Finalize order: verify payment succeeded, then create tickets (ragers) and/or merchandise orders
 // FIX: Now properly handles both event tickets AND merchandise items separately
@@ -1218,26 +1431,16 @@ app.post('/finalize-order', async (req, res) => {
     }
 
     // If promo code applied, update its usage counters (best-effort)
-    if (appliedPromoCode && appliedPromoCode.id) {
-      try {
-        const promoRef = db.collection('promoterCodes').doc(appliedPromoCode.id);
-        await db.runTransaction(async (tx) => {
-          const snap = await tx.get(promoRef);
-          const data = snap.exists ? snap.data() || {} : {};
-          const newUses = Number(data.currentUses || 0) + 1;
-          tx.set(
-            promoRef,
-            {
-              currentUses: newUses,
-              lastUsed: admin.firestore.FieldValue.serverTimestamp(),
-              lastOrderNumber: orderNumber,
-            },
-            { merge: true },
-          );
-        });
-      } catch (e) {
-        logger.warn('Promo code update failed (non-fatal)', e);
-      }
+    // Support both client-provided appliedPromoCode and PI metadata (for server-side validation)
+    const promoId =
+      (appliedPromoCode && appliedPromoCode.id) || (pi.metadata && pi.metadata.promoCode) || null;
+    const promoCollection =
+      (appliedPromoCode && appliedPromoCode.collection) ||
+      (pi.metadata && pi.metadata.promoCollection) ||
+      'promoCodes'; // Default to new collection
+
+    if (promoId) {
+      await incrementPromoCodeUsage(promoId, promoCollection, orderNumber);
     }
 
     try {
