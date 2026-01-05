@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
-import { addToCart } from '../../../../lib/features/todos/cartSlice';
+import { addToCart } from '../../../../lib/features/cartSlice';
 import { fetchShopifyProducts } from '../../../../shopify/shopifyService';
 
 /**

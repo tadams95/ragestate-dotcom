@@ -1,0 +1,337 @@
+# =============================================================================
+# RAGESTATE Cloud Function Endpoints
+# =============================================================================
+# This file documents all HTTP endpoints exposed by the stripePayment Cloud Function.
+# 
+# Usage with VS Code REST Client extension (humao.rest-client):
+# 1. Install the extension
+# 2. Set variables below or create a .env file
+# 3. Click "Send Request" above any request
+#
+# Usage with curl:
+# See comments above each request for curl equivalents
+# =============================================================================
+
+# Environment Variables
+@baseUrl = https://us-central1-ragestate-app.cloudfunctions.net/stripePayment
+@localUrl = http://127.0.0.1:5001/ragestate-app/us-central1/stripePayment
+@proxyKey = {{$dotenv PROXY_KEY}}
+
+# =============================================================================
+# HEALTH & DIAGNOSTICS
+# =============================================================================
+
+### Health Check
+# curl -s {{baseUrl}}/health | jq
+GET {{baseUrl}}/health
+
+### Health Check (Local Emulator)
+GET {{localUrl}}/health
+
+# =============================================================================
+# PAYMENTS (via Next.js proxy preferred)
+# =============================================================================
+
+### Create Payment Intent
+# Body: { amount, currency, firebaseId, cartItems, idempotencyKey?, promoCode? }
+# Normally called via Next.js: POST /api/payments/create-payment-intent
+POST {{baseUrl}}/create-payment-intent
+x-proxy-key: {{proxyKey}}
+Content-Type: application/json
+
+{
+  "amount": 1500,
+  "currency": "usd",
+  "firebaseId": "UID123",
+  "cartItems": [
+    {
+      "productId": "EVENT123",
+      "title": "Test Event Ticket",
+      "quantity": 2,
+      "price": 7.50
+    }
+  ]
+}
+
+### Create/Reuse Customer
+# Body: { email, name, uid? }
+# If uid provided, creates/reads customers/{uid} doc
+POST {{baseUrl}}/create-customer
+x-proxy-key: {{proxyKey}}
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "name": "Test User",
+  "uid": "firebase-uid-123"
+}
+
+### Validate Promo Code
+# Body: { code, cartTotal }
+# Returns: { valid, discountAmount, displayCode, message }
+POST {{baseUrl}}/validate-promo-code
+x-proxy-key: {{proxyKey}}
+Content-Type: application/json
+
+{
+  "code": "RAGER20",
+  "cartTotal": 5000
+}
+
+### Finalize Order
+# Body: { paymentIntentId, firebaseId, userEmail, userName, cartItems, addressDetails? }
+# Creates ragers (tickets) and/or merchandiseOrders, triggers purchase email
+POST {{baseUrl}}/finalize-order
+x-proxy-key: {{proxyKey}}
+Content-Type: application/json
+
+{
+  "paymentIntentId": "pi_test_123",
+  "firebaseId": "UID123",
+  "userEmail": "user@example.com",
+  "userName": "Test User",
+  "cartItems": [
+    {
+      "productId": "EVENT123",
+      "title": "Test Event Ticket",
+      "quantity": 2,
+      "price": 7.50,
+      "productType": "event"
+    }
+  ]
+}
+
+# =============================================================================
+# TICKET SCANNING (Admin)
+# =============================================================================
+
+### Scan Ticket by Token (Preferred)
+# Body: { token }
+# Returns: { success, remaining, message, ragerDoc }
+POST {{baseUrl}}/scan-ticket
+x-proxy-key: {{proxyKey}}
+Content-Type: application/json
+
+{
+  "token": "abc123-ticket-token"
+}
+
+### Scan Ticket by User + Event (Fallback)
+# Body: { userId, eventId }
+POST {{baseUrl}}/scan-ticket
+x-proxy-key: {{proxyKey}}
+Content-Type: application/json
+
+{
+  "userId": "firebase-uid-123",
+  "eventId": "event-slug-123"
+}
+
+### Scan Ticket Preview (Dry Run)
+# Same body as /scan-ticket, but doesn't decrement usedCount
+POST {{baseUrl}}/scan-ticket/preview
+x-proxy-key: {{proxyKey}}
+Content-Type: application/json
+
+{
+  "token": "abc123-ticket-token"
+}
+
+### Backfill Ticket Tokens (Admin)
+# Creates ticketTokens/{token} docs for existing ragers missing them
+# Body: { eventId, dryRun? }
+POST {{baseUrl}}/backfill-ticket-tokens
+x-proxy-key: {{proxyKey}}
+Content-Type: application/json
+
+{
+  "eventId": "event-slug-123",
+  "dryRun": true
+}
+
+# =============================================================================
+# TICKET TRANSFERS
+# =============================================================================
+
+### Transfer Preview
+# Query: ?token=<transferToken>
+# Returns transfer details without claiming
+GET {{baseUrl}}/transfer-preview?token=transfer-token-abc123
+x-proxy-key: {{proxyKey}}
+
+### Initiate Ticket Transfer
+# Body: { userId, eventId, ragerId, recipientEmail, transferQuantity }
+POST {{baseUrl}}/transfer-ticket
+x-proxy-key: {{proxyKey}}
+Content-Type: application/json
+
+{
+  "userId": "sender-uid",
+  "eventId": "event-slug-123",
+  "ragerId": "rager-doc-id",
+  "recipientEmail": "recipient@example.com",
+  "transferQuantity": 1
+}
+
+### Cancel Transfer (Before Claimed)
+# Body: { transferId, userId }
+POST {{baseUrl}}/cancel-transfer
+x-proxy-key: {{proxyKey}}
+Content-Type: application/json
+
+{
+  "transferId": "transfer-doc-id",
+  "userId": "sender-uid"
+}
+
+### Claim Ticket (Recipient)
+# Body: { token, recipientFirebaseId }
+POST {{baseUrl}}/claim-ticket
+x-proxy-key: {{proxyKey}}
+Content-Type: application/json
+
+{
+  "token": "transfer-token-abc123",
+  "recipientFirebaseId": "recipient-uid"
+}
+
+# =============================================================================
+# ADMIN: TICKETS
+# =============================================================================
+
+### Manual Create Ticket (Admin)
+# Creates a rager without payment (comps, guest list)
+# Body: { eventId, firebaseId, email, quantity, notes? }
+POST {{baseUrl}}/manual-create-ticket
+x-proxy-key: {{proxyKey}}
+Content-Type: application/json
+
+{
+  "eventId": "event-slug-123",
+  "firebaseId": "recipient-uid",
+  "email": "guest@example.com",
+  "quantity": 2,
+  "notes": "VIP guest list"
+}
+
+### Reconcile Event Users (Admin)
+# Syncs ragers with event attendee list
+# Body: { eventId }
+POST {{baseUrl}}/reconcile-event-users
+x-proxy-key: {{proxyKey}}
+Content-Type: application/json
+
+{
+  "eventId": "event-slug-123"
+}
+
+# =============================================================================
+# ADMIN: EMAIL CAMPAIGNS
+# =============================================================================
+
+### Send Campaign (Admin)
+# Sends bulk email to emailCaptures
+# Body: { subject, htmlBody, filterSource?, filterEventId?, testEmail? }
+POST {{baseUrl}}/send-campaign
+x-proxy-key: {{proxyKey}}
+Content-Type: application/json
+
+{
+  "subject": "🎉 New Event Announcement",
+  "htmlBody": "<h1>Check out our new event!</h1><p>Details here...</p>",
+  "testEmail": "admin@example.com"
+}
+
+### Test Send Purchase Email (Admin)
+# Sends a test purchase confirmation email
+# Body: { email, items }
+POST {{baseUrl}}/test-send-purchase-email
+x-proxy-key: {{proxyKey}}
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "items": [
+    { "title": "Test Event", "quantity": 2 }
+  ]
+}
+
+# =============================================================================
+# ADMIN: ANALYTICS
+# =============================================================================
+
+### Run Daily Aggregation (Manual Trigger)
+# Aggregates metrics for a specific date (or yesterday if not specified)
+# Body: { date? } — YYYY-MM-DD format
+POST {{baseUrl}}/run-daily-aggregation
+x-proxy-key: {{proxyKey}}
+Content-Type: application/json
+
+{
+  "date": "2026-01-03"
+}
+
+# =============================================================================
+# PRINTIFY INTEGRATION (Admin)
+# =============================================================================
+
+### Register Printify Webhooks
+# One-time setup to register webhook endpoints with Printify
+# Body: { secret }
+POST {{baseUrl}}/register-printify-webhooks
+x-proxy-key: {{proxyKey}}
+Content-Type: application/json
+
+{
+  "secret": "your-webhook-secret-here"
+}
+
+### List Printify Webhooks
+# Returns currently registered Printify webhooks
+GET {{baseUrl}}/printify-webhooks
+x-proxy-key: {{proxyKey}}
+
+# =============================================================================
+# SHOPIFY (Testing)
+# =============================================================================
+
+### Test Shopify Connection
+# Verifies Shopify Admin API connectivity
+GET {{baseUrl}}/test-shopify
+x-proxy-key: {{proxyKey}}
+
+### Test Shopify Draft Order
+# Creates a test draft order in Shopify
+POST {{baseUrl}}/test-shopify-draft-order
+x-proxy-key: {{proxyKey}}
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "lineItems": []
+}
+
+# =============================================================================
+# OTHER FUNCTIONS (Non-HTTP)
+# =============================================================================
+# 
+# printifyWebhook
+#   - HTTP function receiving webhooks from Printify
+#   - URL: https://us-central1-ragestate-app.cloudfunctions.net/printifyWebhook
+#   - Events: order:shipment:created, order:shipment:delivered, order:updated
+#
+# aggregateDailyMetrics
+#   - Scheduled function (Cloud Scheduler)
+#   - Runs daily at 2:00 AM UTC
+#   - Aggregates purchases, customers, posts → analytics/{date}
+#
+# Firestore Triggers (functions/feed.js):
+#   - onPostCreated: Fan-out to userFeeds, rate limiting
+#   - onPostDeleted: Cleanup likes, comments, userFeeds, Storage
+#   - onLikeCreated/Deleted: Update likeCount
+#   - onCommentCreated/Deleted: Update commentCount
+#
+# Firestore Triggers (functions/email.js):
+#   - onFulfillmentCompleted: Sends purchase confirmation email via SES/Resend
+#
+# =============================================================================

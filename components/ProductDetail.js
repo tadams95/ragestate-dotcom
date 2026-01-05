@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 
 import { useDispatch } from 'react-redux';
-import { addToCart } from '../lib/features/todos/cartSlice';
+import { addToCart } from '../lib/features/cartSlice';
 
 import EventStyling1 from '@/app/components/styling/EventStyling1';
 import EventStyling2 from '@/app/components/styling/EventStyling2';

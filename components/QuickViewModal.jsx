@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
-import { addToCart } from '../lib/features/todos/cartSlice';
+import { addToCart } from '../lib/features/cartSlice';
 
 export default function QuickViewModal({ open, onClose, product }) {
   const dispatch = useDispatch();

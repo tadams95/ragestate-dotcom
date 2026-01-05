@@ -12,7 +12,7 @@ import {
   removeFromCart,
   selectCartItems,
   setCheckoutPrice,
-} from '../../../lib/features/todos/cartSlice';
+} from '../../../lib/features/cartSlice';
 
 import storage from '@/utils/storage';
 import EmptyCart from '../../../components/EmptyCart';

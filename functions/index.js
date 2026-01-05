@@ -7,4 +7,6 @@ module.exports = {
   ...require('./printifyWebhook'),
   // Rate limit cleanup (scheduled daily)
   scheduledRateLimitCleanup: require('./rateLimit').scheduledRateLimitCleanup,
+  // Analytics aggregation (scheduled daily at 2 AM UTC)
+  aggregateDailyMetrics: require('./analytics').aggregateDailyMetrics,
 };

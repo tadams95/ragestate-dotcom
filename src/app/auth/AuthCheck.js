@@ -5,11 +5,11 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   loginSuccess,
   logoutSuccess,
-} from "../../../lib/features/todos/authSlice"; // Adjust import path as per your project structure
+} from "../../../lib/features/authSlice"; // Adjust import path as per your project structure
 import {
   setAuthenticated,
   selectAuthenticated,
-} from "../../../lib/features/todos/userSlice";
+} from "../../../lib/features/userSlice";
 import refreshAuthTokens from "../../../firebase/util/refreshAuthTokens";
 import storage from "@/utils/storage";
 

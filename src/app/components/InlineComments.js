@@ -23,7 +23,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useAuth } from '../../../firebase/context/FirebaseContext';
 import { db } from '../../../firebase/firebase';
-import { selectUserName } from '../../../lib/features/todos/userSlice';
+import { selectUserName } from '../../../lib/features/userSlice';
 
 const PAGE_SIZE = 20;
 const REPLIES_PREVIEW_COUNT = 2; // Show this many replies before collapse

@@ -3,8 +3,8 @@ import { getAuth } from 'firebase/auth'; // Import Firebase Auth
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import SaveToFirestore from '../firebase/util/saveToFirestore';
-import { clearCart, selectCartItems } from '../lib/features/todos/cartSlice';
-import { selectLocalId, selectUserEmail, selectUserName } from '../lib/features/todos/userSlice'; // Import selectors
+import { clearCart, selectCartItems } from '../lib/features/cartSlice';
+import { selectLocalId, selectUserEmail, selectUserName } from '../lib/features/userSlice'; // Import selectors
 import SuccessModal from './SuccessModal';
 
 /**

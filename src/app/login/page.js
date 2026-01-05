@@ -7,8 +7,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { loginSuccess } from '../../../lib/features/todos/authSlice';
-import { setAuthenticated, setUserName } from '../../../lib/features/todos/userSlice';
+import { loginSuccess } from '../../../lib/features/authSlice';
+import { setAuthenticated, setUserName } from '../../../lib/features/userSlice';
 import { loginUser, signInWithGoogle } from '../../../lib/utils/auth';
 import {
   checkRateLimit,

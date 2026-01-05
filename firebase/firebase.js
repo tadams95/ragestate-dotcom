@@ -10,7 +10,7 @@ import {
 } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
-import { api, key } from '../lib/features/todos/userSlice';
+import { api, key } from '../lib/features/userSlice';
 
 const firebaseConfig = {
   apiKey: api + key,

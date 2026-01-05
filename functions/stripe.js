@@ -18,6 +18,7 @@ const {
   createWebhook: createPrintifyWebhook,
   getWebhooks: getPrintifyWebhooks,
 } = require('./printify');
+const { runDailyAggregation } = require('./analytics');
 
 // Secret Manager: define secrets. Also support process.env for local dev.
 const STRIPE_SECRET = defineSecret('STRIPE_SECRET');
@@ -3214,6 +3215,62 @@ app.post('/send-campaign', async (req, res) => {
   } catch (err) {
     logger.error('send-campaign error', { message: err?.message, stack: err?.stack });
     return res.status(500).json({ error: 'Failed to send campaign', message: err?.message });
+  }
+});
+
+// Admin: manually trigger daily analytics aggregation
+app.post('/run-daily-aggregation', async (req, res) => {
+  try {
+    const expectedProxyKey = PROXY_KEY.value() || process.env.PROXY_KEY;
+    if (expectedProxyKey) {
+      const provided = req.get('x-proxy-key');
+      if (!provided || provided !== expectedProxyKey) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+    }
+
+    const { date } = req.body || {};
+
+    // Validate date format if provided
+    if (date) {
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(date)) {
+        return res.status(400).json({
+          error: 'Invalid date format',
+          message: 'Date must be in YYYY-MM-DD format',
+        });
+      }
+      // Validate it's a real date
+      const parsed = new Date(`${date}T00:00:00.000Z`);
+      if (isNaN(parsed.getTime())) {
+        return res.status(400).json({
+          error: 'Invalid date',
+          message: 'Date is not a valid calendar date',
+        });
+      }
+    }
+
+    logger.info('Manual daily aggregation triggered', { date: date || 'yesterday' });
+
+    const result = await runDailyAggregation(date || null);
+
+    if (!result.success) {
+      return res.status(500).json({
+        ok: false,
+        error: result.error,
+        date: result.date,
+      });
+    }
+
+    return res.json({
+      ok: true,
+      date: result.date,
+      metrics: result.metrics,
+      totals: result.totals,
+    });
+  } catch (err) {
+    logger.error('run-daily-aggregation error', { message: err?.message, stack: err?.stack });
+    return res.status(500).json({ error: 'Failed to run aggregation', message: err?.message });
   }
 });
 

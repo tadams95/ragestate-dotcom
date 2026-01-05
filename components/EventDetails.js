@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
-import { addToCart } from '../lib/features/todos/cartSlice';
+import { addToCart } from '../lib/features/cartSlice';
 import AuthGateModal from './AuthGateModal';
 
 export default function EventDetails({ event }) {

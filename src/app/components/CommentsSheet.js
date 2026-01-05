@@ -23,7 +23,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useAuth } from '../../../firebase/context/FirebaseContext';
 import { db } from '../../../firebase/firebase';
-import { selectUserName } from '../../../lib/features/todos/userSlice';
+import { selectUserName } from '../../../lib/features/userSlice';
 import { VerifiedBadge } from './PostHeader';
 
 const PAGE_SIZE = 20;

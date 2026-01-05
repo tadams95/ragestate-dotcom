@@ -1,16 +1,28 @@
 'use client';
 
-import { collection, getDocs, getFirestore, limit, orderBy, query } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  getFirestore,
+  limit,
+  orderBy,
+  query,
+  where,
+} from 'firebase/firestore';
 import { useCallback, useEffect, useState } from 'react';
 import { app } from '../../../../../firebase/firebase';
 
 /**
  * Hook for fetching and aggregating metrics data
- * Returns revenue data, user growth data, and feed engagement data
+ * Primary: Reads from pre-aggregated analytics collection
+ * Fallback: Queries raw collections if aggregations don't exist
  */
 export function useMetricsData() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [dataSource, setDataSource] = useState('loading'); // 'aggregated' | 'raw' | 'loading'
 
   // Revenue data
   const [revenueData, setRevenueData] = useState([]);
@@ -37,26 +49,40 @@ export function useMetricsData() {
     try {
       const db = getFirestore(app);
 
-      // Fetch all data in parallel
-      const [purchasesData, usersData, postsData] = await Promise.all([
-        fetchPurchases(db),
-        fetchUsers(db),
-        fetchPosts(db),
-      ]);
+      // Try to fetch from aggregated analytics first
+      const aggregatedData = await fetchFromAggregations(db);
 
-      // Process revenue data
-      const { dailyRevenue, total } = aggregateRevenue(purchasesData);
-      setRevenueData(dailyRevenue);
-      setTotalRevenue(total);
+      if (aggregatedData) {
+        // Use pre-aggregated data (much faster, fewer reads)
+        setDataSource('aggregated');
+        setRevenueData(aggregatedData.revenueData);
+        setTotalRevenue(aggregatedData.totalRevenue);
+        setUserGrowthData(aggregatedData.userGrowthData);
+        setTotalUsers(aggregatedData.totalUsers);
+        setFeedStats(aggregatedData.feedStats);
+      } else {
+        // Fallback to raw queries (more reads, but works without aggregations)
+        setDataSource('raw');
+        const [purchasesData, usersData, postsData] = await Promise.all([
+          fetchPurchases(db),
+          fetchUsers(db),
+          fetchPosts(db),
+        ]);
 
-      // Process user growth data
-      const { dailySignups, total: userTotal } = aggregateUserGrowth(usersData);
-      setUserGrowthData(dailySignups);
-      setTotalUsers(userTotal);
+        // Process revenue data
+        const { dailyRevenue, total } = aggregateRevenue(purchasesData);
+        setRevenueData(dailyRevenue);
+        setTotalRevenue(total);
 
-      // Process feed engagement
-      const feedEngagement = calculateFeedEngagement(postsData);
-      setFeedStats(feedEngagement);
+        // Process user growth data
+        const { dailySignups, total: userTotal } = aggregateUserGrowth(usersData);
+        setUserGrowthData(dailySignups);
+        setTotalUsers(userTotal);
+
+        // Process feed engagement
+        const feedEngagement = calculateFeedEngagement(postsData);
+        setFeedStats(feedEngagement);
+      }
     } catch (err) {
       console.error('Failed to fetch metrics:', err);
       setError(err.message || 'Failed to load metrics');
@@ -72,6 +98,7 @@ export function useMetricsData() {
   return {
     loading,
     error,
+    dataSource,
     revenueData,
     totalRevenue,
     userGrowthData,
@@ -79,6 +106,137 @@ export function useMetricsData() {
     feedStats,
     refetch: fetchMetrics,
   };
+}
+
+/**
+ * Fetch metrics from pre-aggregated analytics collection
+ * Returns null if aggregations don't exist (triggers fallback)
+ */
+async function fetchFromAggregations(db) {
+  try {
+    // Check if totals doc exists
+    const totalsDoc = await getDoc(doc(db, 'analytics', 'totals'));
+    if (!totalsDoc.exists()) {
+      console.log('Analytics totals not found, using raw queries');
+      return null;
+    }
+
+    const totals = totalsDoc.data();
+
+    // Fetch last 30 days of daily analytics
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const startDateStr = formatDateKey(thirtyDaysAgo);
+
+    const analyticsQuery = query(
+      collection(db, 'analytics'),
+      where('date', '>=', startDateStr),
+      orderBy('date', 'asc'),
+    );
+
+    const snapshot = await getDocs(analyticsQuery);
+
+    // Build daily data maps
+    const dailyRevenueMap = new Map();
+    const dailyUserMap = new Map();
+
+    // Initialize all 30 days with zeros
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      const key = formatDateKey(date);
+      dailyRevenueMap.set(key, { date: key, revenue: 0, orders: 0 });
+      dailyUserMap.set(key, { date: key, signups: 0, cumulative: 0 });
+    }
+
+    // Fill in data from analytics docs
+    let runningCumulative = 0;
+    let postsLast7Days = 0;
+    let postsLast30Days = 0;
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgoStr = formatDateKey(sevenDaysAgo);
+
+    snapshot.docs.forEach((docSnap) => {
+      const data = docSnap.data();
+      const dateKey = data.date;
+
+      // Skip the 'totals' doc (it doesn't have a date field in YYYY-MM-DD format)
+      if (!dateKey || dateKey === 'totals') return;
+
+      if (dailyRevenueMap.has(dateKey)) {
+        dailyRevenueMap.set(dateKey, {
+          date: dateKey,
+          revenue: data.revenue?.total || 0,
+          orders: data.revenue?.orderCount || 0,
+        });
+      }
+
+      if (dailyUserMap.has(dateKey)) {
+        const signups = data.users?.newSignups || 0;
+        runningCumulative = data.users?.cumulative || runningCumulative + signups;
+        dailyUserMap.set(dateKey, {
+          date: dateKey,
+          signups,
+          cumulative: runningCumulative,
+        });
+      }
+
+      // Count posts for engagement
+      const newPosts = data.feed?.newPosts || 0;
+      postsLast30Days += newPosts;
+      if (dateKey >= sevenDaysAgoStr) {
+        postsLast7Days += newPosts;
+      }
+    });
+
+    // Convert maps to arrays and calculate cumulative for user growth
+    const revenueData = Array.from(dailyRevenueMap.values());
+    const userGrowthData = Array.from(dailyUserMap.values());
+
+    // Calculate cumulative if not already set
+    let lastKnownCumulative = totals.totalUsers || 0;
+    // Work backwards to fill in cumulative values
+    for (let i = userGrowthData.length - 1; i >= 0; i--) {
+      if (userGrowthData[i].cumulative === 0) {
+        userGrowthData[i].cumulative = lastKnownCumulative;
+      } else {
+        lastKnownCumulative = userGrowthData[i].cumulative;
+      }
+      lastKnownCumulative -= userGrowthData[i].signups;
+      if (lastKnownCumulative < 0) lastKnownCumulative = 0;
+    }
+
+    // Forward pass to ensure cumulative is increasing
+    let cumulative = userGrowthData[0]?.cumulative || 0;
+    userGrowthData.forEach((day) => {
+      cumulative = Math.max(cumulative, day.cumulative);
+      day.cumulative = cumulative;
+    });
+
+    // Build feed stats from totals
+    const feedStats = {
+      totalPosts: totals.totalPosts || 0,
+      totalLikes: totals.totalLikes || 0,
+      totalComments: totals.totalComments || 0,
+      avgCommentsPerPost:
+        totals.totalPosts > 0 ? (totals.totalComments / totals.totalPosts).toFixed(1) : 0,
+      avgLikesPerPost:
+        totals.totalPosts > 0 ? (totals.totalLikes / totals.totalPosts).toFixed(1) : 0,
+      postsLast7Days,
+      postsLast30Days,
+      postsPerDay: postsLast30Days > 0 ? (postsLast30Days / 30).toFixed(1) : 0,
+    };
+
+    return {
+      revenueData,
+      totalRevenue: totals.totalRevenue || 0,
+      userGrowthData,
+      totalUsers: totals.totalUsers || 0,
+      feedStats,
+    };
+  } catch (err) {
+    console.warn('Error fetching from aggregations, falling back to raw:', err);
+    return null;
+  }
 }
 
 /**

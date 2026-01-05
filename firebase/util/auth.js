@@ -6,7 +6,7 @@ import {
 } from "firebase/auth";
 import { auth } from "../firebase";
 
-import { setLocalId } from "../../lib/features/todos/userSlice";
+import { setLocalId } from "../../lib/features/userSlice";
 
 const API_KEY =
   process.env.NEXT_PUBLIC_apiKey || process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
