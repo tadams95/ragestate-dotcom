@@ -234,6 +234,10 @@ Prioritize features enhancing acquisition appeal: user growth (social/notificati
 
 ### Target Acquirers (Prioritized)
 
+**Tier 0 — Dream Acquirer (Perfect Strategic Fit)**
+
+- **Insomniac Events** — World's largest EDM festival producer (EDC, Beyond Wonderland, Nocturnal). Would gain turnkey social platform for their massive rave community, @username transfers for festival tickets, merch integration, and fan engagement layer. RAGESTATE's rave-native audience is their exact demographic. Owned by Live Nation but operates semi-independently with own tech initiatives.
+
 **Tier 1 — Direct Competitors (Acqui-hire + Tech + Users)**
 
 - **Posh.vip** — Would gain @username transfers, merch, eliminate competitor
@@ -243,7 +247,7 @@ Prioritize features enhancing acquisition appeal: user growth (social/notificati
 **Tier 2 — Platform Giants (Tech Acquisition)**
 
 - **Eventbrite** — Needs social layer desperately, can't build internally
-- **Ticketmaster/Live Nation** — Social engagement for younger demographics
+- **Ticketmaster/Live Nation** — Social engagement for younger demographics (or route through Insomniac)
 - **Spotify** — Event discovery tied to listening (artists → shows)
 
 **Tier 3 — Adjacent Players (Strategic)**
@@ -254,13 +258,14 @@ Prioritize features enhancing acquisition appeal: user growth (social/notificati
 
 ### Acquisition Interest Matrix
 
-| Acquirer                       | Why They'd Want RAGESTATE                  | Strategic Fit |
-| ------------------------------ | ------------------------------------------ | ------------- |
-| Posh/Radiate                   | Eliminate competitor, acquire tech + users | High          |
-| Eventbrite/Dice                | Bolt-on social layer they can't build      | High          |
-| Spotify/SoundCloud             | Event discovery + ticketing for artists    | Medium        |
-| Discord/Meta                   | Real-world event integration               | Medium        |
-| PE Rollup (Vista, Thoma Bravo) | Consolidating event tech                   | Medium        |
+| Acquirer                       | Why They'd Want RAGESTATE                                       | Strategic Fit |
+| ------------------------------ | --------------------------------------------------------------- | ------------- |
+| **Insomniac Events**           | Social layer for festival community, rave-native UX, @transfers | **Very High** |
+| Posh/Radiate                   | Eliminate competitor, acquire tech + users                      | High          |
+| Eventbrite/Dice                | Bolt-on social layer they can't build                           | High          |
+| Spotify/SoundCloud             | Event discovery + ticketing for artists                         | Medium        |
+| Discord/Meta                   | Real-world event integration                                    | Medium        |
+| PE Rollup (Vista, Thoma Bravo) | Consolidating event tech                                        | Medium        |
 
 **Outreach Strategy**: Warm intros via LinkedIn to product/corp dev; attend TechCrunch Disrupt, SXSW; engage M&A advisors with event-tech relationships.  
 **Pitch Deck Elements**: User metrics, @username transfer demo video, tech architecture, integration plan, financial projections.  
