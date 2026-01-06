@@ -44,14 +44,61 @@ const VIDEO_MIMES = [
 ];
 
 /**
- * Extract postId from storage path: posts/{postId}/{filename}
+ * Extract postId from storage path
+ * Supports both formats:
+ *   - posts/{postId}/{filename} (nested)
+ *   - posts/{filename} (flat - queries Firestore to find postId)
  */
 function extractPostId(filePath) {
   const parts = filePath.split('/');
+
+  // Nested format: posts/{postId}/{filename}
   if (parts[0] === 'posts' && parts.length >= 3) {
     return parts[1];
   }
+
+  // Flat format: posts/{filename} - return null, will need to query Firestore
+  if (parts[0] === 'posts' && parts.length === 2) {
+    return null; // Signal to use findPostByMediaUrl
+  }
+
   return null;
+}
+
+/**
+ * Find postId by searching Firestore for a post containing this media URL
+ * Used for flat storage structure: posts/{filename}
+ */
+async function findPostByMediaUrl(fileUrl) {
+  try {
+    // Query posts where mediaUrls array contains this URL
+    const snapshot = await db
+      .collection('posts')
+      .where('mediaUrls', 'array-contains', fileUrl)
+      .limit(1)
+      .get();
+
+    if (!snapshot.empty) {
+      return snapshot.docs[0].id;
+    }
+
+    // Also try without ?alt=media suffix
+    const cleanUrl = fileUrl.replace('?alt=media', '');
+    const snapshot2 = await db
+      .collection('posts')
+      .where('mediaUrls', 'array-contains', cleanUrl)
+      .limit(1)
+      .get();
+
+    if (!snapshot2.empty) {
+      return snapshot2.docs[0].id;
+    }
+
+    return null;
+  } catch (err) {
+    logger.error('findPostByMediaUrl failed', { fileUrl, error: err.message });
+    return null;
+  }
 }
 
 /**
@@ -76,10 +123,17 @@ async function updatePostProcessingStatus(postId, isProcessing, optimizedUrl = n
 
   try {
     await postRef.update(update);
-    logger.info('Updated post processing status', { postId, isProcessing, optimizedUrl });
+    logger.info('Updated post processing status', {
+      postId,
+      isProcessing,
+      optimizedUrl,
+    });
   } catch (err) {
     // Post may have been deleted before transcode finished
-    logger.warn('Failed to update post processing status', { postId, error: err.message });
+    logger.warn('Failed to update post processing status', {
+      postId,
+      error: err.message,
+    });
   }
 }
 
@@ -110,7 +164,9 @@ async function transcodeVideo(inputPath, outputPath) {
       .on('start', (cmd) => logger.info('FFmpeg started', { cmd }))
       .on('progress', (progress) => {
         if (progress.percent) {
-          logger.info('Transcoding progress', { percent: Math.round(progress.percent) });
+          logger.info('Transcoding progress', {
+            percent: Math.round(progress.percent),
+          });
         }
       })
       .on('end', () => {
@@ -159,9 +215,48 @@ exports.onVideoUpload = onObjectFinalized(
       return null;
     }
 
-    const postId = extractPostId(filePath);
+    // Try to extract postId from path (nested format)
+    let postId = extractPostId(filePath);
+
+    // For flat format (posts/{filename}), query Firestore to find the post
     if (!postId) {
-      logger.warn('Could not extract postId from path', { filePath });
+      // Construct the Storage URL to search for
+      const bucketName = 'ragestate-app.appspot.com';
+      const possibleUrls = [
+        `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodeURIComponent(
+          filePath,
+        )}?alt=media`,
+        `https://storage.googleapis.com/${bucketName}/${filePath}`,
+      ];
+
+      for (const url of possibleUrls) {
+        postId = await findPostByMediaUrl(url);
+        if (postId) {
+          logger.info('Found postId via Firestore query', { postId, url });
+          break;
+        }
+      }
+
+      if (!postId) {
+        // Still couldn't find - might be an orphaned file or post not created yet
+        // Wait a bit and retry once (post creation might be in progress)
+        logger.info('PostId not found, waiting 5s and retrying...', {
+          filePath,
+        });
+        await new Promise((r) => setTimeout(r, 5000));
+
+        for (const url of possibleUrls) {
+          postId = await findPostByMediaUrl(url);
+          if (postId) {
+            logger.info('Found postId on retry', { postId, url });
+            break;
+          }
+        }
+      }
+    }
+
+    if (!postId) {
+      logger.warn('Could not find postId for file', { filePath });
       return null;
     }
 
@@ -234,7 +329,11 @@ exports.onVideoUpload = onObjectFinalized(
 
       return { success: true, optimizedUrl };
     } catch (err) {
-      logger.error('Video transcode failed', { postId, error: err.message, stack: err.stack });
+      logger.error('Video transcode failed', {
+        postId,
+        error: err.message,
+        stack: err.stack,
+      });
 
       // Clear processing flag on error so video still plays (original quality)
       await updatePostProcessingStatus(postId, false);

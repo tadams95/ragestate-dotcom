@@ -43,6 +43,30 @@ function EmbeddedPost({ repostOf, isVerified = false }) {
     );
   }
 
+  // Helper to detect video URLs
+  const isVideoUrl = (url) => {
+    if (!url) return false;
+    const lower = url.toLowerCase();
+    if (/\.(mp4|mov|webm|avi|mkv|m4v)(\?|$)/i.test(lower)) return true;
+    if (lower.includes('video%2f') || lower.includes('video/')) return true;
+    return false;
+  };
+
+  // Get the first media URL, preferring optimized for videos
+  const getMediaUrl = () => {
+    const originalUrl = repostOf.mediaUrls?.[0];
+    if (!originalUrl) return null;
+
+    // If it's a video and we have optimized URLs, prefer them
+    if (isVideoUrl(originalUrl) && repostOf.optimizedMediaUrls?.length > 0) {
+      return repostOf.optimizedMediaUrls[0];
+    }
+    return originalUrl;
+  };
+
+  const mediaUrl = getMediaUrl();
+  const isVideo = mediaUrl && isVideoUrl(mediaUrl);
+
   return (
     <Link
       href={`/post/${repostOf.postId}`}
@@ -72,12 +96,11 @@ function EmbeddedPost({ repostOf, isVerified = false }) {
       )}
 
       {/* Original media */}
-      {repostOf.mediaUrls && repostOf.mediaUrls.length > 0 && (
+      {mediaUrl && (
         <div className="mt-2 overflow-hidden rounded-lg">
-          {repostOf.mediaUrls[0]?.toLowerCase().includes('video') ||
-          /\.(mp4|mov|webm)(\?|$)/i.test(repostOf.mediaUrls[0]) ? (
+          {isVideo ? (
             <video
-              src={repostOf.mediaUrls[0]}
+              src={mediaUrl}
               className="max-h-48 w-full rounded-lg object-cover"
               muted
               playsInline
@@ -85,13 +108,9 @@ function EmbeddedPost({ repostOf, isVerified = false }) {
             />
           ) : (
             /* eslint-disable-next-line @next/next/no-img-element */
-            <img
-              src={repostOf.mediaUrls[0]}
-              alt=""
-              className="max-h-48 w-full rounded-lg object-cover"
-            />
+            <img src={mediaUrl} alt="" className="max-h-48 w-full rounded-lg object-cover" />
           )}
-          {repostOf.mediaUrls.length > 1 && (
+          {repostOf.mediaUrls?.length > 1 && (
             <div className="mt-1 text-xs text-[var(--text-tertiary)]">
               +{repostOf.mediaUrls.length - 1} more
             </div>

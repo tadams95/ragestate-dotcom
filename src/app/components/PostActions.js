@@ -291,6 +291,8 @@ export default function PostActions({
       const targetAuthorPhoto = originalRepostOf?.authorPhoto || postData?.avatarUrl;
       const targetContent = originalRepostOf?.content ?? postData?.content ?? '';
       const targetMediaUrls = originalRepostOf?.mediaUrls || postData?.mediaUrls || [];
+      const targetOptimizedMediaUrls =
+        originalRepostOf?.optimizedMediaUrls || postData?.optimizedMediaUrls || [];
       const targetTimestamp = originalRepostOf?.timestamp || postData?.timestamp || null;
 
       // 1. Create postReposts doc (always references the original post)
@@ -323,6 +325,7 @@ export default function PostActions({
           authorPhoto: targetAuthorPhoto,
           content: targetContent,
           mediaUrls: targetMediaUrls,
+          optimizedMediaUrls: targetOptimizedMediaUrls,
           timestamp: targetTimestamp,
         },
         repostCount: 0,
