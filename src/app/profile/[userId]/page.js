@@ -19,6 +19,8 @@ import { useAuth } from '../../../../firebase/context/FirebaseContext';
 import { db } from '../../../../firebase/firebase';
 import Post from '../../components/Post';
 import { VerifiedBadge } from '../../components/PostHeader';
+import ProfileMusicPlayer from '../../components/ProfileMusicPlayer';
+import SocialLinksRow from '../../components/SocialLinksRow';
 
 export default function ProfilePage({ params }) {
   const router = useRouter();
@@ -32,7 +34,9 @@ export default function ProfilePage({ params }) {
     photoURL: '',
     bio: '',
     usernameLower: '',
-    profileSongUrl: '',
+    profileSongUrl: '', // legacy - kept for backward compatibility
+    profileMusic: null, // NEW: { platform, url, title, artist, artworkUrl, cachedAt }
+    socialLinks: null, // NEW: { twitter, instagram, tiktok, soundcloud, spotify, youtube }
     isVerified: false,
   });
   const [_followersCount, _setFollowersCount] = useState(0);
@@ -93,7 +97,9 @@ export default function ProfilePage({ params }) {
             photoURL: p.photoURL || p.profilePicture || '',
             bio: p.bio || '',
             usernameLower: p.usernameLower || paramUsername || '',
-            profileSongUrl: p.profileSongUrl || '',
+            profileSongUrl: p.profileSongUrl || '', // legacy
+            profileMusic: p.profileMusic || null, // NEW
+            socialLinks: p.socialLinks || null, // NEW
             isVerified: p.isVerified === true,
           });
         }
@@ -253,6 +259,8 @@ export default function ProfilePage({ params }) {
                   {profile.bio}
                 </p>
               )}
+              {/* Social Links */}
+              <SocialLinksRow socialLinks={profile.socialLinks} className="mt-4" />
               {/* {!isOwnProfile && (
                 <div className="mt-4">
                   <Followbutton targetUserId={resolvedUid} onChange={refreshCounts} />
@@ -260,36 +268,22 @@ export default function ProfilePage({ params }) {
               )} */}
             </div>
 
-            {profile.profileSongUrl ? (
+            {/* Profile Music Player - supports multiple platforms */}
+            {profile.profileMusic?.url || profile.profileSongUrl ? (
               <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-4 transition-colors duration-200">
-                {/* <h3 className="mb-2 text-sm font-semibold text-white">Profile Song</h3> */}
-                {/* Classic compact player on mobile */}
+                {/* Compact player on mobile */}
                 <div className="md:hidden">
-                  <iframe
-                    title="SoundCloud player (compact)"
-                    width="100%"
-                    height="166"
-                    scrolling="no"
-                    frameBorder="no"
-                    allow="autoplay"
-                    src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(
-                      profile.profileSongUrl,
-                    )}&color=%23ff1f42&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=false`}
+                  <ProfileMusicPlayer
+                    profileMusic={profile.profileMusic}
+                    url={profile.profileSongUrl}
+                    compact
                   />
                 </div>
                 {/* Visual player on md+ for a richer presentation */}
                 <div className="hidden md:block">
-                  <iframe
-                    title="SoundCloud player (visual)"
-                    width="100%"
-                    height="320"
-                    className="h-[300px] lg:h-[360px]"
-                    scrolling="no"
-                    frameBorder="no"
-                    allow="autoplay"
-                    src={`https://w.soundcloud.com/player/?url=${encodeURIComponent(
-                      profile.profileSongUrl,
-                    )}&color=%23ff1f42&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=true`}
+                  <ProfileMusicPlayer
+                    profileMusic={profile.profileMusic}
+                    url={profile.profileSongUrl}
                   />
                 </div>
               </div>
