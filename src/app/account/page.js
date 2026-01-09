@@ -64,7 +64,7 @@ export default function Account() {
             const userData = await getUserFromFirestore(storedUserId);
 
             if (userData) {
-              console.log('Fetched user data from Firestore:', userData);
+              // console.log('Fetched user data from Firestore:', userData);
 
               if (userData.profilePicture) {
                 setProfilePicture(userData.profilePicture);
@@ -122,7 +122,7 @@ export default function Account() {
     }
 
     function fallbackToLocalStorage() {
-      console.log('Using localStorage data as fallback');
+      // console.log('Using localStorage data as fallback');
       const {
         userId: uid,
         profilePicture: pic,
