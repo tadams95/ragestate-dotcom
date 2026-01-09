@@ -1,7 +1,7 @@
 'use client';
 import { track } from '@/app/utils/metrics';
 import { formatDate } from '@/utils/formatters';
-import { deleteDoc, doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { deleteDoc, doc, getDoc, onSnapshot, serverTimestamp, updateDoc } from 'firebase/firestore';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../../firebase/context/FirebaseContext';
@@ -179,6 +179,7 @@ export default function Post({ postData, hideFollow = false }) {
         if (!snap.exists()) return;
         const p = snap.data();
         setLiveData({
+          userId: p.userId || null, // Include userId for accurate isAuthor check
           likeCount: typeof p.likeCount === 'number' ? p.likeCount : 0,
           commentCount: typeof p.commentCount === 'number' ? p.commentCount : 0,
           repostCount: typeof p.repostCount === 'number' ? p.repostCount : 0,
@@ -212,7 +213,9 @@ export default function Post({ postData, hideFollow = false }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postData?.id]);
 
-  const isAuthor = !!(currentUser && postData?.userId && currentUser.uid === postData.userId);
+  // Use live userId from Firestore if available, fallback to prop
+  const authorUserId = liveData?.userId ?? postData?.userId;
+  const isAuthor = !!(currentUser && authorUserId && currentUser.uid === authorUserId);
 
   const onSaveEdit = async ({ content, isPublic, mediaUrls }) => {
     if (!postData?.id || !isAuthor) return;
@@ -222,7 +225,7 @@ export default function Post({ postData, hideFollow = false }) {
         content,
         isPublic,
         edited: true,
-        updatedAt: new Date(),
+        updatedAt: serverTimestamp(), // Use serverTimestamp to match rules
       };
       // Only include mediaUrls if provided (allows removal)
       if (Array.isArray(mediaUrls)) {
