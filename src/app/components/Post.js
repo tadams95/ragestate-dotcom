@@ -173,27 +173,41 @@ export default function Post({ postData, hideFollow = false }) {
   // Live update for counts and author/avatar while post is mounted
   useEffect(() => {
     if (!postData?.id) return;
-    const unsub = onSnapshot(doc(db, 'posts', postData.id), (snap) => {
-      if (!snap.exists()) return;
-      const p = snap.data();
-      setLiveData({
-        likeCount: typeof p.likeCount === 'number' ? p.likeCount : 0,
-        commentCount: typeof p.commentCount === 'number' ? p.commentCount : 0,
-        repostCount: typeof p.repostCount === 'number' ? p.repostCount : 0,
-        author: p.usernameLower ? p.usernameLower : p.userDisplayName || p.userId || data.author,
-        avatarUrl: p.userProfilePicture || null,
-        usernameLower: p.usernameLower || postData?.usernameLower,
-        content: p.content ?? data.content,
-        isPublic: typeof p.isPublic === 'boolean' ? p.isPublic : true,
-        edited: !!p.edited,
-        mediaUrls: Array.isArray(p.mediaUrls) ? p.mediaUrls : [],
-        optimizedMediaUrls: Array.isArray(p.optimizedMediaUrls) ? p.optimizedMediaUrls : [],
-        isProcessing: !!p.isProcessing,
-        timestamp:
-          formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp) || data.timestamp,
-        repostOf: p.repostOf || null,
-      });
-    });
+    const unsub = onSnapshot(
+      doc(db, 'posts', postData.id),
+      (snap) => {
+        if (!snap.exists()) return;
+        const p = snap.data();
+        setLiveData({
+          likeCount: typeof p.likeCount === 'number' ? p.likeCount : 0,
+          commentCount: typeof p.commentCount === 'number' ? p.commentCount : 0,
+          repostCount: typeof p.repostCount === 'number' ? p.repostCount : 0,
+          author: p.usernameLower ? p.usernameLower : p.userDisplayName || p.userId || data.author,
+          avatarUrl: p.userProfilePicture || null,
+          usernameLower: p.usernameLower || postData?.usernameLower,
+          content: p.content ?? data.content,
+          isPublic: typeof p.isPublic === 'boolean' ? p.isPublic : true,
+          edited: !!p.edited,
+          mediaUrls: Array.isArray(p.mediaUrls) ? p.mediaUrls : [],
+          optimizedMediaUrls: Array.isArray(p.optimizedMediaUrls) ? p.optimizedMediaUrls : [],
+          isProcessing: !!p.isProcessing,
+          timestamp:
+            formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp) || data.timestamp,
+          repostOf: p.repostOf || null,
+        });
+      },
+      (error) => {
+        // Gracefully handle permission-denied errors (e.g., private posts, deleted posts)
+        if (error?.code === 'permission-denied') {
+          console.debug(
+            'Post listener permission denied, post may be private or deleted:',
+            postData.id,
+          );
+        } else {
+          console.error('Post listener error:', error);
+        }
+      },
+    );
     return () => unsub();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postData?.id]);

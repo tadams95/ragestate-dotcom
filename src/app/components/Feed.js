@@ -282,46 +282,13 @@ export default function Feed({ forcePublic = false }) {
           setLoadError('');
           return;
         } catch (e) {
-          // Likely missing composite index: fall back to timestamp-only query and filter client-side
-          console.warn(
-            'Public feed index missing, falling back to timestamp-only query',
-            e?.code || e,
-          );
-          const constraints = [orderBy('timestamp', 'desc'), limit(PAGE_SIZE)];
-          if (lastPublicDoc) constraints.push(startAfter(lastPublicDoc));
-          const qFallback = query(collection(db, 'posts'), ...constraints);
-          const snap = await getDocs(qFallback);
-          const mapped = snap.docs
-            .map((d) => ({ id: d.id, ...d.data() }))
-            .filter((p) => p.isPublic)
-            .map((p) => ({
-              id: p.id,
-              userId: p.userId,
-              author: p.usernameLower ? p.usernameLower : p.userDisplayName || p.userId,
-              avatarUrl: p.userProfilePicture || null,
-              usernameLower: p.usernameLower || undefined,
-              timestamp: formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp),
-              content: p.content || '',
-              mediaUrls: Array.isArray(p.mediaUrls) ? p.mediaUrls : [],
-              likeCount: typeof p.likeCount === 'number' ? p.likeCount : 0,
-              commentCount: typeof p.commentCount === 'number' ? p.commentCount : 0,
-            }));
-
-          // Append without duplicating existing post IDs
-          setPosts((prev) => {
-            const existing = new Set(prev.map((p) => p.id));
-            const deduped = mapped.filter((p) => !existing.has(p.id));
-            return [...prev, ...deduped];
-          });
-          setLastPublicDoc(snap.docs[snap.docs.length - 1] || null);
-          if (snap.size < PAGE_SIZE) setHasMore(false);
-          setLoadError('');
+          // Missing composite index - log error and show message instead of using unsafe fallback
+          // The old fallback queried ALL posts without isPublic filter, causing permission-denied for non-admins
+          console.error('Public feed query failed (likely missing index):', e?.code || e);
+          setLoadError('Feed temporarily unavailable. Please try again later.');
           return;
         }
       }
-
-      // USER mode disabled: always showing public feed for now
-      return;
     } catch (err) {
       console.error('Failed to fetch feed:', err);
       setLoadError('Failed to load posts. Pull to refresh or try again.');

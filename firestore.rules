@@ -66,14 +66,32 @@ service cloud.firestore {
     // Note: isVerified is admin-only (not in allowed keys list)
     match /profiles/{userId} {
       allow read: if true;
-      allow create, update: if (isCurrentUser(userId) || isAdmin())
+      // Create: user can only set allowed fields
+      allow create: if (isCurrentUser(userId) || isAdmin())
         && (isAdmin() || hasOnlyKeys(request.resource.data, [
-          'displayName', 'photoURL', 'bio', 'usernameLower', 'profilePicture'
+          'displayName', 'photoURL', 'bio', 'usernameLower', 'profilePicture',
+          'socialLinks', 'profileMusic', 'profileSongUrl'
         ]))
         && (!request.resource.data.keys().hasAny(['displayName']) || isString(request.resource.data.displayName))
         && (!request.resource.data.keys().hasAny(['photoURL']) || isString(request.resource.data.photoURL))
         && (!request.resource.data.keys().hasAny(['bio']) || isMaxLen500(request.resource.data.bio))
-        && (!request.resource.data.keys().hasAny(['usernameLower']) || isString(request.resource.data.usernameLower));
+        && (!request.resource.data.keys().hasAny(['usernameLower']) || isString(request.resource.data.usernameLower))
+        && (!request.resource.data.keys().hasAny(['socialLinks']) || request.resource.data.socialLinks is map)
+        && (!request.resource.data.keys().hasAny(['profileMusic']) || request.resource.data.profileMusic is map)
+        && (!request.resource.data.keys().hasAny(['profileSongUrl']) || isString(request.resource.data.profileSongUrl));
+      // Update: only allowed fields can be changed (existing admin fields like isVerified stay untouched)
+      allow update: if (isCurrentUser(userId) || isAdmin())
+        && (isAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'displayName', 'photoURL', 'bio', 'usernameLower', 'profilePicture',
+          'socialLinks', 'profileMusic', 'profileSongUrl'
+        ]))
+        && (!request.resource.data.keys().hasAny(['displayName']) || isString(request.resource.data.displayName))
+        && (!request.resource.data.keys().hasAny(['photoURL']) || isString(request.resource.data.photoURL))
+        && (!request.resource.data.keys().hasAny(['bio']) || isMaxLen500(request.resource.data.bio))
+        && (!request.resource.data.keys().hasAny(['usernameLower']) || isString(request.resource.data.usernameLower))
+        && (!request.resource.data.keys().hasAny(['socialLinks']) || request.resource.data.socialLinks is map)
+        && (!request.resource.data.keys().hasAny(['profileMusic']) || request.resource.data.profileMusic is map)
+        && (!request.resource.data.keys().hasAny(['profileSongUrl']) || isString(request.resource.data.profileSongUrl));
       allow delete: if isCurrentUser(userId) || isAdmin();
     }
 
@@ -192,6 +210,7 @@ service cloud.firestore {
                    (isAuthenticated() && resource.data.userId == request.auth.uid);
 
       // Create: only author can create; validate schema; counters must start at 0
+      // Note: serverTimestamp() is a sentinel; use request.time comparison
       allow create: if isAuthenticated()
         && request.resource.data.userId == request.auth.uid
         && isString(request.resource.data.userId)
@@ -200,7 +219,7 @@ service cloud.firestore {
         && (!request.resource.data.keys().hasAny(['content']) || isMaxLen500(request.resource.data.content))
         && (!request.resource.data.keys().hasAny(['mediaUrls']) || (isList(request.resource.data.mediaUrls)))
         && isBool(request.resource.data.isPublic)
-        && isTimestamp(request.resource.data.timestamp)
+        && request.resource.data.timestamp == request.time
         && (!request.resource.data.keys().hasAny(['likeCount']) || request.resource.data.likeCount == 0)
         && (!request.resource.data.keys().hasAny(['commentCount']) || request.resource.data.commentCount == 0)
         && (!request.resource.data.keys().hasAny(['repostCount']) || request.resource.data.repostCount == 0)
@@ -226,7 +245,7 @@ service cloud.firestore {
         && (!request.resource.data.keys().hasAny(['mediaUrls']) || isList(request.resource.data.mediaUrls))
         && (!request.resource.data.keys().hasAny(['isPublic']) || isBool(request.resource.data.isPublic))
         && (!request.resource.data.keys().hasAny(['edited']) || isBool(request.resource.data.edited))
-        && (!request.resource.data.keys().hasAny(['updatedAt']) || isTimestamp(request.resource.data.updatedAt));
+        && (!request.resource.data.keys().hasAny(['updatedAt']) || request.resource.data.updatedAt == request.time);
 
       // Delete: author (or admin) may delete their post
       allow delete: if isAuthenticated() && (
@@ -238,21 +257,23 @@ service cloud.firestore {
     match /postLikes/{likeId} {
       allow read: if true;
       // One like per user per post is enforced by client doc-id strategy; rules validate ownership
+      // Note: serverTimestamp() is a sentinel; use request.time comparison
       allow create: if isAuthenticated()
         && request.resource.data.userId == request.auth.uid
         && isString(request.resource.data.postId)
-        && isTimestamp(request.resource.data.timestamp);
+        && request.resource.data.timestamp == request.time;
       allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
     // Feed: postComments
     match /postComments/{commentId} {
       allow read: if true;
+      // Note: serverTimestamp() is a sentinel; use request.time comparison
       allow create: if isAuthenticated()
         && request.resource.data.userId == request.auth.uid
         && isString(request.resource.data.postId)
         && isMaxLen500(request.resource.data.content)
-        && isTimestamp(request.resource.data.timestamp)
+        && request.resource.data.timestamp == request.time
         // parentId is optional: null for top-level, string for replies
         && (!request.resource.data.keys().hasAny(['parentId']) || request.resource.data.parentId == null || isString(request.resource.data.parentId))
         // likeCount must be 0 on create
@@ -270,11 +291,12 @@ service cloud.firestore {
     match /postCommentLikes/{likeId} {
       allow read: if true;
       // Create: auth user can like; validate ownership and required fields
+      // Note: serverTimestamp() is a sentinel; use request.time comparison
       allow create: if isAuthenticated()
         && request.resource.data.userId == request.auth.uid
         && isString(request.resource.data.commentId)
         && isString(request.resource.data.postId)
-        && isTimestamp(request.resource.data.timestamp);
+        && request.resource.data.timestamp == request.time;
       // Delete: only the user who created the like
       allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
@@ -283,10 +305,11 @@ service cloud.firestore {
     match /postReposts/{repostId} {
       allow read: if true;
       // Create: auth user can repost; validate ownership and required fields
+      // Note: serverTimestamp() is a sentinel; use request.time comparison
       allow create: if isAuthenticated()
         && request.resource.data.userId == request.auth.uid
         && isString(request.resource.data.postId)
-        && isTimestamp(request.resource.data.timestamp);
+        && request.resource.data.timestamp == request.time;
       // Update: immutable after creation (postId/userId cannot change)
       allow update: if false;
       // Delete: only the user who created the repost
@@ -308,12 +331,13 @@ service cloud.firestore {
     // Social graph: follows
     match /follows/{edgeId} {
       allow read: if true;
+      // Note: serverTimestamp() is a sentinel; use request.time comparison for createdAt
       allow create: if isAuthenticated()
         && isString(request.resource.data.followerId)
         && isString(request.resource.data.followedId)
         && request.resource.data.followerId == request.auth.uid
         && request.resource.data.followerId != request.resource.data.followedId
-        && (!request.resource.data.keys().hasAny(['createdAt']) || isTimestamp(request.resource.data.createdAt));
+        && (!request.resource.data.keys().hasAny(['createdAt']) || request.resource.data.createdAt == request.time);
       allow delete: if isAuthenticated() && resource.data.followerId == request.auth.uid;
     }
 
