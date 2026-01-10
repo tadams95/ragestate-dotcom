@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.tyrelle.ragestate",
+      "sha256_cert_fingerprints": [
+        "E2:2A:EE:33:A3:A7:56:D4:6B:13:50:AE:3B:6E:FD:A1:2B:24:5C:AD:16:AF:71:0C:EE:87:C5:26:4A:75:2D:04"
+      ]
+    }
+  }
+]
