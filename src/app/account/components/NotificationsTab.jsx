@@ -7,6 +7,7 @@ import {
   doc,
   getDocs,
   limit,
+  onSnapshot,
   orderBy,
   query,
   startAfter,
@@ -14,7 +15,7 @@ import {
 } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import dynamic from 'next/dynamic';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { db } from '../../../../firebase/firebase';
 import {
   disableWebPush,
@@ -43,6 +44,7 @@ export default function NotificationsTab({
   const [registering, setRegistering] = useState(false);
   const [hasAutoMarkedRead, setHasAutoMarkedRead] = useState(false);
   const PAGE_SIZE = 20;
+  const unsubscribeRef = useRef(null);
 
   // Sync pushStatus with browser permission on mount (client-side only)
   useEffect(() => {
@@ -51,31 +53,62 @@ export default function NotificationsTab({
     }
   }, []);
 
-  const load = useCallback(
-    async (cursor) => {
-      if (!userId) return;
-      const base = collection(db, 'users', userId, 'notifications');
-      let q = query(base, orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
-      if (cursor) {
-        q = query(base, orderBy('createdAt', 'desc'), startAfter(cursor), limit(PAGE_SIZE));
+  // Real-time listener for initial notifications (first page)
+  useEffect(() => {
+    if (!userId) return;
+
+    setLoading(true);
+    const base = collection(db, 'users', userId, 'notifications');
+    const q = query(base, orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
+
+    // Use onSnapshot for real-time updates
+    unsubscribeRef.current = onSnapshot(
+      q,
+      (snap) => {
+        if (snap.empty) {
+          setItems([]);
+          setEnd(true);
+        } else {
+          const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          setItems(docs);
+          setEnd(snap.size < PAGE_SIZE);
+        }
+        setLoading(false);
+      },
+      (error) => {
+        console.error('Notifications listener error:', error);
+        setLoading(false);
+      },
+    );
+
+    return () => {
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
       }
+    };
+  }, [userId]);
+
+  // Load more uses one-time fetch (pagination beyond real-time first page)
+  const loadMore = useCallback(async () => {
+    if (loadingMore || end || !items.length) return;
+    setLoadingMore(true);
+    try {
+      const base = collection(db, 'users', userId, 'notifications');
+      const lastItem = items[items.length - 1];
+      const q = query(base, orderBy('createdAt', 'desc'), startAfter(lastItem.createdAt), limit(PAGE_SIZE));
       const snap = await getDocs(q);
       if (snap.empty) {
-        if (!cursor) setItems([]);
         setEnd(true);
-        return;
+      } else {
+        const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        setItems((prev) => [...prev, ...docs]);
+        if (snap.size < PAGE_SIZE) setEnd(true);
       }
-      const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setItems((prev) => (cursor ? [...prev, ...docs] : docs));
-      if (snap.size < PAGE_SIZE) setEnd(true);
-    },
-    [userId],
-  );
-
-  useEffect(() => {
-    setLoading(true);
-    load().finally(() => setLoading(false));
-  }, [load]);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [userId, items, loadingMore, end]);
 
   // Auto-mark notifications as read when page is viewed (if markReadOnView is true)
   useEffect(() => {
@@ -149,16 +182,6 @@ export default function NotificationsTab({
       }
     }
   }, [items, markOneRead]);
-
-  const loadMore = async () => {
-    if (loadingMore || end || !items.length) return;
-    setLoadingMore(true);
-    try {
-      await load(items[items.length - 1].createdAt);
-    } finally {
-      setLoadingMore(false);
-    }
-  };
 
   return (
     <div className={containerStyling}>

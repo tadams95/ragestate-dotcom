@@ -564,7 +564,7 @@ Footnote: Remaining integration & emulator-validated rule tests are tracked in t
 ### UI / UX Enhancements
 
 - [x] Global header unread badge (persistent across pages)
-- [ ] Real-time listener for notifications list (replace manual pagination fetch)
+- [x] Real-time listener for notifications list (replace manual pagination fetch)
 - [ ] Inline toast on new notification (if on page)
 - [ ] Deep link open tracking (log event when user taps)
 

@@ -340,9 +340,13 @@ export default function Header() {
                     <Link
                       href="/account/notifications"
                       onClick={handleNavClick}
-                      className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-[var(--text-primary)] hover:bg-[var(--bg-elev-1)]"
+                      className="-mx-3 flex items-center justify-between rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-[var(--text-primary)] hover:bg-[var(--bg-elev-1)]"
                     >
-                      NOTIFICATIONS
+                      <span>NOTIFICATIONS</span>
+                      <NotificationBell
+                        userId={currentUser?.uid || userId}
+                        className="pointer-events-none"
+                      />
                     </Link>
                   )}
                   {isAuthenticated ? (

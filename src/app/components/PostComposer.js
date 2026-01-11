@@ -9,6 +9,9 @@ import { useSelector } from 'react-redux';
 import { useAuth } from '../../../firebase/context/FirebaseContext';
 import { db, storage } from '../../../firebase/firebase';
 import { selectUserName } from '../../../lib/features/userSlice';
+import { useMentionDetection } from '../../../lib/hooks/useMentionDetection';
+import HighlightedTextarea from './HighlightedTextarea';
+import MentionAutocomplete from './MentionAutocomplete';
 
 const DRAFT_KEY = 'postComposer.draft';
 
@@ -170,6 +173,19 @@ export default function PostComposer() {
   const [isCompressing, setIsCompressing] = useState(false);
   const [quotedPost, setQuotedPost] = useState(null);
   const saveTimerRef = useRef(null);
+
+  // Mention autocomplete state
+  const [confirmedMentions, setConfirmedMentions] = useState(new Set());
+  const textareaRef = useRef(null);
+  const {
+    mentionState,
+    handleTextChange: handleMentionChange,
+    insertMention,
+    closeMention,
+    navigateUp,
+    navigateDown,
+    setSelectedIndex,
+  } = useMentionDetection();
 
   // Listen for quote repost events
   useEffect(() => {
@@ -338,6 +354,53 @@ export default function PostComposer() {
     setIsCompressing(false);
     setCompressionProgress(0);
   };
+
+  // Mention autocomplete handlers
+  const handleContentChange = useCallback(
+    (e) => {
+      const text = e.target.value;
+      const cursorPos = e.target.selectionStart;
+      setContent(text);
+      handleMentionChange(text, cursorPos);
+    },
+    [handleMentionChange],
+  );
+
+  const handleMentionSelect = useCallback(
+    (user) => {
+      const { text: newContent, cursorPos } = insertMention(content, user.username);
+      setContent(newContent);
+      setConfirmedMentions((prev) => new Set(prev).add(user.username.toLowerCase()));
+      closeMention();
+      // Restore focus and set cursor position
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        // Set cursor position after React re-renders
+        setTimeout(() => {
+          textareaRef.current?.setSelectionRange(cursorPos, cursorPos);
+        }, 0);
+      }
+    },
+    [content, insertMention, closeMention],
+  );
+
+  const handleKeyDown = useCallback(
+    (e) => {
+      if (!mentionState.isOpen) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        navigateDown();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        navigateUp();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        closeMention();
+      }
+    },
+    [mentionState.isOpen, navigateDown, navigateUp, closeMention],
+  );
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -571,14 +634,32 @@ export default function PostComposer() {
             )}
 
             <form onSubmit={onSubmit}>
-              <textarea
-                className="min-h-[120px] w-full resize-none rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-3 text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none transition-colors duration-200 focus:border-[var(--border-strong)]"
-                placeholder="What's happening?"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                maxLength={2000}
-                autoFocus
-              />
+              <div className="relative">
+                <HighlightedTextarea
+                  ref={textareaRef}
+                  className="min-h-[120px] w-full resize-none rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-3 text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none transition-colors duration-200 focus:border-[var(--border-strong)]"
+                  placeholder="What's happening?"
+                  value={content}
+                  confirmedMentions={confirmedMentions}
+                  mentionOpen={mentionState.isOpen}
+                  onChange={handleContentChange}
+                  onKeyDown={handleKeyDown}
+                  onSelect={(e) => handleMentionChange(content, e.target.selectionStart)}
+                  maxLength={2000}
+                  autoFocus
+                />
+
+                {mentionState.isOpen && (
+                  <MentionAutocomplete
+                    query={mentionState.query}
+                    isOpen={mentionState.isOpen}
+                    onSelect={handleMentionSelect}
+                    onClose={closeMention}
+                    selectedIndex={mentionState.selectedIndex}
+                    onSelectedIndexChange={setSelectedIndex}
+                  />
+                )}
+              </div>
               {/* Compression progress indicator */}
               {isCompressing && (
                 <div className="mt-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-4">

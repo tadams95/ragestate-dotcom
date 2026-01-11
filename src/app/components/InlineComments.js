@@ -605,7 +605,10 @@ export default function InlineComments({ postId, postOwnerId }) {
       </div>
 
       {/* Comment input */}
-      <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-2 border-t border-white/5 pt-4">
+      <form
+        onSubmit={onSubmit}
+        className="mt-6 flex flex-col gap-2 border-t border-white/5 pb-2 pt-4"
+      >
         {/* Reply indicator */}
         {replyingTo && (
           <div className="mb-2 flex items-center justify-between rounded bg-white/5 px-2 py-1 text-xs text-gray-400">

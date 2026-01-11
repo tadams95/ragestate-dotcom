@@ -138,7 +138,7 @@ export default function ProfileTab({
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     className={inputStyling}
-                    placeholder="Jane"
+                    placeholder=""
                   />
                 </div>
                 <div>
@@ -155,7 +155,7 @@ export default function ProfileTab({
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     className={inputStyling}
-                    placeholder="Doe"
+                    placeholder=""
                   />
                 </div>
               </div>

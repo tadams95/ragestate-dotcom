@@ -337,12 +337,12 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
     <div
       ref={backdropRef}
       onClick={handleBackdropClick}
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 supports-[padding:env(safe-area-inset-bottom)]:pb-[env(safe-area-inset-bottom)] sm:items-center sm:p-6"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="comments-title"
     >
-      <div className="flex max-h-[90vh] w-full flex-col rounded-t-2xl border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] text-[var(--text-primary)] shadow-xl transition-colors duration-200 sm:max-w-2xl sm:rounded-2xl">
+      <div className="flex max-h-[90vh] w-full flex-col overflow-hidden rounded-t-2xl border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] pb-[env(safe-area-inset-bottom)] text-[var(--text-primary)] shadow-xl transition-colors duration-200 sm:max-w-2xl sm:rounded-2xl sm:pb-0">
         <div className="flex items-center justify-between border-b border-[var(--border-subtle)] px-4 py-3">
           <h3 id="comments-title" className="text-base font-semibold">
             Comments
@@ -775,7 +775,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
 
         <form
           onSubmit={onSubmit}
-          className="sticky bottom-0 flex flex-col border-t border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-3 supports-[padding:env(safe-area-inset-bottom)]:pb-[env(safe-area-inset-bottom)]"
+          className="flex shrink-0 flex-col border-t border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-3"
         >
           {/* Reply indicator */}
           {replyingTo && (
