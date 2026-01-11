@@ -17,6 +17,7 @@ When users tap links to `ragestate.com` on their phones, we want the RAGESTATE a
 ### 1. Create `.well-known` Directory
 
 Create a `.well-known` folder at the root of your web app's public directory. Both files must be served at:
+
 - `https://ragestate.com/.well-known/apple-app-site-association`
 - `https://ragestate.com/.well-known/assetlinks.json`
 
@@ -33,7 +34,7 @@ Create a `.well-known` folder at the root of your web app's public directory. Bo
     "apps": [],
     "details": [
       {
-        "appID": "TEAM_ID.com.tyrelle.ragestateapp",
+        "appID": "HCH4289654.com.tyrelle.ragestateapp",
         "paths": [
           "/events/*",
           "/event/*",
@@ -51,32 +52,28 @@ Create a `.well-known` folder at the root of your web app's public directory. Bo
     ]
   },
   "webcredentials": {
-    "apps": ["TEAM_ID.com.tyrelle.ragestateapp"]
+    "apps": ["HCH4289654.com.tyrelle.ragestateapp"]
   }
 }
 ```
 
-#### ⚠️ IMPORTANT: Replace `TEAM_ID`
+#### ✅ Team ID Configured
 
-You need your **Apple Team ID** from [Apple Developer Portal](https://developer.apple.com/account):
-1. Go to Membership Details
-2. Copy your 10-character Team ID (e.g., `ABC123XYZ9`)
-3. Replace `TEAM_ID` in the file above
+**Apple Team ID**: `HCH4289654`
 
-**Example with real Team ID:**
-```json
-"appID": "ABC123XYZ9.com.tyrelle.ragestateapp"
-```
+The JSON above is ready to deploy - no modifications needed!
 
 #### Server Configuration
 
 The file must be served with:
+
 - **No file extension** (not `apple-app-site-association.json`)
 - **Content-Type**: `application/json`
 - **HTTPS only** (no HTTP)
 - **No redirects** (Apple won't follow them)
 
 **Next.js Example** (`next.config.js`):
+
 ```javascript
 async headers() {
   return [
@@ -91,14 +88,13 @@ async headers() {
 ```
 
 **Vercel** (`vercel.json`):
+
 ```json
 {
   "headers": [
     {
       "source": "/.well-known/apple-app-site-association",
-      "headers": [
-        { "key": "Content-Type", "value": "application/json" }
-      ]
+      "headers": [{ "key": "Content-Type", "value": "application/json" }]
     }
   ]
 }
@@ -130,16 +126,20 @@ This file is ready to use - no modifications needed!
 #### ⚠️ IMPORTANT: Get SHA256 Fingerprint
 
 **Option A: From EAS (Recommended)**
+
 ```bash
 eas credentials --platform android
 ```
+
 Look for "SHA256 Fingerprint" in the output.
 
 **Option B: From Google Play Console**
+
 1. Go to Google Play Console > Your App > Setup > App signing
 2. Copy the "SHA-256 certificate fingerprint"
 
 **Example with real fingerprint:**
+
 ```json
 "sha256_cert_fingerprints": [
   "14:6D:E9:83:C5:73:06:50:D8:EE:B9:95:2F:34:FC:64:16:A0:83:42:E6:1D:BE:A8:8A:04:96:B2:3F:CF:44:E5"
@@ -152,15 +152,15 @@ Look for "SHA256 Fingerprint" in the output.
 
 When these URLs are opened on a mobile device with the app installed:
 
-| Web URL | Opens in App |
-|---------|--------------|
-| `ragestate.com/events/abc123` | Event detail screen |
-| `ragestate.com/user/johndoe` | User profile screen |
-| `ragestate.com/post/xyz789` | Post detail screen |
-| `ragestate.com/transfer/claim?token=abc&id=123` | Ticket claim screen |
-| `ragestate.com/claim-ticket?token=abc` | Ticket claim screen |
-| `ragestate.com/shop/product/hoodie` | Product detail screen |
-| `ragestate.com/shop/collection/summer` | Collection screen |
+| Web URL                                         | Opens in App          |
+| ----------------------------------------------- | --------------------- |
+| `ragestate.com/events/abc123`                   | Event detail screen   |
+| `ragestate.com/user/johndoe`                    | User profile screen   |
+| `ragestate.com/post/xyz789`                     | Post detail screen    |
+| `ragestate.com/transfer/claim?token=abc&id=123` | Ticket claim screen   |
+| `ragestate.com/claim-ticket?token=abc`          | Ticket claim screen   |
+| `ragestate.com/shop/product/hoodie`             | Product detail screen |
+| `ragestate.com/shop/collection/summer`          | Collection screen     |
 
 ---
 
@@ -182,11 +182,13 @@ When these URLs are opened on a mobile device with the app installed:
 ### Manual Testing
 
 **iOS**:
+
 1. Text yourself a link like `https://ragestate.com/events/test123`
 2. Tap it in Messages
 3. Should open app directly (after rebuilding with new associatedDomains)
 
 **Android**:
+
 1. Same process - text yourself a link
 2. Tap it
 3. Should prompt to open in RAGESTATE or open directly
@@ -212,11 +214,11 @@ When these URLs are opened on a mobile device with the app installed:
 
 ## Checklist
 
-- [ ] Get Apple Team ID from developer.apple.com _(pending enrollment)_
+- [x] Get Apple Team ID from developer.apple.com ✅ `HCH4289654`
 - [x] Get Android SHA256 fingerprint via `eas credentials` ✅
-- [ ] Create `/.well-known/apple-app-site-association` file _(needs Team ID)_
-- [ ] Create `/.well-known/assetlinks.json` file _(ready to deploy!)_
-- [ ] Configure server to serve AASA with correct Content-Type
+- [x] Create `/.well-known/apple-app-site-association` file ✅ (deployed!)
+- [x] Create `/.well-known/assetlinks.json` file ✅ (deployed!)
+- [x] Configure server to serve AASA with correct Content-Type ✅ (next.config.js headers)
 - [ ] Deploy to ragestate.com
 - [ ] Validate AASA at branch.io/resources/aasa-validator
 - [ ] Validate assetlinks at Google's validator

@@ -69,6 +69,16 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || 'https://ragestate.com',
   },
+
+  // Headers for deep linking verification files
+  async headers() {
+    return [
+      {
+        source: '/.well-known/apple-app-site-association',
+        headers: [{ key: 'Content-Type', value: 'application/json' }],
+      },
+    ];
+  },
 };
 
 // Wrap with bundle analyzer when ANALYZE=true
