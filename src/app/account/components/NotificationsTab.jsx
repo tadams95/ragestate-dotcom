@@ -96,7 +96,12 @@ export default function NotificationsTab({
     try {
       const base = collection(db, 'users', userId, 'notifications');
       const lastItem = items[items.length - 1];
-      const q = query(base, orderBy('createdAt', 'desc'), startAfter(lastItem.createdAt), limit(PAGE_SIZE));
+      const q = query(
+        base,
+        orderBy('createdAt', 'desc'),
+        startAfter(lastItem.createdAt),
+        limit(PAGE_SIZE),
+      );
       const snap = await getDocs(q);
       if (snap.empty) {
         setEnd(true);
