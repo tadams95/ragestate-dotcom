@@ -31,6 +31,28 @@ const firebaseConfig = {
 // Initialize Firebase app
 const app = initializeApp(firebaseConfig);
 
+// Initialize App Check FIRST (before other services) so tokens attach to requests
+// Only initialize on client-side (browser)
+let appCheck = null;
+if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY) {
+  // Enable debug token in development for localhost testing
+  if (process.env.NODE_ENV === 'development') {
+    // eslint-disable-next-line no-restricted-globals
+    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+  }
+  try {
+    appCheck = initializeAppCheck(app, {
+      provider: new ReCaptchaEnterpriseProvider(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY),
+      isTokenAutoRefreshEnabled: true,
+    });
+    console.log('[AppCheck] Initialized successfully');
+  } catch (e) {
+    console.error('[AppCheck] Failed to initialize:', e);
+  }
+} else if (typeof window !== 'undefined') {
+  console.warn('[AppCheck] NEXT_PUBLIC_RECAPTCHA_SITE_KEY not set, App Check disabled');
+}
+
 const auth = getAuth(app);
 // Prefer device language for auth emails/flows
 try {
@@ -57,21 +79,6 @@ const rtdb = getDatabase(app);
 
 // Initialize Firebase Storage
 const storage = getStorage(app);
-
-// Initialize App Check with reCAPTCHA Enterprise (required for protected callable functions)
-// Only initialize on client-side (browser)
-let appCheck = null;
-if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY) {
-  // Enable debug token in development for localhost testing
-  if (process.env.NODE_ENV === 'development') {
-    // eslint-disable-next-line no-restricted-globals
-    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-  }
-  appCheck = initializeAppCheck(app, {
-    provider: new ReCaptchaEnterpriseProvider(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY),
-    isTokenAutoRefreshEnabled: true,
-  });
-}
 
 // Export the initialized app, auth, db, rtdb, storage, and appCheck
 export { app, appCheck, auth, db, rtdb, storage };
