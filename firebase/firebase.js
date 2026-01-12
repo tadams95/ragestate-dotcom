@@ -31,10 +31,16 @@ const firebaseConfig = {
 // Initialize Firebase app
 const app = initializeApp(firebaseConfig);
 
-// Initialize App Check FIRST (before other services) so tokens attach to requests
-// Only initialize on client-side (browser)
+// App Check is OPTIONAL - if it fails, the app continues without it
+// Only initialize on client-side (browser) when explicitly enabled
 let appCheck = null;
-if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY) {
+const ENABLE_APP_CHECK = process.env.NEXT_PUBLIC_ENABLE_APP_CHECK === 'true';
+
+if (
+  typeof window !== 'undefined' &&
+  ENABLE_APP_CHECK &&
+  process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+) {
   // Enable debug token in development for localhost testing
   if (process.env.NODE_ENV === 'development') {
     // eslint-disable-next-line no-restricted-globals
@@ -47,10 +53,8 @@ if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY)
     });
     console.log('[AppCheck] Initialized successfully');
   } catch (e) {
-    console.error('[AppCheck] Failed to initialize:', e);
+    console.warn('[AppCheck] Failed to initialize, continuing without App Check:', e.message);
   }
-} else if (typeof window !== 'undefined') {
-  console.warn('[AppCheck] NEXT_PUBLIC_RECAPTCHA_SITE_KEY not set, App Check disabled');
 }
 
 const auth = getAuth(app);
