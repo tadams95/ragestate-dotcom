@@ -1,6 +1,7 @@
 // firebase.js
 
 import { initializeApp } from 'firebase/app';
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
 import { browserLocalPersistence, getAuth, setPersistence } from 'firebase/auth';
 import { getDatabase } from 'firebase/database';
 import {
@@ -57,11 +58,20 @@ const rtdb = getDatabase(app);
 // Initialize Firebase Storage
 const storage = getStorage(app);
 
-// App Check is intentionally disabled.
-// DeviceCheck + Play Integrity are for native iOS/Android apps only.
-// For web, you would need reCAPTCHA — which we've removed.
-// If you add a native mobile app later, configure App Check there with native providers.
-// For web, consider Cloudflare Turnstile via a custom App Check provider if needed.
+// Initialize App Check with reCAPTCHA Enterprise (required for protected callable functions)
+// Only initialize on client-side (browser)
+let appCheck = null;
+if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY) {
+  // Enable debug token in development for localhost testing
+  if (process.env.NODE_ENV === 'development') {
+    // eslint-disable-next-line no-restricted-globals
+    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+  }
+  appCheck = initializeAppCheck(app, {
+    provider: new ReCaptchaEnterpriseProvider(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY),
+    isTokenAutoRefreshEnabled: true,
+  });
+}
 
-// Export the initialized app, auth, db, rtdb, and storage
-export { app, auth, db, rtdb, storage };
+// Export the initialized app, auth, db, rtdb, storage, and appCheck
+export { app, appCheck, auth, db, rtdb, storage };
