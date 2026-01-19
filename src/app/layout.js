@@ -3,6 +3,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Inter } from 'next/font/google';
 import { Toaster } from 'react-hot-toast';
 import { FirebaseProvider } from '../../firebase/context/FirebaseContext';
+import { ChatUnreadProvider } from '../../lib/context/ChatUnreadProvider';
 import { ThemeProvider } from '../../lib/context/ThemeContext';
 import StoreProvider from './StoreProvider';
 import AuthCheck from './auth/AuthCheck';
@@ -48,8 +49,10 @@ export default function RootLayout({ children }) {
           <ThemeProvider defaultTheme="dark">
             <div className="flex min-h-screen flex-col bg-[var(--bg-root)] text-[var(--text-primary)] transition-colors duration-200">
               <FirebaseProvider>
-                <Header />
-                <div className="flex-grow">{children}</div>
+                <ChatUnreadProvider>
+                  <Header />
+                  <div className="flex-grow">{children}</div>
+                </ChatUnreadProvider>
               </FirebaseProvider>
               <Toaster
                 position="bottom-center"

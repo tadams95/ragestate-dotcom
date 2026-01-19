@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useAuth } from '../../../firebase/context/FirebaseContext';
 import { useChatList } from '../../../lib/hooks/useChatList';
-import { ChatListItem, EmptyChat } from './components';
+import { ChatListItem, ChatListSkeleton, EmptyChat } from './components';
 
 /**
  * Chat List Page - Shows all user's conversations
@@ -13,10 +15,17 @@ export default function ChatListPage() {
   const { currentUser, loading: authLoading } = useAuth();
   const { chats, isLoading, error } = useChatList();
 
+  // Show toast for chat list errors
+  useEffect(() => {
+    if (error) {
+      toast.error('Failed to load conversations');
+    }
+  }, [error]);
+
   // Auth loading state
   if (authLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-root)] pt-20">
+      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-root)] pt-[calc(80px+env(safe-area-inset-top))]">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
       </div>
     );
@@ -25,7 +34,7 @@ export default function ChatListPage() {
   // Not logged in
   if (!currentUser) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--bg-root)] px-4 pt-20">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--bg-root)] px-4 pt-[calc(80px+env(safe-area-inset-top))]">
         <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--bg-elev-2)]">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -57,7 +66,7 @@ export default function ChatListPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-root)] pt-20">
+    <div className="min-h-screen bg-[var(--bg-root)] pb-[env(safe-area-inset-bottom)] pt-[calc(80px+env(safe-area-inset-top))]">
       {/* Page Header */}
       <div className="mx-auto max-w-2xl px-4">
         <div className="flex items-center justify-between py-4">
@@ -84,12 +93,8 @@ export default function ChatListPage() {
 
       {/* Content */}
       <div className="mx-auto max-w-2xl">
-        {/* Loading state */}
-        {isLoading && (
-          <div className="flex justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
-          </div>
-        )}
+        {/* Loading state - skeleton loader */}
+        {isLoading && <ChatListSkeleton count={5} />}
 
         {/* Error state */}
         {error && !isLoading && (
@@ -106,11 +111,13 @@ export default function ChatListPage() {
 
         {/* Chat list */}
         {!isLoading && !error && chats.length > 0 && (
-          <div className="divide-y divide-[var(--border-subtle)]">
-            {chats.map((chat) => (
-              <ChatListItem key={chat.chatId} chat={chat} />
-            ))}
-          </div>
+          <nav aria-label="Conversations">
+            <div className="divide-y divide-[var(--border-subtle)]" role="list">
+              {chats.map((chat) => (
+                <ChatListItem key={chat.chatId} chat={chat} />
+              ))}
+            </div>
+          </nav>
         )}
       </div>
     </div>

@@ -73,7 +73,7 @@ function ChatInput({ onSend, isSending = false, placeholder = 'Message...' }) {
   const canSend = (text.trim().length > 0 || selectedImage) && !isSending;
 
   return (
-    <div className="pb-[env(safe-area-inset-bottom)]">
+    <div className="pb-[env(safe-area-inset-bottom)]" role="form" aria-label="Message composer">
       {/* Image Preview */}
       {imagePreview && (
         <div className="px-4 pt-4">
@@ -114,6 +114,7 @@ function ChatInput({ onSend, isSending = false, placeholder = 'Message...' }) {
           accept="image/*"
           onChange={handleFileSelect}
           className="hidden"
+          aria-label="Select image to attach"
         />
 
         {/* Attach button - 44px square for touch target, visually 40px */}

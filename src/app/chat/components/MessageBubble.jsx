@@ -38,7 +38,11 @@ function MessageBubble({ message, isOwn, showSender = false, onImageClick }) {
   const isSending = message.status === 'sending';
 
   return (
-    <div className={`my-1 flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+    <div
+      className={`my-1 flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+      role="listitem"
+      aria-label={`${isOwn ? 'Your message' : `Message from ${message.senderName}`}${isSending ? ', sending' : ''}`}
+    >
       <div className={`max-w-[80%] ${isOwn ? 'items-end' : 'items-start'}`}>
         {/* Sender info for group chats */}
         {showSender && !isOwn && (
@@ -48,6 +52,7 @@ function MessageBubble({ message, isOwn, showSender = false, onImageClick }) {
               <img
                 src={message.senderPhoto}
                 alt={message.senderName}
+                loading="lazy"
                 className="h-4 w-4 rounded-full object-cover"
               />
             )}
@@ -85,6 +90,7 @@ function MessageBubble({ message, isOwn, showSender = false, onImageClick }) {
                 <img
                   src={message.mediaUrl}
                   alt="Shared image"
+                  loading="lazy"
                   className="max-h-60 max-w-full rounded-xl object-cover"
                 />
               )}

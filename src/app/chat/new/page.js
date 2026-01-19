@@ -82,7 +82,7 @@ export default function NewChatPage() {
   // Auth loading state
   if (authLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-root)] pt-20">
+      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-root)] pt-[calc(80px+env(safe-area-inset-top))]">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
       </div>
     );
@@ -95,7 +95,7 @@ export default function NewChatPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-root)] pt-20">
+    <div className="min-h-screen bg-[var(--bg-root)] pb-[env(safe-area-inset-bottom)] pt-[calc(80px+env(safe-area-inset-top))]">
       {/* Page Header */}
       <div className="mx-auto max-w-2xl px-4">
         <div className="flex items-center gap-3 py-4">

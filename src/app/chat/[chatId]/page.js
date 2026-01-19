@@ -1,14 +1,15 @@
 'use client';
 
+import { doc, getDoc } from 'firebase/firestore';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../../../firebase/firebase';
+import toast from 'react-hot-toast';
 import { useAuth } from '../../../../firebase/context/FirebaseContext';
-import { useChat } from '../../../../lib/hooks/useChat';
+import { db } from '../../../../firebase/firebase';
 import { getUserDisplayInfo } from '../../../../lib/firebase/chatService';
-import { MessageBubble, ChatInput, ImageViewerDialog } from '../components';
+import { useChat } from '../../../../lib/hooks/useChat';
+import { ChatInput, ImageViewerDialog, MessageBubble } from '../components';
 
 /**
  * Chat Room Page - Individual conversation view
@@ -129,10 +130,29 @@ export default function ChatRoomPage() {
     setViewerOpen(true);
   }, []);
 
+  // Show toast for message loading errors
+  useEffect(() => {
+    if (error) {
+      toast.error('Failed to load messages');
+    }
+  }, [error]);
+
+  // Wrapped send message with toast notification on error
+  const handleSendMessage = useCallback(
+    async (text, mediaFile) => {
+      try {
+        await sendMessage(text, mediaFile);
+      } catch (err) {
+        toast.error('Failed to send message. Please try again.');
+      }
+    },
+    [sendMessage],
+  );
+
   // Auth loading state
   if (authLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-root)] pt-20">
+      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-root)] pt-[calc(80px+env(safe-area-inset-top))]">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
       </div>
     );
@@ -147,7 +167,7 @@ export default function ChatRoomPage() {
   // Meta error
   if (metaError) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--bg-root)] px-4 pt-20">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--bg-root)] px-4 pt-[calc(80px+env(safe-area-inset-top))]">
         <p className="mb-4 text-[var(--danger)]">Chat not found</p>
         <Link href="/chat" className="text-[var(--accent)] hover:underline">
           Back to messages
@@ -159,7 +179,7 @@ export default function ChatRoomPage() {
   const isEvent = chatMeta?.type === 'event';
 
   return (
-    <div className="flex h-screen flex-col bg-[var(--bg-root)] pt-[72px]">
+    <div className="fixed inset-0 z-10 flex flex-col bg-[var(--bg-root)] pt-[calc(72px+env(safe-area-inset-top))] lg:static lg:z-auto lg:h-screen lg:min-h-[500px] lg:pt-[72px]">
       {/* Chat Header - positioned below global header */}
       <div className="flex-shrink-0 border-b border-[var(--border-subtle)] bg-[var(--bg-root)]">
         <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-3">
@@ -197,7 +217,7 @@ export default function ChatRoomPage() {
                 <img
                   src={chatMeta.photoURL}
                   alt={chatMeta.displayName}
-                  className="h-9 w-9 flex-shrink-0 rounded-full object-cover"
+                  className="h-9 w-9 flex-shrink-0 rounded-md object-cover"
                 />
               ) : (
                 <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[var(--accent)] to-[var(--accent-glow)]">
@@ -237,11 +257,7 @@ export default function ChatRoomPage() {
       </div>
 
       {/* Messages Area */}
-      <div
-        ref={messagesContainerRef}
-        onScroll={handleScroll}
-        className="flex-1 overflow-y-auto"
-      >
+      <div ref={messagesContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-2xl px-4 py-4">
           {/* Loading more indicator */}
           {isLoadingMore && (
@@ -303,7 +319,7 @@ export default function ChatRoomPage() {
 
           {/* Messages list */}
           {!isLoading && messages.length > 0 && (
-            <div className="space-y-1">
+            <div className="space-y-1" role="list" aria-label="Chat messages">
               {messages.map((message) => (
                 <MessageBubble
                   key={message.id}
@@ -324,16 +340,12 @@ export default function ChatRoomPage() {
       {/* Chat Input - fixed at bottom */}
       <div className="flex-shrink-0 border-t border-[var(--border-subtle)] bg-[var(--bg-elev-1)]">
         <div className="mx-auto max-w-2xl">
-          <ChatInput onSend={sendMessage} isSending={isSending} />
+          <ChatInput onSend={handleSendMessage} isSending={isSending} />
         </div>
       </div>
 
       {/* Image Viewer */}
-      <ImageViewerDialog
-        open={viewerOpen}
-        onOpenChange={setViewerOpen}
-        imageUrl={viewerImageUrl}
-      />
+      <ImageViewerDialog open={viewerOpen} onOpenChange={setViewerOpen} imageUrl={viewerImageUrl} />
     </div>
   );
 }

@@ -57,6 +57,8 @@ function ChatListItem({ chat }) {
     <Link
       href={`/chat/${chat.chatId}`}
       className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[var(--bg-hover)] border-b border-[var(--border-subtle)]"
+      role="listitem"
+      aria-label={`${hasUnread ? `${chat.unreadCount} unread messages from ` : ''}${displayName || 'Chat'}`}
     >
       {/* Avatar */}
       <div className="relative flex-shrink-0">
@@ -82,6 +84,7 @@ function ChatListItem({ chat }) {
           <img
             src={photoURL}
             alt={displayName || 'User'}
+            loading="lazy"
             className="h-12 w-12 rounded-full object-cover"
           />
         ) : (

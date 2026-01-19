@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 const navigation = {
   main: [
@@ -85,6 +88,13 @@ const navigation = {
 };
 
 export default function Footer() {
+  const pathname = usePathname();
+
+  // Hide footer on individual chat room pages for app-like experience
+  if (pathname?.startsWith('/chat/') && pathname !== '/chat/new') {
+    return null;
+  }
+
   return (
     <footer className="border-t border-[var(--border-subtle)] bg-[var(--bg-root)] py-6 transition-colors duration-200 supports-[padding:env(safe-area-inset-bottom)]:pb-[max(24px,env(safe-area-inset-bottom))]">
       <div className="container mx-auto px-4">
