@@ -1,0 +1,21 @@
+{
+  "project": {
+    "name": "RAGESTATE Web",
+    "description": "Next.js web app for RAGESTATE social platform"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev)",
+      "Bash(npm run build)",
+      "Bash(npm run lint)",
+      "Bash(npm test)",
+      "Bash(git status)",
+      "Bash(git diff)",
+      "Bash(git log)",
+      "Bash(git add)",
+      "Bash(git commit)",
+      "Bash(ls *)",
+      "Bash(mkdir *)"
+    ]
+  }
+}

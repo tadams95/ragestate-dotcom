@@ -121,9 +121,9 @@ export {}; // Make this a module
 ```
 
 **Tasks**:
-- [ ] Create `lib/types/` directory
-- [ ] Create `lib/types/chat.js` with JSDoc type definitions
-- [ ] Types should match Firestore schema exactly (for mobile parity)
+- [x] Create `lib/types/` directory
+- [x] Create `lib/types/chat.js` with JSDoc type definitions
+- [x] Types should match Firestore schema exactly (for mobile parity)
 
 ---
 
@@ -131,17 +131,17 @@ export {}; // Make this a module
 **File**: `lib/firebase/chatService.js`
 
 **Tasks**:
-- [ ] Create `lib/firebase/chatService.js`
-- [ ] Implement `getDmChatId(userId1, userId2)` - deterministic ID (CRITICAL for mobile parity)
-- [ ] Implement `getUserDisplayInfo(userId)` - fetch from customers + profiles collections
-- [ ] Implement `getOrCreateDmChat(currentUserId, peerId)` - create DM chat
-- [ ] Implement `uploadChatMedia(chatId, file, onProgress)` - Web File API version
-- [ ] Implement `sendMessage(chatId, senderId, senderName, senderPhoto, text, mediaUrl?, mediaType?)`
-- [ ] Implement `subscribeToMessages(chatId, onUpdate, onError, limit)` - real-time listener
-- [ ] Implement `fetchOlderMessages(chatId, lastDoc, limit)` - pagination
-- [ ] Implement `subscribeToChatList(userId, onUpdate, onError)` - chat list listener
-- [ ] Implement `markChatAsRead(userId, chatId)` - clear unread count
-- [ ] Implement `subscribeToTotalUnread(userId, onUpdate, onError)` - global unread count
+- [x] Create `lib/firebase/chatService.js`
+- [x] Implement `getDmChatId(userId1, userId2)` - deterministic ID (CRITICAL for mobile parity)
+- [x] Implement `getUserDisplayInfo(userId)` - fetch from customers + profiles collections
+- [x] Implement `getOrCreateDmChat(currentUserId, peerId)` - create DM chat
+- [x] Implement `uploadChatMedia(chatId, file, onProgress)` - Web File API version
+- [x] Implement `sendMessage(chatId, senderId, senderName, senderPhoto, text, mediaUrl?, mediaType?)`
+- [x] Implement `subscribeToMessages(chatId, onUpdate, onError, limit)` - real-time listener
+- [x] Implement `fetchOlderMessages(chatId, lastDoc, limit)` - pagination
+- [x] Implement `subscribeToChatList(userId, onUpdate, onError)` - chat list listener
+- [x] Implement `markChatAsRead(userId, chatId)` - clear unread count
+- [x] Implement `subscribeToTotalUnread(userId, onUpdate, onError)` - global unread count
 
 **Import pattern** (follow codebase conventions):
 ```javascript
@@ -162,14 +162,14 @@ import { db, storage } from '../../firebase/firebase';
 ---
 
 ### 1.3 Add Chat Redux Slice
-**File**: `lib/chatSlice.js`
+**File**: `lib/features/chatSlice.js` (follows existing slice pattern)
 
 **Tasks**:
-- [ ] Create `lib/chatSlice.js` with Redux Toolkit
-- [ ] Add state for `unreadCount` (global chat badge)
-- [ ] Add actions: `setUnreadCount`, `incrementUnread`, `clearUnread`
-- [ ] Export selectors: `selectUnreadCount`
-- [ ] Register slice in `lib/store.js`
+- [x] Create `lib/features/chatSlice.js` with Redux Toolkit
+- [x] Add state for `unreadCount` (global chat badge)
+- [x] Add actions: `setUnreadCount`, `incrementUnread`, `clearUnread`
+- [x] Export selectors: `selectUnreadCount`
+- [x] Register slice in `lib/store.js`
 
 ```javascript
 // lib/chatSlice.js
@@ -192,7 +192,7 @@ export const selectUnreadCount = (state) => state.chat.unreadCount;
 export default chatSlice.reducer;
 ```
 
-- [ ] Update `lib/store.js` to include chat reducer
+- [x] Update `lib/store.js` to include chat reducer
 
 ---
 
@@ -202,12 +202,12 @@ export default chatSlice.reducer;
 **File**: `lib/hooks/useChat.js`
 
 **Tasks**:
-- [ ] Create `lib/hooks/useChat.js`
-- [ ] Subscribe to messages on mount
-- [ ] Handle pagination with `loadMore()`
-- [ ] Implement optimistic updates for sending
-- [ ] Auto-mark chat as read when viewing
-- [ ] Clean up subscriptions on unmount
+- [x] Create `lib/hooks/useChat.js`
+- [x] Subscribe to messages on mount
+- [x] Handle pagination with `loadMore()`
+- [x] Implement optimistic updates for sending
+- [x] Auto-mark chat as read when viewing
+- [x] Clean up subscriptions on unmount
 
 **Return shape**:
 ```javascript
@@ -229,10 +229,10 @@ export default chatSlice.reducer;
 **File**: `lib/hooks/useChatList.js`
 
 **Tasks**:
-- [ ] Create `lib/hooks/useChatList.js`
-- [ ] Subscribe to user's chat summaries
-- [ ] Update Redux unread count on changes
-- [ ] Provide helper functions:
+- [x] Create `lib/hooks/useChatList.js`
+- [x] Subscribe to user's chat summaries
+- [x] Update Redux unread count on changes
+- [x] Provide helper functions:
   - `getRecentDmContacts(chats, limit)` - for quick access
   - `getExistingDmPeerIds(chats)` - to filter new chat search
 
@@ -254,7 +254,7 @@ export default chatSlice.reducer;
 ### 3.1 Component Directory Structure
 **Location**: `src/app/chat/components/`
 
-- [ ] Create `src/app/chat/components/` directory
+- [x] Create `src/app/chat/components/` directory
 
 ---
 
@@ -262,12 +262,12 @@ export default chatSlice.reducer;
 **File**: `src/app/chat/components/ChatListItem.jsx`
 
 **Tasks**:
-- [ ] Create component with proper JSDoc types
-- [ ] Display avatar (peer photo or event icon)
-- [ ] Show name, last message preview, timestamp
-- [ ] Unread badge with count
-- [ ] Use CSS variables for theming
-- [ ] Link to `/chat/[chatId]`
+- [x] Create component with proper JSDoc types
+- [x] Display avatar (peer photo or event icon)
+- [x] Show name, last message preview, timestamp
+- [x] Unread badge with count
+- [x] Use CSS variables for theming
+- [x] Link to `/chat/[chatId]`
 
 **Styling** (use existing CSS variables):
 ```javascript
@@ -280,12 +280,12 @@ className="bg-[var(--bg-elev-1)] hover:bg-[var(--bg-elev-2)] border-[var(--borde
 **File**: `src/app/chat/components/MessageBubble.jsx`
 
 **Tasks**:
-- [ ] Create component with own/other styling
-- [ ] Support text and image messages
-- [ ] Show sender info in group chats (`showSender` prop)
-- [ ] Display timestamp and status indicator
-- [ ] Image click opens full-screen viewer
-- [ ] Use brand accent color for own messages: `bg-[var(--accent)]`
+- [x] Create component with own/other styling
+- [x] Support text and image messages
+- [x] Show sender info in group chats (`showSender` prop)
+- [x] Display timestamp and status indicator
+- [x] Image click opens full-screen viewer
+- [x] Use brand accent color for own messages: `bg-[var(--accent)]`
 
 ---
 
@@ -293,12 +293,12 @@ className="bg-[var(--bg-elev-1)] hover:bg-[var(--bg-elev-2)] border-[var(--borde
 **File**: `src/app/chat/components/ChatInput.jsx`
 
 **Tasks**:
-- [ ] Create textarea with auto-resize
-- [ ] File input for images (`<input type="file" accept="image/*">`)
-- [ ] Image preview before sending
-- [ ] Send button with loading state
-- [ ] Enter to send (Shift+Enter for newline)
-- [ ] Disable while sending
+- [x] Create textarea with auto-resize
+- [x] File input for images (`<input type="file" accept="image/*">`)
+- [x] Image preview before sending
+- [x] Send button with loading state
+- [x] Enter to send (Shift+Enter for newline)
+- [x] Disable while sending
 
 ---
 
@@ -306,9 +306,9 @@ className="bg-[var(--bg-elev-1)] hover:bg-[var(--bg-elev-2)] border-[var(--borde
 **File**: `src/app/chat/components/EmptyChat.jsx`
 
 **Tasks**:
-- [ ] Create empty state with icon
-- [ ] "No messages yet" messaging
-- [ ] CTA button to start new chat
+- [x] Create empty state with icon
+- [x] "No messages yet" messaging
+- [x] CTA button to start new chat
 
 ---
 
@@ -316,9 +316,9 @@ className="bg-[var(--bg-elev-1)] hover:bg-[var(--bg-elev-2)] border-[var(--borde
 **File**: `src/app/chat/components/ImageViewerDialog.jsx`
 
 **Tasks**:
-- [ ] Create modal overlay for full-screen image
-- [ ] Close on click outside or X button
-- [ ] Use existing modal patterns from codebase
+- [x] Create modal overlay for full-screen image
+- [x] Close on click outside or X button
+- [x] Use existing modal patterns from codebase
 
 ---
 
@@ -326,9 +326,9 @@ className="bg-[var(--bg-elev-1)] hover:bg-[var(--bg-elev-2)] border-[var(--borde
 **File**: `src/app/components/LoadingSpinner.jsx`
 
 **Tasks**:
-- [ ] Check if loading spinner exists
-- [ ] If not, create reusable spinner component
-- [ ] Support size variants (sm, md, lg)
+- [x] Check if loading spinner exists - Using inline SVG spinners (matches existing codebase pattern)
+- [x] ~~If not, create reusable spinner component~~ - N/A, using inline spinners
+- [x] ~~Support size variants (sm, md, lg)~~ - N/A, inline spinners handle sizing
 
 ---
 
@@ -338,12 +338,12 @@ className="bg-[var(--bg-elev-1)] hover:bg-[var(--bg-elev-2)] border-[var(--borde
 **File**: `src/app/chat/page.js`
 
 **Tasks**:
-- [ ] Replace placeholder with full implementation
-- [ ] Use `useChatList()` hook
-- [ ] Header with "Messages" title + new chat button
-- [ ] Render `ChatListItem` for each chat
-- [ ] Empty state when no chats
-- [ ] Loading and error states
+- [x] Replace placeholder with full implementation
+- [x] Use `useChatList()` hook
+- [x] Header with "Messages" title + new chat button
+- [x] Render `ChatListItem` for each chat
+- [x] Empty state when no chats
+- [x] Loading and error states
 
 ---
 
@@ -351,15 +351,15 @@ className="bg-[var(--bg-elev-1)] hover:bg-[var(--bg-elev-2)] border-[var(--borde
 **File**: `src/app/chat/[chatId]/page.js`
 
 **Tasks**:
-- [ ] Create dynamic route directory: `src/app/chat/[chatId]/`
-- [ ] Create `page.js` with chat room UI
-- [ ] Use `useChat(chatId)` hook
-- [ ] Header with back button, peer/event name
-- [ ] Scrollable message list (newest at bottom)
-- [ ] Pagination on scroll up (`loadMore`)
-- [ ] Auto-scroll to bottom on new messages
-- [ ] Chat input fixed at bottom
-- [ ] DM: Click header to view peer profile
+- [x] Create dynamic route directory: `src/app/chat/[chatId]/`
+- [x] Create `page.js` with chat room UI
+- [x] Use `useChat(chatId)` hook
+- [x] Header with back button, peer/event name
+- [x] Scrollable message list (newest at bottom)
+- [x] Pagination on scroll up (`loadMore`)
+- [x] Auto-scroll to bottom on new messages
+- [x] Chat input fixed at bottom
+- [x] DM: Click header to view peer profile
 
 ---
 
@@ -367,13 +367,13 @@ className="bg-[var(--bg-elev-1)] hover:bg-[var(--bg-elev-2)] border-[var(--borde
 **File**: `src/app/chat/new/page.js`
 
 **Tasks**:
-- [ ] Create `src/app/chat/new/` directory
-- [ ] Create `page.js` for starting new DMs
-- [ ] Leverage existing `useUserSearch()` hook
-- [ ] Search input with debounce
-- [ ] Display search results
-- [ ] Filter out existing DM contacts
-- [ ] On select: create/get DM chat and navigate
+- [x] Create `src/app/chat/new/` directory
+- [x] Create `page.js` for starting new DMs
+- [x] Leverage existing `useUserSearch()` hook
+- [x] Search input with debounce
+- [x] Display search results
+- [x] Filter out existing DM contacts
+- [x] On select: create/get DM chat and navigate
 
 ---
 
@@ -383,20 +383,40 @@ className="bg-[var(--bg-elev-1)] hover:bg-[var(--bg-elev-2)] border-[var(--borde
 **File**: `src/app/components/Header.js`
 
 **Tasks**:
-- [ ] Add chat icon to header (near notifications)
-- [ ] Show unread count badge from Redux
-- [ ] Link to `/chat`
-- [ ] Subscribe to total unread on mount
+- [x] Add chat icon to header (near notifications)
+- [x] Show unread count badge from Redux
+- [x] Link to `/chat`
+- [x] Subscribe to total unread on mount
+
+**Implementation Notes**:
+- Created `ChatBell` component (`src/app/components/ChatBell.js`)
+- Created `useChatUnreadCount` hook (`lib/hooks/useChatUnreadCount.js`)
+- Added to both desktop header and mobile menu
 
 ---
 
 ### 5.2 Profile "Message" Button
-**File**: Profile page/component
+**File**: `src/app/profile/ProfileView.js`
 
 **Tasks**:
-- [ ] Identify profile page location
-- [ ] Add "Message" button for other users
-- [ ] On click: `getOrCreateDmChat()` then navigate to `/chat/[chatId]`
+- [x] Add "Message" button in profile card (below `SocialLinksRow`)
+- [x] Only show when `currentUser?.uid !== resolvedUid` (viewing other user)
+- [x] Button should be disabled/loading while creating chat
+- [x] On click: `await getOrCreateDmChat(currentUser.uid, resolvedUid)` → `router.push(`/chat/${chatId}`)`
+- [x] Style to match existing buttons in profile
+
+**Button placement** (around line 245 in ProfileView.js):
+```jsx
+{/* Social Links */}
+<SocialLinksRow socialLinks={profile.socialLinks} className="mt-4" />
+
+{/* Message Button - only for other users */}
+{currentUser?.uid && resolvedUid && currentUser.uid !== resolvedUid && (
+  <button onClick={handleMessage} className="mt-4 w-full ...">
+    Message
+  </button>
+)}
+```
 
 ---
 
@@ -420,16 +440,25 @@ className="bg-[var(--bg-elev-1)] hover:bg-[var(--bg-elev-2)] border-[var(--borde
 
 ---
 
-## Phase 7: Push Notifications (Optional/Future)
+## Phase 7: Push Notifications - ALREADY COMPLETE
 
-### 7.1 FCM Web Setup
-**Tasks**:
-- [ ] Create service worker: `public/firebase-messaging-sw.js`
-- [ ] Initialize FCM in app
-- [ ] Request notification permission
-- [ ] Save FCM token to user document
-- [ ] Handle foreground messages
-- [ ] Handle background messages in service worker
+### 7.1 FCM Web Setup (Existing Implementation)
+**Status**: Already implemented in codebase
+
+**Existing Files**:
+- Service worker: `public/firebase-messaging-sw.js`
+- Registration utility: `firebase/util/registerWebPush.js`
+- Token storage: `users/{uid}/devices/{deviceId}`
+
+**Available Functions**:
+- `registerWebPush(uid, opts)` - Register for push notifications
+- `initWebPushTokenAutoRefresh(uid)` - Auto-refresh tokens
+- `disableWebPush(uid)` - Disable push notifications
+- `forceResetAndRegister(uid)` - Nuclear reset option
+
+**Integration Task**:
+- [ ] Call `registerWebPush()` after user logs in (if not already done)
+- [ ] Optionally prompt user for notification permission in chat UI
 
 ---
 
@@ -573,17 +602,33 @@ src/app/
 
 ---
 
-## Questions to Clarify
+## Decisions Made
 
-1. **Event chats**: Will users access event chats through this chat interface, or through the event page? Need to determine navigation flow.
+### 1. Event Chats Navigation
+**Decision**: Accessible from **both** locations for intuitive UX
+- **Primary**: `/chat` list shows all chats (DMs + event chats) in one unified inbox
+- **Secondary**: "Chat" button on event detail page for context-specific access
+- This matches most messaging apps where you can message from profile OR inbox
 
-2. **Profile message button**: Where exactly is the profile page that needs a "Message" button? Is it `/profile/[userId]` or `/u/[username]` or both?
+### 2. Profile Message Button
+**Decision**: Add to `/[username]` route
+- **File to modify**: `src/app/profile/ProfileView.js`
+- **Location**: In profile card, below social links row
+- **Condition**: Only show when viewing **other users** (hide on own profile)
+- **Action**: `getOrCreateDmChat()` → navigate to `/chat/[chatId]`
 
-3. **Push notifications priority**: Is FCM web push a must-have for initial launch or a future enhancement?
+### 3. Push Notifications
+**Status**: **Already implemented!** (see Phase 7)
 
-4. **Chat list limits**: Should we limit how many chats appear in the list, or paginate? The spec mentions limit of 50.
+### 4. Chat List Pagination
+**Decision**: Paginate to **50 chats**
+- Initial load: 50 most recent
+- Load more on scroll (if needed in future)
 
-5. **Media types**: The spec mentions video support - is this required for initial implementation, or start with images only?
+### 5. Media Types
+**Decision**: **Images only** for initial implementation
+- Simpler, cheaper storage/bandwidth
+- Video support can be added later
 
 ---
 

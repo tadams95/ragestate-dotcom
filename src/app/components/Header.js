@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../../../firebase/context/FirebaseContext';
 import { useTheme } from '../../../lib/context/ThemeContext';
+import ChatBell from './ChatBell';
 import NotificationBell from './NotificationBell';
 
 // Theme icons with shared animation classes
@@ -251,7 +252,10 @@ export default function Header() {
               <ShoppingBagIcon className="h-5 w-5" aria-hidden="true" />
             </Link>
             {!showSkeleton && isAuthenticated && (
-              <NotificationBell userId={currentUser?.uid || userId} className="-m-2 h-11 w-11" />
+              <>
+                <ChatBell className="-m-2 h-11 w-11" />
+                <NotificationBell userId={currentUser?.uid || userId} className="-m-2 h-11 w-11" />
+              </>
             )}
             <div className="-m-2 inline-flex h-11 w-11 items-center justify-center">
               {showSkeleton ? (
@@ -337,17 +341,27 @@ export default function Header() {
                     CART
                   </Link>
                   {!showSkeleton && isAuthenticated && (
-                    <Link
-                      href="/account/notifications"
-                      onClick={handleNavClick}
-                      className="-mx-3 flex items-center justify-between rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-[var(--text-primary)] hover:bg-[var(--bg-elev-1)]"
-                    >
-                      <span>NOTIFICATIONS</span>
-                      <NotificationBell
-                        userId={currentUser?.uid || userId}
-                        className="pointer-events-none"
-                      />
-                    </Link>
+                    <>
+                      <Link
+                        href="/chat"
+                        onClick={handleNavClick}
+                        className="-mx-3 flex items-center justify-between rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-[var(--text-primary)] hover:bg-[var(--bg-elev-1)]"
+                      >
+                        <span>MESSAGES</span>
+                        <ChatBell className="pointer-events-none" />
+                      </Link>
+                      <Link
+                        href="/account/notifications"
+                        onClick={handleNavClick}
+                        className="-mx-3 flex items-center justify-between rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-[var(--text-primary)] hover:bg-[var(--bg-elev-1)]"
+                      >
+                        <span>NOTIFICATIONS</span>
+                        <NotificationBell
+                          userId={currentUser?.uid || userId}
+                          className="pointer-events-none"
+                        />
+                      </Link>
+                    </>
                   )}
                   {isAuthenticated ? (
                     <Link
