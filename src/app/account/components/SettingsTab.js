@@ -19,10 +19,8 @@ export default function SettingsTab({
   // };
 
   const handleDeleteAccount = () => {
-    // Add account deletion logic here
-    // This should likely involve confirmation prompts
+    // TODO: Add account deletion logic with confirmation prompts
     alert('Account deletion feature not yet implemented.');
-    console.log('Delete account clicked');
   };
 
   return (

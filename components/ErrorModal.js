@@ -32,25 +32,20 @@ export default function ErrorModal({ error }) {
                   Oops, something went wrong!
                 </DialogTitle>
                 <div className="mt-2">
-                  <p className="text-sm text-[var(--text-secondary)]">Display error message here</p>
+                  <p className="text-sm text-[var(--text-secondary)]">
+                    {error || 'An unexpected error occurred. Please try again.'}
+                  </p>
                 </div>
               </div>
             </div>
             <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
               <button
                 type="button"
+                data-autofocus
                 onClick={() => setOpen(false)}
                 className="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:ml-3 sm:w-auto"
               >
-                Deactivate
-              </button>
-              <button
-                type="button"
-                data-autofocus
-                onClick={() => setOpen(false)}
-                className="mt-3 inline-flex w-full justify-center rounded-md bg-[var(--bg-elev-2)] px-3 py-2 text-sm font-semibold text-[var(--text-primary)] shadow-sm ring-1 ring-inset ring-[var(--border-subtle)] transition-colors duration-200 hover:bg-[var(--bg-root)] sm:mt-0 sm:w-auto"
-              >
-                Cancel
+                Dismiss
               </button>
             </div>
           </DialogPanel>

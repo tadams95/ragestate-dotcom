@@ -31,15 +31,12 @@ export default function EventDetail() {
 
   useEffect(() => {
     const slug = pathname.split('/events/')[1];
-
-    console.log('slug', slug);
     if (!slug) return;
     let cancelled = false;
     const fetchEvent = async () => {
       const eventRef = doc(db, 'events', slug);
       const eventSnap = await getDoc(eventRef);
       if (!eventSnap.exists()) {
-        console.log('No such document!');
         if (!cancelled) setLoading(false);
         return;
       }

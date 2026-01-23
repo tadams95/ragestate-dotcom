@@ -1,5 +1,6 @@
 'use client';
 import { getAuth } from 'firebase/auth';
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 // NOTE: path needed five '../' segments to reach repository root from this nested route directory.
 import { app } from '../../../../../firebase/firebase';
@@ -149,12 +150,12 @@ export default function DraftEventsPage() {
               You don't have any draft events right now. Create one from the new event page and mark
               it as Draft to stage content.
             </p>
-            <a
+            <Link
               href="/admin/events/new"
               className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-red-500"
             >
               Create Event
-            </a>
+            </Link>
           </div>
         )}
 

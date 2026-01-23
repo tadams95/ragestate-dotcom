@@ -14,29 +14,20 @@ const AdminProtected = ({ children }) => {
   useEffect(() => {
     async function checkAdminStatus() {
       if (loading) {
-        console.log("Auth state is still loading");
         return;
       }
-      
-      console.log("Current user in AdminProtected:", currentUser);
-      
+
       if (!currentUser) {
-        console.log("No user found, redirecting to login");
         router.push('/login?redirect=admin');
         return;
       }
 
       try {
-        console.log("Checking if user is admin:", currentUser.uid);
-        // Use the checkIsAdmin function from firebase context
         const isUserAdmin = await firebase.checkIsAdmin(currentUser.uid);
-        console.log("Admin check result:", isUserAdmin);
-        
+
         if (!isUserAdmin) {
-          console.log("User is not an admin, redirecting to home");
           router.push('/');
         } else {
-          console.log("User confirmed as admin");
           setIsAdmin(true);
         }
       } catch (error) {

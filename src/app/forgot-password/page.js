@@ -13,9 +13,7 @@ export default function ForgotPassword() {
   const router = useRouter();
 
   async function confirmReset(e) {
-    e.preventDefault(); // Prevent default form submission
-    console.log('Submitting password reset for:', email);
-
+    e.preventDefault();
     const success = await forgotPassword(email);
 
     if (success) {

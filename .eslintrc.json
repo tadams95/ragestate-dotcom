@@ -2,10 +2,9 @@
   "extends": [
     "next/core-web-vitals",
     "plugin:@typescript-eslint/recommended",
-    "plugin:react-hooks/recommended",
     "prettier"
   ],
-  "plugins": ["@typescript-eslint", "react-hooks", "tailwindcss"],
+  "plugins": ["@typescript-eslint", "tailwindcss"],
   "rules": {
     "react-hooks/rules-of-hooks": "error",
     "react-hooks/exhaustive-deps": "warn",

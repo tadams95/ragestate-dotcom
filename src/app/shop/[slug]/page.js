@@ -40,8 +40,6 @@ export async function generateMetadata({ params }) {
       };
     }
 
-    console.log('Product Data:', product);
-
     const firstImage =
       product?.images?.[0]?.src || product?.images?.[0]?.transformedSrc || undefined;
     return {

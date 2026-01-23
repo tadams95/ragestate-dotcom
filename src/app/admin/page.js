@@ -87,7 +87,6 @@ export default function AdminPage() {
     if (authLoading) return;
 
     if (!currentUser) {
-      console.log('No authenticated user found, cannot load admin data');
       return;
     }
 

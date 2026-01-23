@@ -105,12 +105,7 @@ export default function NotificationPreferences({ userId, className = '' }) {
         toSave.quietHours = null;
       }
       toSave.updatedAt = serverTimestamp();
-      console.log('Saving notification preferences:', { userId, toSave, ref: ref.path });
       await setDoc(ref, toSave, { merge: true });
-      console.log('Notification preferences saved successfully to:', ref.path);
-      // Verify write by reading back
-      const verifySnap = await getDoc(ref);
-      console.log('Verified saved data:', verifySnap.data());
       setSaved(true);
       setPrefs((p) => ({ ...p, quietHours: toSave.quietHours }));
     } catch (e) {

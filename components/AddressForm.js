@@ -1,20 +1,9 @@
-import { useState } from "react";
 import { AddressElement } from "@stripe/react-stripe-js";
 
 const AddressForm = ({ onAddressChange }) => {
-  const [shippingAddress, setShippingAddress] = useState({
-    line1: "",
-    city: "",
-    state: "",
-    postal_code: "",
-    country: "",
-  });
-
   const handleAddressChange = (e) => {
     if (e.complete) {
-      const address = e.value;
-      setShippingAddress(address); // Update local state with the address
-      onAddressChange(address); // Pass address up to parent component
+      onAddressChange(e.value); // Pass address up to parent component
     }
   };
   return (

@@ -48,7 +48,6 @@ export const savePurchaseToFirebase = async (
       collection(firestore, "purchases"),
       purchaseData
     );
-    console.log("Purchase saved to main collection with ID: ", purchaseRef.id);
 
     // 2. Save to user's purchases subcollection
     if (userId) {
@@ -60,11 +59,6 @@ export const savePurchaseToFirebase = async (
         purchaseRef.id
       );
       await setDoc(userPurchaseRef, purchaseData);
-      console.log("Purchase saved to user's subcollection for user:", userId);
-    } else {
-      console.warn(
-        "UserId not available, skipping save to user's subcollection. Purchase saved in main collection."
-      );
     }
   } catch (error) {
     console.error("Error saving purchase to Firebase:", error);

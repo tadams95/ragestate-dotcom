@@ -117,7 +117,6 @@ async function fetchFromAggregations(db) {
     // Check if totals doc exists
     const totalsDoc = await getDoc(doc(db, 'analytics', 'totals'));
     if (!totalsDoc.exists()) {
-      console.log('Analytics totals not found, using raw queries');
       return null;
     }
 

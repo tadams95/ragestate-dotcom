@@ -3,6 +3,7 @@
 import storage from '@/utils/storage';
 import { collection, getDocs, getFirestore } from 'firebase/firestore';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import OrderDetailModal from './OrderDetailModal';
 
@@ -160,12 +161,12 @@ export default function OrderHistory() {
           If you have any questions or concerns, email contact@ragestate.com or DM @ragestate on
           Instagram
         </p>
-        <a
+        <Link
           href="/shop"
           className="mt-6 inline-flex items-center rounded-md border border-transparent bg-red-700 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-700 focus:ring-offset-2"
         >
           Start Shopping
-        </a>
+        </Link>
       </div>
     );
   }

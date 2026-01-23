@@ -12,7 +12,6 @@ export function AutoSliderBanner() {
     // Set up the interval for image rotation
     const interval = setInterval(() => {
       setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length);
-      console.log("Switching to next image"); // Debug log
     }, 5000); // Change image every 5 seconds
 
     // Clean up the interval on unmount

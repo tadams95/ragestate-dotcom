@@ -261,12 +261,6 @@ export default function Cart() {
         setIsLoading(true);
         setErrorMessage('');
 
-        console.log(
-          '[Cart] Creating payment intent via proxy:',
-          `${API_PROXY}/create-payment-intent`,
-          promoCode ? `with promo: ${promoCode.code}` : '',
-        );
-
         // Build request body with optional promo code
         const requestBody = {
           amount: currentStripeTotal,

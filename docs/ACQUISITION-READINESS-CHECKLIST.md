@@ -15,7 +15,7 @@
 | Phase 2 Tasks | 95% | 5% | High |
 | Security Audit | 100% | 0% | Critical |
 | Documentation | 40% | 60% | High |
-| Technical Debt | 60% | 40% | Medium |
+| Technical Debt | 100% | 0% | Medium |
 | Data Room | 0% | 100% | High |
 | Legal | Unknown | Unknown | High |
 
@@ -147,16 +147,25 @@
 
 ## Medium Priority (Week 3)
 
-### Technical Debt Cleanup
-- [ ] Delete obsolete `lib/features/todos/` directory
-  - [ ] Verify no imports reference this path
-  - [ ] Remove `lib/features/todos/authSlice.js`
-  - [ ] Remove `lib/features/todos/cartSlice.js`
-  - [ ] Remove `lib/features/todos/userSlice.js`
-- [ ] Run linter and fix any warnings: `npm run lint`
-- [ ] Review and remove any console.log statements in production code
-- [ ] Check for TODO comments that should be addressed
-- [ ] Update any outdated dependencies (non-breaking)
+### Technical Debt Cleanup ✅ COMPLETE (January 23, 2026)
+- [x] Delete obsolete `lib/features/todos/` directory ✅
+  - [x] Verify no imports reference this path — **PASS: 0 code imports**
+  - [x] Remove `lib/features/todos/authSlice.js` — **Deleted**
+  - [x] Remove `lib/features/todos/cartSlice.js` — **Deleted**
+  - [x] Remove `lib/features/todos/userSlice.js` — **Deleted**
+- [x] Run linter and fix any warnings: `npm run lint` ✅
+  - Fixed ESLint plugin conflict (duplicate react-hooks)
+  - Fixed `<a>` → `<Link>` errors in OrderHistory.js, drafts/page.jsx
+  - Fixed unused state in AddressForm.js
+  - Fixed ErrorModal.js to use error prop
+- [x] Review and remove any console.log statements in production code ✅
+  - Removed ~15 debug console.logs from production code
+  - Files cleaned: shop/page.js, cart/page.js, AdminProtected.js, events/page.js, NotificationPreferences.jsx, firestoreUtils.js, and more
+- [x] Check for TODO comments that should be addressed ✅
+  - Only 1 TODO found (account deletion feature request - not urgent)
+- [x] Update any outdated dependencies (non-breaking) ✅
+  - Updated: @babel/core, @headlessui/react, @reduxjs/toolkit, @tailwindcss/forms, @tailwindcss/typography, @vercel/analytics, @vercel/speed-insights, framer-motion, and more
+  - Build verified ✅
 
 ### Documentation — Technical
 - [ ] Create `docs/DEPLOYMENT-RUNBOOK.md`
