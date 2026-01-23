@@ -6,10 +6,8 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Ensure SWC is used for compilation
-  swcMinify: true,
 
-  // Disable Babel in favor of SWC
+  // Disable Babel in favor of SWC (swcMinify is default in Next.js 15+)
   experimental: {
     forceSwcTransforms: true,
   },

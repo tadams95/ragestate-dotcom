@@ -1,3 +1,5 @@
+'use client';
+
 import dynamic from 'next/dynamic';
 
 // Lazy-load heavy feed components - PostComposer loads immediately for interaction,

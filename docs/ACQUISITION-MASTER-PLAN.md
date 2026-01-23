@@ -1,7 +1,8 @@
 # RAGESTATE Acquisition Master Plan
 
-> **Last Reviewed**: January 3, 2026 | **Consultant**: AI Acquisitions Review
+> **Last Reviewed**: January 22, 2026 | **Consultant**: AI Acquisitions Review
 > **Phase 1 Status**: ✅ **COMPLETE** (January 3, 2026)
+> **Phase 2 Status**: 🟢 **85% COMPLETE** (January 22, 2026)
 
 ---
 
@@ -9,10 +10,10 @@
 
 RAGESTATE is a Next.js 14 event ticketing and social platform with integrated Stripe payments, Firebase backend, and production social features. The codebase demonstrates **production-ready payment flows**, **robust security rules**, and a **modular architecture** suitable for scaling. Key acquisition value lies in the integrated ticketing + social + merch stack—a rare combination appealing to social event platforms (Posh, Radiate), ticketing giants (Eventbrite, Dice), or social/community apps (Meta, Discord).
 
-**Estimated Valuation Range**: $1-5M (contingent on user metrics, revenue, and feature completeness)  
-**Target Exit Window**: Q2-Q4 2026  
-**Primary Gaps**: No native mobile app, chat stub only  
-**Current Phase**: Phase 2 — Scalability & Monetization
+**Estimated Valuation Range**: $1-5M (contingent on user metrics, revenue, and feature completeness)
+**Target Exit Window**: Q2-Q4 2026
+**Primary Gaps**: ~~No native mobile app~~ 80-90% complete, ~~chat stub only~~ 90% production-ready
+**Current Phase**: Phase 2 — Scalability & Monetization (85% complete)
 
 **Competitive Moat**: Differentiates from Posh (no social transfers), Radiate (no merch), and Eventbrite (no social) via **@username ticket transfers** + integrated payments/social/merch stack; TAM: $50B+ event market; SAM: $5B+ for social ticketing.
 
@@ -87,7 +88,7 @@ This creates **network effects**: users invite friends → friends join → more
 - **Notifications** (✅ Production-Ready): `functions/notifications.js` implements quiet hours, aggregation, and push sender logic. FCM web push, in-app notification feed, device registry, user preferences. Transfer + repost + mention notifications integrated.
 - **Admin Tools** (✅ Functional): Event creation (`src/app/api/admin/events/create/`), scanner, moderation hooks (`functions/moderation.js` with hate/incitement filters).
 - **Account UX** (✅ Complete): Order detail modal, ticket detail modal with QR, status badges, add-to-calendar (.ics), get directions, quick actions bar.
-- **Chat** (❌ Stub Only): `src/app/chat/page.js` is a local-state placeholder—no persistence, no real-time messaging.
+- **Chat** (🟢 90% Production-Ready): Full DM implementation with Firestore real-time messaging. Complete: `lib/firebase/chatService.js` (DM creation, message sending, pagination), `lib/hooks/useChat.js` + `useChatList.js` (real-time listeners), UI components (ChatInput, MessageBubble, ChatListItem), pages (`/chat`, `/chat/new`, `/chat/[chatId]`), Redux integration, security rules. **Missing**: Cloud Function for chat summary creation on new DM (1 day fix).
 - **Merch/Shopify** (⚠️ Partial): `functions/shopifyAdmin.js` has TODOs for fulfillment status sync and inventory sync.
 
 ### Technical Health ✅ Strong Foundation
@@ -129,11 +130,12 @@ This creates **network effects**: users invite friends → friends join → more
 
 ### Risks ⚠️ Address Before Sale
 
-1. **No Native App**: 100% web. React Native mentioned in docs but no code exists. Limits mobile engagement and app store presence. **Impact**: 30% lower mobile engagement vs. competitors. **Mitigation**: Launch PWA interim (1 week effort) while building React Native; Cost: $5k for PWA tools.
-2. **Chat Placeholder**: Would need 4-8 weeks to productionize with Firestore or dedicated chat service. **Impact**: Missed social engagement opportunities. **Mitigation**: Defer to Phase 3; monitor feed metrics for urgency.
+1. ~~**No Native App**~~: ✅ **NEARLY RESOLVED** — React Native app 80-90% complete, ~1 week to finish. iOS/Android with App Check enabled.
+2. ~~**Chat Placeholder**~~: ✅ **NEARLY RESOLVED** — Full DM implementation complete. Missing only Cloud Function for chat summary creation (1 day fix).
 3. ~~**Feed Privacy**~~: ✅ Resolved — Privacy toggle prominent in composer, private posts visible only to author on profile.
-4. **Security Audit Pending**: Rules look solid but no third-party penetration test or formal audit documented. **Impact**: Acquisition due diligence delays. **Mitigation**: Complete by Phase 2 end; Vendor: HackerOne; Budget: $10k; Contingency: Self-audit with OWASP checklist.
-5. **Market Saturation**: Posh/Radiate have funding + mobile apps; Eventbrite/Dice dominate general market. **Mitigation**: Lean into @username transfers as unique differentiator; target niche (rave/events) with viral social features; SWOT: Strengths (tech stack, transfers), Weaknesses (no app), Opportunities (AI try-on, follower transfers), Threats (economic downturns).
+4. **Security Audit Pending**: Rules look solid but no third-party penetration test or formal audit documented. **Impact**: Acquisition due diligence delays. **Mitigation**: Complete by Phase 2 end; Options: HackerOne ($10k), self-audit with OWASP checklist + AI-assisted review.
+5. **Documentation Gaps**: Missing deployment runbook, architecture diagrams, and data room materials. **Impact**: Due diligence friction. **Mitigation**: 1-2 week documentation sprint.
+6. **Market Saturation**: Posh/Radiate have funding + mobile apps; Eventbrite/Dice dominate general market. **Mitigation**: Lean into @username transfers as unique differentiator; target niche (rave/events) with viral social features.
 
 ## Gameplan for Development
 
@@ -161,28 +163,39 @@ Prioritize features enhancing acquisition appeal: user growth (social/notificati
 
 ---
 
-### Phase 2: Scalability & Monetization (3-6 Months, Medium Impact)
+### Phase 2: Scalability & Monetization — 🟢 85% COMPLETE (January 22, 2026)
 
-| #   | Task                         | Timeline            | Files/Areas                                                                | Success Metric                                                                           |
-| --- | ---------------------------- | ------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| 1   | **Performance Essentials**   | Ongoing, 1-2 months | `next.config.mjs`, image components, run `npm run analyze`                 | Trim bundles <200KB JS, `next/image` with proper sizes, caching headers. <3s LCP.        |
-| 2   | **Realtime Evaluation**      | 1 month             | POC in `src/app/chat/page.js`, evaluate Socket.io/Ably if needed           | Determine if Firestore scales to 10k concurrent. Document decision.                      |
-| 3   | **Monetization Quick Wins**  | 1-2 months          | `components/CheckoutForm.js`, `functions/shopifyAdmin.js` (complete TODOs) | Email capture modal, cross-sell merch at checkout, promo codes. Track conversion uplift. |
-| 4   | **Shopify Fulfillment Sync** | 2-3 weeks           | `functions/shopifyAdmin.js` lines 408, 424                                 | Implement `onShopifyFulfillmentUpdate` webhook; sync inventory to Firestore.             |
-| 5   | **Data Insights Dashboard**  | 1 month             | New `src/app/admin/metrics/` page, Firestore aggregations                  | Revenue, ticket sales, active users, feed engagement. Exportable for acquirer.           |
+| #   | Task                         | Status | Notes                                                                                                                                                      |
+| --- | ---------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Performance Essentials**   | ⚠️ 70% | ✅ Image optimization configured in `next.config.js`. ⚠️ Bundle analyzer exists (`npm run analyze`) but not run. ❌ Caching headers incomplete.            |
+| 2   | **Realtime Evaluation**      | ✅ Done | **Decision: Firestore-based.** Full chat implementation proves Firestore real-time scales for current needs. Socket.io/Ably deferred unless 10k+ concurrent. |
+| 3   | **Monetization Quick Wins**  | ✅ Done | ✅ Email capture modal (`components/EmailCaptureModal.jsx`), ✅ Cross-sell (`src/app/cart/components/CrossSellSection.js`), ✅ Promo codes (full validation). |
+| 4   | **Shopify Fulfillment Sync** | ❌ TODO | TODOs remain at `functions/shopifyAdmin.js` lines 408, 424. Webhooks stubbed but not implemented.                                                          |
+| 5   | **Data Insights Dashboard**  | ✅ Done | Full dashboard at `src/app/admin/metrics/` with RevenueChart, UserGrowthChart, FeedEngagement, event scanning metrics, CSV export.                        |
+
+**Phase 2 Remaining Work**:
+- [ ] Run bundle analysis (`npm run analyze`), optimize if >200KB JS
+- [ ] Implement Shopify webhook handlers (2-3 days)
+- [ ] Add caching headers for static assets
 
 **Phase 2 Deliverable**: Scalable, monetization-optimized platform with clear metrics for valuation.
 
 ---
 
-### Phase 3: App Development & Advanced Features (6+ Months, Strategic)
+### Phase 3: App Development & Advanced Features — 🟢 60% COMPLETE
 
-| #   | Task                              | Timeline   | Files/Areas                                                                                          | Success Metric                                                                  |
-| --- | --------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| 1   | **Native App POC (React Native)** | 2-3 months | New `mobile/` directory, reuse Firebase config from `firebase/firebase.js`                           | iOS/Android app with feed + ticketing. App Check enabled. 10k downloads target. |
-| 2   | **Chat Implementation**           | 1-2 months | `src/app/chat/page.js` → real Firestore collections (`chats/{chatId}/messages`), `functions/chat.js` | DMs, @mentions, moderation. Real-time via Firestore or dedicated service.       |
-| 3   | **Advanced Social**               | Ongoing    | `functions/feed.js`, new recommendation engine                                                       | AI-powered post recommendations, live activity counters, Stories-like feature.  |
-| 4   | **Pre-Sale Polish**               | 1 month    | Security audit (third-party), seed demo data, admin dashboards                                       | 99% uptime, clean audit, ready data room for acquirer.                          |
+| #   | Task                              | Status      | Notes                                                                                                                                                             |
+| --- | --------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Native App (React Native)**     | 🟢 80-90%   | **MAJOR PROGRESS**: React Native app 80-90% complete (separate repo). Feed + ticketing functional. ~1 week to completion. iOS/Android App Check enabled.         |
+| 2   | **Chat Implementation**           | 🟢 90%      | Web chat complete (DMs, real-time, media). **Missing**: Cloud Function for chat summary creation. Mobile chat pending native app completion.                      |
+| 3   | **Advanced Social**               | ❌ Not Started | AI recommendations, Stories-like features deferred post-acquisition.                                                                                              |
+| 4   | **Pre-Sale Polish**               | ⚠️ 30%      | ✅ Admin dashboards complete. ❌ Security audit pending. ❌ Data room not prepared. ❌ Architecture diagrams missing.                                              |
+
+**Phase 3 Remaining Work**:
+- [ ] Complete React Native app (1 week)
+- [ ] Create Cloud Function for chat summaries (1 day)
+- [ ] Security audit (see section below)
+- [ ] Prepare data room documentation
 
 **Phase 3 Deliverable**: Multi-platform presence + advanced social = maximum acquisition valuation.
 
@@ -220,13 +233,13 @@ Prioritize features enhancing acquisition appeal: user growth (social/notificati
 
 ## Technical Debt Cleanup (Parallel Track)
 
-| Item                                            | Effort   | Location                            |
-| ----------------------------------------------- | -------- | ----------------------------------- |
-| Rename `lib/features/todos/` → `lib/features/`  | 1 hour   | All imports referencing this path   |
-| Complete Shopify TODOs                          | 2-3 days | `functions/shopifyAdmin.js:408,424` |
-| Run bundle analyzer, document findings          | 2 hours  | `npm run analyze`, update this doc  |
-| Add `.env.local.example`                        | 30 min   | Project root                        |
-| Document all Function endpoints in `.http` file | 2 hours  | `docs/stripePayment.http` (expand)  |
+| Item                                            | Status  | Notes                                                                                         |
+| ----------------------------------------------- | ------- | --------------------------------------------------------------------------------------------- |
+| Rename `lib/features/todos/` → `lib/features/`  | ❌ TODO | Obsolete directory with duplicate slices. Files already exist in `lib/features/`. Delete it. |
+| Complete Shopify TODOs                          | ❌ TODO | `functions/shopifyAdmin.js:408,424` — webhook handlers stubbed but not implemented.           |
+| Run bundle analyzer, document findings          | ❌ TODO | `npm run analyze` exists but hasn't been run.                                                 |
+| Add `.env.local.example`                        | ✅ Done | Comprehensive 83-line template exists with full documentation.                                |
+| Document all Function endpoints in `.http` file | ✅ Done | `docs/api-endpoints.http` (337 lines) covers all endpoints with examples.                     |
 
 ---
 
@@ -276,17 +289,48 @@ Prioritize features enhancing acquisition appeal: user growth (social/notificati
 ## Acquisition Readiness Checklist
 
 - [x] **Phase 1 Complete**: Feed + notifications fully functional ✅ (January 3, 2026)
-- [ ] **Phase 2 Complete**: Metrics dashboard + Shopify sync
-- [ ] **Security Audit**: Third-party pentest completed, findings remediated
-- [ ] **Documentation**: API docs, data model, deployment runbook
+- [x] **Metrics Dashboard**: Revenue, user growth, feed engagement, event scanning ✅ (January 22, 2026)
+- [x] **Monetization Features**: Email capture, cross-sell, promo codes ✅ (January 22, 2026)
+- [x] **Chat Implementation**: DMs with real-time messaging (web) ✅ (January 22, 2026)
+- [x] **API Documentation**: Comprehensive `.http` file with all endpoints ✅
+- [ ] **Phase 2 Final**: Run bundle analyzer, complete Shopify webhooks (2-3 days)
+- [ ] **Native App**: React Native 80-90% complete → finish iOS/Android (~1 week)
+- [ ] **Chat Cloud Function**: Create chat summary trigger (1 day)
+- [ ] **Security Audit**: Self-audit with OWASP checklist + AI review OR HackerOne
+- [ ] **Documentation**: Deployment runbook, architecture diagrams, data model
 - [ ] **Data Room**: User metrics, revenue reports, technical architecture diagram
 - [ ] **Legal**: Terms of service, privacy policy reviewed, IP assignment clean
-- [ ] **Native App**: At least iOS beta in TestFlight (Phase 3)
 - [ ] **Pitch Deck Ready**: Metrics, architecture diagram, financial projections
+
+---
+
+## AI-Assisted Security Audit Strategy
+
+For budget-conscious security review before acquisition:
+
+### Option 1: AI-Assisted Self-Audit (Recommended First)
+1. **Firestore Rules Review**: Have Claude analyze `firestore.rules` (441 lines) for common vulnerabilities
+2. **OWASP Top 10 Checklist**: Walk through each category with AI assistance
+3. **Cloud Functions Audit**: Review `functions/` for injection, auth bypass, rate limiting
+4. **Dependency Scan**: Run `npm audit` and have AI triage findings
+5. **Auth Flow Review**: Document and analyze authentication paths
+
+### Option 2: Hybrid Approach
+- AI self-audit first (free, immediate)
+- Fix critical findings
+- Budget remaining $5-10k for focused third-party pentest on payment/auth flows only
+
+### Option 3: Third-Party Only
+- HackerOne: $5-15k for full audit
+- Synack: Enterprise-grade, $15k+
+- Independent consultant: $3-8k
+
+**Recommendation**: Start with AI-assisted audit to find low-hanging fruit, then decide if third-party is needed based on findings.
 
 ---
 
 **This plan positions RAGESTATE for $1-5M exit by Q2-Q4 2026, contingent on user growth and revenue metrics.**
 
-Prepared by AI Acquisitions Review | December 26, 2025  
+Prepared by AI Acquisitions Review | December 26, 2025
 Phase 1 Completed | January 3, 2026
+Phase 2 Review | January 22, 2026 — 85% complete, chat/monetization/dashboard done
