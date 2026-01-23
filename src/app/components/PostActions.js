@@ -13,7 +13,7 @@ import {
   where,
   writeBatch,
 } from 'firebase/firestore';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../../firebase/context/FirebaseContext';
 import { db } from '../../../firebase/firebase';
 
@@ -36,6 +36,8 @@ export default function PostActions({
   const longPressRef = useRef(null);
   const longPressTimer = useRef(null);
   const [reactions, setReactions] = useState({}); // {"👍": 12, "🔥": 3, "😂": 1}
+  const [likeAnimating, setLikeAnimating] = useState(false);
+  const [floatingEmoji, setFloatingEmoji] = useState(null);
 
   // Build like doc id `${postId}_${uid}` when signed in
   const likeDocRef = useMemo(() => {
@@ -108,6 +110,8 @@ export default function PostActions({
         // Like
         setOptimisticLikes((n) => n + 1);
         setHasLiked(true);
+        setLikeAnimating(true);
+        setTimeout(() => setLikeAnimating(false), 400);
         await setDoc(likeDocRef, {
           postId,
           userId: currentUser.uid,
@@ -140,6 +144,8 @@ export default function PostActions({
   const addReaction = (emoji) => {
     // Optimistic local cluster; wiring to backend can be added later
     setReactions((prev) => ({ ...prev, [emoji]: (prev[emoji] || 0) + 1 }));
+    setFloatingEmoji(emoji);
+    setTimeout(() => setFloatingEmoji(null), 600);
     setShowReactions(false);
   };
 
@@ -428,7 +434,7 @@ export default function PostActions({
         </div>
       )}
       <button
-        className={`flex h-11 items-center space-x-1.5 rounded px-2 transition-colors hover:text-[var(--text-primary)] active:opacity-80 ${
+        className={`flex h-11 items-center space-x-1.5 rounded px-2 transition-all duration-150 hover:text-[var(--text-primary)] active:scale-95 ${
           hasLiked ? 'text-[#ff1f42]' : ''
         }`}
         onClick={onToggleLike}
@@ -442,12 +448,12 @@ export default function PostActions({
         aria-label={hasLiked ? 'Unlike' : 'Like'}
         title={hasLiked ? 'Unlike' : 'Like'}
       >
-        <span className="flex items-center justify-center">{likeIcon}</span>
+        <span className={`flex items-center justify-center transition-transform duration-300 ${likeAnimating ? 'scale-125' : 'scale-100'}`}>{likeIcon}</span>
         <span className="text-xs font-medium tabular-nums">{formatCount(optimisticLikes)}</span>
       </button>
 
       <button
-        className="flex h-11 items-center space-x-1.5 rounded px-2 transition-colors hover:text-[var(--text-primary)] active:opacity-80"
+        className="flex h-11 items-center space-x-1.5 rounded px-2 transition-all duration-150 hover:text-[var(--text-primary)] active:scale-95"
         onClick={onOpenComments}
         aria-label="Comments"
         title="Comments"
@@ -458,7 +464,7 @@ export default function PostActions({
 
       <div className="relative">
         <button
-          className={`flex h-11 items-center space-x-1.5 rounded px-2 transition-colors hover:text-[var(--text-primary)] active:opacity-80 ${
+          className={`flex h-11 items-center space-x-1.5 rounded px-2 transition-all duration-150 hover:text-[var(--text-primary)] active:scale-95 ${
             hasReposted ? 'text-green-500' : ''
           }`}
           onClick={onRepostClick}
@@ -505,7 +511,7 @@ export default function PostActions({
       </div>
 
       <button
-        className="flex h-11 items-center rounded px-2 transition-colors hover:text-[var(--text-primary)] active:opacity-80"
+        className="flex h-11 items-center rounded px-2 transition-all duration-150 hover:text-[var(--text-primary)] active:scale-95"
         onClick={onShare}
         aria-label="Share"
         title="Share"
@@ -525,7 +531,7 @@ export default function PostActions({
           {['👍', '🔥', '😂', '👏', '🎉', '❤️'].map((e) => (
             <button
               key={e}
-              className="text-lg transition-transform hover:scale-110"
+              className="text-lg transition-transform duration-150 hover:scale-125 active:scale-95"
               onClick={() => addReaction(e)}
               aria-label={`React ${e}`}
             >
@@ -533,6 +539,16 @@ export default function PostActions({
             </button>
           ))}
         </div>
+      )}
+
+      {/* Floating emoji animation */}
+      {floatingEmoji && (
+        <span
+          className="pointer-events-none absolute left-4 animate-float-up text-2xl"
+          aria-hidden="true"
+        >
+          {floatingEmoji}
+        </span>
       )}
     </div>
   );

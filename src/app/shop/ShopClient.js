@@ -253,7 +253,7 @@ export default function ShopClient() {
               data-testid="grid-view-button"
               aria-label="Grid view"
               aria-pressed={viewMode === 'grid'}
-              className={`${'rounded p-2'} ${viewMode === 'grid' ? 'bg-red-700' : ''}`}
+              className={`rounded p-2 transition-all duration-200 active:scale-95 ${viewMode === 'grid' ? 'bg-red-700' : 'hover:bg-[var(--bg-elev-2)]'}`}
             >
               <GridIcon className="h-5 w-5 text-white" />
             </button>
@@ -262,7 +262,7 @@ export default function ShopClient() {
               data-testid="list-view-button"
               aria-label="List view"
               aria-pressed={viewMode === 'list'}
-              className={`${'rounded p-2'} ${viewMode === 'list' ? 'bg-red-700' : ''}`}
+              className={`rounded p-2 transition-all duration-200 active:scale-95 ${viewMode === 'list' ? 'bg-red-700' : 'hover:bg-[var(--bg-elev-2)]'}`}
             >
               <ListBulletIcon className="h-5 w-5 text-white" />
             </button>
@@ -281,20 +281,20 @@ export default function ShopClient() {
             }
           >
             {Array.from({ length: 6 }).map((_, idx) => (
-              <div key={idx} className="animate-pulse">
+              <div key={idx}>
                 {viewMode === 'grid' ? (
                   <div>
-                    <div className="h-64 w-full rounded-lg bg-[var(--bg-elev-2)] sm:h-72 lg:h-80" />
-                    <div className="mt-4 h-4 w-2/3 rounded bg-[var(--bg-elev-2)]" />
-                    <div className="mt-2 h-4 w-1/3 rounded bg-[var(--bg-elev-2)]" />
+                    <div className="h-64 w-full animate-shimmer rounded-lg sm:h-72 lg:h-80" />
+                    <div className="mt-4 h-4 w-2/3 animate-shimmer rounded" />
+                    <div className="mt-2 h-4 w-1/3 animate-shimmer rounded" />
                   </div>
                 ) : (
                   <div className="relative flex gap-x-6 rounded-lg bg-[var(--bg-elev-1)] p-4">
-                    <div className="h-24 w-24 rounded-md bg-[var(--bg-elev-2)]" />
+                    <div className="h-24 w-24 animate-shimmer rounded-md" />
                     <div className="flex-1">
-                      <div className="h-4 w-1/2 rounded bg-[var(--bg-elev-2)]" />
-                      <div className="mt-2 h-4 w-full rounded bg-[var(--bg-elev-2)]" />
-                      <div className="mt-2 h-4 w-2/5 rounded bg-[var(--bg-elev-2)]" />
+                      <div className="h-4 w-1/2 animate-shimmer rounded" />
+                      <div className="mt-2 h-4 w-full animate-shimmer rounded" />
+                      <div className="mt-2 h-4 w-2/5 animate-shimmer rounded" />
                     </div>
                   </div>
                 )}

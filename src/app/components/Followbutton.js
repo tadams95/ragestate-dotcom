@@ -82,8 +82,8 @@ export default function Followbutton({ targetUserId, onChange, variant = 'defaul
   }, [currentUser, targetUserId, isFollowing, onChange]);
 
   const label = isFollowing ? 'Following' : 'Follow';
-  const baseCompact = 'px-2.5 py-1.5 h-8 rounded-md text-xs font-medium active:opacity-80';
-  const baseDefault = 'px-4 py-2 h-10 rounded-md font-semibold active:opacity-80';
+  const baseCompact = 'px-2.5 py-1.5 h-8 rounded-md text-xs font-medium transition-all duration-200 active:scale-95 hover:scale-105';
+  const baseDefault = 'px-4 py-2 h-10 rounded-md font-semibold transition-all duration-200 active:scale-95 hover:scale-105';
   const classes = (() => {
     if (variant === 'compact') {
       return isFollowing
@@ -100,7 +100,7 @@ export default function Followbutton({ targetUserId, onChange, variant = 'defaul
       type="button"
       disabled={disabled}
       onClick={toggleFollow}
-      className={`${classes} ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+      className={`${classes} ${disabled ? 'cursor-not-allowed opacity-60' : ''} ${saving ? 'animate-pulse' : ''}`}
       aria-pressed={isFollowing}
       aria-label={label}
     >

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useRef, useState } from 'react';
 import { useChatUnreadCount } from '../../../lib/hooks/useChatUnreadCount';
 
 /**
@@ -11,12 +12,24 @@ import { useChatUnreadCount } from '../../../lib/hooks/useChatUnreadCount';
  */
 export default function ChatBell({ className = '' }) {
   const unreadCount = useChatUnreadCount();
+  const prevCountRef = useRef(unreadCount);
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  // Detect count changes and trigger animation
+  useEffect(() => {
+    if (prevCountRef.current !== unreadCount && unreadCount > 0) {
+      setIsAnimating(true);
+      const timer = setTimeout(() => setIsAnimating(false), 600);
+      return () => clearTimeout(timer);
+    }
+    prevCountRef.current = unreadCount;
+  }, [unreadCount]);
 
   return (
     <Link
       href="/chat"
       aria-label="Messages"
-      className={`relative inline-flex items-center justify-center text-[var(--text-primary)] active:opacity-80 ${className}`}
+      className={`relative inline-flex items-center justify-center text-[var(--text-primary)] transition-all duration-150 hover:scale-110 hover:text-[var(--accent)] active:scale-95 ${className}`}
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -24,7 +37,7 @@ export default function ChatBell({ className = '' }) {
         viewBox="0 0 24 24"
         strokeWidth={1.5}
         stroke="currentColor"
-        className="h-6 w-6"
+        className={`h-6 w-6 transition-transform duration-300 ${isAnimating ? 'animate-wiggle' : ''}`}
         aria-hidden="true"
       >
         <path
@@ -36,7 +49,7 @@ export default function ChatBell({ className = '' }) {
       {unreadCount > 0 && (
         <span
           aria-label={`${unreadCount} unread messages`}
-          className="pointer-events-none absolute -right-0.5 -top-0.5 inline-flex min-w-[18px] max-w-[30px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-semibold leading-4 text-white shadow ring-1 ring-black/40"
+          className={`pointer-events-none absolute -right-0.5 -top-0.5 inline-flex min-w-[18px] max-w-[30px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-semibold leading-4 text-white shadow ring-1 ring-black/40 transition-transform duration-300 ${isAnimating ? 'animate-badge-pop' : ''}`}
         >
           {unreadCount > 99 ? '99+' : unreadCount}
         </span>

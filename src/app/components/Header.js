@@ -103,7 +103,7 @@ function ThemeToggle() {
     <button
       type="button"
       onClick={cycleTheme}
-      className="group relative -m-2 inline-flex h-11 w-11 items-center justify-center text-[var(--text-primary)] transition-colors hover:text-[var(--text-primary)] active:opacity-80"
+      className="group relative -m-2 inline-flex h-11 w-11 items-center justify-center text-[var(--text-primary)] transition-all duration-150 hover:scale-110 hover:text-[var(--accent)] active:scale-95"
       aria-label={`Current theme: ${tooltipText}. Click to change.`}
       title={tooltipText}
     >
@@ -224,7 +224,7 @@ export default function Header() {
           <div className="flex lg:hidden">
             <button
               type="button"
-              className="-m-2.5 inline-flex h-11 w-11 items-center justify-center rounded-md p-2.5 text-[var(--text-primary)] active:opacity-80"
+              className="-m-2.5 inline-flex h-11 w-11 items-center justify-center rounded-md p-2.5 text-[var(--text-primary)] transition-all duration-150 hover:scale-110 hover:text-[var(--accent)] active:scale-95"
               onClick={() => setMobileMenuOpen(true)}
             >
               <span className="sr-only">Open main menu</span>
@@ -236,7 +236,7 @@ export default function Header() {
               <Link
                 key={item.name}
                 href={item.href}
-                className="text-sm font-semibold leading-6 text-[var(--text-primary)]"
+                className="nav-link-underline text-sm font-semibold leading-6 text-[var(--text-primary)] transition-colors duration-150 hover:text-[var(--accent)]"
               >
                 {item.name}
               </Link>
@@ -247,7 +247,7 @@ export default function Header() {
             <Link
               href="/cart"
               aria-label="Cart"
-              className="relative -m-2 inline-flex h-11 w-11 items-center justify-center text-[var(--text-primary)] active:opacity-80"
+              className="relative -m-2 inline-flex h-11 w-11 items-center justify-center text-[var(--text-primary)] transition-all duration-150 hover:scale-110 hover:text-[var(--accent)] active:scale-95"
             >
               <ShoppingBagIcon className="h-5 w-5" aria-hidden="true" />
             </Link>
@@ -263,7 +263,7 @@ export default function Header() {
               ) : isAuthenticated ? (
                 <Link
                   href="/account"
-                  className="inline-flex h-11 w-11 items-center justify-center text-sm font-semibold leading-6 text-[var(--text-primary)] active:opacity-80"
+                  className="inline-flex h-11 w-11 items-center justify-center text-sm font-semibold leading-6 text-[var(--text-primary)] transition-all duration-150 hover:scale-110 hover:text-[var(--accent)] active:scale-95"
                   aria-label="Account"
                 >
                   {displayPicture ? (
@@ -274,7 +274,7 @@ export default function Header() {
                       height={24}
                       sizes="24px"
                       loading="lazy"
-                      className="h-5 w-5 rounded-md"
+                      className="h-5 w-5 rounded-md transition-transform duration-150"
                     />
                   ) : (
                     <UserIcon className="h-5 w-5" aria-hidden="true" />
@@ -283,11 +283,10 @@ export default function Header() {
               ) : (
                 <Link
                   href="/login"
-                  className="inline-flex h-11 w-11 items-center justify-center text-sm font-semibold leading-6 text-[var(--text-primary)] active:opacity-80"
+                  className="inline-flex h-11 w-11 items-center justify-center text-sm font-semibold leading-6 text-[var(--text-primary)] transition-all duration-150 hover:scale-110 hover:text-[var(--accent)] active:scale-95"
                   aria-label="Login"
                 >
                   <UserIcon className="h-5 w-5" aria-hidden="true" />
-                  <span aria-hidden="true"></span>
                 </Link>
               )}
             </div>
@@ -310,7 +309,7 @@ export default function Header() {
               </Link>
               <button
                 type="button"
-                className="-m-2.5 h-11 w-11 rounded-md p-2.5 text-[var(--text-secondary)] active:opacity-80"
+                className="-m-2.5 h-11 w-11 rounded-md p-2.5 text-[var(--text-secondary)] transition-all duration-150 hover:scale-110 hover:text-[var(--accent)] active:scale-95"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <span className="sr-only">Close menu</span>
@@ -320,12 +319,13 @@ export default function Header() {
             <div className="mt-6 flow-root">
               <div className="-my-6 divide-y divide-[var(--border-subtle)]">
                 <div className="space-y-2 py-6">
-                  {navigation.map((item) => (
+                  {navigation.map((item, index) => (
                     <Link
                       key={item.name}
                       href={item.href}
                       onClick={handleNavClick}
-                      className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-[var(--text-primary)] hover:bg-[var(--bg-elev-1)]"
+                      className="animate-menu-item-enter -mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-[var(--text-primary)] hover:bg-[var(--bg-elev-1)]"
+                      style={{ animationDelay: `${index * 50}ms` }}
                     >
                       {item.name}
                     </Link>

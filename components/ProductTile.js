@@ -65,10 +65,10 @@ function ProductTile({ product, viewMode = 'grid' }) {
   if (viewMode === 'list') {
     const ListContent = (
       <motion.div
-        className={`group relative flex gap-x-6 rounded-lg bg-[var(--bg-elev-1)] p-4 ${
+        className={`group relative flex gap-x-6 rounded-lg bg-[var(--bg-elev-1)] p-4 transition-all duration-200 ${
           isOutOfStock
             ? 'cursor-not-allowed opacity-75'
-            : 'transition-colors hover:bg-[var(--bg-elev-2)]'
+            : 'hover:bg-[var(--bg-elev-2)] hover:shadow-[var(--shadow-card)]'
         }`}
         whileHover={isOutOfStock || prefersReducedMotion ? undefined : { scale: 1.02 }}
         whileTap={isOutOfStock || prefersReducedMotion ? undefined : { scale: 0.98 }}
@@ -79,7 +79,7 @@ function ProductTile({ product, viewMode = 'grid' }) {
             alt={imageAlt}
             fill
             sizes="96px"
-            className={`object-cover object-center ${isOutOfStock ? 'opacity-50' : ''}`}
+            className={`object-cover object-center transition-transform duration-300 ${isOutOfStock ? 'opacity-50' : 'group-hover:scale-105'}`}
           />
           {isOutOfStock && (
             <div className="absolute inset-0 flex items-center justify-center bg-opacity-20">
@@ -116,9 +116,9 @@ function ProductTile({ product, viewMode = 'grid' }) {
   // Render grid view with conditional wrapper
   const GridContent = (
     <motion.div
-      className={`group relative ${isOutOfStock ? 'cursor-not-allowed opacity-75' : ''}`}
-      whileHover={isOutOfStock || prefersReducedMotion ? undefined : { scale: 1.05 }}
-      whileTap={isOutOfStock || prefersReducedMotion ? undefined : { scale: 0.95 }}
+      className={`group relative transition-shadow duration-200 ${isOutOfStock ? 'cursor-not-allowed opacity-75' : 'hover:shadow-[var(--shadow-modal)]'}`}
+      whileHover={isOutOfStock || prefersReducedMotion ? undefined : { scale: 1.02 }}
+      whileTap={isOutOfStock || prefersReducedMotion ? undefined : { scale: 0.98 }}
     >
       <div className="relative mt-4 h-64 w-full overflow-hidden rounded-lg sm:h-72 lg:h-80">
         <Image
@@ -126,8 +126,8 @@ function ProductTile({ product, viewMode = 'grid' }) {
           alt={imageAlt}
           fill
           sizes="(min-width:1280px) 25vw, (min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw"
-          className={`object-cover object-center group-hover:opacity-75 ${
-            isOutOfStock ? 'opacity-50' : ''
+          className={`object-cover object-center transition-transform duration-300 ${
+            isOutOfStock ? 'opacity-50' : 'group-hover:scale-105'
           }`}
         />
         {isOutOfStock && (

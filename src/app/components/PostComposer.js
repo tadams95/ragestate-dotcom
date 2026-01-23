@@ -592,9 +592,9 @@ export default function PostComposer() {
       </button>
 
       <Dialog open={open} onClose={setOpen} className="relative z-50">
-        <div className="fixed inset-0 bg-black/60" aria-hidden="true" />
+        <div className="fixed inset-0 bg-black/60 transition-opacity duration-200" aria-hidden="true" />
         <div className="fixed inset-0 flex items-end overflow-y-auto px-4 [scrollbar-gutter:stable] supports-[padding:env(safe-area-inset-bottom)]:pb-[env(safe-area-inset-bottom)] sm:items-center sm:px-6 lg:px-8">
-          <DialogPanel className="mx-auto w-full max-w-2xl rounded-t-[20px] border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-4 text-[var(--text-primary)] shadow-[var(--shadow-modal)] transition-colors duration-200 sm:rounded-[20px] sm:p-6">
+          <DialogPanel className="mx-auto w-full max-w-2xl rounded-t-[20px] border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-4 text-[var(--text-primary)] shadow-[var(--shadow-modal)] transition-all duration-300 ease-out animate-modal-enter sm:rounded-[20px] sm:p-6">
             <div className="mb-2 flex items-center justify-between">
               <h3 className="text-base font-semibold">Create post</h3>
               <button
@@ -662,16 +662,16 @@ export default function PostComposer() {
               </div>
               {/* Compression progress indicator */}
               {isCompressing && (
-                <div className="mt-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-4">
+                <div className="mt-3 animate-slide-in-up rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-4">
                   <div className="mb-2 flex items-center justify-between text-sm">
                     <span className="text-[var(--text-secondary)]">Optimizing video…</span>
-                    <span className="font-medium text-[var(--text-primary)]">
+                    <span className="font-medium tabular-nums text-[var(--text-primary)] transition-all duration-150">
                       {compressionProgress}%
                     </span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-[var(--bg-elev-1)]">
                     <div
-                      className="h-full rounded-full bg-[#ff1f42] transition-all duration-200"
+                      className="h-full rounded-full bg-[#ff1f42] transition-[width] duration-300 ease-out"
                       style={{ width: `${compressionProgress}%` }}
                     />
                   </div>
@@ -681,7 +681,7 @@ export default function PostComposer() {
                 </div>
               )}
               {previewUrl && !isCompressing && (
-                <div className="relative mt-3">
+                <div className="relative mt-3 animate-slide-in-up">
                   {mediaType === 'video' ? (
                     <video
                       src={previewUrl}
@@ -711,7 +711,7 @@ export default function PostComposer() {
               )}
 
               {quotedPost && (
-                <div className="relative mt-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-3">
+                <div className="relative mt-3 animate-slide-in-up rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-3">
                   <div className="mb-2 flex items-center gap-2">
                     {quotedPost.avatarUrl && (
                       /* eslint-disable-next-line @next/next/no-img-element */

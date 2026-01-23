@@ -259,7 +259,7 @@ export default function Post({ postData, hideFollow = false }) {
   };
 
   return (
-    <div className="mb-4 rounded-[14px] border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-4 shadow-[var(--shadow-card)] transition-colors duration-200">
+    <div className="mb-4 rounded-[14px] border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-4 shadow-[var(--shadow-card)] transition-all duration-200 hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-modal)] hover:bg-[var(--bg-elev-2)]">
       {/* Repost indicator */}
       {(liveData?.repostOf || postData?.repostOf) && (
         <div className="mb-2 flex items-center gap-1.5 text-xs text-[var(--text-tertiary)]">

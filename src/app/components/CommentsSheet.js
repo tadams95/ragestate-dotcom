@@ -445,7 +445,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                 : 0;
 
             return (
-              <div key={c.id} className="space-y-2">
+              <div key={c.id} className={`space-y-2 ${c._optimistic ? 'animate-slide-in-up' : ''}`}>
                 {/* Top-level comment */}
                 <div className="group flex items-start space-x-3" role="listitem">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-md bg-white/10">
@@ -518,14 +518,14 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                       {currentUser && (
                         <button
                           onClick={() => handleReply(c)}
-                          className="min-h-[44px] px-2 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+                          className="min-h-[44px] px-2 text-xs text-[var(--text-tertiary)] transition-colors duration-150 hover:text-[var(--text-secondary)]"
                         >
                           Reply
                         </button>
                       )}
                       <button
                         onClick={() => toggleLike(c)}
-                        className={`flex min-h-[44px] items-center gap-1 px-2 text-xs transition-colors ${
+                        className={`flex min-h-[44px] items-center gap-1 px-2 text-xs transition-all duration-150 active:scale-95 ${
                           likedCommentIds.has(c.id)
                             ? 'text-red-500'
                             : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
@@ -565,7 +565,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                   {(currentUser?.uid === c.userId || currentUser?.uid === postOwnerId) && (
                     <button
                       onClick={() => handleDeleteComment(c.id)}
-                      className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center rounded text-[var(--text-tertiary)] opacity-0 transition-opacity hover:bg-[var(--bg-elev-2)] hover:text-red-400 group-hover:opacity-100"
+                      className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center rounded text-[var(--text-tertiary)] opacity-0 transition-all duration-200 hover:bg-[var(--bg-elev-2)] hover:text-red-400 group-hover:opacity-100"
                       title="Delete comment"
                       aria-label="Delete comment"
                     >
@@ -663,7 +663,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                           </p>
                           <button
                             onClick={() => toggleLike(r)}
-                            className={`-ml-2 mt-0.5 flex min-h-[44px] items-center gap-1 px-2 text-xs transition-colors ${
+                            className={`-ml-2 mt-0.5 flex min-h-[44px] items-center gap-1 px-2 text-xs transition-all duration-150 active:scale-95 ${
                               likedCommentIds.has(r.id)
                                 ? 'text-red-500'
                                 : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
@@ -702,7 +702,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                         {(currentUser?.uid === r.userId || currentUser?.uid === postOwnerId) && (
                           <button
                             onClick={() => handleDeleteComment(r.id)}
-                            className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center rounded text-[var(--text-tertiary)] opacity-0 transition-opacity hover:bg-[var(--bg-elev-2)] hover:text-red-400 group-hover:opacity-100"
+                            className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center rounded text-[var(--text-tertiary)] opacity-0 transition-all duration-200 hover:bg-[var(--bg-elev-2)] hover:text-red-400 group-hover:opacity-100"
                             title="Delete reply"
                             aria-label="Delete reply"
                           >
@@ -735,7 +735,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                         setCollapsedThreads((prev) => new Set([...prev, `${c.id}_expanded`]));
                       }
                     }}
-                    className="ml-8 min-h-[44px] px-2 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+                    className="ml-8 min-h-[44px] px-2 text-xs text-[var(--text-tertiary)] transition-colors duration-150 hover:text-[var(--text-secondary)]"
                   >
                     {isCollapsed
                       ? `Show ${replies.length} ${replies.length === 1 ? 'reply' : 'replies'}`
@@ -754,7 +754,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                           return next;
                         });
                       }}
-                      className="ml-8 min-h-[44px] px-2 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+                      className="ml-8 min-h-[44px] px-2 text-xs text-[var(--text-tertiary)] transition-colors duration-150 hover:text-[var(--text-secondary)]"
                     >
                       Collapse replies
                     </button>
@@ -819,7 +819,7 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
             <button
               type="submit"
               disabled={!currentUser || newComment.trim().length === 0}
-              className="h-11 rounded-lg bg-[#ff1f42] px-4 py-2.5 text-sm font-semibold text-white active:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+              className="h-11 rounded-lg bg-[#ff1f42] px-4 py-2.5 text-sm font-semibold text-white transition-all duration-150 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Send
             </button>
