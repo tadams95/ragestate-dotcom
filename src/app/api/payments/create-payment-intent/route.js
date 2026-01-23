@@ -2,6 +2,25 @@ import fs from 'fs';
 import { NextResponse } from 'next/server';
 import path from 'path';
 
+/**
+ * Verify Firebase ID token and return decoded token
+ * @param {Request} request
+ * @returns {Promise<{uid: string}|null>}
+ */
+async function verifyAuth(request) {
+  const authHeader = request.headers.get('authorization') || '';
+  const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!idToken) return null;
+
+  try {
+    const { authAdmin } = await import('../../../../../lib/server/firebaseAdmin');
+    return await authAdmin.verifyIdToken(idToken);
+  } catch (e) {
+    console.warn('Payment auth verification failed:', e?.code || e?.message);
+    return null;
+  }
+}
+
 function getFunctionBases() {
   const explicit = process.env.STRIPE_FN_URL || process.env.NEXT_PUBLIC_STRIPE_FN_URL;
   const bases = [];
@@ -50,6 +69,25 @@ export async function POST(request) {
     }
 
     const payload = await request.json().catch(() => ({}));
+
+    // Security: Verify authenticated user matches firebaseId in payload
+    // This prevents users from creating payment intents for other users
+    if (payload.firebaseId) {
+      const decoded = await verifyAuth(request);
+      if (!decoded) {
+        return NextResponse.json(
+          { error: 'Authentication required', code: 'UNAUTHENTICATED' },
+          { status: 401 },
+        );
+      }
+      if (decoded.uid !== payload.firebaseId) {
+        return NextResponse.json(
+          { error: 'firebaseId does not match authenticated user', code: 'FORBIDDEN' },
+          { status: 403 },
+        );
+      }
+    }
+
     // Do not auto-generate a long-lived idempotency key.
     // Only pass through an explicit key if the caller provides one for retry safety.
     const idempotencyKey = request.headers.get('x-idempotency-key') || undefined;

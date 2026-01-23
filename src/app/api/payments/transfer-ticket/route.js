@@ -2,6 +2,25 @@ import fs from 'fs';
 import { NextResponse } from 'next/server';
 import path from 'path';
 
+/**
+ * Verify Firebase ID token and return decoded token
+ * @param {Request} request
+ * @returns {Promise<{uid: string}|null>}
+ */
+async function verifyAuth(request) {
+  const authHeader = request.headers.get('authorization') || '';
+  const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!idToken) return null;
+
+  try {
+    const { authAdmin } = await import('../../../../../lib/server/firebaseAdmin');
+    return await authAdmin.verifyIdToken(idToken);
+  } catch (e) {
+    console.warn('Payment auth verification failed:', e?.code || e?.message);
+    return null;
+  }
+}
+
 function getFunctionBases() {
   const explicit = process.env.STRIPE_FN_URL || process.env.NEXT_PUBLIC_STRIPE_FN_URL;
   const bases = [];
@@ -56,6 +75,22 @@ export async function POST(request) {
       return NextResponse.json(
         { error: 'Missing required fields: ragerId, eventId, recipientEmail, senderUserId' },
         { status: 400 },
+      );
+    }
+
+    // Security: Verify authenticated user matches senderUserId in payload
+    // This prevents users from initiating transfers for other users' tickets
+    const decoded = await verifyAuth(request);
+    if (!decoded) {
+      return NextResponse.json(
+        { error: 'Authentication required', code: 'UNAUTHENTICATED' },
+        { status: 401 },
+      );
+    }
+    if (decoded.uid !== payload.senderUserId) {
+      return NextResponse.json(
+        { error: 'senderUserId does not match authenticated user', code: 'FORBIDDEN' },
+        { status: 403 },
       );
     }
 
