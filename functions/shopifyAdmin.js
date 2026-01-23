@@ -25,6 +25,7 @@
 'use strict';
 
 const logger = require('firebase-functions/logger');
+const { admin, db } = require('./admin');
 
 // ============================================================================
 // CONFIGURATION
@@ -401,12 +402,59 @@ function extractProductId(gid) {
  * @param {Object} payload - Shopify webhook payload
  */
 async function handleFulfillmentWebhook(payload) {
+  const shopifyOrderId = payload?.id;
+  const fulfillmentStatus = payload?.fulfillment_status || 'fulfilled';
+
   logger.info('[Shopify] Fulfillment webhook received', {
-    orderId: payload?.id,
-    fulfillmentStatus: payload?.fulfillment_status,
+    shopifyOrderId,
+    fulfillmentStatus,
   });
-  // TODO: Update merchandiseOrders/{id}.fulfillmentStatus when Shopify fulfills
-  // This requires looking up the order by shopifyOrderId
+
+  if (!shopifyOrderId) {
+    logger.warn('[Shopify] Fulfillment webhook missing order ID');
+    return { success: false, error: 'Missing order ID' };
+  }
+
+  try {
+    // Query merchandiseOrders by shopifyOrderId
+    const ordersSnapshot = await db
+      .collection('merchandiseOrders')
+      .where('shopifyOrderId', '==', shopifyOrderId)
+      .get();
+
+    if (ordersSnapshot.empty) {
+      logger.warn('[Shopify] No matching merchandise orders found', { shopifyOrderId });
+      return { success: false, error: 'No matching orders' };
+    }
+
+    // Update all matching orders
+    const batch = db.batch();
+    const now = admin.firestore.FieldValue.serverTimestamp();
+
+    ordersSnapshot.docs.forEach((doc) => {
+      batch.update(doc.ref, {
+        fulfillmentStatus,
+        status: fulfillmentStatus === 'fulfilled' ? 'fulfilled' : 'pending_fulfillment',
+        updatedAt: now,
+      });
+    });
+
+    await batch.commit();
+
+    logger.info('[Shopify] Updated merchandise orders fulfillment status', {
+      shopifyOrderId,
+      fulfillmentStatus,
+      ordersUpdated: ordersSnapshot.size,
+    });
+
+    return { success: true, ordersUpdated: ordersSnapshot.size };
+  } catch (err) {
+    logger.error('[Shopify] Failed to update fulfillment status', {
+      shopifyOrderId,
+      error: err.message,
+    });
+    return { success: false, error: err.message };
+  }
 }
 
 /**
@@ -417,11 +465,50 @@ async function handleFulfillmentWebhook(payload) {
  * @param {Object} payload - Shopify webhook payload
  */
 async function handleInventoryWebhook(payload) {
+  const inventoryItemId = payload?.inventory_item_id;
+  const available = payload?.available;
+  const locationId = payload?.location_id;
+
   logger.info('[Shopify] Inventory webhook received', {
-    inventoryItemId: payload?.inventory_item_id,
-    available: payload?.available,
+    inventoryItemId,
+    available,
+    locationId,
   });
-  // TODO: Sync inventory levels to Firestore for display if needed
+
+  if (!inventoryItemId) {
+    logger.warn('[Shopify] Inventory webhook missing inventory_item_id');
+    return { success: false, error: 'Missing inventory_item_id' };
+  }
+
+  try {
+    // Store inventory snapshot in Firestore for caching/display
+    // This reduces API calls to Shopify for inventory checks
+    const inventoryRef = db.collection('shopifyInventory').doc(String(inventoryItemId));
+    const now = admin.firestore.FieldValue.serverTimestamp();
+
+    await inventoryRef.set(
+      {
+        inventoryItemId,
+        available: available ?? 0,
+        locationId: locationId || null,
+        updatedAt: now,
+      },
+      { merge: true }
+    );
+
+    logger.info('[Shopify] Inventory level synced to Firestore', {
+      inventoryItemId,
+      available,
+    });
+
+    return { success: true, inventoryItemId, available };
+  } catch (err) {
+    logger.error('[Shopify] Failed to sync inventory', {
+      inventoryItemId,
+      error: err.message,
+    });
+    return { success: false, error: err.message };
+  }
 }
 
 // ============================================================================
