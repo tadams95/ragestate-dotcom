@@ -12,9 +12,6 @@ import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { addToCart } from '../lib/features/cartSlice';
 
-import EventStyling1 from '@/app/components/styling/EventStyling1';
-import EventStyling2 from '@/app/components/styling/EventStyling2';
-
 const policies = [
   {
     name: 'National delivery',
@@ -37,6 +34,8 @@ export default function ProductDetails({ product, focusRestoreRef }) {
   const [selectedColor, setSelectedColor] = useState('');
   const [selectedSize, setSelectedSize] = useState('');
   const [liveMsg, setLiveMsg] = useState('');
+  const [addingToCart, setAddingToCart] = useState(false);
+  const [addedSuccess, setAddedSuccess] = useState(false);
   // const [productPrice, setProductPrice] = useState(0);
 
   const basePrice = useMemo(() => {
@@ -273,6 +272,7 @@ export default function ProductDetails({ product, focusRestoreRef }) {
 
     // Check if all required selections are made
     if (selectedSize && selectedColor) {
+      setAddingToCart(true);
       const leadImage =
         images && images.length > 0 ? images[0]?.src || images[0]?.transformedSrc || null : null;
       const variantId = currentVariant?.id || null;
@@ -295,16 +295,24 @@ export default function ProductDetails({ product, focusRestoreRef }) {
       console.log('Product Added: ', productToAdd);
       // Implement dispatch or function to add to cart
       dispatch(addToCart(productToAdd));
-      setLiveMsg(`${title} added to cart`);
-      toast.success('Added to cart!', {
-        duration: 3000,
-        position: 'bottom-center',
-        style: {
-          background: '#333',
-          color: '#fff',
-          border: '1px solid #444',
-        },
-      });
+
+      // Brief loading state then success animation
+      setTimeout(() => {
+        setAddingToCart(false);
+        setAddedSuccess(true);
+        setLiveMsg(`${title} added to cart`);
+        toast.success('Added to cart!', {
+          duration: 3000,
+          position: 'bottom-center',
+          style: {
+            background: '#333',
+            color: '#fff',
+            border: '1px solid #444',
+          },
+        });
+        // Reset success state after animation
+        setTimeout(() => setAddedSuccess(false), 1500);
+      }, 300);
     } else {
       // Handle the case where not all required selections are made
       if (!selectedSize) {
@@ -367,8 +375,7 @@ export default function ProductDetails({ product, focusRestoreRef }) {
       <div aria-live="polite" role="status" className="sr-only">
         {liveMsg}
       </div>
-      <EventStyling1 />
-      <EventStyling2 />
+
       <div className="scroll-pb-32 pb-28 pt-6 sm:pb-10 lg:pb-8">
         <div className="mx-auto mt-8 max-w-2xl px-4 sm:px-6 lg:max-w-7xl lg:px-8">
           <div className="lg:grid lg:auto-rows-min lg:grid-cols-10 lg:gap-x-8">
@@ -607,38 +614,78 @@ export default function ProductDetails({ product, focusRestoreRef }) {
                 {/* Desktop add to cart (width aligned with policies card column) */}
                 <button
                   type="submit"
-                  disabled={!currentVariant || !isVariantAvailable(currentVariant)}
+                  disabled={!currentVariant || !isVariantAvailable(currentVariant) || addingToCart}
                   className={classNames(
-                    'hidden w-full items-center justify-center rounded-md px-8 py-3 text-base font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-[var(--bg-root)] sm:flex',
+                    'hidden w-full items-center justify-center gap-2 rounded-md px-8 py-3 text-base font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-[var(--bg-root)] active:scale-95 sm:flex',
                     !currentVariant || !isVariantAvailable(currentVariant)
                       ? 'cursor-not-allowed bg-[var(--bg-elev-2)] text-[var(--text-tertiary)]'
-                      : 'bg-red-600 text-white hover:bg-red-700',
+                      : addedSuccess
+                        ? 'animate-btn-success bg-green-600 text-white'
+                        : 'bg-red-600 text-white hover:bg-red-700',
+                    addingToCart && 'animate-btn-loading',
                   )}
                 >
-                  {!currentVariant
-                    ? 'Select options'
-                    : !isVariantAvailable(currentVariant)
-                      ? 'Out of stock'
-                      : 'Add to cart'}
+                  {addingToCart ? (
+                    'Adding...'
+                  ) : addedSuccess ? (
+                    <>
+                      <svg
+                        className="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      Added!
+                    </>
+                  ) : !currentVariant ? (
+                    'Select options'
+                  ) : !isVariantAvailable(currentVariant) ? (
+                    'Out of stock'
+                  ) : (
+                    'Add to cart'
+                  )}
                 </button>
 
                 {/* Mobile inline add to cart, sharing the same logic and width constraints */}
                 <button
                   type="button"
                   onClick={handleAddToCart}
-                  disabled={!currentVariant || !isVariantAvailable(currentVariant)}
+                  disabled={!currentVariant || !isVariantAvailable(currentVariant) || addingToCart}
                   className={classNames(
-                    'flex w-full items-center justify-center rounded-md px-8 py-3 text-base font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-[var(--bg-root)] sm:hidden',
+                    'flex w-full items-center justify-center gap-2 rounded-md px-8 py-3 text-base font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-[var(--bg-root)] active:scale-95 sm:hidden',
                     !currentVariant || !isVariantAvailable(currentVariant)
                       ? 'cursor-not-allowed bg-[var(--bg-elev-2)] text-[var(--text-tertiary)]'
-                      : 'bg-red-600 text-white hover:bg-red-700',
+                      : addedSuccess
+                        ? 'animate-btn-success bg-green-600 text-white'
+                        : 'bg-red-600 text-white hover:bg-red-700',
+                    addingToCart && 'animate-btn-loading',
                   )}
                 >
-                  {!currentVariant
-                    ? 'Select options'
-                    : !isVariantAvailable(currentVariant)
-                      ? 'Out of stock'
-                      : 'Add to cart'}
+                  {addingToCart ? (
+                    'Adding...'
+                  ) : addedSuccess ? (
+                    <>
+                      <svg
+                        className="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      Added!
+                    </>
+                  ) : !currentVariant ? (
+                    'Select options'
+                  ) : !isVariantAvailable(currentVariant) ? (
+                    'Out of stock'
+                  ) : (
+                    'Add to cart'
+                  )}
                 </button>
               </form>
 

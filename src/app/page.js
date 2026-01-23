@@ -102,7 +102,7 @@ export default function Home() {
 
             <motion.button
               onClick={() => scrollToSection(ourWorldRef, 'ours')} // Updated to use the new function
-              className="group rounded-md bg-red-700 px-8 py-2 text-lg font-medium text-white transition-all hover:bg-red-900"
+              className="group rounded-md bg-[var(--accent)] px-8 py-2 text-lg font-medium text-white transition-all hover:opacity-90"
               whileHover={prefersReducedMotion ? undefined : { scale: 1.05 }}
               whileTap={prefersReducedMotion ? undefined : { scale: 0.95 }}
             >
@@ -116,7 +116,7 @@ export default function Home() {
 
         {/* Bridging Section */}
         <section ref={manifestoRef} className="relative px-4 py-32">
-          <div className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-red-600 to-transparent"></div>
+          <div className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-[var(--accent)] to-transparent"></div>
 
           <motion.div
             className="container mx-auto max-w-3xl text-center"
@@ -167,7 +167,7 @@ export default function Home() {
           >
             <h2 className="mb-6 text-4xl font-extrabold md:text-7xl">
               <span className="text-[var(--text-primary)]">RAGE IN </span>
-              <span className="text-red-600">OURS</span>
+              <span className="text-[var(--accent)]">OURS</span>
             </h2>
 
             <p className="mx-auto mb-12 max-w-2xl text-lg text-[var(--text-secondary)] md:text-xl">
@@ -183,19 +183,19 @@ export default function Home() {
               <Link href="/events">
                 <motion.div
                   data-testid="events-section"
-                  className="group relative overflow-hidden rounded-lg border border-red-900/50 bg-[var(--bg-elev-1)] p-8 backdrop-blur-sm transition-all hover:border-red-600"
+                  className="group relative overflow-hidden rounded-lg border border-red-500/30 bg-[var(--bg-elev-1)] p-8 backdrop-blur-sm transition-all hover:border-[var(--accent)]"
                   whileHover={prefersReducedMotion ? undefined : { y: -5 }}
                   viewport={{ once: true, amount: 0.3 }}
                   initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
                   whileInView={{ opacity: 1, y: 0 }}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-red-900/20 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
-                  <h3 className="mb-4 text-2xl font-bold text-red-600">EVENTS</h3>
+                  <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
+                  <h3 className="mb-4 text-2xl font-bold text-[var(--accent)]">EVENTS</h3>
                   <p className="mb-6 text-[var(--text-secondary)]">
                     Immersive experiences that transport you to a realm of pure expression and
                     connection.
                   </p>
-                  <span className="flex items-center text-red-400">
+                  <span className="flex items-center text-[var(--accent-glow)]">
                     EXPLORE EVENTS
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -218,18 +218,18 @@ export default function Home() {
               <Link href="/shop">
                 <motion.div
                   data-testid="apparel-section"
-                  className="group relative overflow-hidden rounded-lg border border-red-900/50 bg-[var(--bg-elev-1)] p-8 backdrop-blur-sm transition-all hover:border-red-600"
+                  className="group relative overflow-hidden rounded-lg border border-red-500/30 bg-[var(--bg-elev-1)] p-8 backdrop-blur-sm transition-all hover:border-[var(--accent)]"
                   whileHover={prefersReducedMotion ? undefined : { y: -5 }}
                   viewport={{ once: true, amount: 0.3 }}
                   initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
                   whileInView={{ opacity: 1, y: 0 }}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-red-900/20 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
-                  <h3 className="mb-4 text-2xl font-bold text-red-600">APPAREL</h3>
+                  <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
+                  <h3 className="mb-4 text-2xl font-bold text-[var(--accent)]">APPAREL</h3>
                   <p className="mb-6 text-[var(--text-secondary)]">
                     Carry our world with you. Each piece is a statement, a badge of the movement.
                   </p>
-                  <span className="flex items-center text-red-400">
+                  <span className="flex items-center text-[var(--accent-glow)]">
                     SHOP COLLECTION
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -263,7 +263,7 @@ export default function Home() {
               <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
                 <Link href="/create-account">
                   <motion.button
-                    className="w-full rounded-md bg-red-700 px-8 py-2 text-lg font-medium text-white transition-all hover:bg-red-700 sm:w-auto"
+                    className="w-full rounded-md bg-[var(--accent)] px-8 py-2 text-lg font-medium text-white transition-all hover:opacity-90 sm:w-auto"
                     whileHover={prefersReducedMotion ? undefined : { scale: 1.05 }}
                     whileTap={prefersReducedMotion ? undefined : { scale: 0.95 }}
                   >

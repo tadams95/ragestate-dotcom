@@ -24,13 +24,13 @@ export default function EmptyCart() {
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
               href="/shop"
-              className="flex w-full items-center justify-center rounded-md bg-red-700 px-8 py-3 text-base font-medium text-white transition-colors duration-300 hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:w-auto"
+              className="flex w-full items-center justify-center rounded-md bg-[var(--accent)] px-8 py-3 text-base font-medium text-white transition-all duration-200 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 focus:ring-offset-[var(--bg-root)] active:scale-95 sm:w-auto"
             >
               Continue Shopping
             </Link>
             <Link
               href="/events"
-              className="flex w-full items-center justify-center rounded-md border border-[var(--border-subtle)] px-8 py-3 text-base font-medium text-[var(--text-primary)] transition-colors duration-300 hover:bg-[var(--bg-elev-1)] focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 sm:w-auto"
+              className="flex w-full items-center justify-center rounded-md border border-[var(--border-subtle)] px-8 py-3 text-base font-medium text-[var(--text-primary)] transition-all duration-200 hover:bg-[var(--bg-elev-1)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 focus:ring-offset-[var(--bg-root)] active:scale-95 sm:w-auto"
             >
               Browse Events
             </Link>

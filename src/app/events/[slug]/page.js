@@ -108,15 +108,15 @@ export default function EventDetail() {
 
   if (draftBlocked) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-black p-6 text-gray-200">
-        <div className="w-full max-w-md rounded-lg border border-gray-800 bg-gray-900/40 p-6 shadow-xl">
-          <h1 className="mb-3 text-xl font-semibold tracking-tight">Not Published</h1>
-          <p className="mb-5 text-sm leading-relaxed text-gray-400">
-            This event is still in draft or you don\'t have permission to view it.
+      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-root)] p-6 text-[var(--text-primary)] transition-colors duration-200">
+        <div className="w-full max-w-md rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-6 shadow-[var(--shadow-modal)]">
+          <h1 className="mb-3 text-xl font-semibold tracking-tight text-[var(--text-primary)]">Not Published</h1>
+          <p className="mb-5 text-sm leading-relaxed text-[var(--text-secondary)]">
+            This event is still in draft or you don't have permission to view it.
           </p>
           <Link
             href="/events"
-            className="inline-flex items-center rounded-md border border-red-600 bg-red-600/10 px-4 py-2 text-sm font-medium text-red-300 hover:bg-red-600/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
+            className="inline-flex items-center rounded-md border border-[var(--accent)] bg-[var(--accent-muted)] px-4 py-2 text-sm font-medium text-[var(--accent)] transition-colors hover:bg-[var(--accent)] hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
             View published events
           </Link>
@@ -126,48 +126,48 @@ export default function EventDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-[var(--bg-root)] transition-colors duration-200">
       {/* Header is rendered by layout.js */}
       <EventStyling1 />
 
       <main className="flex-grow">
         {loading ? (
           <div className="flex h-[70vh] items-center justify-center">
-            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-red-500"></div>
+            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-[var(--accent)]"></div>
           </div>
         ) : (
           <div className="mx-auto max-w-7xl px-4 pb-24 pt-16 sm:px-6 lg:px-8">
             {/* Breadcrumbs + Share */}
             <div className="mx-auto mb-4 mt-4 flex items-center justify-between">
-              <nav aria-label="Breadcrumb" className="text-sm text-gray-400">
+              <nav aria-label="Breadcrumb" className="text-sm text-[var(--text-secondary)]">
                 <ol className="flex items-center gap-2">
                   <li>
-                    <Link href="/" className="hover:text-white">
+                    <Link href="/" className="transition-colors hover:text-[var(--text-primary)]">
                       Home
                     </Link>
                   </li>
-                  <li className="text-gray-600">/</li>
+                  <li className="text-[var(--text-tertiary)]">/</li>
                   <li>
-                    <Link href="/events" className="hover:text-white">
+                    <Link href="/events" className="transition-colors hover:text-[var(--text-primary)]">
                       Events
                     </Link>
                   </li>
-                  <li className="text-gray-600">/</li>
-                  <li aria-current="page" className="line-clamp-1 max-w-[50vw] text-gray-300">
+                  <li className="text-[var(--text-tertiary)]">/</li>
+                  <li aria-current="page" className="line-clamp-1 max-w-[50vw] text-[var(--text-primary)]">
                     {(selectedEvent || event)?.name || 'Event'}
                   </li>
                 </ol>
               </nav>
               <div className="flex items-center gap-2">
                 {isAdmin && event && (
-                  <div className="flex items-center gap-2 rounded border border-gray-700 bg-gray-800/40 px-2 py-1">
-                    <span className="text-xs font-medium text-gray-300">
+                  <div className="flex items-center gap-2 rounded border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] px-2 py-1">
+                    <span className="text-xs font-medium text-[var(--text-secondary)]">
                       {event.active ? 'Published' : 'Draft'}
                     </span>
                     <button
                       disabled={toggling}
                       onClick={() => toggleActive(!event.active)}
-                      className="rounded bg-gray-700 px-2 py-0.5 text-xs text-gray-200 hover:bg-gray-600 disabled:opacity-50"
+                      className="rounded bg-[var(--bg-elev-1)] px-2 py-0.5 text-xs text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50"
                     >
                       {toggling ? '...' : event.active ? 'Unpublish' : 'Publish'}
                     </button>
@@ -199,7 +199,7 @@ export default function EventDetail() {
                     }
                     if (copied) toast.success('Link copied');
                   }}
-                  className="rounded border border-gray-700 px-3 py-1 text-sm text-gray-200 hover:border-gray-500"
+                  className="rounded border border-[var(--border-subtle)] px-3 py-1 text-sm text-[var(--text-primary)] transition-colors hover:border-[var(--border-strong)]"
                   aria-label="Share this event"
                 >
                   Share
@@ -219,15 +219,15 @@ export default function EventDetail() {
                     sizes="(max-width: 640px) 112px, 200px"
                   />
                 </div>
-                <h1 className="text-3xl font-bold leading-tight text-white">
+                <h1 className="text-3xl font-bold leading-tight text-[var(--text-primary)]">
                   {(selectedEvent || event)?.name || 'Event'}
                 </h1>
                 {isAdmin && event && !event.active && (
-                  <p className="mt-2 rounded-md border border-amber-600/40 bg-amber-500/10 px-3 py-1 text-xs font-medium tracking-wide text-amber-300">
+                  <p className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs font-medium tracking-wide text-[var(--warning)]">
                     Draft (only admins can see this)
                   </p>
                 )}
-                <p className="mt-2 text-gray-300">
+                <p className="mt-2 text-[var(--text-secondary)]">
                   {(() => {
                     const e = selectedEvent || event;
                     const dt = e?.dateTime;
@@ -263,7 +263,7 @@ export default function EventDetail() {
               {/* Main content area with consistent border/shadow styling */}
               <div
                 id="tickets"
-                className="rounded-lg border border-gray-800 bg-gray-900/30 p-6 shadow-xl transition-all duration-300 hover:border-red-500/30"
+                className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-6 shadow-[var(--shadow-card)] transition-all duration-300 hover:border-red-500/30"
               >
                 <EventDetails event={selectedEvent || event} />
               </div>

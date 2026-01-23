@@ -8,9 +8,12 @@ import UserIcon from '@heroicons/react/24/outline/UserIcon';
 import XMarkIcon from '@heroicons/react/24/outline/XMarkIcon';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { useAuth } from '../../../firebase/context/FirebaseContext';
 import { useTheme } from '../../../lib/context/ThemeContext';
+import { selectCartItemCount } from '../../../lib/features/cartSlice';
 import ChatBell from './ChatBell';
 import NotificationBell from './NotificationBell';
 
@@ -140,6 +143,22 @@ export default function Header() {
   const [userId, setUserId] = useState('');
   // Hydrated stays false for server + first client paint; set true after unified state load to avoid flicker & mismatch.
   const [hydrated, setHydrated] = useState(false);
+  const pathname = usePathname();
+
+  // Cart badge state
+  const cartItemCount = useSelector(selectCartItemCount);
+  const prevCartCountRef = useRef(cartItemCount);
+  const [isCartAnimating, setIsCartAnimating] = useState(false);
+
+  // Animate cart badge when count changes
+  useEffect(() => {
+    if (prevCartCountRef.current !== cartItemCount && cartItemCount > 0) {
+      setIsCartAnimating(true);
+      const timer = setTimeout(() => setIsCartAnimating(false), 600);
+      return () => clearTimeout(timer);
+    }
+    prevCartCountRef.current = cartItemCount;
+  }, [cartItemCount]);
 
   // Use Firebase auth context for immediate auth state (reacts to onAuthStateChanged)
   const { currentUser, loading: authLoading } = useAuth();
@@ -232,24 +251,38 @@ export default function Header() {
             </button>
           </div>
           <div className="hidden lg:absolute lg:left-1/2 lg:flex lg:-translate-x-1/2 lg:gap-x-12">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className="nav-link-underline text-sm font-semibold leading-6 text-[var(--text-primary)] transition-colors duration-150 hover:text-[var(--accent)]"
-              >
-                {item.name}
-              </Link>
-            ))}
+            {navigation.map((item) => {
+              const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`nav-link-underline text-sm font-semibold leading-6 transition-colors duration-150 hover:text-[var(--accent)] ${
+                    isActive ? 'nav-link-active text-[var(--accent)]' : 'text-[var(--text-primary)]'
+                  }`}
+                  aria-current={isActive ? 'page' : undefined}
+                >
+                  {item.name}
+                </Link>
+              );
+            })}
           </div>
           <div className="hidden gap-7 lg:flex lg:flex-1 lg:items-center lg:justify-end">
             <ThemeToggle />
             <Link
               href="/cart"
-              aria-label="Cart"
+              aria-label={cartItemCount > 0 ? `Cart with ${cartItemCount} items` : 'Cart'}
               className="relative -m-2 inline-flex h-11 w-11 items-center justify-center text-[var(--text-primary)] transition-all duration-150 hover:scale-110 hover:text-[var(--accent)] active:scale-95"
             >
-              <ShoppingBagIcon className="h-5 w-5" aria-hidden="true" />
+              <ShoppingBagIcon className={`h-5 w-5 transition-transform duration-300 ${isCartAnimating ? 'animate-wiggle' : ''}`} aria-hidden="true" />
+              {cartItemCount > 0 && (
+                <span
+                  aria-hidden="true"
+                  className={`pointer-events-none absolute -right-0.5 -top-0.5 inline-flex min-w-[18px] max-w-[30px] items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[10px] font-semibold leading-4 text-white shadow ring-1 ring-black/40 transition-transform duration-300 ${isCartAnimating ? 'animate-badge-pop' : ''}`}
+                >
+                  {cartItemCount > 99 ? '99+' : cartItemCount}
+                </span>
+              )}
             </Link>
             {!showSkeleton && isAuthenticated && (
               <>
@@ -319,26 +352,37 @@ export default function Header() {
             <div className="mt-6 flow-root">
               <div className="-my-6 divide-y divide-[var(--border-subtle)]">
                 <div className="space-y-2 py-6">
-                  {navigation.map((item, index) => (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      onClick={handleNavClick}
-                      className="animate-menu-item-enter -mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-[var(--text-primary)] hover:bg-[var(--bg-elev-1)]"
-                      style={{ animationDelay: `${index * 50}ms` }}
-                    >
-                      {item.name}
-                    </Link>
-                  ))}
+                  {navigation.map((item, index) => {
+                    const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        onClick={handleNavClick}
+                        className={`animate-menu-item-enter -mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 hover:bg-[var(--bg-elev-1)] ${
+                          isActive ? 'bg-[var(--bg-elev-1)] text-[var(--accent)]' : 'text-[var(--text-primary)]'
+                        }`}
+                        style={{ animationDelay: `${index * 50}ms` }}
+                        aria-current={isActive ? 'page' : undefined}
+                      >
+                        {item.name}
+                      </Link>
+                    );
+                  })}
                   {/* DRAFTS link removed on mobile as well */}
                 </div>
                 <div className="py-6">
                   <Link
                     href="/cart"
                     onClick={handleNavClick}
-                    className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-[var(--text-primary)] hover:bg-[var(--bg-elev-1)]"
+                    className="-mx-3 flex items-center justify-between rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-[var(--text-primary)] hover:bg-[var(--bg-elev-1)]"
                   >
-                    CART
+                    <span>CART</span>
+                    {cartItemCount > 0 && (
+                      <span className="inline-flex min-w-[24px] items-center justify-center rounded-full bg-[var(--accent)] px-2 py-0.5 text-xs font-semibold text-white">
+                        {cartItemCount > 99 ? '99+' : cartItemCount}
+                      </span>
+                    )}
                   </Link>
                   {!showSkeleton && isAuthenticated && (
                     <>

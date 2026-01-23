@@ -348,7 +348,12 @@ body {
   .animate-modal-enter,
   .animate-progress-pulse,
   .animate-shimmer,
-  .animate-menu-item-enter {
+  .animate-menu-item-enter,
+  .animate-error-shake,
+  .animate-success-glow,
+  .animate-btn-loading,
+  .animate-btn-success,
+  .animate-wave-in {
     animation: none;
   }
 
@@ -360,6 +365,16 @@ body {
   .group:hover .img-hover-zoom {
     transform: none;
     transition: none;
+  }
+
+  .input-focus-animate:focus {
+    animation: none;
+    box-shadow: 0 0 0 2px var(--accent);
+  }
+
+  .wave-in-stagger > * {
+    opacity: 1;
+    animation: none;
   }
 }
 
@@ -551,4 +566,124 @@ body {
 
 .group:hover .img-hover-zoom {
   transform: scale(1.05);
+}
+
+/* Focus ring animation - pulse/grow on focus */
+@keyframes focus-ring-pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--accent-muted);
+  }
+  50% {
+    box-shadow: 0 0 0 4px var(--accent-muted);
+  }
+  100% {
+    box-shadow: 0 0 0 2px var(--accent);
+  }
+}
+
+.input-focus-animate:focus {
+  animation: focus-ring-pulse 0.3s ease-out forwards;
+  outline: none;
+}
+
+/* Error shake animation */
+@keyframes error-shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-4px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(4px);
+  }
+}
+
+.animate-error-shake {
+  animation: error-shake 0.5s ease-in-out;
+}
+
+/* Success pulse/glow animation */
+@keyframes success-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(34, 197, 94, 0);
+  }
+  100% {
+    box-shadow: none;
+  }
+}
+
+.animate-success-glow {
+  animation: success-glow 0.6s ease-out;
+}
+
+/* Add to cart button animations */
+@keyframes btn-loading-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.animate-btn-loading {
+  animation: btn-loading-pulse 1s ease-in-out infinite;
+}
+
+@keyframes btn-success {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-btn-success {
+  animation: btn-success 0.3s ease-out;
+}
+
+/* Content load-in wave animation */
+@keyframes wave-in {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-wave-in {
+  animation: wave-in 0.4s ease-out forwards;
+  opacity: 0;
+}
+
+/* Stagger delays for wave-in children */
+.wave-in-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.wave-in-stagger > *:nth-child(2) { animation-delay: 50ms; }
+.wave-in-stagger > *:nth-child(3) { animation-delay: 100ms; }
+.wave-in-stagger > *:nth-child(4) { animation-delay: 150ms; }
+.wave-in-stagger > *:nth-child(5) { animation-delay: 200ms; }
+.wave-in-stagger > *:nth-child(6) { animation-delay: 250ms; }
+.wave-in-stagger > *:nth-child(7) { animation-delay: 300ms; }
+.wave-in-stagger > *:nth-child(8) { animation-delay: 350ms; }
+
+/* Active nav indicator */
+.nav-link-active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--accent);
 }

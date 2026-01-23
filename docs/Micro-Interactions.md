@@ -104,34 +104,35 @@
 **File:** `src/app/components/Header.js`
 
 - [x] Animated underline that grows from center on hover
-- [ ] Active page indicator with subtle glow/accent bar
+- [x] Active page indicator with subtle glow/accent bar
 - [x] Mobile menu items stagger-in animation
+- [x] Header icons hover effects (scale + accent color)
 
-**Current state:** Animated underline on desktop nav links, mobile menu stagger animation implemented
+**Current state:** Animated underline, active page indicator, mobile stagger, all header icons (theme, cart, bells, account) have consistent hover:scale-110 + hover:text-accent + active:scale-95
 
 ---
 
 ### Input Focus States
-**Files:** Various form components
+**Files:** Various form components (CSS classes in `globals.css`)
 
-- [ ] Focus ring pulse/grow animation
-- [ ] Error state shake animation
-- [ ] Floating label slide-up on focus (where applicable)
-- [ ] Success state subtle bounce/glow
+- [x] Focus ring pulse/grow animation (`input-focus-animate`)
+- [x] Error state shake animation (`animate-error-shake`)
+- [ ] Floating label slide-up on focus (where applicable) — *requires form component refactor*
+- [x] Success state subtle bounce/glow (`animate-success-glow`)
 
-**Current state:** Static focus ring
+**Current state:** Reusable CSS animation classes added to globals.css. Apply `input-focus-animate` class to inputs for focus animation.
 
 ---
 
 ### Product Cards
-**File:** `src/app/shop/ShopClient.js` + `components/ProductTile.js`
+**File:** `src/app/shop/ShopClient.js` + `components/ProductTile.js` + `components/ProductDetail.js`
 
 - [x] Image hover zoom (1.02-1.05x scale)
-- [ ] Add to cart button state animation (loading → success checkmark)
+- [x] Add to cart button state animation (loading → success checkmark)
 - [x] View toggle (grid/list) layout transition
 - [x] Card hover elevation
 
-**Current state:** Image hover zoom, card hover elevation, view toggle buttons with transitions implemented
+**Current state:** All animations implemented including Add to Cart loading pulse and success checkmark
 
 ---
 
@@ -139,9 +140,9 @@
 **File:** `src/app/components/PostSkeleton.js` + `src/app/shop/ShopClient.js`
 
 - [x] Replace pulse with shimmer effect (gradient sweep)
-- [ ] Content load-in wave animation
+- [x] Content load-in wave animation (`animate-wave-in` + `wave-in-stagger`)
 
-**Current state:** Shimmer effect replaces pulse in PostSkeleton and ShopClient loading states
+**Current state:** Shimmer effect replaces pulse. Wave-in animation classes available for content transitions.
 
 ---
 
@@ -192,11 +193,11 @@ const container = {
 | Post Action Buttons | **Mostly done** | Scale feedback, like pulse, emoji float-up. Count animation pending. |
 | Follow Button | **Mostly done** | Transitions, pulse, hover lift. Checkmark flash pending. |
 | Post Cards | **Mostly done** | Hover elevation, border accent. Scroll reveal needs Feed.js changes. |
-| Notification Bell | **Done** | Bell wiggle + badge pop on count change. |
-| Chat Bell | **Done** | Bell wiggle + badge pop on count change. |
+| Notification Bell | **Done** | Bell wiggle + badge pop on count change + hover effects. |
+| Chat Bell | **Done** | Bell wiggle + badge pop on count change + hover effects. |
 | Post Composer | **Mostly done** | Modal entrance, preview slide-in, progress bar. Success animation pending. |
 | Comments Sheet | **Mostly done** | Like transitions, new comment slide-in. Stagger/expand pending. |
-| Navigation Links | **Mostly done** | Animated underline, mobile stagger. Active page indicator pending. |
-| Input Focus States | Not started | |
-| Product Cards | **Mostly done** | Image hover zoom, card elevation, view toggle. Add to cart animation pending. |
-| Loading Skeletons | **Mostly done** | Shimmer effect replaces pulse. Wave animation pending. |
+| Navigation Links | **Done** | Animated underline, mobile stagger, active page indicator. |
+| Input Focus States | **Mostly done** | CSS classes ready. Floating label needs form refactor. |
+| Product Cards | **Done** | Image hover zoom, card elevation, view toggle, Add to Cart animation. |
+| Loading Skeletons | **Done** | Shimmer effect + wave-in animation classes. |
