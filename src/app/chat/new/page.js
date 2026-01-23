@@ -219,10 +219,10 @@ export default function NewChatPage() {
                       <img
                         src={user.photoURL}
                         alt={user.displayName || user.username}
-                        className="h-12 w-12 rounded-full object-cover"
+                        className="h-12 w-12 rounded-md object-cover"
                       />
                     ) : (
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[var(--accent)] to-[var(--accent-glow)]">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-md bg-gradient-to-br from-[var(--accent)] to-[var(--accent-glow)]">
                         <span className="text-lg font-semibold text-white">
                           {(user.displayName || user.username)?.[0]?.toUpperCase() || '?'}
                         </span>

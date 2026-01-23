@@ -63,7 +63,7 @@ function ChatListItem({ chat }) {
       {/* Avatar */}
       <div className="relative flex-shrink-0">
         {isEvent ? (
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--bg-elev-2)]">
+          <div className="flex h-12 w-12 items-center justify-center rounded-md bg-[var(--bg-elev-2)]">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -85,10 +85,10 @@ function ChatListItem({ chat }) {
             src={photoURL}
             alt={displayName || 'User'}
             loading="lazy"
-            className="h-12 w-12 rounded-full object-cover"
+            className="h-12 w-12 rounded-md object-cover"
           />
         ) : (
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[var(--accent)] to-[var(--accent-glow)]">
+          <div className="flex h-12 w-12 items-center justify-center rounded-md bg-gradient-to-br from-[var(--accent)] to-[var(--accent-glow)]">
             <span className="text-lg font-semibold text-white">
               {displayName?.[0]?.toUpperCase() || '?'}
             </span>

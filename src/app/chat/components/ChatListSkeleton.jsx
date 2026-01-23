@@ -21,7 +21,7 @@ function ChatListSkeleton({ count = 5 }) {
           className="flex items-center gap-3 px-4 py-3"
         >
           {/* Avatar skeleton */}
-          <div className="h-12 w-12 flex-shrink-0 animate-pulse rounded-full bg-[var(--bg-elev-2)]" />
+          <div className="h-12 w-12 flex-shrink-0 animate-pulse rounded-md bg-[var(--bg-elev-2)]" />
 
           {/* Content skeleton */}
           <div className="min-w-0 flex-1 space-y-2">

@@ -53,7 +53,7 @@ function MessageBubble({ message, isOwn, showSender = false, onImageClick }) {
                 src={message.senderPhoto}
                 alt={message.senderName}
                 loading="lazy"
-                className="h-4 w-4 rounded-full object-cover"
+                className="h-4 w-4 rounded-md object-cover"
               />
             )}
             <span className="text-xs font-medium text-[var(--text-tertiary)]">

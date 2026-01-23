@@ -204,7 +204,7 @@ export default function ChatRoomPage() {
           {/* User/Event info - clickable for DM profiles */}
           {metaLoading ? (
             <div className="flex min-w-0 flex-1 items-center gap-3">
-              <div className="h-9 w-9 flex-shrink-0 animate-pulse rounded-full bg-[var(--bg-elev-2)]" />
+              <div className="h-9 w-9 flex-shrink-0 animate-pulse rounded-md bg-[var(--bg-elev-2)]" />
               <div className="h-4 w-24 animate-pulse rounded bg-[var(--bg-elev-2)]" />
             </div>
           ) : chatMeta?.peerId ? (
@@ -220,7 +220,7 @@ export default function ChatRoomPage() {
                   className="h-9 w-9 flex-shrink-0 rounded-md object-cover"
                 />
               ) : (
-                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[var(--accent)] to-[var(--accent-glow)]">
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-[var(--accent)] to-[var(--accent-glow)]">
                   <span className="text-sm font-semibold text-white">
                     {chatMeta.displayName?.[0]?.toUpperCase() || '?'}
                   </span>
@@ -232,7 +232,7 @@ export default function ChatRoomPage() {
             </Link>
           ) : (
             <div className="flex min-w-0 flex-1 items-center gap-3">
-              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[var(--bg-elev-2)]">
+              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-[var(--bg-elev-2)]">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
