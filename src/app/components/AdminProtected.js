@@ -2,17 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useFirebase, useAuth } from "../../../firebase/context/FirebaseContext";
+import { useAuth } from "../../../firebase/context/FirebaseContext";
+import { checkIsAdmin } from "../../../lib/firebase/adminService";
 
 const AdminProtected = ({ children }) => {
   const router = useRouter();
   const { currentUser, loading } = useAuth();
-  const firebase = useFirebase();
   const [isAdmin, setIsAdmin] = useState(false);
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    async function checkAdminStatus() {
+    async function checkAdminStatusFn() {
       if (loading) {
         return;
       }
@@ -23,7 +23,7 @@ const AdminProtected = ({ children }) => {
       }
 
       try {
-        const isUserAdmin = await firebase.checkIsAdmin(currentUser.uid);
+        const isUserAdmin = await checkIsAdmin(currentUser.uid);
 
         if (!isUserAdmin) {
           router.push('/');
@@ -38,8 +38,8 @@ const AdminProtected = ({ children }) => {
       }
     }
 
-    checkAdminStatus();
-  }, [currentUser, loading, router, firebase]);
+    checkAdminStatusFn();
+  }, [currentUser, loading, router]);
 
   if (loading || checking) {
     return (

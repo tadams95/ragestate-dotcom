@@ -3,9 +3,6 @@
 import { formatDate } from '@/utils/formatters';
 import {
   collection,
-  doc,
-  getCountFromServer,
-  getDoc,
   getDocs,
   limit,
   orderBy,
@@ -17,6 +14,9 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../../../firebase/context/FirebaseContext';
 import { db } from '../../../../firebase/firebase';
+import { getUserIdByUsername } from '../../../../lib/firebase/userService';
+import { getCachedProfile, getCachedCustomer } from '../../../../lib/firebase/cachedServices';
+import { getFollowerCount, getFollowingCount } from '../../../../lib/firebase/followService';
 import Post from '../../components/Post';
 import { VerifiedBadge } from '../../components/PostHeader';
 import ProfileMusicPlayer from '../../components/ProfileMusicPlayer';
@@ -60,15 +60,12 @@ export default function ProfilePage({ params }) {
       }
       const maybeUsername = raw.toLowerCase();
       try {
-        // Try username mapping first
-        const snap = await getDoc(doc(db, 'usernames', maybeUsername));
-        if (!cancelled && snap.exists()) {
-          const { uid } = snap.data() || {};
-          if (uid) {
-            setResolvedUid(uid);
-            setParamUsername(maybeUsername);
-            return;
-          }
+        // Try username mapping first (using userService)
+        const uid = await getUserIdByUsername(maybeUsername);
+        if (!cancelled && uid) {
+          setResolvedUid(uid);
+          setParamUsername(maybeUsername);
+          return;
         }
       } catch {}
       // Fallback: treat as UID
@@ -81,15 +78,14 @@ export default function ProfilePage({ params }) {
     };
   }, [routeParam]);
 
-  // Fetch profile document
+  // Fetch profile document (using cachedServices)
   useEffect(() => {
     let cancelled = false;
     async function loadProfile() {
       if (!resolvedUid) return;
       try {
-        // Always load the public profile document
-        const profileSnap = await getDoc(doc(db, 'profiles', resolvedUid));
-        const p = profileSnap.exists() ? profileSnap.data() : {};
+        // Always load the public profile document (cached)
+        const p = await getCachedProfile(resolvedUid) || {};
         if (!cancelled) {
           setProfile({
             displayName:
@@ -107,8 +103,7 @@ export default function ProfilePage({ params }) {
         // Optional owner-only fallback: if viewing own profile and no photoURL yet, try customers.profilePicture
         if (!cancelled && !p.photoURL && !p.profilePicture && currentUser?.uid === resolvedUid) {
           try {
-            const customerSnap = await getDoc(doc(db, 'customers', resolvedUid));
-            const c = customerSnap.exists() ? customerSnap.data() : {};
+            const c = await getCachedCustomer(resolvedUid) || {};
             if (c.profilePicture) {
               setProfile((prev) => ({ ...prev, photoURL: c.profilePicture }));
             }
@@ -129,17 +124,15 @@ export default function ProfilePage({ params }) {
   const refreshCounts = useCallback(async () => {
     if (!resolvedUid) return;
     try {
-      const followersQ = query(collection(db, 'follows'), where('followedId', '==', resolvedUid));
-      const followingQ = query(collection(db, 'follows'), where('followerId', '==', resolvedUid));
-      const [followersAgg, followingAgg] = await Promise.all([
-        getCountFromServer(followersQ),
-        getCountFromServer(followingQ),
+      // Using followService for counts
+      const [followers, following] = await Promise.all([
+        getFollowerCount(resolvedUid),
+        getFollowingCount(resolvedUid),
       ]);
-      setFollowersCount(followersAgg.data().count || 0);
-      setFollowingCount(followingAgg.data().count || 0);
+      _setFollowersCount(followers);
+      _setFollowingCount(following);
     } catch (e) {
       console.warn('Failed to load follow counts', e);
-    } finally {
     }
   }, [resolvedUid]);
 

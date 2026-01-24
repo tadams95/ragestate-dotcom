@@ -10,7 +10,10 @@ import UsersIcon from '@heroicons/react/24/outline/UsersIcon';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { useAuth, useFirebase } from '../../../firebase/context/FirebaseContext';
+import { useAuth } from '../../../firebase/context/FirebaseContext';
+import { getAllUsers, getUserCount } from '../../../lib/firebase/adminService';
+import { getEvents } from '../../../lib/firebase/eventService';
+import { getAllPurchases } from '../../../lib/firebase/purchaseService';
 import { formatCurrency, formatDate, getStatusColor } from '../../utils/formatters';
 import AdminProtected from '../components/AdminProtected';
 // Lazy-load admin tabs and modal to keep them out of initial/shared chunks
@@ -80,7 +83,6 @@ export default function AdminPage() {
   const [currentUserPage, setCurrentUserPage] = useState(1);
   const usersPerPage = 10;
 
-  const firebase = useFirebase();
   const { currentUser, loading: authLoading } = useAuth();
 
   useEffect(() => {
@@ -96,14 +98,14 @@ export default function AdminPage() {
 
       try {
         const results = await Promise.allSettled([
-          firebase.fetchAllPurchases(100),
-          firebase.fetchUsers(1000),
-          firebase.fetchEvents(50),
-          firebase.getUserCount(),
+          getAllPurchases(null, 100),
+          getAllUsers(1000),
+          getEvents(null, 50),
+          getUserCount(),
         ]);
 
         if (results[0].status === 'fulfilled') {
-          setOrders(results[0].value);
+          setOrders(results[0].value.purchases || []);
         } else {
           console.error('Error loading orders:', results[0].reason);
           setError((prev) => ({ ...prev, orders: results[0].reason.message }));
@@ -117,7 +119,7 @@ export default function AdminPage() {
         }
 
         if (results[2].status === 'fulfilled') {
-          setEvents(results[2].value);
+          setEvents(results[2].value.events || []);
         } else {
           console.error('Error loading events:', results[2].reason);
           setError((prev) => ({ ...prev, events: results[2].reason.message }));
@@ -135,7 +137,7 @@ export default function AdminPage() {
     }
 
     loadData();
-  }, [firebase, currentUser, authLoading]);
+  }, [currentUser, authLoading]);
 
   const viewOrderDetails = (orderId) => {
     const orderToView = orders.find((order) => order.id === orderId);

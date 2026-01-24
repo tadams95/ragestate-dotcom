@@ -6,22 +6,41 @@ import {
   collection,
   doc,
   getDoc,
-  getDocs,
   limit,
   onSnapshot,
   orderBy,
   query,
-  startAfter,
   where,
 } from 'firebase/firestore';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../../firebase/context/FirebaseContext';
 import { db } from '../../../firebase/firebase';
+import { getPublicPosts } from '../../../lib/firebase/postService';
 import Post from './Post';
 import PostSkeleton from './PostSkeleton';
 
 // Firestore 'in' queries accept up to 10 IDs; page size <= 10 is safest
 const PAGE_SIZE = 10;
+
+/**
+ * Map raw post data to the Feed item format
+ * @param {Object} post - Raw post data from Firestore or postService
+ * @returns {Object} Feed item format
+ */
+function mapPostToFeedItem(post) {
+  return {
+    id: post.id,
+    userId: post.userId,
+    author: post.usernameLower ? post.usernameLower : post.userDisplayName || post.userId,
+    avatarUrl: post.userProfilePicture || null,
+    usernameLower: post.usernameLower || undefined,
+    timestamp: formatDate(post.timestamp?.toDate ? post.timestamp.toDate() : post.timestamp),
+    content: post.content || '',
+    mediaUrls: Array.isArray(post.mediaUrls) ? post.mediaUrls : [],
+    likeCount: typeof post.likeCount === 'number' ? post.likeCount : 0,
+    commentCount: typeof post.commentCount === 'number' ? post.commentCount : 0,
+  };
+}
 
 export default function Feed({ forcePublic = false }) {
   const { currentUser, loading: authLoading } = useAuth();
@@ -102,19 +121,7 @@ export default function Feed({ forcePublic = false }) {
         snap.docChanges().forEach((chg) => {
           if (chg.type === 'added') {
             const d = chg.doc;
-            const p = d.data();
-            const mapped = {
-              id: d.id,
-              userId: p.userId,
-              author: p.usernameLower ? p.usernameLower : p.userDisplayName || p.userId,
-              avatarUrl: p.userProfilePicture || null,
-              usernameLower: p.usernameLower || undefined,
-              timestamp: formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp),
-              content: p.content || '',
-              mediaUrls: Array.isArray(p.mediaUrls) ? p.mediaUrls : [],
-              likeCount: typeof p.likeCount === 'number' ? p.likeCount : 0,
-              commentCount: typeof p.commentCount === 'number' ? p.commentCount : 0,
-            };
+            const mapped = mapPostToFeedItem({ id: d.id, ...d.data() });
             if (isAtTop) {
               setPosts((prev) => [mapped, ...prev.filter((x) => x.id !== mapped.id)]);
             } else {
@@ -137,19 +144,7 @@ export default function Feed({ forcePublic = false }) {
         snap.docChanges().forEach((chg) => {
           if (chg.type === 'added') {
             const d = chg.doc;
-            const p = d.data();
-            const mapped = {
-              id: d.id,
-              userId: p.userId,
-              author: p.usernameLower ? p.usernameLower : p.userDisplayName || p.userId,
-              avatarUrl: p.userProfilePicture || null,
-              usernameLower: p.usernameLower || undefined,
-              timestamp: formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp),
-              content: p.content || '',
-              mediaUrls: Array.isArray(p.mediaUrls) ? p.mediaUrls : [],
-              likeCount: typeof p.likeCount === 'number' ? p.likeCount : 0,
-              commentCount: typeof p.commentCount === 'number' ? p.commentCount : 0,
-            };
+            const mapped = mapPostToFeedItem({ id: d.id, ...d.data() });
             if (isAtTop) {
               setPosts((prev) => [mapped, ...prev.filter((x) => x.id !== mapped.id)]);
             } else {
@@ -171,19 +166,7 @@ export default function Feed({ forcePublic = false }) {
             try {
               const postSnap = await getDoc(doc(db, 'posts', id));
               if (postSnap.exists()) {
-                const p = postSnap.data();
-                const mapped = {
-                  id: postSnap.id,
-                  userId: p.userId,
-                  author: p.usernameLower ? p.usernameLower : p.userDisplayName || p.userId,
-                  avatarUrl: p.userProfilePicture || null,
-                  usernameLower: p.usernameLower || undefined,
-                  timestamp: formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp),
-                  content: p.content || '',
-                  mediaUrls: Array.isArray(p.mediaUrls) ? p.mediaUrls : [],
-                  likeCount: typeof p.likeCount === 'number' ? p.likeCount : 0,
-                  commentCount: typeof p.commentCount === 'number' ? p.commentCount : 0,
-                };
+                const mapped = mapPostToFeedItem({ id: postSnap.id, ...postSnap.data() });
                 if (isAtTop) {
                   setPosts((prev) => [mapped, ...prev.filter((x) => x.id !== mapped.id)]);
                 } else {
@@ -243,33 +226,11 @@ export default function Feed({ forcePublic = false }) {
       let mode = 'public';
       setFeedMode(mode);
 
-      // PUBLIC mode: show latest posts site-wide
+      // PUBLIC mode: show latest posts site-wide (using postService)
       if (mode === 'public') {
         try {
-          const constraints = [
-            where('isPublic', '==', true),
-            orderBy('timestamp', 'desc'),
-            limit(PAGE_SIZE),
-          ];
-          if (lastPublicDoc) constraints.push(startAfter(lastPublicDoc));
-          const qPublic = query(collection(db, 'posts'), ...constraints);
-          const snap = await getDocs(qPublic);
-
-          const mapped = snap.docs.map((d) => {
-            const p = d.data();
-            return {
-              id: d.id,
-              userId: p.userId,
-              author: p.usernameLower ? p.usernameLower : p.userDisplayName || p.userId,
-              avatarUrl: p.userProfilePicture || null,
-              usernameLower: p.usernameLower || undefined,
-              timestamp: formatDate(p.timestamp?.toDate ? p.timestamp.toDate() : p.timestamp),
-              content: p.content || '',
-              mediaUrls: Array.isArray(p.mediaUrls) ? p.mediaUrls : [],
-              likeCount: typeof p.likeCount === 'number' ? p.likeCount : 0,
-              commentCount: typeof p.commentCount === 'number' ? p.commentCount : 0,
-            };
-          });
+          const { posts: rawPosts, lastDoc } = await getPublicPosts(lastPublicDoc, PAGE_SIZE);
+          const mapped = rawPosts.map(mapPostToFeedItem);
 
           // Append without duplicating existing post IDs
           setPosts((prev) => {
@@ -277,13 +238,12 @@ export default function Feed({ forcePublic = false }) {
             const deduped = mapped.filter((p) => !existing.has(p.id));
             return [...prev, ...deduped];
           });
-          setLastPublicDoc(snap.docs[snap.docs.length - 1] || null);
-          if (snap.size < PAGE_SIZE) setHasMore(false);
+          setLastPublicDoc(lastDoc);
+          if (rawPosts.length < PAGE_SIZE) setHasMore(false);
           setLoadError('');
           return;
         } catch (e) {
           // Missing composite index - log error and show message instead of using unsafe fallback
-          // The old fallback queried ALL posts without isPublic filter, causing permission-denied for non-admins
           console.error('Public feed query failed (likely missing index):', e?.code || e);
           setLoadError('Feed temporarily unavailable. Please try again later.');
           return;

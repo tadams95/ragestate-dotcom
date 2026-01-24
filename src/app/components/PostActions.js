@@ -1,21 +1,16 @@
 'use client';
 
 import { track } from '@/app/utils/metrics';
-import {
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  serverTimestamp,
-  setDoc,
-  where,
-  writeBatch,
-} from 'firebase/firestore';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../../firebase/context/FirebaseContext';
-import { db } from '../../../firebase/firebase';
+import {
+  hasLikedPost,
+  likePost,
+  unlikePost,
+  hasRepostedPost,
+  createRepost,
+  undoRepost,
+} from '../../../lib/firebase/postService';
 
 export default function PostActions({
   postId,
@@ -39,17 +34,10 @@ export default function PostActions({
   const [likeAnimating, setLikeAnimating] = useState(false);
   const [floatingEmoji, setFloatingEmoji] = useState(null);
 
-  // Build like doc id `${postId}_${uid}` when signed in
-  const likeDocRef = useMemo(() => {
-    if (!postId || !currentUser?.uid) return null;
-    return doc(db, 'postLikes', `${postId}_${currentUser.uid}`);
-  }, [postId, currentUser?.uid]);
-
   const checkInitialLike = useCallback(async () => {
-    if (!likeDocRef) return false;
-    const snap = await getDoc(likeDocRef);
-    return snap.exists();
-  }, [likeDocRef]);
+    if (!postId || !currentUser?.uid) return false;
+    return hasLikedPost(postId, currentUser.uid);
+  }, [postId, currentUser?.uid]);
 
   // Get the target post ID for repost operations (handles chain flattening)
   const getRepostTargetId = useCallback(() => {
@@ -60,24 +48,18 @@ export default function PostActions({
   const checkInitialRepost = useCallback(async () => {
     const targetId = getRepostTargetId();
     if (!targetId || !currentUser?.uid) return false;
-    const q = query(
-      collection(db, 'postReposts'),
-      where('postId', '==', targetId),
-      where('userId', '==', currentUser.uid),
-    );
-    const snap = await getDocs(q);
-    return !snap.empty;
+    return hasRepostedPost(targetId, currentUser.uid);
   }, [getRepostTargetId, currentUser?.uid]);
 
   // Lazy initialize hasLiked on first interaction to avoid extra reads on mount
   const ensureHasLiked = useCallback(async () => {
-    if (hasLiked === false && currentUser && likeDocRef) {
+    if (hasLiked === false && currentUser && postId) {
       const exists = await checkInitialLike();
       setHasLiked(exists);
       return exists;
     }
     return hasLiked;
-  }, [hasLiked, currentUser, likeDocRef, checkInitialLike]);
+  }, [hasLiked, currentUser, postId, checkInitialLike]);
 
   const ensureHasReposted = useCallback(async () => {
     if (hasReposted === false && currentUser && postId) {
@@ -94,7 +76,7 @@ export default function PostActions({
       alert('Please sign in to like posts.');
       return;
     }
-    if (!postId || !likeDocRef || isLiking) return;
+    if (!postId || isLiking) return;
     setIsLiking(true);
     try {
       const liked = await ensureHasLiked();
@@ -102,7 +84,7 @@ export default function PostActions({
         // Unlike
         setOptimisticLikes((n) => Math.max(0, n - 1));
         setHasLiked(false);
-        await deleteDoc(likeDocRef);
+        await unlikePost(postId, currentUser.uid);
         try {
           track('reaction_add', { postId, type: 'unlike' });
         } catch {}
@@ -112,11 +94,7 @@ export default function PostActions({
         setHasLiked(true);
         setLikeAnimating(true);
         setTimeout(() => setLikeAnimating(false), 400);
-        await setDoc(likeDocRef, {
-          postId,
-          userId: currentUser.uid,
-          timestamp: serverTimestamp(),
-        });
+        await likePost(postId, currentUser.uid);
         try {
           track('reaction_add', { postId, type: 'like' });
         } catch {}
@@ -130,7 +108,7 @@ export default function PostActions({
     } finally {
       setIsLiking(false);
     }
-  }, [currentUser, postId, likeDocRef, isLiking, ensureHasLiked, likeCount]);
+  }, [currentUser, postId, isLiking, ensureHasLiked, likeCount]);
 
   // Long-press to open reaction bar
   const startLongPress = () => {
@@ -286,60 +264,17 @@ export default function PostActions({
     setOptimisticReposts((n) => n + 1);
 
     try {
-      const batch = writeBatch(db);
+      // Get target post ID (handles chain flattening)
+      const targetPostId = postData?.repostOf?.postId || postId;
 
-      // Flatten repost chain: if this is a repost of a repost, link to original
-      const originalRepostOf = postData?.repostOf;
-      const targetPostId = originalRepostOf?.postId || postId;
-      const targetAuthorId = originalRepostOf?.authorId || postData?.userId;
-      const targetAuthorName =
-        originalRepostOf?.authorName || postData?.author || postData?.usernameLower;
-      const targetAuthorPhoto = originalRepostOf?.authorPhoto || postData?.avatarUrl;
-      const targetContent = originalRepostOf?.content ?? postData?.content ?? '';
-      const targetMediaUrls = originalRepostOf?.mediaUrls || postData?.mediaUrls || [];
-      const targetOptimizedMediaUrls =
-        originalRepostOf?.optimizedMediaUrls || postData?.optimizedMediaUrls || [];
-      const targetTimestamp = originalRepostOf?.timestamp || postData?.timestamp || null;
-
-      // 1. Create postReposts doc (always references the original post)
-      const repostRef = doc(db, 'postReposts', `${targetPostId}_${currentUser.uid}`);
-
-      // 2. Create the Repost Post doc
-      const newPostRef = doc(collection(db, 'posts'));
-
-      batch.set(repostRef, {
+      await createRepost({
         postId: targetPostId,
         userId: currentUser.uid,
-        timestamp: serverTimestamp(),
-        originalAuthorId: targetAuthorId || null,
-        repostPostId: newPostRef.id,
-      });
-
-      batch.set(newPostRef, {
-        userId: currentUser.uid,
-        usernameLower: currentUser.displayName?.toLowerCase() || 'unknown',
         userDisplayName: currentUser.displayName || 'Unknown',
-        userProfilePicture: currentUser.photoURL || null,
-        content: '',
-        mediaUrls: [],
-        timestamp: serverTimestamp(),
-        isPublic: true,
-        repostOf: {
-          postId: targetPostId,
-          authorId: targetAuthorId,
-          authorName: targetAuthorName,
-          authorPhoto: targetAuthorPhoto,
-          content: targetContent,
-          mediaUrls: targetMediaUrls,
-          optimizedMediaUrls: targetOptimizedMediaUrls,
-          timestamp: targetTimestamp,
-        },
-        repostCount: 0,
-        likeCount: 0,
-        commentCount: 0,
+        userPhoto: currentUser.photoURL || null,
+        originalPost: postData,
       });
 
-      await batch.commit();
       track('repost_add', { postId: targetPostId, type: 'simple' });
     } catch (e) {
       console.error(e);
@@ -359,24 +294,7 @@ export default function PostActions({
     const targetId = getRepostTargetId();
 
     try {
-      const q = query(
-        collection(db, 'postReposts'),
-        where('postId', '==', targetId),
-        where('userId', '==', currentUser.uid),
-      );
-      const snap = await getDocs(q);
-      if (snap.empty) return;
-
-      const repostDoc = snap.docs[0];
-      const repostData = repostDoc.data();
-      const batch = writeBatch(db);
-
-      batch.delete(repostDoc.ref);
-      if (repostData.repostPostId) {
-        batch.delete(doc(db, 'posts', repostData.repostPostId));
-      }
-
-      await batch.commit();
+      await undoRepost(targetId, currentUser.uid);
       track('repost_remove', { postId: targetId });
     } catch (e) {
       console.error(e);
