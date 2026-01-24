@@ -153,6 +153,71 @@ const userName = useAppSelector(selectUserName);
 dispatch(setUnreadCount(5));
 ```
 
+### Service Layer Pattern
+```javascript
+// Use services instead of direct Firestore access
+import { getProfile, updateProfile } from '@lib/firebase/userService';
+import { getPublicPosts, toggleLike } from '@lib/firebase/postService';
+import { isFollowing, toggleFollow } from '@lib/firebase/followService';
+
+// Read operations
+const profile = await getProfile(userId);
+const { posts, lastDoc } = await getPublicPosts();
+
+// Write operations
+await updateProfile(userId, { bio: 'New bio' });
+const isNowLiked = await toggleLike(postId, currentUser.uid);
+```
+
+### Cached Service Pattern
+```javascript
+// Use cached services for frequently-read data
+import {
+  getCachedProfile,
+  getCachedUserDisplayInfo,
+  invalidateProfileCache,
+  prefetchUserDisplayInfos
+} from '@lib/firebase/cachedServices';
+
+// Cached read (5-min TTL)
+const profile = await getCachedProfile(userId);
+
+// Batch prefetch for lists
+const userInfos = await prefetchUserDisplayInfos(userIds);
+
+// Invalidate after updates
+await updateProfile(userId, data);
+invalidateProfileCache(userId);
+```
+
+### Soft Delete Pattern
+```javascript
+import { softDelete, notDeleted, restoreDeleted } from '@lib/firebase/softDelete';
+
+// Soft delete instead of hard delete
+await softDelete('posts', postId, currentUser.uid);
+
+// Query excluding deleted
+const q = query(collection(db, 'posts'), notDeleted(), orderBy('timestamp', 'desc'));
+
+// Restore if needed
+await restoreDeleted('posts', postId);
+```
+
+### Amount Handling Pattern
+```javascript
+import { dollarsToCents, formatCents, parseToCents } from '@lib/utils/amounts';
+
+// Store as cents
+const priceInCents = dollarsToCents(10.99); // 1099
+
+// Display formatted
+const display = formatCents(1099); // '$10.99'
+
+// Parse user input
+const cents = parseToCents('$10.99'); // 1099
+```
+
 ## Styling System
 
 ### CSS Variables (defined in globals.css)
@@ -250,6 +315,15 @@ npm run deploy:functions  # Deploy Cloud Functions (if configured)
 | `lib/hooks/useUserSearch.js` | Debounced user search with caching |
 | `src/app/layout.js` | Root layout with all providers |
 | `src/app/globals.css` | CSS variables + global styles |
+| `lib/firebase/userService.js` | User/profile Firestore operations |
+| `lib/firebase/postService.js` | Post/like/repost operations |
+| `lib/firebase/followService.js` | Follow relationship operations |
+| `lib/firebase/eventService.js` | Event/ticket operations |
+| `lib/firebase/cachedServices.js` | Cached service wrappers |
+| `lib/firebase/softDelete.js` | Soft delete utilities |
+| `lib/utils/amounts.js` | Monetary amount utilities |
+| `lib/utils/cache.js` | LRU cache with TTL |
+| `lib/types/*.js` | JSDoc type definitions |
 
 ## Current Work: Chat Implementation
 

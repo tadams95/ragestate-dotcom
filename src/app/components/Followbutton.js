@@ -1,15 +1,14 @@
 'use client';
 
-import { deleteDoc, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../../firebase/context/FirebaseContext';
-import { db } from '../../../firebase/firebase';
+import { isFollowing as checkIsFollowing, follow, unfollow } from '../../../lib/firebase/followService';
 
 export default function Followbutton({ targetUserId, onChange, variant = 'default' }) {
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [isFollowing, setIsFollowing] = useState(false);
+  const [following, setFollowing] = useState(false);
 
   const disabled = useMemo(() => {
     return !targetUserId || !currentUser || currentUser?.uid === targetUserId || loading || saving;
@@ -24,9 +23,8 @@ export default function Followbutton({ targetUserId, onChange, variant = 'defaul
         return;
       }
       try {
-        const id = `${currentUser.uid}_${targetUserId}`;
-        const snap = await getDoc(doc(db, 'follows', id));
-        if (!cancelled) setIsFollowing(snap.exists());
+        const result = await checkIsFollowing(currentUser.uid, targetUserId);
+        if (!cancelled) setFollowing(result);
       } catch (e) {
         // Keep silent; default to not following
       } finally {
@@ -57,43 +55,44 @@ export default function Followbutton({ targetUserId, onChange, variant = 'defaul
     }
     if (!targetUserId || currentUser.uid === targetUserId) return;
 
-    const id = `${currentUser.uid}_${targetUserId}`;
-    const ref = doc(db, 'follows', id);
-    const next = !isFollowing;
+    const willFollow = !following;
     setSaving(true);
-    setIsFollowing(next); // optimistic
+    setFollowing(willFollow); // optimistic
     try {
-      if (next) {
-        await setDoc(ref, {
-          followerId: currentUser.uid,
-          followedId: targetUserId,
-          createdAt: serverTimestamp(),
-        });
+      if (willFollow) {
+        await follow(currentUser.uid, targetUserId);
       } else {
-        await deleteDoc(ref);
+        await unfollow(currentUser.uid, targetUserId);
       }
       if (typeof onChange === 'function') onChange();
     } catch (e) {
+      // Log the actual error for debugging
+      console.error('Follow operation failed:', e?.code || 'unknown', e?.message || e);
       // rollback on error
-      setIsFollowing(!next);
+      setFollowing(!willFollow);
     } finally {
       setSaving(false);
     }
-  }, [currentUser, targetUserId, isFollowing, onChange]);
+  }, [currentUser, targetUserId, following, onChange]);
 
-  const label = isFollowing ? 'Following' : 'Follow';
+  const label = following ? 'Following' : 'Follow';
   const baseCompact = 'px-2.5 py-1.5 h-8 rounded-md text-xs font-medium transition-all duration-200 active:scale-95 hover:scale-105';
   const baseDefault = 'px-4 py-2 h-10 rounded-md font-semibold transition-all duration-200 active:scale-95 hover:scale-105';
   const classes = (() => {
     if (variant === 'compact') {
-      return isFollowing
+      return following
         ? `${baseCompact} border border-white/20 text-gray-200 hover:bg-white/10`
         : `${baseCompact} bg-[#ff1f42] hover:bg-[#ff415f] text-white`;
     }
-    return isFollowing
+    return following
       ? `${baseDefault} border border-white/20 text-gray-200 hover:bg-white/10`
       : `${baseDefault} bg-[#ff1f42] hover:bg-[#ff415f] text-white`;
   })();
+
+  // Button text during save reflects the action being performed:
+  // - following=true (after optimistic update) means we just followed -> "Following…"
+  // - following=false (after optimistic update) means we just unfollowed -> "Unfollowing…"
+  const savingLabel = following ? 'Following…' : 'Unfollowing…';
 
   return (
     <button
@@ -101,10 +100,10 @@ export default function Followbutton({ targetUserId, onChange, variant = 'defaul
       disabled={disabled}
       onClick={toggleFollow}
       className={`${classes} ${disabled ? 'cursor-not-allowed opacity-60' : ''} ${saving ? 'animate-pulse' : ''}`}
-      aria-pressed={isFollowing}
+      aria-pressed={following}
       aria-label={label}
     >
-      {saving ? (isFollowing ? 'Unfollowing…' : 'Following…') : label}
+      {saving ? savingLabel : label}
     </button>
   );
 }

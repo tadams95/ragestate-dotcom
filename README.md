@@ -1,12 +1,43 @@
 RAGESTATE web application – Next.js 14 (App Router) + Firebase (Auth, Firestore, Storage, Cloud Functions) + Stripe + Shopify integration.
 
-This repo was originally bootstrapped with `create-next-app` and has since added:
+**RAGESTATE** is a social platform for the electronic music community, featuring social feeds, events/ticketing, merchandise, real-time chat, and an admin dashboard.
 
-- Firebase client + admin layers (see `firebase/` and `functions/`)
-- Cloud Functions for Stripe payments, feed fanout, and email sending
-- Social feed (posts, likes, comments, follows) with Firestore triggers
-- Admin event creation workflow (spec in `docs/admin-create-event-spec.md`)
-- Ticketing (events, ragers, ticketTokens) and scanning endpoints
+---
+
+## Architecture Overview
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   Next.js App   │────▶│  Firebase       │────▶│  External APIs  │
+│   (Vercel)      │     │  (Auth/DB/Fn)   │     │  (Stripe/etc)   │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+```
+
+| Layer | Technology | Purpose |
+|-------|------------|---------|
+| Frontend | Next.js 14 (App Router) | Server-rendered React app |
+| Styling | Tailwind CSS + CSS Variables | Themeable UI system |
+| State | Redux Toolkit | Global client state |
+| Auth | Firebase Authentication | User identity |
+| Database | Cloud Firestore | Real-time document DB |
+| Storage | Firebase Storage | Media files |
+| Functions | Firebase Cloud Functions | Server-side logic |
+| Payments | Stripe | Payment processing |
+| Commerce | Shopify (API) | Merchandise fulfillment |
+| Analytics | Vercel Analytics + Speed Insights | Performance monitoring |
+
+**Full documentation**: See `docs/ARCHITECTURE.md` for detailed system diagrams.
+
+---
+
+## Key Features
+
+- **Social Feed**: Posts, likes, comments, follows with real-time updates
+- **Events & Ticketing**: Event creation, ticket purchases, QR code scanning
+- **E-commerce**: Merchandise shop with Shopify/Printify fulfillment
+- **Chat/Messaging**: Real-time direct messages with moderation
+- **Admin Dashboard**: Event management, metrics, user moderation
+- **Push Notifications**: FCM-based notifications for engagement
 
 ---
 
@@ -180,12 +211,41 @@ npm run seed:feed          # Seed sample social feed content
 
 ---
 
-## Contributing / Notes
+## Contributing
 
-- Prefer adding new server logic in Functions or Next API with admin verification.
-- Keep event creation invariants in sync: if UI diverges (e.g., description optional), update server schema or align UI.
-- Bundle size: admin create page currently ~20KB page chunk; shared app JS dominates first load.
-- Avoid committing secrets; use Firebase secrets for server-only keys.
+### Development Workflow
+1. Create a feature branch from `main`
+2. Make changes following code conventions below
+3. Run `npm run lint` and fix any errors
+4. Run `npm run build` to verify no build errors
+5. Submit a pull request with clear description
+
+### Code Conventions
+- **JavaScript with JSDoc**: Use JSDoc type annotations instead of TypeScript
+- **CSS Variables**: Use `var(--*)` for colors, not hardcoded values
+- **Components**: Export with `memo()` for performance
+- **Hooks**: Follow React hooks best practices, return cleanup functions
+
+### File Organization
+```
+src/app/           # Next.js App Router pages and components
+lib/               # Shared utilities, hooks, Redux slices
+firebase/          # Firebase configuration and context
+functions/         # Cloud Functions (deploy separately)
+```
+
+### Guidelines
+- Prefer adding server logic in Cloud Functions or Next API routes
+- Keep UI and server validation in sync
+- Use `limit()` on Firestore queries to control costs
+- Never commit secrets; use Firebase Secret Manager
+
+### Code Review Checklist
+- [ ] No ESLint errors (`npm run lint`)
+- [ ] Build succeeds (`npm run build`)
+- [ ] No console.log statements in production code
+- [ ] Sensitive data protected by Firestore rules
+- [ ] New features documented in relevant docs
 
 ---
 
@@ -203,3 +263,28 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Standard Vercel deployment pipeline; ensure Firebase Functions deployed separately (`npm --prefix functions run deploy`).
+
+For detailed deployment procedures, see `docs/DEPLOYMENT-RUNBOOK.md`.
+
+---
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| `docs/ARCHITECTURE.md` | System architecture and data flow diagrams |
+| `docs/DATABASE-SCHEMA.md` | Firestore collections and field documentation |
+| `docs/DEPLOYMENT-RUNBOOK.md` | Step-by-step deployment procedures |
+| `docs/MONITORING.md` | Monitoring setup and key metrics |
+| `docs/TROUBLESHOOTING.md` | Common issues and solutions |
+| `docs/SECURITY-AUDIT-REPORT.md` | Security assessment findings |
+
+---
+
+## License
+
+This project is proprietary software. All rights reserved.
+
+Unauthorized copying, modification, distribution, or use of this software is strictly prohibited without explicit written permission from the copyright holder.
+
+For licensing inquiries, contact the project owner.

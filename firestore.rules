@@ -23,6 +23,11 @@ service cloud.firestore {
     function hasOnlyKeys(data, keys) {
       return data.keys().hasOnly(keys);
     }
+    // Amount validation: must be a non-negative integer (cents)
+    // Use for monetary amounts to ensure consistency
+    function isIntegerCents(v) {
+      return v is number && v >= 0 && v == int(v);
+    }
 
     // Minimal URL host constraint for event hero images
     function isAllowedImgURL(u) {
@@ -125,13 +130,16 @@ service cloud.firestore {
     }
     
     // Purchases collection - modified to allow creating new purchases
+    // Note: amounts should be stored as integer cents (validated when present)
     match /purchases/{purchaseId} {
-      allow read: if isAdmin() || 
-                  (isAuthenticated() && 
+      allow read: if isAdmin() ||
+                  (isAuthenticated() &&
                    (resource == null || resource.data.customerId == request.auth.uid));
       // Allow authenticated users to create purchases, but only admins can modify
-      allow create: if isAuthenticated() && 
-                    request.resource.data.customerId == request.auth.uid;
+      // Validate amount is integer cents if provided
+      allow create: if isAuthenticated() &&
+                    request.resource.data.customerId == request.auth.uid &&
+                    (!request.resource.data.keys().hasAny(['amount']) || isIntegerCents(request.resource.data.amount));
       allow update, delete: if isAdmin();
       
       // Subcollections inherit parent rules plus their own
@@ -337,6 +345,12 @@ service cloud.firestore {
         && isString(request.resource.data.followedId)
         && request.resource.data.followerId == request.auth.uid
         && request.resource.data.followerId != request.resource.data.followedId
+        && (!request.resource.data.keys().hasAny(['createdAt']) || request.resource.data.createdAt == request.time);
+      // Allow update (re-follow after stale data): owner only, immutable IDs
+      allow update: if isAuthenticated()
+        && resource.data.followerId == request.auth.uid
+        && request.resource.data.followerId == resource.data.followerId
+        && request.resource.data.followedId == resource.data.followedId
         && (!request.resource.data.keys().hasAny(['createdAt']) || request.resource.data.createdAt == request.time);
       allow delete: if isAuthenticated() && resource.data.followerId == request.auth.uid;
     }
