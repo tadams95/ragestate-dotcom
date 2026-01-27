@@ -24,7 +24,10 @@ import { useSelector } from 'react-redux';
 import { useAuth } from '../../../firebase/context/FirebaseContext';
 import { db } from '../../../firebase/firebase';
 import { selectUserName } from '../../../lib/features/userSlice';
+import { useMentionDetection } from '../../../lib/hooks/useMentionDetection';
+import MentionAutocomplete from './MentionAutocomplete';
 import { VerifiedBadge } from './PostHeader';
+import ReportModal from './ReportModal';
 
 const PAGE_SIZE = 20;
 const REPLIES_PREVIEW_COUNT = 2; // Show this many replies before collapse
@@ -41,7 +44,19 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
   const [collapsedThreads, setCollapsedThreads] = useState(new Set()); // Set of parentIds with collapsed replies
   const [likedCommentIds, setLikedCommentIds] = useState(new Set()); // Set of commentIds liked by current user
   const [verifiedUserIds, setVerifiedUserIds] = useState(new Set()); // Set of verified user IDs
+  const [reportTarget, setReportTarget] = useState(null); // { commentId, userId } for report modal
   const contentRef = useRef(null);
+
+  // Mention detection for @mentions in comments
+  const {
+    mentionState,
+    handleTextChange: handleMentionChange,
+    insertMention,
+    closeMention,
+    navigateUp,
+    navigateDown,
+    setSelectedIndex,
+  } = useMentionDetection();
   const backdropRef = useRef(null);
   const textareaRef = useRef(null);
 
@@ -310,6 +325,56 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
     setReplyingTo(null);
   };
 
+  // Handle textarea change with mention detection
+  const handleCommentChange = useCallback(
+    (e) => {
+      const value = e.target.value;
+      setNewComment(value);
+      // Update mention state based on cursor position
+      const cursorPos = e.target.selectionStart || value.length;
+      handleMentionChange(value, cursorPos);
+    },
+    [handleMentionChange],
+  );
+
+  // Handle mention selection
+  const handleMentionSelect = useCallback(
+    (user) => {
+      const { text: newText, cursorPos } = insertMention(newComment, user.username);
+      setNewComment(newText);
+      closeMention();
+      // Focus textarea and set cursor position
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        // Set cursor after a brief delay to ensure state is updated
+        setTimeout(() => {
+          if (textareaRef.current) {
+            textareaRef.current.setSelectionRange(cursorPos, cursorPos);
+          }
+        }, 0);
+      }
+    },
+    [newComment, insertMention, closeMention],
+  );
+
+  // Handle keyboard navigation for mentions
+  const handleKeyDown = useCallback(
+    (e) => {
+      if (!mentionState.isOpen) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        navigateDown(9);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        navigateUp();
+      } else if (e.key === 'Escape') {
+        closeMention();
+      }
+    },
+    [mentionState.isOpen, navigateDown, navigateUp, closeMention],
+  );
+
   // Toggle thread collapse
   const toggleThreadCollapse = (parentId) => {
     setCollapsedThreads((prev) => {
@@ -559,6 +624,16 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
                         )}
                         {c.likeCount > 0 && <span>{c.likeCount}</span>}
                       </button>
+                      {/* Report button for other users' comments */}
+                      {currentUser && currentUser.uid !== c.userId && (
+                        <button
+                          onClick={() => setReportTarget({ commentId: c.id, userId: c.userId })}
+                          className="min-h-[44px] px-2 text-xs text-[var(--text-tertiary)] transition-colors duration-150 hover:text-red-400"
+                          title="Report comment"
+                        >
+                          Report
+                        </button>
+                      )}
                     </div>
                   </div>
                   {/* Delete button */}
@@ -797,25 +872,42 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
               </button>
             </div>
           )}
-          <div className="flex items-end space-x-2">
-            <textarea
-              ref={textareaRef}
-              className="min-h-11 flex-1 resize-none rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-3 text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none ring-0 transition-colors focus:border-[#ff1f42] focus:ring-1 focus:ring-[#ff1f42]"
-              placeholder={
-                currentUser
-                  ? replyingTo
-                    ? 'Write a reply…'
-                    : 'Add a comment…'
-                  : 'Sign in to comment'
-              }
-              rows={1}
-              maxLength={500}
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              disabled={!currentUser}
-              inputMode="text"
-              enterKeyHint="send"
-            />
+          <div className="relative flex items-end space-x-2">
+            <div className="relative flex-1">
+              <textarea
+                ref={textareaRef}
+                className="min-h-11 w-full resize-none rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-3 text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none ring-0 transition-colors focus:border-[#ff1f42] focus:ring-1 focus:ring-[#ff1f42]"
+                placeholder={
+                  currentUser
+                    ? replyingTo
+                      ? 'Write a reply…'
+                      : 'Add a comment…'
+                    : 'Sign in to comment'
+                }
+                rows={1}
+                maxLength={500}
+                value={newComment}
+                onChange={handleCommentChange}
+                onKeyDown={handleKeyDown}
+                onSelect={(e) => handleMentionChange(newComment, e.target.selectionStart)}
+                disabled={!currentUser}
+                inputMode="text"
+                enterKeyHint="send"
+              />
+              {/* Mention autocomplete dropdown */}
+              {mentionState.isOpen && (
+                <div className="absolute bottom-full left-0 right-0 mb-1">
+                  <MentionAutocomplete
+                    query={mentionState.query}
+                    isOpen={mentionState.isOpen}
+                    onSelect={handleMentionSelect}
+                    onClose={closeMention}
+                    selectedIndex={mentionState.selectedIndex}
+                    onSelectedIndexChange={setSelectedIndex}
+                  />
+                </div>
+              )}
+            </div>
             <button
               type="submit"
               disabled={!currentUser || newComment.trim().length === 0}
@@ -825,6 +917,17 @@ export default function CommentsSheet({ postId, postOwnerId, onClose }) {
             </button>
           </div>
         </form>
+
+        {/* Report Modal */}
+        {reportTarget && (
+          <ReportModal
+            isOpen={!!reportTarget}
+            onClose={() => setReportTarget(null)}
+            contentType="comment"
+            contentId={reportTarget.commentId}
+            reportedUserId={reportTarget.userId}
+          />
+        )}
       </div>
     </div>
   );

@@ -4,6 +4,9 @@ import { linkifyAll } from '@/app/utils/linkify';
 import { Dialog, DialogPanel } from '@headlessui/react';
 import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { getFirstPreviewableUrl, fetchLinkPreview } from '../../../lib/utils/linkPreview';
+import ContentWarningOverlay from './ContentWarningOverlay';
+import LinkPreviewCard from './LinkPreviewCard';
 
 // Detect if URL is a video based on extension or Firebase Storage path
 const isVideoUrl = (url) => {
@@ -278,12 +281,37 @@ export default function PostContent({
   mediaUrls = [],
   optimizedMediaUrls = [],
   isProcessing = false,
+  contentWarning = null,
 }) {
   const [expanded, setExpanded] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [linkPreview, setLinkPreview] = useState(null);
 
   const text = content || 'This is the post content.';
+
+  // Fetch link preview for first previewable URL
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadPreview = async () => {
+      const previewUrl = getFirstPreviewableUrl(content);
+      if (!previewUrl) {
+        setLinkPreview(null);
+        return;
+      }
+
+      const preview = await fetchLinkPreview(previewUrl);
+      if (!cancelled) {
+        setLinkPreview(preview);
+      }
+    };
+
+    loadPreview();
+    return () => {
+      cancelled = true;
+    };
+  }, [content]);
   const shouldClamp = useMemo(() => (text?.length || 0) > 300, [text]);
 
   // Separate images and videos
@@ -323,8 +351,9 @@ export default function PostContent({
   const goNext = () => setLightboxIndex((i) => (i + 1) % images.length);
   const goPrev = () => setLightboxIndex((i) => (i - 1 + images.length) % images.length);
 
-  return (
-    <div className="mb-3">
+  // Main content that may be wrapped with content warning
+  const mainContent = (
+    <>
       {/* Text content */}
       {text && (
         <>
@@ -487,6 +516,22 @@ export default function PostContent({
             />
           ))}
         </div>
+      )}
+
+      {/* Link preview */}
+      {linkPreview && <LinkPreviewCard preview={linkPreview} />}
+    </>
+  );
+
+  return (
+    <div className="mb-3">
+      {/* Wrap with content warning overlay if needed */}
+      {contentWarning ? (
+        <ContentWarningOverlay warning={contentWarning}>
+          {mainContent}
+        </ContentWarningOverlay>
+      ) : (
+        mainContent
       )}
 
       {/* Lightbox modal */}

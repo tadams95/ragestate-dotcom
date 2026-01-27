@@ -21,6 +21,7 @@ import Post from '../../components/Post';
 import { VerifiedBadge } from '../../components/PostHeader';
 import ProfileMusicPlayer from '../../components/ProfileMusicPlayer';
 import SocialLinksRow from '../../components/SocialLinksRow';
+import BlockMuteMenu from '../../components/BlockMuteMenu';
 
 export default function ProfilePage({ params }) {
   const router = useRouter();
@@ -254,11 +255,16 @@ export default function ProfilePage({ params }) {
               )}
               {/* Social Links */}
               <SocialLinksRow socialLinks={profile.socialLinks} className="mt-4" />
-              {/* {!isOwnProfile && (
-                <div className="mt-4">
-                  <Followbutton targetUserId={resolvedUid} onChange={refreshCounts} />
+              {/* Block/Mute menu for other users' profiles */}
+              {currentUser?.uid && resolvedUid && currentUser.uid !== resolvedUid && (
+                <div className="mt-4 flex items-center gap-2">
+                  <BlockMuteMenu
+                    targetUserId={resolvedUid}
+                    targetUsername={profile.usernameLower}
+                  />
+                  <span className="text-xs text-[var(--text-tertiary)]">More options</span>
                 </div>
-              )} */}
+              )}
             </div>
 
             {/* Profile Music Player - supports multiple platforms */}

@@ -4,7 +4,7 @@
 // Basic notification creation triggers (Phase 1)
 // Creates in-app notification docs; push sending handled later.
 
-const { onDocumentCreated } = require('firebase-functions/v2/firestore');
+const { onDocumentCreated, onDocumentDeleted } = require('firebase-functions/v2/firestore');
 const { onDocumentWritten } = require('firebase-functions/v2/firestore');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
@@ -297,6 +297,27 @@ exports.onRepostCreateNotify = onDocumentCreated('postReposts/{repostId}', async
     });
   } catch (err) {
     logger.error('onRepostCreateNotify failed', { err });
+  }
+  return null;
+});
+
+// --- postReactions onCreate -> post owner gets post_reacted ---
+exports.onReactionCreateNotify = onDocumentCreated('postReactions/{reactionId}', async (event) => {
+  try {
+    const reaction = event.data?.data() || {};
+    const { postId, userId: actorId, postOwnerId, emoji } = reaction;
+    if (!postId || !postOwnerId) return null;
+    await createNotification({
+      uid: postOwnerId,
+      type: 'post_reacted',
+      title: 'New reaction',
+      body: emoji ? `Someone reacted ${emoji} to your post` : 'Someone reacted to your post',
+      data: { postId, actorId: actorId || null, emoji: emoji || null },
+      link: `/post/${postId}`,
+      deepLink: `ragestate://post/${postId}`,
+    });
+  } catch (err) {
+    logger.error('onReactionCreateNotify failed', { err });
   }
   return null;
 });
@@ -738,6 +759,7 @@ exports.onNotificationPrefsWrittenSanitize = onDocumentWritten(
         'new_follower',
         'new_post_from_follow',
         'post_reposted',
+        'post_reacted',
         'marketing',
         // add future types here as they are introduced
       ]);
@@ -891,4 +913,150 @@ exports.testSendPush = onCall(async (request) => {
     logger.error('testSendPush failed', { uid, err });
     return { success: false, error: err.message || 'FCM send failed' };
   }
+});
+
+// --- contentReports onCreate -> notify all admins ---
+exports.onReportCreateNotifyAdmins = onDocumentCreated('contentReports/{reportId}', async (event) => {
+  try {
+    const report = event.data?.data() || {};
+    const { reporterId, contentType, contentId, reason } = report;
+    const reportId = event.params.reportId;
+
+    if (!reporterId || !contentType || !contentId) {
+      logger.warn('onReportCreateNotifyAdmins: missing required fields', { reportId });
+      return null;
+    }
+
+    // Get all admin users from adminUsers collection
+    const adminUsersSnap = await db.collection('adminUsers').get();
+    if (adminUsersSnap.empty) {
+      logger.info('onReportCreateNotifyAdmins: no admin users found');
+      return null;
+    }
+
+    // Create notification for each admin
+    const adminUids = adminUsersSnap.docs.map((doc) => doc.id);
+    const reasonLabels = {
+      harassment: 'Harassment',
+      spam: 'Spam',
+      inappropriate: 'Inappropriate content',
+      scam: 'Scam',
+      other: 'Other',
+    };
+    const reasonLabel = reasonLabels[reason] || reason || 'Unknown';
+    const contentTypeLabels = {
+      post: 'post',
+      comment: 'comment',
+      profile: 'profile',
+      chat: 'chat message',
+    };
+    const contentTypeLabel = contentTypeLabels[contentType] || contentType;
+
+    await Promise.all(
+      adminUids.map((adminUid) =>
+        createNotification({
+          uid: adminUid,
+          type: 'content_reported',
+          title: 'New content report',
+          body: `A ${contentTypeLabel} was reported for: ${reasonLabel}`,
+          data: {
+            reportId,
+            contentType,
+            contentId,
+            reason,
+            reporterId,
+          },
+          link: '/admin?tab=reports',
+          deepLink: 'ragestate://admin/reports',
+        }),
+      ),
+    );
+
+    logger.info('onReportCreateNotifyAdmins: notified admins', {
+      reportId,
+      adminCount: adminUids.length,
+    });
+  } catch (err) {
+    logger.error('onReportCreateNotifyAdmins failed', { err, reportId: event.params.reportId });
+  }
+  return null;
+});
+
+// --- blocks onCreate -> create reverse block for mutual invisibility ---
+exports.onBlockCreateMutualInvisibility = onDocumentCreated('blocks/{blockId}', async (event) => {
+  try {
+    const block = event.data?.data() || {};
+    const { blockerId, blockedId, createdAt } = block;
+    const blockId = event.params.blockId;
+
+    if (!blockerId || !blockedId) {
+      logger.warn('onBlockCreateMutualInvisibility: missing required fields', { blockId });
+      return null;
+    }
+
+    // Create a "blockedBy" document so the blocked user's queries can also exclude the blocker
+    // This enables mutual invisibility: blocker can't see blocked's posts AND blocked can't see blocker's posts
+    const blockedByDocId = `${blockedId}_${blockerId}`;
+    const blockedByRef = db.collection('blockedBy').doc(blockedByDocId);
+
+    // Check if already exists (idempotency)
+    const existingDoc = await blockedByRef.get();
+    if (existingDoc.exists) {
+      logger.info('onBlockCreateMutualInvisibility: blockedBy doc already exists', {
+        blockedByDocId,
+      });
+      return null;
+    }
+
+    await blockedByRef.set({
+      userId: blockedId, // The user who is blocked
+      blockedByUserId: blockerId, // The user who blocked them
+      sourceBlockId: blockId, // Reference to the original block
+      createdAt: createdAt || admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    logger.info('onBlockCreateMutualInvisibility: created blockedBy doc', {
+      blockId,
+      blockedByDocId,
+    });
+  } catch (err) {
+    logger.error('onBlockCreateMutualInvisibility failed', { err, blockId: event.params.blockId });
+  }
+  return null;
+});
+
+// --- blocks onDelete -> remove corresponding blockedBy document ---
+exports.onBlockDeleteCleanup = onDocumentDeleted('blocks/{blockId}', async (event) => {
+  try {
+    const block = event.data?.data() || {};
+    const { blockerId, blockedId } = block;
+    const blockId = event.params.blockId;
+
+    if (!blockerId || !blockedId) {
+      logger.warn('onBlockDeleteCleanup: missing required fields', { blockId });
+      return null;
+    }
+
+    // Delete the corresponding blockedBy document
+    const blockedByDocId = `${blockedId}_${blockerId}`;
+    const blockedByRef = db.collection('blockedBy').doc(blockedByDocId);
+
+    const existingDoc = await blockedByRef.get();
+    if (!existingDoc.exists) {
+      logger.info('onBlockDeleteCleanup: blockedBy doc not found (already deleted)', {
+        blockedByDocId,
+      });
+      return null;
+    }
+
+    await blockedByRef.delete();
+
+    logger.info('onBlockDeleteCleanup: deleted blockedBy doc', {
+      blockId,
+      blockedByDocId,
+    });
+  } catch (err) {
+    logger.error('onBlockDeleteCleanup failed', { err, blockId: event.params.blockId });
+  }
+  return null;
 });

@@ -1,15 +1,17 @@
 'use client';
 import { track } from '@/app/utils/metrics';
 import { formatDate } from '@/utils/formatters';
-import { deleteDoc, doc, getDoc, onSnapshot, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, serverTimestamp, updateDoc } from 'firebase/firestore';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../../firebase/context/FirebaseContext';
 import { db } from '../../../firebase/firebase';
+import { softDelete } from '../../../lib/firebase/softDelete';
 import CommentsSheet from './CommentsSheet';
 import EditPostModal from './EditPostModal';
 import PostActions from './PostActions';
 import PostContent from './PostContent';
+import ReactionBar from './ReactionBar';
 import PostHeader, { VerifiedBadge } from './PostHeader';
 
 // Embedded card for displaying the original post in a repost
@@ -246,9 +248,9 @@ export default function Post({ postData, hideFollow = false }) {
 
   const onDelete = async () => {
     if (!postData?.id || !isAuthor) return;
-    if (!confirm('Delete this post? This cannot be undone.')) return;
+    if (!confirm('Delete this post?')) return;
     try {
-      await deleteDoc(doc(db, 'posts', postData.id));
+      await softDelete('posts', postData.id, currentUser.uid);
       try {
         track('post_delete', { postId: postData.id });
       } catch {}
@@ -334,6 +336,7 @@ export default function Post({ postData, hideFollow = false }) {
                 liveData?.optimizedMediaUrls ?? postData?.optimizedMediaUrls ?? []
               }
               isProcessing={liveData?.isProcessing ?? postData?.isProcessing ?? false}
+              contentWarning={liveData?.contentWarning ?? postData?.contentWarning ?? null}
             />
           )}
           {/* Embedded original post */}
@@ -348,7 +351,13 @@ export default function Post({ postData, hideFollow = false }) {
           mediaUrls={liveData?.mediaUrls ?? postData?.mediaUrls ?? []}
           optimizedMediaUrls={liveData?.optimizedMediaUrls ?? postData?.optimizedMediaUrls ?? []}
           isProcessing={liveData?.isProcessing ?? postData?.isProcessing ?? false}
+          contentWarning={liveData?.contentWarning ?? postData?.contentWarning ?? null}
         />
+      )}
+
+      {/* Reaction bar */}
+      {postData?.id && (
+        <ReactionBar postId={postData.id} postOwnerId={postData?.userId} />
       )}
 
       <PostActions

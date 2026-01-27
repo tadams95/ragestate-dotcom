@@ -2,6 +2,7 @@
 
 import { track } from '@/app/utils/metrics';
 import { Dialog, DialogPanel } from '@headlessui/react';
+import { EyeSlashIcon } from '@heroicons/react/24/outline';
 import { collection, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -16,6 +17,7 @@ import MentionAutocomplete from './MentionAutocomplete';
 const DRAFT_KEY = 'postComposer.draft';
 
 // Video compression constants
+const MAX_CHARS = 2000;
 const MAX_VIDEO_DURATION = 60; // seconds
 const MAX_VIDEO_WIDTH = 1080; // max input resolution allowed
 const TARGET_WIDTH = 720; // compressed output width
@@ -172,6 +174,8 @@ export default function PostComposer() {
   const [compressionProgress, setCompressionProgress] = useState(0); // 0-100
   const [isCompressing, setIsCompressing] = useState(false);
   const [quotedPost, setQuotedPost] = useState(null);
+  const [contentWarning, setContentWarning] = useState('');
+  const [showContentWarningInput, setShowContentWarningInput] = useState(false);
   const saveTimerRef = useRef(null);
 
   // Mention autocomplete state
@@ -209,7 +213,7 @@ export default function PostComposer() {
   // Load saved draft (don't auto-apply; offer recovery)
   useEffect(() => {
     try {
-      const saved = sessionStorage.getItem(DRAFT_KEY);
+      const saved = localStorage.getItem(DRAFT_KEY);
       if (saved) setSavedDraft(saved);
     } catch {}
   }, []);
@@ -221,12 +225,12 @@ export default function PostComposer() {
       const dirty = content.trim().length > 0;
       if (!dirty) {
         // If cleared, also clear storage
-        sessionStorage.removeItem(DRAFT_KEY);
+        localStorage.removeItem(DRAFT_KEY);
         return;
       }
       saveTimerRef.current = setTimeout(() => {
         try {
-          sessionStorage.setItem(DRAFT_KEY, content);
+          localStorage.setItem(DRAFT_KEY, content);
           setSavedDraft(content);
         } catch {}
       }, 3000);
@@ -250,7 +254,8 @@ export default function PostComposer() {
   const canSubmit = useMemo(() => {
     const hasText = content.trim().length >= 2;
     const hasMedia = !!file;
-    return (hasText || hasMedia) && !submitting && !isCompressing;
+    const withinLimit = content.length <= MAX_CHARS;
+    return (hasText || hasMedia) && withinLimit && !submitting && !isCompressing;
   }, [content, file, submitting, isCompressing]);
 
   // Process video: validate metadata and optionally compress
@@ -494,6 +499,7 @@ export default function PostComposer() {
         likeCount: 0,
         commentCount: 0,
         repostCount: 0,
+        contentWarning: contentWarning.trim() || null,
       };
       if (mediaUrls.length) payload.mediaUrls = mediaUrls;
 
@@ -565,10 +571,12 @@ export default function PostComposer() {
       setQuotedPost(null);
       setMediaType(null);
       setIsPublic(true);
+      setContentWarning('');
+      setShowContentWarningInput(false);
       setSavedDraft(''); // Clear draft state so "We found a saved draft" doesn't show
       setOpen(false); // Close the modal
       try {
-        sessionStorage.removeItem(DRAFT_KEY);
+        localStorage.removeItem(DRAFT_KEY);
       } catch {}
     } catch (err) {
       console.error('Failed to create post:', err);
@@ -622,7 +630,7 @@ export default function PostComposer() {
                     className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                     onClick={() => {
                       try {
-                        sessionStorage.removeItem(DRAFT_KEY);
+                        localStorage.removeItem(DRAFT_KEY);
                       } catch {}
                       setSavedDraft('');
                     }}
@@ -755,6 +763,31 @@ export default function PostComposer() {
                   {error}
                 </p>
               )}
+              {/* Content Warning Input */}
+              {showContentWarningInput && (
+                <div className="mt-3 flex items-center gap-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-2">
+                  <EyeSlashIcon className="h-5 w-5 shrink-0 text-[var(--text-tertiary)]" />
+                  <input
+                    type="text"
+                    value={contentWarning}
+                    onChange={(e) => setContentWarning(e.target.value)}
+                    placeholder="Add a content warning (e.g., Spoilers, Sensitive content)"
+                    className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none"
+                    maxLength={100}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setContentWarning('');
+                      setShowContentWarningInput(false);
+                    }}
+                    className="text-xs text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
+
               <div className="mt-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <label
@@ -784,6 +817,19 @@ export default function PostComposer() {
                       </svg>
                     </span>
                   </label>
+                  {/* Content Warning Toggle */}
+                  <button
+                    type="button"
+                    onClick={() => setShowContentWarningInput(!showContentWarningInput)}
+                    className={`inline-flex h-11 items-center justify-center rounded-lg border p-2.5 transition-colors ${
+                      showContentWarningInput || contentWarning
+                        ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
+                        : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-elev-2)] hover:text-[var(--text-primary)]'
+                    }`}
+                    title="Add content warning"
+                  >
+                    <EyeSlashIcon className="h-5 w-5" />
+                  </button>
                   {/* Privacy Toggle - Segmented Button */}
                   <div className="flex h-11 items-center rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-1">
                     <button
@@ -814,17 +860,30 @@ export default function PostComposer() {
                     </button>
                   </div>
                 </div>
-                <button
-                  type="submit"
-                  disabled={!canSubmit}
-                  className={`h-11 rounded-lg px-4 py-2.5 font-semibold active:opacity-80 ${
-                    canSubmit
-                      ? 'bg-[#ff1f42] text-white hover:bg-[#ff415f]'
-                      : 'cursor-not-allowed bg-[var(--bg-elev-2)] text-[var(--text-tertiary)]'
-                  }`}
-                >
-                  {submitting ? 'Posting…' : 'Post'}
-                </button>
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`text-sm tabular-nums ${
+                      content.length > MAX_CHARS
+                        ? 'text-[var(--danger)]'
+                        : content.length > MAX_CHARS * 0.9
+                          ? 'text-[var(--warning)]'
+                          : 'text-[var(--text-tertiary)]'
+                    }`}
+                  >
+                    {content.length}/{MAX_CHARS}
+                  </span>
+                  <button
+                    type="submit"
+                    disabled={!canSubmit}
+                    className={`h-11 rounded-lg px-4 py-2.5 font-semibold active:opacity-80 ${
+                      canSubmit
+                        ? 'bg-[#ff1f42] text-white hover:bg-[#ff415f]'
+                        : 'cursor-not-allowed bg-[var(--bg-elev-2)] text-[var(--text-tertiary)]'
+                    }`}
+                  >
+                    {submitting ? 'Posting…' : 'Post'}
+                  </button>
+                </div>
               </div>
             </form>
           </DialogPanel>

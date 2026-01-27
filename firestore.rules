@@ -324,6 +324,65 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
+    // Feed: postReactions (emoji reactions on posts)
+    match /postReactions/{reactionId} {
+      allow read: if true;
+      // Create: auth user can react; validate ownership and required fields
+      // Note: serverTimestamp() is a sentinel; use request.time comparison
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && isString(request.resource.data.postId)
+        && isString(request.resource.data.emoji)
+        && request.resource.data.createdAt == request.time;
+      // Update: immutable after creation
+      allow update: if false;
+      // Delete: only the user who created the reaction
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // Relationships: blocks (user blocking another user)
+    match /blocks/{blockId} {
+      // Read: users can read their own blocks (either as blocker or blocked)
+      allow read: if isAuthenticated() && (
+        resource.data.blockerId == request.auth.uid ||
+        resource.data.blockedId == request.auth.uid
+      );
+      // Create: auth user can block; must be the blocker, cannot block self
+      allow create: if isAuthenticated()
+        && request.resource.data.blockerId == request.auth.uid
+        && isString(request.resource.data.blockedId)
+        && request.resource.data.blockerId != request.resource.data.blockedId
+        && request.resource.data.createdAt == request.time;
+      // Update: immutable after creation
+      allow update: if false;
+      // Delete: only the blocker can remove their block
+      allow delete: if isAuthenticated() && resource.data.blockerId == request.auth.uid;
+    }
+
+    // Relationships: mutes (user muting another user)
+    match /mutes/{muteId} {
+      // Read: only the muter can read their mutes
+      allow read: if isAuthenticated() && resource.data.muterId == request.auth.uid;
+      // Create: auth user can mute; must be the muter, cannot mute self
+      allow create: if isAuthenticated()
+        && request.resource.data.muterId == request.auth.uid
+        && isString(request.resource.data.mutedId)
+        && request.resource.data.muterId != request.resource.data.mutedId
+        && request.resource.data.createdAt == request.time;
+      // Update: immutable after creation
+      allow update: if false;
+      // Delete: only the muter can remove their mute
+      allow delete: if isAuthenticated() && resource.data.muterId == request.auth.uid;
+    }
+
+    // Relationships: blockedBy (reverse index for mutual invisibility, populated by Cloud Function)
+    match /blockedBy/{blockedById} {
+      // Read: users can only read their own blockedBy docs (where they are the userId)
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      // Write: only via Cloud Function (backend)
+      allow create, update, delete: if false;
+    }
+
     // Feed: userFeeds (personalized list) — client read-only; backend writes
     match /userFeeds/{userId} {
       allow read: if isAuthenticated() && request.auth.uid == userId;
@@ -445,6 +504,31 @@ service cloud.firestore {
         && request.resource.data.subscribed == true;
       // Only admins can read the list or modify entries
       allow read, update, delete: if isAdmin();
+    }
+
+    // Content Reports: users can submit reports, admins can read/manage
+    match /contentReports/{reportId} {
+      // Read: only admins can view reports
+      allow read: if isAdmin();
+      // Create: authenticated users can submit reports
+      allow create: if isAuthenticated()
+        && request.resource.data.reporterId == request.auth.uid
+        && isString(request.resource.data.contentType)
+        && isString(request.resource.data.contentId)
+        && isString(request.resource.data.reason)
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time
+        // Optional fields
+        && (!request.resource.data.keys().hasAny(['reportedUserId']) || request.resource.data.reportedUserId == null || isString(request.resource.data.reportedUserId))
+        && (!request.resource.data.keys().hasAny(['description']) || request.resource.data.description == null || isMaxLen500(request.resource.data.description))
+        // Must have null admin fields on create
+        && request.resource.data.reviewedBy == null
+        && request.resource.data.reviewedAt == null
+        && request.resource.data.action == null;
+      // Update: only admins can update (review/resolve)
+      allow update: if isAdmin();
+      // Delete: only admins
+      allow delete: if isAdmin();
     }
 
     // Default deny

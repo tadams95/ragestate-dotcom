@@ -4,6 +4,7 @@ import ArrowsRightLeftIcon from '@heroicons/react/24/outline/ArrowsRightLeftIcon
 import ClipboardDocumentListIcon from '@heroicons/react/24/outline/ClipboardDocumentListIcon';
 import Cog6ToothIcon from '@heroicons/react/24/outline/Cog6ToothIcon';
 import EnvelopeIcon from '@heroicons/react/24/outline/EnvelopeIcon';
+import FlagIcon from '@heroicons/react/24/outline/FlagIcon';
 import ShoppingBagIcon from '@heroicons/react/24/outline/ShoppingBagIcon';
 import TicketIcon from '@heroicons/react/24/outline/TicketIcon';
 import UsersIcon from '@heroicons/react/24/outline/UsersIcon';
@@ -60,6 +61,13 @@ const CampaignsTab = dynamic(() => import('../components/admin/CampaignsTab'), {
   ),
 });
 const PromoCodesTab = dynamic(() => import('../components/admin/PromoCodesTab'), {
+  loading: () => (
+    <div className="flex h-32 items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-red-500"></div>
+    </div>
+  ),
+});
+const ReportsTab = dynamic(() => import('../components/admin/ReportsTab'), {
   loading: () => (
     <div className="flex h-32 items-center justify-center">
       <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-red-500"></div>
@@ -231,6 +239,8 @@ export default function AdminPage() {
         return <CampaignsTab />;
       case 'promo-codes':
         return <PromoCodesTab />;
+      case 'reports':
+        return <ReportsTab />;
       default:
         return null;
     }
@@ -342,6 +352,17 @@ export default function AdminPage() {
                     >
                       <Cog6ToothIcon className="mr-2 h-5 w-5" aria-hidden="true" />
                       Settings
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('reports')}
+                      className={`${
+                        activeTab === 'reports'
+                          ? 'border-red-700 text-red-500'
+                          : 'border-transparent text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]'
+                      } flex flex-shrink-0 items-center whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium`}
+                    >
+                      <FlagIcon className="mr-2 h-5 w-5" aria-hidden="true" />
+                      Reports
                     </button>
                   </nav>
                 </div>

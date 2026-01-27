@@ -2,8 +2,11 @@
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useCallback, useState } from 'react';
 import { useAuth } from '../../../firebase/context/FirebaseContext';
 import Followbutton from './Followbutton';
+import BlockMuteMenu from './BlockMuteMenu';
+import ReportModal from './ReportModal';
 
 // Red checkmark badge for verified users (RAGESTATE brand)
 function VerifiedBadge() {
@@ -43,6 +46,11 @@ export default function PostHeader({
   onDelete,
 }) {
   const { currentUser } = useAuth();
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+
+  const handleOpenReport = useCallback(() => {
+    setReportModalOpen(true);
+  }, []);
   const displayName =
     author ||
     (usernameLower
@@ -146,9 +154,19 @@ export default function PostHeader({
           )}
         </div>
       </div>
-      {!hideFollow && authorUserId && currentUser?.uid !== authorUserId && (
-        <Followbutton targetUserId={authorUserId} variant="compact" />
-      )}
+      <div className="flex items-center gap-2">
+        {!hideFollow && authorUserId && currentUser?.uid !== authorUserId && (
+          <Followbutton targetUserId={authorUserId} variant="compact" />
+        )}
+        {/* Block/Mute menu for non-author posts */}
+        {currentUser?.uid && authorUserId && currentUser.uid !== authorUserId && (
+          <BlockMuteMenu
+            targetUserId={authorUserId}
+            targetUsername={usernameLower}
+            onReport={handleOpenReport}
+          />
+        )}
+      </div>
       {isAuthor && (
         <Menu as="div" className="relative inline-block text-left">
           <MenuButton
@@ -190,6 +208,17 @@ export default function PostHeader({
             </MenuItem>
           </MenuItems>
         </Menu>
+      )}
+
+      {/* Report Modal */}
+      {postId && authorUserId && (
+        <ReportModal
+          isOpen={reportModalOpen}
+          onClose={() => setReportModalOpen(false)}
+          contentType="post"
+          contentId={postId}
+          reportedUserId={authorUserId}
+        />
       )}
     </div>
   );

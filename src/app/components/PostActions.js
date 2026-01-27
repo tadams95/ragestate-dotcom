@@ -1,7 +1,7 @@
 'use client';
 
 import { track } from '@/app/utils/metrics';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../../firebase/context/FirebaseContext';
 import {
   hasLikedPost,
@@ -11,6 +11,11 @@ import {
   createRepost,
   undoRepost,
 } from '../../../lib/firebase/postService';
+import {
+  toggleReaction,
+  getUserReactionsForPost,
+} from '../../../lib/firebase/reactionService';
+import ReactionPicker from './ReactionPicker';
 
 export default function PostActions({
   postId,
@@ -28,11 +33,27 @@ export default function PostActions({
   const [hasReposted, setHasReposted] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
   const [showRepostMenu, setShowRepostMenu] = useState(false);
-  const longPressRef = useRef(null);
   const longPressTimer = useRef(null);
-  const [reactions, setReactions] = useState({}); // {"👍": 12, "🔥": 3, "😂": 1}
+  const [userReactions, setUserReactions] = useState([]);
   const [likeAnimating, setLikeAnimating] = useState(false);
   const [floatingEmoji, setFloatingEmoji] = useState(null);
+
+  // Fetch user's reactions on mount
+  useEffect(() => {
+    if (!postId || !currentUser?.uid) return;
+
+    let cancelled = false;
+
+    getUserReactionsForPost(postId, currentUser.uid)
+      .then((emojis) => {
+        if (!cancelled) setUserReactions(emojis);
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [postId, currentUser?.uid]);
 
   const checkInitialLike = useCallback(async () => {
     if (!postId || !currentUser?.uid) return false;
@@ -119,19 +140,38 @@ export default function PostActions({
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
   };
 
-  const addReaction = (emoji) => {
-    // Optimistic local cluster; wiring to backend can be added later
-    setReactions((prev) => ({ ...prev, [emoji]: (prev[emoji] || 0) + 1 }));
-    setFloatingEmoji(emoji);
-    setTimeout(() => setFloatingEmoji(null), 600);
-    setShowReactions(false);
-  };
+  const addReaction = useCallback(
+    async (emoji) => {
+      if (!currentUser) {
+        alert('Please sign in to react.');
+        return;
+      }
 
-  const topReactions = useMemo(() => {
-    const entries = Object.entries(reactions);
-    entries.sort((a, b) => (b[1] || 0) - (a[1] || 0));
-    return entries.slice(0, 3);
-  }, [reactions]);
+      if (!postId) return;
+
+      const wasReacted = userReactions.includes(emoji);
+
+      // Optimistic update
+      setUserReactions((prev) =>
+        wasReacted ? prev.filter((e) => e !== emoji) : [...prev, emoji]
+      );
+      setFloatingEmoji(emoji);
+      setTimeout(() => setFloatingEmoji(null), 600);
+      setShowReactions(false);
+
+      try {
+        await toggleReaction(postId, currentUser.uid, emoji, postData?.userId);
+        track('reaction_toggle', { postId, emoji, added: !wasReacted });
+      } catch (error) {
+        console.error('Failed to toggle reaction:', error);
+        // Revert optimistic update
+        setUserReactions((prev) =>
+          wasReacted ? [...prev, emoji] : prev.filter((e) => e !== emoji)
+        );
+      }
+    },
+    [currentUser, postId, postData?.userId, userReactions]
+  );
 
   const formatCount = (n) => {
     if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
@@ -334,22 +374,14 @@ export default function PostActions({
   };
 
   return (
-    <div className="flex items-center space-x-4 text-[var(--text-secondary)]">
-      {/* Reaction cluster */}
-      {topReactions.length > 0 && (
-        <div
-          className="flex items-center gap-1 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] px-2 py-1 text-sm transition-colors duration-200"
-          aria-label={topReactions.map(([e, c]) => `${e} ${c}`).join(', ')}
-        >
-          {topReactions.map(([e, c]) => (
-            <span key={e} className="inline-flex items-center gap-0.5">
-              <span aria-hidden>{e}</span>
-              <span className="tabular-nums" aria-label={`${e} ${c}`}>
-                {formatCount(c)}
-              </span>
-            </span>
-          ))}
-        </div>
+    <div className="relative flex items-center space-x-4 text-[var(--text-secondary)]">
+      {/* Reaction picker */}
+      {showReactions && (
+        <ReactionPicker
+          onSelect={addReaction}
+          onClose={() => setShowReactions(false)}
+          userReactions={userReactions}
+        />
       )}
       <button
         className={`flex h-11 items-center space-x-1.5 rounded px-2 transition-all duration-150 hover:text-[var(--text-primary)] active:scale-95 ${
@@ -436,28 +468,6 @@ export default function PostActions({
       >
         <span className="flex items-center justify-center">{shareIcon}</span>
       </button>
-
-      {/* Reaction bar overlay */}
-      {showReactions && (
-        <div
-          ref={longPressRef}
-          className="absolute ml-2 mt-[-48px] flex items-center gap-2 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] px-2 py-1 shadow-lg transition-colors duration-200"
-          role="dialog"
-          aria-label="Add a reaction"
-          onMouseLeave={() => setShowReactions(false)}
-        >
-          {['👍', '🔥', '😂', '👏', '🎉', '❤️'].map((e) => (
-            <button
-              key={e}
-              className="text-lg transition-transform duration-150 hover:scale-125 active:scale-95"
-              onClick={() => addReaction(e)}
-              aria-label={`React ${e}`}
-            >
-              {e}
-            </button>
-          ))}
-        </div>
-      )}
 
       {/* Floating emoji animation */}
       {floatingEmoji && (
