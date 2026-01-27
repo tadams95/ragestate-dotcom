@@ -3,7 +3,8 @@ import { track } from '@/app/utils/metrics';
 import { formatDate } from '@/utils/formatters';
 import { doc, getDoc, onSnapshot, serverTimestamp, updateDoc } from 'firebase/firestore';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../../../firebase/context/FirebaseContext';
 import { db } from '../../../firebase/firebase';
 import { softDelete } from '../../../lib/firebase/softDelete';
@@ -131,6 +132,7 @@ export default function Post({ postData, hideFollow = false }) {
     content: 'This is a sample post.',
   };
 
+  const router = useRouter();
   const [showComments, setShowComments] = useState(false);
   const [liveData, setLiveData] = useState(null);
   const [editOpen, setEditOpen] = useState(false);
@@ -138,6 +140,36 @@ export default function Post({ postData, hideFollow = false }) {
   const [isVerified, setIsVerified] = useState(false);
   const [originalAuthorVerified, setOriginalAuthorVerified] = useState(false);
   const { currentUser } = useAuth();
+
+  // Handle click on post container to navigate to post detail
+  const handlePostClick = useCallback(
+    (e) => {
+      // Don't navigate if clicking on interactive elements
+      const interactiveElements = ['A', 'BUTTON', 'INPUT', 'TEXTAREA', 'SELECT', 'VIDEO'];
+      const target = e.target;
+
+      // Check if click target or any parent is an interactive element
+      let current = target;
+      while (current && current !== e.currentTarget) {
+        if (
+          interactiveElements.includes(current.tagName) ||
+          current.getAttribute('role') === 'button' ||
+          current.getAttribute('role') === 'menu' ||
+          current.getAttribute('role') === 'menuitem' ||
+          current.classList?.contains('no-post-click')
+        ) {
+          return; // Don't navigate, let the element handle its own click
+        }
+        current = current.parentElement;
+      }
+
+      // Navigate to post detail page
+      if (postData?.id) {
+        router.push(`/post/${postData.id}`);
+      }
+    },
+    [postData?.id, router]
+  );
 
   // Fetch author verification status from profile
   useEffect(() => {
@@ -261,7 +293,10 @@ export default function Post({ postData, hideFollow = false }) {
   };
 
   return (
-    <div className="mb-4 rounded-[14px] border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-4 shadow-[var(--shadow-card)] transition-all duration-200 hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-modal)] hover:bg-[var(--bg-elev-2)]">
+    <div
+      onClick={handlePostClick}
+      className="mb-4 cursor-pointer rounded-[14px] border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-4 shadow-[var(--shadow-card)] transition-all duration-200 hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-modal)] hover:bg-[var(--bg-elev-2)]"
+    >
       {/* Repost indicator */}
       {(liveData?.repostOf || postData?.repostOf) && (
         <div className="mb-2 flex items-center gap-1.5 text-xs text-[var(--text-tertiary)]">
