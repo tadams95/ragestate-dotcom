@@ -20,14 +20,14 @@ export default function PostDetailClient({ postId, initialPost }) {
   // Private post that user can't view
   if (!canView) {
     return (
-      <div className="isolate min-h-screen bg-black px-6 py-12 text-white sm:py-24 lg:px-8">
+      <div className="isolate min-h-screen bg-[var(--bg-root)] px-6 py-12 text-[var(--text-primary)] sm:py-24 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <div className="mb-4 text-4xl">🔒</div>
           <h1 className="mb-2 text-xl font-semibold">This post is private</h1>
-          <p className="mb-6 text-gray-400">Only the author can view this post.</p>
+          <p className="mb-6 text-[var(--text-secondary)]">Only the author can view this post.</p>
           <Link
             href="/feed"
-            className="inline-block rounded-lg bg-[#ff1f42] px-6 py-3 font-semibold text-white hover:bg-[#e6193b]"
+            className="inline-block rounded-lg bg-[var(--accent)] px-6 py-3 font-semibold text-white hover:opacity-90"
           >
             Back to Feed
           </Link>
@@ -58,12 +58,12 @@ export default function PostDetailClient({ postId, initialPost }) {
   };
 
   return (
-    <div className="isolate min-h-screen bg-black px-6 pb-12 pt-24 text-white sm:pb-24 sm:pt-32 lg:px-8">
+    <div className="isolate min-h-screen bg-[var(--bg-root)] px-6 pb-12 pt-24 text-[var(--text-primary)] sm:pb-24 sm:pt-32 lg:px-8">
       <div className="mx-auto max-w-2xl">
         {/* Back link */}
         <Link
           href="/feed"
-          className="group mb-6 inline-flex items-center gap-2 text-sm text-gray-400 transition-colors hover:text-white"
+          className="group mb-6 inline-flex items-center gap-2 text-sm text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-primary)]"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

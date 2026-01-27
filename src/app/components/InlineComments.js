@@ -265,25 +265,25 @@ export default function InlineComments({ postId, postOwnerId }) {
   }, [comments]);
 
   return (
-    <div className="mt-6 rounded-[14px] border border-white/10 bg-[#0d0d0f] p-4">
-      <h3 className="mb-4 text-base font-semibold text-white">Comments</h3>
+    <div className="mt-6 rounded-[14px] border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-4">
+      <h3 className="mb-4 text-base font-semibold text-[var(--text-primary)]">Comments</h3>
 
       {/* Comments list */}
       <div ref={listRef} className="space-y-4" role="list">
         {comments.length === 0 && !loading && (
           <div className="flex flex-col items-center justify-center py-8 text-center">
-            <p className="text-sm text-gray-400">No comments yet.</p>
-            <p className="text-xs text-gray-500">Be the first to start the conversation.</p>
+            <p className="text-sm text-[var(--text-secondary)]">No comments yet.</p>
+            <p className="text-xs text-[var(--text-tertiary)]">Be the first to start the conversation.</p>
           </div>
         )}
         {comments.length === 0 && loading && (
           <div className="space-y-3">
             {Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="flex items-start space-x-3">
-                <div className="h-8 w-8 animate-pulse rounded-md bg-white/10" />
+                <div className="h-8 w-8 animate-pulse rounded-md bg-[var(--bg-elev-2)]" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-3 w-32 animate-pulse rounded bg-white/10" />
-                  <div className="h-3 w-56 animate-pulse rounded bg-white/5" />
+                  <div className="h-3 w-32 animate-pulse rounded bg-[var(--bg-elev-2)]" />
+                  <div className="h-3 w-56 animate-pulse rounded bg-[var(--bg-elev-2)]" />
                 </div>
               </div>
             ))}
@@ -300,7 +300,7 @@ export default function InlineComments({ postId, postOwnerId }) {
             <div key={c.id} className="space-y-3">
               {/* Top-level comment */}
               <div className="group flex items-start space-x-3" role="listitem">
-                <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-md bg-white/10">
+                <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-md bg-[var(--bg-elev-2)]">
                   {c.userProfilePicture ? (
                     <Link
                       href={c.usernameLower ? `/${c.usernameLower}` : `/profile/${c.userId || ''}`}
@@ -319,12 +319,12 @@ export default function InlineComments({ postId, postOwnerId }) {
                       />
                     </Link>
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-white/5">
+                    <div className="flex h-full w-full items-center justify-center bg-[var(--bg-elev-2)]">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 24 24"
                         fill="currentColor"
-                        className="h-5 w-5 text-gray-400"
+                        className="h-5 w-5 text-[var(--text-tertiary)]"
                       >
                         <path
                           fillRule="evenodd"
@@ -341,7 +341,7 @@ export default function InlineComments({ postId, postOwnerId }) {
                       <Link
                         href={c.usernameLower ? `/${c.usernameLower}` : `/profile/${c.userId}`}
                         prefetch={false}
-                        className="text-sm font-semibold text-white hover:underline"
+                        className="text-sm font-semibold text-[var(--text-primary)] hover:underline"
                       >
                         {c.userDisplayName ||
                           (c.usernameLower
@@ -351,22 +351,22 @@ export default function InlineComments({ postId, postOwnerId }) {
                               : `uid:${String(c.userId).slice(0, 8)}`)}
                       </Link>
                     ) : (
-                      <span className="text-sm font-semibold text-white">
+                      <span className="text-sm font-semibold text-[var(--text-primary)]">
                         {c.userDisplayName || 'Unknown user'}
                       </span>
                     )}
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-[var(--text-tertiary)]">
                       {formatDate(c.timestamp?.toDate ? c.timestamp.toDate() : c.timestamp)}
                     </span>
                   </div>
-                  <p className="mt-1 whitespace-pre-line break-words text-sm text-gray-200">
+                  <p className="mt-1 whitespace-pre-line break-words text-sm text-[var(--text-secondary)]">
                     {linkifyAll(c.content)}
                   </p>
                   {/* Reply & Like buttons */}
                   <div className="mt-1 flex items-center gap-4">
                     <button
                       onClick={() => handleReply(c)}
-                      className="text-xs text-gray-500 hover:text-gray-300"
+                      className="text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
                     >
                       ↩ Reply
                     </button>
@@ -374,8 +374,8 @@ export default function InlineComments({ postId, postOwnerId }) {
                       onClick={() => toggleLike(c)}
                       className={`flex items-center gap-1 text-xs transition-colors ${
                         likedCommentIds.has(c.id)
-                          ? 'text-red-500'
-                          : 'text-gray-500 hover:text-gray-300'
+                          ? 'text-[var(--accent)]'
+                          : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
                       }`}
                       aria-label={likedCommentIds.has(c.id) ? 'Unlike comment' : 'Like comment'}
                     >
@@ -412,7 +412,7 @@ export default function InlineComments({ postId, postOwnerId }) {
                 {(currentUser?.uid === c.userId || currentUser?.uid === postOwnerId) && (
                   <button
                     onClick={() => handleDeleteComment(c.id)}
-                    className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded text-gray-500 opacity-0 transition-opacity hover:bg-white/10 hover:text-red-400 group-hover:opacity-100"
+                    className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded text-[var(--text-tertiary)] opacity-0 transition-opacity hover:bg-[var(--bg-elev-2)] hover:text-[var(--danger)] group-hover:opacity-100"
                     title="Delete comment"
                     aria-label="Delete comment"
                   >
@@ -434,14 +434,14 @@ export default function InlineComments({ postId, postOwnerId }) {
 
               {/* Nested replies (indented) */}
               {replies.length > 0 && (
-                <div className="ml-6 space-y-3 border-l border-white/10 pl-4">
+                <div className="ml-6 space-y-3 border-l border-[var(--border-subtle)] pl-4">
                   {visibleReplies.map((reply) => (
                     <div
                       key={reply.id}
                       className="group flex items-start space-x-3"
                       role="listitem"
                     >
-                      <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-md bg-white/10">
+                      <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-md bg-[var(--bg-elev-2)]">
                         {reply.userProfilePicture ? (
                           <Link
                             href={
@@ -464,12 +464,12 @@ export default function InlineComments({ postId, postOwnerId }) {
                             />
                           </Link>
                         ) : (
-                          <div className="flex h-full w-full items-center justify-center bg-white/5">
+                          <div className="flex h-full w-full items-center justify-center bg-[var(--bg-elev-2)]">
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
                               viewBox="0 0 24 24"
                               fill="currentColor"
-                              className="h-4 w-4 text-gray-400"
+                              className="h-4 w-4 text-[var(--text-tertiary)]"
                             >
                               <path
                                 fillRule="evenodd"
@@ -490,7 +490,7 @@ export default function InlineComments({ postId, postOwnerId }) {
                                   : `/profile/${reply.userId}`
                               }
                               prefetch={false}
-                              className="text-sm font-semibold text-white hover:underline"
+                              className="text-sm font-semibold text-[var(--text-primary)] hover:underline"
                             >
                               {reply.userDisplayName ||
                                 (reply.usernameLower
@@ -500,25 +500,25 @@ export default function InlineComments({ postId, postOwnerId }) {
                                     : `uid:${String(reply.userId).slice(0, 8)}`)}
                             </Link>
                           ) : (
-                            <span className="text-sm font-semibold text-white">
+                            <span className="text-sm font-semibold text-[var(--text-primary)]">
                               {reply.userDisplayName || 'Unknown user'}
                             </span>
                           )}
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-[var(--text-tertiary)]">
                             {formatDate(
                               reply.timestamp?.toDate ? reply.timestamp.toDate() : reply.timestamp,
                             )}
                           </span>
                         </div>
-                        <p className="mt-1 whitespace-pre-line break-words text-sm text-gray-200">
+                        <p className="mt-1 whitespace-pre-line break-words text-sm text-[var(--text-secondary)]">
                           {linkifyAll(reply.content)}
                         </p>
                         <button
                           onClick={() => toggleLike(reply)}
                           className={`mt-1 flex items-center gap-1 text-xs transition-colors ${
                             likedCommentIds.has(reply.id)
-                              ? 'text-red-500'
-                              : 'text-gray-500 hover:text-gray-300'
+                              ? 'text-[var(--accent)]'
+                              : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
                           }`}
                           aria-label={likedCommentIds.has(reply.id) ? 'Unlike reply' : 'Like reply'}
                         >
@@ -554,7 +554,7 @@ export default function InlineComments({ postId, postOwnerId }) {
                       {(currentUser?.uid === reply.userId || currentUser?.uid === postOwnerId) && (
                         <button
                           onClick={() => handleDeleteComment(reply.id)}
-                          className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded text-gray-500 opacity-0 transition-opacity hover:bg-white/10 hover:text-red-400 group-hover:opacity-100"
+                          className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded text-[var(--text-tertiary)] opacity-0 transition-opacity hover:bg-[var(--bg-elev-2)] hover:text-[var(--danger)] group-hover:opacity-100"
                           title="Delete comment"
                           aria-label="Delete comment"
                         >
@@ -578,7 +578,7 @@ export default function InlineComments({ postId, postOwnerId }) {
                   {hasMoreReplies && (
                     <button
                       onClick={() => toggleThreadExpand(c.id)}
-                      className="text-xs text-gray-400 hover:text-gray-200"
+                      className="text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
                     >
                       {isExpanded
                         ? 'Hide replies'
@@ -592,10 +592,10 @@ export default function InlineComments({ postId, postOwnerId }) {
             </div>
           );
         })}
-        {loading && comments.length > 0 && <p className="text-sm text-gray-400">Loading…</p>}
+        {loading && comments.length > 0 && <p className="text-sm text-[var(--text-secondary)]">Loading…</p>}
         {!loading && hasMore && comments.length > 0 && (
           <button
-            className="text-sm text-gray-300 hover:text-white"
+            className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             onClick={fetchMore}
             type="button"
           >
@@ -607,20 +607,20 @@ export default function InlineComments({ postId, postOwnerId }) {
       {/* Comment input */}
       <form
         onSubmit={onSubmit}
-        className="mt-6 flex flex-col gap-2 border-t border-white/5 pb-2 pt-4"
+        className="mt-6 flex flex-col gap-2 border-t border-[var(--border-subtle)] pb-2 pt-4"
       >
         {/* Reply indicator */}
         {replyingTo && (
-          <div className="mb-2 flex items-center justify-between rounded bg-white/5 px-2 py-1 text-xs text-gray-400">
+          <div className="mb-2 flex items-center justify-between rounded bg-[var(--bg-elev-2)] px-2 py-1 text-xs text-[var(--text-tertiary)]">
             <span>
               Replying to{' '}
-              <span className="font-medium text-white">
+              <span className="font-medium text-[var(--text-primary)]">
                 {replyingTo.usernameLower
                   ? `@${replyingTo.usernameLower}`
                   : replyingTo.userDisplayName}
               </span>
             </span>
-            <button type="button" onClick={cancelReply} className="text-gray-500 hover:text-white">
+            <button type="button" onClick={cancelReply} className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">
               ✕
             </button>
           </div>
@@ -628,7 +628,7 @@ export default function InlineComments({ postId, postOwnerId }) {
         <div className="flex items-end gap-2">
           <textarea
             ref={textareaRef}
-            className="min-h-11 flex-1 resize-none rounded-lg border border-white/10 bg-[#16171a] p-3 text-sm text-white placeholder-gray-500 outline-none ring-0 transition-colors focus:border-[#ff1f42] focus:ring-1 focus:ring-[#ff1f42]"
+            className="min-h-11 flex-1 resize-none rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-3 text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none ring-0 transition-colors focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
             placeholder={
               currentUser
                 ? replyingTo
@@ -647,7 +647,7 @@ export default function InlineComments({ postId, postOwnerId }) {
           <button
             type="submit"
             disabled={!currentUser || newComment.trim().length === 0}
-            className="h-11 rounded-lg bg-[#ff1f42] px-4 py-2.5 text-sm font-semibold text-white active:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-11 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white active:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Send
           </button>

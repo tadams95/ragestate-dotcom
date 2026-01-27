@@ -378,7 +378,7 @@ export default function Feed({ forcePublic = false }) {
   }, [virtualItems, filteredPosts.length, loading, hasMore, fetchFeedPage]);
 
   if (authLoading) {
-    return <p className="text-center text-gray-400">Checking auth…</p>;
+    return <p className="text-center text-[var(--text-secondary)]">Checking auth…</p>;
   }
 
   // If not signed in, we'll still show public posts
@@ -395,9 +395,9 @@ export default function Feed({ forcePublic = false }) {
 
   if (filteredPosts.length === 0 && !hasMore) {
     return (
-      <div className="mx-auto max-w-2xl p-4 text-center text-gray-400">
+      <div className="mx-auto max-w-2xl p-4 text-center text-[var(--text-secondary)]">
         {!isOnline && (
-          <p className="mb-2 rounded border border-white/10 bg-white/5 p-3">
+          <p className="mb-2 rounded border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-3">
             You're offline. Showing cached content if available.
           </p>
         )}
@@ -485,7 +485,7 @@ export default function Feed({ forcePublic = false }) {
       )}
       {!isOnline && (
         <div className="sticky top-2 z-10 mb-2 flex justify-center">
-          <div className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-gray-300">
+          <div className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] px-3 py-1.5 text-xs text-[var(--text-secondary)]">
             Offline — actions may be delayed
           </div>
         </div>
@@ -526,7 +526,7 @@ export default function Feed({ forcePublic = false }) {
         </div>
       )}
       {!loading && !hasMore && filteredPosts.length > 0 && (
-        <p className="py-6 text-center text-sm text-gray-500">You&apos;ve reached the end 🎉</p>
+        <p className="py-6 text-center text-sm text-[var(--text-tertiary)]">You&apos;ve reached the end 🎉</p>
       )}
     </div>
   );

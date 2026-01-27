@@ -81,12 +81,12 @@ export default function Followbutton({ targetUserId, onChange, variant = 'defaul
   const classes = (() => {
     if (variant === 'compact') {
       return following
-        ? `${baseCompact} border border-white/20 text-gray-200 hover:bg-white/10`
-        : `${baseCompact} bg-[#ff1f42] hover:bg-[#ff415f] text-white`;
+        ? `${baseCompact} border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-elev-2)]`
+        : `${baseCompact} bg-[var(--accent)] hover:opacity-90 text-white`;
     }
     return following
-      ? `${baseDefault} border border-white/20 text-gray-200 hover:bg-white/10`
-      : `${baseDefault} bg-[#ff1f42] hover:bg-[#ff415f] text-white`;
+      ? `${baseDefault} border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-elev-2)]`
+      : `${baseDefault} bg-[var(--accent)] hover:opacity-90 text-white`;
   })();
 
   // Button text during save reflects the action being performed:
