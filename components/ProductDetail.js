@@ -44,8 +44,6 @@ export default function ProductDetails({ product, focusRestoreRef }) {
   }, [product]);
   // Avoid early return to keep hooks order stable; assume caller shows skeleton
 
-  console.log('Price Ya Heard: ', product);
-
   // Destructure necessary fields from product
   const {
     id,

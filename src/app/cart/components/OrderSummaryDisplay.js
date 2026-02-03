@@ -194,6 +194,7 @@ export default function OrderSummaryDisplay({
                 isLoading={isLoading} // Pass the general loading state
                 clientSecret={clientSecret}
                 hasPhysicalItems={hasPhysicalItems} // FIX: Pass for address validation
+                idToken={idToken} // FIX: Pass for API authentication
               />
             </Elements>
           </>

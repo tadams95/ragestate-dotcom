@@ -7,7 +7,49 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import ProductTile from '../../../components/ProductTile';
 import QuickViewModal from '../../../components/QuickViewModal';
-import { fetchShopifyProducts } from '../../../shopify/shopifyService';
+import { fetchShopifyProducts, clearProductCache } from '../../../shopify/shopifyService';
+
+// Expose debugging functions globally
+if (typeof window !== 'undefined') {
+  window.clearShopifyCache = () => {
+    clearProductCache();
+    // eslint-disable-next-line no-console
+    console.log('[Shop] Product cache cleared. Refresh the page to fetch fresh data.');
+  };
+
+  // Test if an image URL is accessible
+  window.testImageUrl = async (url) => {
+    try {
+      const response = await fetch(url, { method: 'HEAD' });
+      // eslint-disable-next-line no-console
+      console.log(`[Shop] Image URL test: ${url}`, {
+        status: response.status,
+        ok: response.ok,
+        contentType: response.headers.get('content-type'),
+      });
+      return response.ok;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(`[Shop] Image URL test failed: ${url}`, err.message);
+      return false;
+    }
+  };
+
+  // Test all product images (call after page loads)
+  window.testAllProductImages = async () => {
+    const products = await fetchShopifyProducts();
+    // eslint-disable-next-line no-console
+    console.log('[Shop] Testing all product images...');
+    for (const product of products) {
+      const urls = product?.images?.map((img) => img?.src || img?.transformedSrc || img?.url).filter(Boolean) || [];
+      for (const url of urls) {
+        await window.testImageUrl(url);
+      }
+    }
+    // eslint-disable-next-line no-console
+    console.log('[Shop] Image testing complete.');
+  };
+}
 
 // const AutoSliderBanner = dynamic(() => import('../../../components/AutoSliderBanner'), {
 //   ssr: false,
@@ -54,25 +96,44 @@ export default function ShopClient() {
       try {
         const fetchedProducts = await fetchShopifyProducts();
         if (isMounted) {
+          // Log all products and their image URLs for debugging
+          // eslint-disable-next-line no-console
+          console.log('[Shop] Fetched products:', fetchedProducts.length);
+
           const products = fetchedProducts.map((product) => {
+            // Products are now pre-serialized by shopifyService, so we can
+            // safely access properties without worrying about SDK Model getters
             const primaryImage =
               product?.images?.[0] ||
               product?.featuredImage ||
               product?.variants?.[0]?.image ||
               null;
 
-            const imageSrc = primaryImage?.src || primaryImage?.transformedSrc || null;
+            // Check multiple possible URL properties (SDK versions may differ)
+            const imageSrc =
+              primaryImage?.src ||
+              primaryImage?.transformedSrc ||
+              primaryImage?.url ||
+              null;
             const imageAlt = primaryImage?.altText || product?.title || 'Product image';
+
+            // Log each product's image info for debugging
+            // eslint-disable-next-line no-console
+            console.log(`[Shop] Product: "${product?.title}"`, {
+              handle: product?.handle,
+              imageSrc,
+              allImageUrls: product?.images?.map((img) => img?.src || img?.transformedSrc || img?.url) || [],
+              featuredImageUrl: product?.featuredImage?.src || product?.featuredImage?.transformedSrc || product?.featuredImage?.url,
+            });
 
             if (!imageSrc) {
               // eslint-disable-next-line no-console
-              console.warn('[Shop] Missing product image URL', {
+              console.warn('[Shop] ⚠️ Missing product image URL', {
                 id: product?.id,
                 title: product?.title,
                 images: product?.images,
                 featuredImage: product?.featuredImage,
                 firstVariantImage: product?.variants?.[0]?.image,
-                product,
               });
             }
 

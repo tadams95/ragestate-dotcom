@@ -22,6 +22,7 @@ export default function CheckoutForm({
   appliedPromoCode,
   clientSecret,
   hasPhysicalItems, // FIX: New prop to indicate if cart contains physical/merchandise items
+  idToken, // FIX: Token for API authentication
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -68,7 +69,10 @@ export default function CheckoutForm({
       });
       const resp = await fetch('/api/payments/finalize-order', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(idToken && { Authorization: `Bearer ${idToken}` }),
+        },
         body: JSON.stringify({
           paymentIntentId: pi.id,
           firebaseId,

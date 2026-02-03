@@ -279,6 +279,7 @@ export default function Cart() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            ...(state.idToken && { Authorization: `Bearer ${state.idToken}` }),
           },
           body: JSON.stringify(requestBody),
         });

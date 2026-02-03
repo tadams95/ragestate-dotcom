@@ -36,7 +36,7 @@ const RelatedProducts = forwardRef(({ currentId, productType, limit = 8 }, ref) 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         {items.map((p) => {
           const img = p?.images?.[0] || p?.featuredImage || p?.variants?.[0]?.image || null;
-          const src = img?.src || img?.transformedSrc || '/assets/user.png';
+          const src = img?.src || img?.transformedSrc || img?.url || '/assets/user.png';
           const alt = img?.altText || p?.title;
           return (
             <Link
