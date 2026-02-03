@@ -118,7 +118,7 @@ export default function OrderSummaryDisplay({
                 type="button"
                 onClick={handleApplyPromo}
                 disabled={promoLoading || !promoInput.trim()}
-                className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elev-3)] disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elev-1)] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {promoLoading ? (
                   <span className="flex items-center gap-1">
@@ -208,7 +208,7 @@ export default function OrderSummaryDisplay({
             <button
               type="button"
               onClick={() => setShowAuthGate(true)}
-              className="w-full rounded-md bg-red-700 px-8 py-3 text-base font-medium text-white hover:bg-red-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
+              className="w-full rounded-md bg-[var(--accent)] px-8 py-3 text-base font-medium text-white hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
             >
               Log in to Checkout
             </button>
