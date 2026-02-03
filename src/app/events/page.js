@@ -86,7 +86,7 @@ function EventsPageContent() {
           {/* Loading state or content */}
           <div className="transition-all duration-500 ease-in-out">
             {isLoading ? (
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-6 pt-12 md:grid-cols-2 lg:grid-cols-3">
                 {[...Array(3)].map((_, index) => (
                   <EventSkeleton key={index} />
                 ))}
