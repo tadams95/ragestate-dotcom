@@ -6,6 +6,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import removeProfileImage from '../../../../firebase/util/removeProfileImage';
 import uploadImage from '../../../../firebase/util/uploadImage';
 import { updateUserData } from '../../../../lib/utils/auth';
+import ZoomableImageViewer from '../../components/ZoomableImageViewer';
 import EditProfileForm from './EditProfileForm';
 import ProfileSongForm from './ProfileSongForm';
 // removed completeness meter Firestore reads
@@ -31,6 +32,7 @@ export default function ProfileTab({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
   const fileInputRef = useRef(null);
 
   const handleProfileUpdate = async (event) => {
@@ -230,14 +232,22 @@ export default function ProfileTab({
 
               <div className="group relative mb-6">
                 <div className="relative h-40 w-40 overflow-hidden rounded-md border-4 border-[var(--border-subtle)] shadow-2xl transition-all duration-300 group-hover:border-red-600/50">
-                  <Image
-                    src={currentProfilePicture || '/assets/user.png'}
-                    alt="Profile"
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    priority
-                  />
+                  <button
+                    type="button"
+                    onClick={() => currentProfilePicture && setIsImageViewerOpen(true)}
+                    className={`relative h-full w-full ${currentProfilePicture ? 'cursor-pointer' : ''}`}
+                    disabled={!currentProfilePicture}
+                    aria-label={currentProfilePicture ? 'View profile photo' : undefined}
+                  >
+                    <Image
+                      src={currentProfilePicture || '/assets/user.png'}
+                      alt="Profile"
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      priority
+                    />
+                  </button>
 
                   {/* Upload Overlay */}
                   <div
@@ -336,6 +346,14 @@ export default function ProfileTab({
         </div>
       </div>
       <Toaster position="bottom-center" />
+
+      {/* Profile Image Zoom Viewer */}
+      <ZoomableImageViewer
+        isOpen={isImageViewerOpen}
+        onClose={() => setIsImageViewerOpen(false)}
+        imageUrl={currentProfilePicture}
+        alt="Profile photo"
+      />
     </div>
   );
 }

@@ -61,6 +61,13 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
+      // Facebook profile pictures (for Facebook Sign-In)
+      {
+        protocol: 'https',
+        hostname: 'graph.facebook.com',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
 

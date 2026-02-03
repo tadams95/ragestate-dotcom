@@ -21,6 +21,7 @@ import Post from '../components/Post';
 import { VerifiedBadge } from '../components/PostHeader';
 import ProfileMusicPlayer from '../components/ProfileMusicPlayer';
 import SocialLinksRow from '../components/SocialLinksRow';
+import ZoomableImageViewer from '../components/ZoomableImageViewer';
 
 export default function ProfileView({ params }) {
   const router = useRouter();
@@ -41,6 +42,7 @@ export default function ProfileView({ params }) {
   });
   const [profileLoading, setProfileLoading] = useState(true);
   const [isCreatingChat, setIsCreatingChat] = useState(false);
+  const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
 
   const [posts, setPosts] = useState([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
@@ -217,7 +219,13 @@ export default function ProfileView({ params }) {
           <aside className="space-y-6 md:col-span-4">
             <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-5 transition-colors duration-200">
               <div className="mb-4 flex items-center gap-4">
-                <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-md bg-[var(--bg-elev-2)]">
+                <button
+                  type="button"
+                  onClick={() => profile.photoURL && setIsImageViewerOpen(true)}
+                  className={`flex h-20 w-20 items-center justify-center overflow-hidden rounded-md bg-[var(--bg-elev-2)] transition-transform ${profile.photoURL ? 'cursor-pointer hover:scale-105' : ''}`}
+                  disabled={!profile.photoURL}
+                  aria-label={profile.photoURL ? 'View profile photo' : undefined}
+                >
                   {profileLoading ? (
                     <div className="h-full w-full animate-pulse bg-[var(--bg-elev-2)]" />
                   ) : profile.photoURL ? (
@@ -230,7 +238,7 @@ export default function ProfileView({ params }) {
                   ) : (
                     <span className="text-2xl">👤</span>
                   )}
-                </div>
+                </button>
                 <div className="min-w-0 flex-1">
                   {profileLoading ? (
                     <div className="space-y-2">
@@ -362,6 +370,14 @@ export default function ProfileView({ params }) {
           </main>
         </div>
       </div>
+
+      {/* Profile Image Zoom Viewer */}
+      <ZoomableImageViewer
+        isOpen={isImageViewerOpen}
+        onClose={() => setIsImageViewerOpen(false)}
+        imageUrl={profile.photoURL}
+        alt={profile.displayName || 'Profile photo'}
+      />
     </div>
   );
 }
