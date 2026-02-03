@@ -72,9 +72,11 @@ function EventsPageContent() {
 
       <div className="flex-grow">
         <div className="mx-auto max-w-7xl px-4 pb-16 pt-10 sm:px-6 sm:pt-12 lg:px-8">
-          <h1 className="mb-8 mt-8 text-center text-3xl font-bold tracking-tight text-[var(--text-primary)]">
-            {events.length > 0 ? 'UPCOMING EVENTS' : 'NO EVENTS AT THIS TIME, PLEASE STAY TUNED!'}
-          </h1>
+          {events.length > 0 && (
+            <h1 className="mb-8 mt-8 text-center text-3xl font-bold tracking-tight text-[var(--text-primary)]">
+              UPCOMING EVENTS
+            </h1>
+          )}
 
           {/* SR-only live region for async status/errors */}
           <p className="sr-only" role="status" aria-live="polite">
