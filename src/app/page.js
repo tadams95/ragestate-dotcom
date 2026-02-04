@@ -64,10 +64,7 @@ export default function Home() {
             activeWorld === 'your' ? 'opacity-100' : 'opacity-80'
           } bg-gradient-to-b from-blue-900/20 to-[var(--bg-root)]`}
         />
-        <Home3DAnimation
-          intensity={activeWorld === 'ours' ? 1 : 0.7}
-          color={activeWorld === 'ours' ? '#EF4E4E' : '#3B82F6'}
-        />
+        <Home3DAnimation intensity={activeWorld === 'ours' ? 1 : 0.7} />
       </div>
 
       {/* Update the main content top padding to account for header */}
