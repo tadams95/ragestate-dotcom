@@ -1,7 +1,7 @@
 import fs from 'fs';
 import { NextResponse } from 'next/server';
 import path from 'path';
-import { checkRateLimit, getClientIp } from '../../../../lib/server/rateLimit';
+import { checkRateLimit, getClientIp } from '../../../../../lib/server/rateLimit';
 
 function getFunctionBases() {
   const explicit = process.env.STRIPE_FN_URL || process.env.NEXT_PUBLIC_STRIPE_FN_URL;

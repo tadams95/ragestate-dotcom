@@ -13,7 +13,7 @@ async function verifyAuth(request) {
   if (!idToken) return null;
 
   try {
-    const { authAdmin } = await import('../../../../lib/server/firebaseAdmin');
+    const { authAdmin } = await import('../../../../../lib/server/firebaseAdmin');
     return await authAdmin.verifyIdToken(idToken);
   } catch (e) {
     console.warn('create-customer auth verification failed:', e?.code || e?.message);

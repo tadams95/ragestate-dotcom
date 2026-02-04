@@ -207,7 +207,7 @@ export default function Login() {
     <div className="min-h-screen bg-[var(--bg-root)] transition-colors duration-200">
       {/* Header is rendered by layout.js */}
 
-      <div className="relative isolate flex min-h-[calc(100vh-80px)] flex-col items-center justify-center overflow-hidden px-6 py-12 lg:px-8">
+      <div className="relative isolate flex min-h-[calc(100vh-80px)] flex-col items-center justify-center overflow-hidden px-6 pb-12 pt-16 lg:px-8">
         {/* Background gradient effect */}
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-red-500/10 via-transparent to-transparent" />
 
@@ -215,7 +215,7 @@ export default function Login() {
         <div className="relative w-full max-w-md space-y-8">
           {/* Header section */}
           <div className="space-y-6 text-center">
-            <div className="flex justify-center">
+            <div className="flex justify-center pt-8">
               <Image src="/assets/RSLogo2.png" alt="RAGESTATE" width={128} height={64} priority />
             </div>
             <h2 className="text-3xl font-bold tracking-tight text-[var(--text-primary)] sm:text-4xl">
