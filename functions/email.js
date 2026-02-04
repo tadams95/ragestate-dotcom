@@ -123,17 +123,77 @@ exports.sendPurchaseEmail = onDocumentWritten(
       ? new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amountCents / 100)
       : '';
 
-    // Build email content
-    const subject = `Your tickets — ${orderNumber}`;
+    // Detect order type from fulfillment data
+    const hasMerch = curr.hasMerchandiseItems === true;
+    const hasEvents = curr.hasEventItems === true;
+    const isGuest = curr.isGuestOrder === true;
+    const guestEmail = curr.guestEmail || '';
+
+    // Determine subject line based on order type
+    let subject;
+    if (hasMerch && !hasEvents) {
+      subject = `Your order is confirmed — ${orderNumber}`;
+    } else if (hasEvents && !hasMerch) {
+      subject = `Your tickets — ${orderNumber}`;
+    } else {
+      subject = `Your order — ${orderNumber}`;
+    }
+
+    // Determine CTA based on order type + auth status
+    let ctaText, ctaUrl;
+    if (isGuest) {
+      ctaText = 'Track your order';
+      ctaUrl = `https://ragestate.com/order-lookup?order=${encodeURIComponent(orderNumber)}`;
+    } else if (hasMerch && !hasEvents) {
+      ctaText = 'View order';
+      ctaUrl = 'https://ragestate.com/account?tab=orders';
+    } else {
+      ctaText = 'View my tickets';
+      ctaUrl = 'https://ragestate.com/account?tab=tickets';
+    }
+
+    // Determine status message based on order type
+    let statusMessage;
+    if (hasMerch && !hasEvents) {
+      statusMessage = 'Your order has been received and is being processed.';
+    } else if (hasEvents && !hasMerch) {
+      statusMessage = 'Your tickets are now in your account.';
+    } else {
+      statusMessage = 'Your order has been received.';
+    }
+
+    // Preheader text for email clients
+    let preheaderText;
+    if (hasMerch && !hasEvents) {
+      preheaderText = `Your order is confirmed — order ${orderNumber}`;
+    } else if (hasEvents && !hasMerch) {
+      preheaderText = `Your tickets are ready — order ${orderNumber}`;
+    } else {
+      preheaderText = `Order confirmed — ${orderNumber}`;
+    }
+
+    // Guest account creation note (HTML)
+    const guestAccountNote = isGuest
+      ? `
+            <p style="margin:16px 0 0;color:#111;font-size:14px;line-height:20px">
+              <a href="https://ragestate.com/create-account?email=${encodeURIComponent(guestEmail || recipient)}&order=${encodeURIComponent(orderNumber)}" style="color:#E12D39;text-decoration:underline">Create an account</a> to track your order and unlock member perks.
+            </p>`
+      : '';
+
+    // Guest account creation note (plain text)
+    const guestAccountNotePlain = isGuest
+      ? `\n\nCreate an account to track your order and unlock member perks: https://ragestate.com/create-account?email=${encodeURIComponent(guestEmail || recipient)}&order=${encodeURIComponent(orderNumber)}`
+      : '';
+
     const textContent = `Thanks for your purchase!\nOrder: ${orderNumber}\n${items
       .map((i) => `• ${toTitle(i)} × ${toQty(i)}`)
       .join(
         '\n',
-      )}\n${fmtTotal ? `Total: ${fmtTotal}\n` : ''}View tickets: https://ragestate.com/account`;
+      )}\n${fmtTotal ? `Total: ${fmtTotal}\n` : ''}\n${statusMessage}\n\n${ctaText}: ${ctaUrl}${guestAccountNotePlain}`;
     const htmlContent = `
       <div style="background:#f6f6f6;padding:24px 0">
         <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #eee;font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
-          <div style="display:none;max-height:0;overflow:hidden">Your tickets are ready — order ${orderNumber}</div>
+          <div style="display:none;max-height:0;overflow:hidden">${preheaderText}</div>
           <div style="padding:16px 24px;background:#000;color:#fff;text-align:center">
             <img src="https://firebasestorage.googleapis.com/v0/b/ragestate-app.appspot.com/o/RSLogo2.png?alt=media&token=d13ebc08-9d8d-4367-99ec-ace3627132d2" alt="RAGESTATE" width="120" style="display:inline-block;border:0;outline:none;text-decoration:none;height:auto" />
           </div>
@@ -143,10 +203,10 @@ exports.sendPurchaseEmail = onDocumentWritten(
             <p style="margin:0 0 12px;color:#111;font-size:14px;line-height:20px">Order <b>${orderNumber}</b></p>
             ${itemsRowsHtml ? `<table style="width:100%;border-collapse:collapse;margin:8px 0 16px">${itemsRowsHtml}</table>` : ''}
             ${fmtTotal ? `<p style="margin:0 0 16px;color:#111;font-size:14px;line-height:20px"><b>Total: ${fmtTotal}</b></p>` : ''}
-            <p style="margin:0 0 16px;color:#111;font-size:14px;line-height:20px">Your tickets are now in your account.</p>
+            <p style="margin:0 0 16px;color:#111;font-size:14px;line-height:20px">${statusMessage}</p>
             <div style="margin:0 0 8px">
-              <a href="https://ragestate.com/account" style="display:inline-block;background:#E12D39;color:#fff;text-decoration:none;padding:10px 14px;border-radius:6px;font-size:14px">View my tickets</a>
-            </div>
+              <a href="${ctaUrl}" style="display:inline-block;background:#E12D39;color:#fff;text-decoration:none;padding:10px 14px;border-radius:6px;font-size:14px">${ctaText}</a>
+            </div>${guestAccountNote}
             <p style="margin:12px 0 0;color:#6b7280;font-size:12px;line-height:18px">If you didn't make this purchase, please reply to this email.</p>
           </div>
           <div style="padding:16px 24px;border-top:1px solid #eee;color:#6b7280;font-size:12px;line-height:18px;text-align:center">

@@ -33,6 +33,8 @@ const AWS_SES_REGION = defineSecret('AWS_SES_REGION');
 const PRINTIFY_API_TOKEN = defineSecret('PRINTIFY_API_TOKEN');
 const PRINTIFY_SHOP_ID = defineSecret('PRINTIFY_SHOP_ID');
 const PRINTIFY_WEBHOOK_SECRET = defineSecret('PRINTIFY_WEBHOOK_SECRET');
+// Stripe webhook secret for signature verification
+const STRIPE_WEBHOOK_SECRET = defineSecret('STRIPE_WEBHOOK_SECRET');
 let stripeClient;
 function getStripe() {
   const key = STRIPE_SECRET.value() || process.env.STRIPE_SECRET;
@@ -359,13 +361,50 @@ app.post('/create-payment-intent', async (req, res) => {
       firebaseId,
       cartItems,
       promoCode, // NEW: Optional promo code
+      isGuest, // Guest checkout flag
+      guestEmail, // Guest email address
+      guestMarketingOptIn, // Guest marketing consent
     } = req.body || {};
+
+    // SECURITY: Rate limiting to prevent Stripe spam and abuse
+    // Different limits for authenticated vs guest users
+    const rateLimitKey = isGuest ? 'CREATE_PAYMENT_INTENT_GUEST' : 'CREATE_PAYMENT_INTENT_AUTH';
+    // Use firebaseId for authenticated users, IP for guests
+    const rateLimitIdentifier = isGuest
+      ? (req.ip || req.headers['x-forwarded-for'] || 'unknown_ip')
+      : (firebaseId || req.ip || 'unknown');
+    const rateLimitResult = await checkRateLimit(rateLimitKey, rateLimitIdentifier);
+    if (!rateLimitResult.allowed) {
+      logger.warn('create-payment-intent rate limited', {
+        identifier: rateLimitIdentifier,
+        isGuest,
+        message: rateLimitResult.message,
+      });
+      return res.status(429).json({
+        error: 'rate_limited',
+        message: rateLimitResult.message,
+        resetAt: rateLimitResult.resetAt ? rateLimitResult.resetAt.toISOString() : null,
+      });
+    }
 
     // Basic input validation (server-side)
     const parsedAmount = Number.isFinite(amount) ? Math.floor(Number(amount)) : 0;
     const MIN_AMOUNT = 50; // 50 cents
     if (!parsedAmount || parsedAmount < MIN_AMOUNT) {
       return res.status(400).json({ error: 'Invalid amount' });
+    }
+
+    // Guest checkout validation
+    // FIX: Use proper email regex instead of just checking for '@'
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (isGuest) {
+      if (!guestEmail || typeof guestEmail !== 'string' || !emailRegex.test(guestEmail)) {
+        return res.status(400).json({ error: 'Valid email required for guest checkout' });
+      }
+      // Don't allow firebaseId with guest checkout
+      if (firebaseId) {
+        return res.status(400).json({ error: 'Cannot provide firebaseId for guest checkout' });
+      }
     }
 
     // Validate and apply promo code if provided
@@ -392,15 +431,20 @@ app.post('/create-payment-intent', async (req, res) => {
 
     const idempotencyKey = req.get('x-idempotency-key') || undefined;
 
+    // Determine email for the payment intent
+    const effectiveEmail = isGuest ? guestEmail : (customerEmail || '');
+
     const pi = await stripe.paymentIntents.create(
       {
         amount: finalAmount,
         currency,
         automatic_payment_methods: { enabled: true },
+        receipt_email: effectiveEmail || undefined,
         metadata: {
-          firebaseId: firebaseId || '',
-          email: customerEmail || '',
-          name: name || '',
+          // For guest orders, firebaseId will be empty
+          firebaseId: isGuest ? '' : (firebaseId || ''),
+          email: effectiveEmail,
+          name: isGuest ? '' : (name || ''),
           cartSize: Array.isArray(cartItems) ? String(cartItems.length) : '0',
           // Store promo info for finalize-order to use
           promoCode: promoValidation?.promoId || '',
@@ -409,6 +453,10 @@ app.post('/create-payment-intent', async (req, res) => {
             ? String(promoValidation.discountAmount)
             : '',
           originalAmount: promoValidation?.valid ? String(parsedAmount) : '',
+          // Guest checkout tracking
+          isGuest: isGuest ? 'true' : 'false',
+          guestEmail: isGuest ? guestEmail : '',
+          guestMarketingOptIn: guestMarketingOptIn ? 'true' : 'false',
         },
       },
       idempotencyKey ? { idempotencyKey } : undefined,
@@ -823,9 +871,30 @@ app.post('/finalize-order', async (req, res) => {
       cartItems,
       addressDetails,
       appliedPromoCode,
+      isGuest, // Guest checkout flag
+      guestEmail, // Guest email address
     } = req.body || {};
-    if (!paymentIntentId || !firebaseId) {
-      return res.status(400).json({ error: 'paymentIntentId and firebaseId are required' });
+
+    // Validate required fields based on checkout type
+    if (!paymentIntentId) {
+      return res.status(400).json({ error: 'paymentIntentId is required' });
+    }
+
+    // Guest checkout validation
+    // FIX: Use proper email regex instead of just checking for '@'
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (isGuest) {
+      if (!guestEmail || typeof guestEmail !== 'string' || !emailRegex.test(guestEmail)) {
+        return res.status(400).json({ error: 'Valid email required for guest checkout' });
+      }
+      if (firebaseId) {
+        return res.status(400).json({ error: 'Cannot provide firebaseId for guest checkout' });
+      }
+    } else {
+      // Authenticated checkout requires firebaseId
+      if (!firebaseId) {
+        return res.status(400).json({ error: 'firebaseId is required for authenticated checkout' });
+      }
     }
 
     let pi;
@@ -840,12 +909,27 @@ app.post('/finalize-order', async (req, res) => {
       return res.status(409).json({ error: 'Payment not in succeeded state' });
     }
 
-    if (
-      pi.metadata &&
-      pi.metadata.firebaseId &&
-      String(pi.metadata.firebaseId) !== String(firebaseId)
-    ) {
-      return res.status(403).json({ error: 'Payment does not belong to this user' });
+    // For authenticated checkout, verify the firebaseId matches
+    // For guest checkout, verify it was created as a guest order
+    if (!isGuest) {
+      if (
+        pi.metadata &&
+        pi.metadata.firebaseId &&
+        String(pi.metadata.firebaseId) !== String(firebaseId)
+      ) {
+        return res.status(403).json({ error: 'Payment does not belong to this user' });
+      }
+    } else {
+      // For guest checkout, verify PI was created for guest (no firebaseId in metadata)
+      // and email matches
+      if (pi.metadata && pi.metadata.firebaseId && pi.metadata.firebaseId !== '') {
+        return res.status(403).json({ error: 'Payment was not created for guest checkout' });
+      }
+      // Verify guest email matches
+      const piGuestEmail = pi.metadata?.guestEmail || pi.metadata?.email || pi.receipt_email;
+      if (piGuestEmail && piGuestEmail !== guestEmail) {
+        return res.status(403).json({ error: 'Guest email does not match payment' });
+      }
     }
 
     // Idempotency guard: ensure we only fulfill once per PaymentIntent
@@ -861,17 +945,21 @@ app.post('/finalize-order', async (req, res) => {
       }
       // Derive a recipient email from request payload or PI metadata as a fallback
       const derivedEmail =
-        (userEmail && String(userEmail).trim()) ||
+        (isGuest ? guestEmail : userEmail) ||
         (pi.receipt_email && String(pi.receipt_email).trim()) ||
         (pi.metadata && String(pi.metadata.email || '').trim()) ||
         '';
       tx.set(fulfillRef, {
         status: 'processing',
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        firebaseId,
+        // For guest orders, firebaseId will be null
+        firebaseId: isGuest ? null : firebaseId,
         userEmail: derivedEmail,
         amount: pi.amount,
         currency: pi.currency,
+        // Guest checkout tracking
+        isGuestOrder: isGuest || false,
+        guestEmail: isGuest ? guestEmail : null,
       });
     });
 
@@ -897,6 +985,21 @@ app.post('/finalize-order', async (req, res) => {
     // FIX: Categorize items into events vs merchandise BEFORE processing
     // Reference: MERCH_CHECKOUT_FIXES.md - Issue #1: finalize-order treats all items as events
     const { eventItems, merchandiseItems } = categorizeCartItems(items);
+
+    // SECURITY FIX: Block guest checkout for event tickets
+    // Event tickets require a firebaseId to properly track ownership and for ticket scanning
+    // Guest checkout is only supported for merchandise
+    if (isGuest && eventItems.length > 0) {
+      logger.warn('Guest checkout attempted for event tickets', {
+        eventCount: eventItems.length,
+        guestEmail,
+        orderNumber,
+      });
+      return res.status(400).json({
+        error: 'Event tickets require an account. Please create an account or sign in to purchase tickets.',
+        code: 'GUEST_TICKETS_NOT_ALLOWED',
+      });
+    }
 
     logger.info('Finalize-order: received and categorized items', {
       totalCount: items.length,
@@ -1034,11 +1137,14 @@ app.post('/finalize-order', async (req, res) => {
           : null;
 
         // Create merchandise order document in dedicated collection
+        // FIX: Properly handle guest checkout fields
+        const effectiveEmail = isGuest ? guestEmail : (userEmail || pi.receipt_email || '');
         const merchOrderDoc = {
           // Order reference
           orderNumber,
           paymentIntentId: pi.id,
-          firebaseId,
+          // FIX: Use null for guest orders instead of undefined
+          firebaseId: isGuest ? null : (firebaseId || null),
 
           // Product details
           productId,
@@ -1058,8 +1164,8 @@ app.post('/finalize-order', async (req, res) => {
           size: item.size || item.selectedSize || null,
 
           // Customer info
-          customerEmail: userEmail || pi.receipt_email || '',
-          customerName: userName || '',
+          customerEmail: effectiveEmail,
+          customerName: isGuest ? '' : (userName || ''),
 
           // Shipping address (critical for physical items)
           shippingAddress: shippingAddr,
@@ -1069,6 +1175,10 @@ app.post('/finalize-order', async (req, res) => {
           fulfillmentStatus: 'unfulfilled',
           shopifyOrderId: null,
           shopifyOrderNumber: null,
+
+          // FIX: Guest checkout tracking
+          isGuestOrder: isGuest || false,
+          guestEmail: isGuest ? guestEmail : null,
 
           // Timestamps
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -1370,11 +1480,17 @@ app.post('/finalize-order', async (req, res) => {
     if (hasEventItems) itemTypes.push('event');
     if (hasMerchandiseItems) itemTypes.push('merchandise');
 
+    // Determine customer email for the order
+    const effectiveEmail = isGuest
+      ? guestEmail
+      : (userEmail || pi.receipt_email || (pi.metadata && pi.metadata.email) || null);
+
     const purchaseDoc = {
       addressDetails: addressDetails || null,
-      customerEmail: userEmail || pi.receipt_email || (pi.metadata && pi.metadata.email) || null,
-      customerId: firebaseId,
-      customerName: userName || (pi.metadata && pi.metadata.name) || null,
+      customerEmail: effectiveEmail,
+      // For guest orders, customerId is null
+      customerId: isGuest ? null : firebaseId,
+      customerName: isGuest ? '' : (userName || (pi.metadata && pi.metadata.name) || null),
       itemCount: sanitizedItems.length,
       items: sanitizedItems,
       orderDate: admin.firestore.FieldValue.serverTimestamp(),
@@ -1403,30 +1519,60 @@ app.post('/finalize-order', async (req, res) => {
       // Stripe payment details for reference
       stripePaymentMethod: pi.payment_method_types?.[0] || null,
       stripeLast4: pi.charges?.data?.[0]?.payment_method_details?.card?.last4 || null,
+      // Guest order tracking
+      isGuestOrder: isGuest || false,
+      guestEmail: isGuest ? guestEmail : null,
+      // For potential future account linking
+      claimedBy: null,
+      claimedAt: null,
     };
 
     // Write purchases in both collections
     try {
+      // Always write to main purchases collection
       const purchaseRef = db.collection('purchases').doc(orderNumber);
       await purchaseRef.set(purchaseDoc, { merge: true });
 
-      const userPurchaseRef = db
-        .collection('customers')
-        .doc(firebaseId)
-        .collection('purchases')
-        .doc(orderNumber);
-      await userPurchaseRef.set(
-        Object.assign({}, purchaseDoc, {
-          // Legacy compatibility fields used by OrderHistory
-          dateTime: admin.firestore.FieldValue.serverTimestamp(),
-          name: purchaseDoc.customerName,
-          email: purchaseDoc.customerEmail,
-          stripeId: pi.id,
-          cartItems: sanitizedItems,
-          total: amountStr,
-        }),
-        { merge: true },
-      );
+      // For authenticated users, also write to their customer subcollection
+      // Guest orders don't have a user subcollection
+      if (!isGuest && firebaseId) {
+        const userPurchaseRef = db
+          .collection('customers')
+          .doc(firebaseId)
+          .collection('purchases')
+          .doc(orderNumber);
+        await userPurchaseRef.set(
+          Object.assign({}, purchaseDoc, {
+            // Legacy compatibility fields used by OrderHistory
+            dateTime: admin.firestore.FieldValue.serverTimestamp(),
+            name: purchaseDoc.customerName,
+            email: purchaseDoc.customerEmail,
+            stripeId: pi.id,
+            cartItems: sanitizedItems,
+            total: amountStr,
+          }),
+          { merge: true },
+        );
+      }
+
+      // For guest orders, store in guestOrders collection indexed by email hash for lookup
+      if (isGuest && guestEmail) {
+        try {
+          const crypto = require('crypto');
+          const emailHash = crypto.createHash('sha256').update(guestEmail.toLowerCase().trim()).digest('hex');
+          const guestOrderRef = db.collection('guestOrders').doc(emailHash).collection('orders').doc(orderNumber);
+          await guestOrderRef.set({
+            orderNumber,
+            email: guestEmail,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            totalAmount: amountStr,
+            itemCount: sanitizedItems.length,
+            status: 'completed',
+          }, { merge: true });
+        } catch (guestErr) {
+          logger.warn('Failed to write guest order index (non-fatal)', { error: guestErr?.message });
+        }
+      }
     } catch (e) {
       logger.warn('Failed to write purchase documents', e);
     }
@@ -1471,13 +1617,16 @@ app.post('/finalize-order', async (req, res) => {
               ? 'manual'
               : null,
           // backfill summary fields for triggers
-          email: (userEmail && String(userEmail).trim()) || pi.receipt_email || '',
+          email: effectiveEmail || pi.receipt_email || '',
           items: items.map((i) => ({
             title: i.title || i.productId,
             productId: i.productId,
             quantity: Math.max(1, parseInt(i.quantity || 1, 10)),
             itemType: isShopifyMerchandise(i.productId, i) ? 'merchandise' : 'event',
           })),
+          // Guest order tracking
+          isGuestOrder: isGuest || false,
+          guestEmail: isGuest ? guestEmail : null,
         },
         { merge: true },
       );
@@ -1507,6 +1656,9 @@ app.post('/finalize-order', async (req, res) => {
       printifyOrderId: printifyOrderResult?.id || null,
       // Include partial failure info if some items failed
       partialFailure: errors.length > 0 ? { count: errors.length, errors } : null,
+      // Guest checkout info
+      isGuestOrder: isGuest || false,
+      guestEmail: isGuest ? guestEmail : null,
     });
   } catch (err) {
     logger.error('finalize-order error', err);
@@ -3463,6 +3615,399 @@ exports.reconcileEventUsersDaily = onSchedule(
       try {
         logger.error('reconcileEventUsersDaily error', { message: err?.message });
       } catch (_e) {}
+    }
+  },
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STRIPE WEBHOOK HANDLER
+// Handles payment_intent.succeeded, payment_intent.payment_failed, charge.refunded
+// This provides server-side order recovery if client crashes after payment
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Handle payment_intent.succeeded webhook event
+ * Creates order if not already fulfilled (idempotent via fulfillments collection)
+ * @param {Object} paymentIntent - The Stripe PaymentIntent object
+ */
+async function handlePaymentSucceeded(paymentIntent) {
+  const piId = paymentIntent.id;
+  logger.info('stripeWebhook: payment_intent.succeeded', {
+    piId,
+    amount: paymentIntent.amount,
+    status: paymentIntent.status,
+  });
+
+  // Check if already fulfilled (idempotency guard)
+  const fulfillRef = db.collection('fulfillments').doc(piId);
+  const fulfillSnap = await fulfillRef.get();
+
+  if (fulfillSnap.exists) {
+    const data = fulfillSnap.data();
+    if (data.status === 'completed' || data.status === 'processing') {
+      logger.info('stripeWebhook: Already fulfilled, skipping', {
+        piId,
+        status: data.status,
+        orderNumber: data.orderNumber,
+      });
+      return { skipped: true, reason: 'already_fulfilled', orderNumber: data.orderNumber };
+    }
+  }
+
+  // Extract metadata from PaymentIntent
+  const metadata = paymentIntent.metadata || {};
+  const firebaseId = metadata.firebaseId || null;
+  const email = metadata.email || metadata.guestEmail || paymentIntent.receipt_email || '';
+  const isGuest = metadata.isGuest === 'true' || !firebaseId;
+  const guestEmail = metadata.guestEmail || (isGuest ? email : null);
+
+  // For webhook-initiated fulfillment, we need to retrieve cart items from metadata
+  // Note: Large cart data should be stored separately and referenced by PI ID
+  // For now, create a minimal fulfillment record to trigger investigation
+  logger.info('stripeWebhook: Creating webhook-initiated fulfillment', {
+    piId,
+    firebaseId,
+    email,
+    isGuest,
+    hasCartSize: !!metadata.cartSize,
+  });
+
+  // Create a webhook-initiated fulfillment record
+  // This marks the payment as requiring order recovery
+  try {
+    await fulfillRef.set({
+      status: 'webhook_initiated',
+      source: 'stripe_webhook',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      paymentIntentId: piId,
+      firebaseId: isGuest ? null : firebaseId,
+      email,
+      isGuestOrder: isGuest,
+      guestEmail: isGuest ? guestEmail : null,
+      amount: paymentIntent.amount,
+      currency: paymentIntent.currency,
+      // Store metadata for potential manual recovery
+      metadata: {
+        cartSize: metadata.cartSize || '0',
+        promoCode: metadata.promoCode || null,
+        originalAmount: metadata.originalAmount || null,
+      },
+      // Flag for admin attention - cart items not available in webhook
+      needsRecovery: true,
+      recoveryReason: 'webhook_fallback_no_cart_items',
+    }, { merge: true });
+
+    logger.info('stripeWebhook: Webhook fulfillment record created', { piId });
+
+    // TODO: In production, consider:
+    // 1. Storing cart items in Firestore at create-payment-intent time (referenced by PI ID)
+    // 2. Calling the finalize-order logic directly with stored cart data
+    // 3. Sending admin notification for manual review
+
+    return { created: true, piId, status: 'webhook_initiated' };
+  } catch (err) {
+    logger.error('stripeWebhook: Failed to create fulfillment record', {
+      piId,
+      error: err?.message,
+    });
+    throw err;
+  }
+}
+
+/**
+ * Handle payment_intent.payment_failed webhook event
+ * Logs failure for monitoring
+ * @param {Object} paymentIntent - The Stripe PaymentIntent object
+ */
+async function handlePaymentFailed(paymentIntent) {
+  const piId = paymentIntent.id;
+  const lastError = paymentIntent.last_payment_error;
+
+  logger.warn('stripeWebhook: payment_intent.payment_failed', {
+    piId,
+    amount: paymentIntent.amount,
+    errorCode: lastError?.code,
+    errorMessage: lastError?.message,
+    errorType: lastError?.type,
+  });
+
+  // Record failed payment attempt for analytics/monitoring
+  try {
+    await db.collection('paymentFailures').doc(piId).set({
+      paymentIntentId: piId,
+      amount: paymentIntent.amount,
+      currency: paymentIntent.currency,
+      errorCode: lastError?.code || null,
+      errorMessage: lastError?.message || null,
+      errorType: lastError?.type || null,
+      firebaseId: paymentIntent.metadata?.firebaseId || null,
+      email: paymentIntent.metadata?.email || paymentIntent.receipt_email || null,
+      isGuest: paymentIntent.metadata?.isGuest === 'true',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+  } catch (err) {
+    logger.error('stripeWebhook: Failed to record payment failure', {
+      piId,
+      error: err?.message,
+    });
+  }
+
+  return { logged: true, piId };
+}
+
+/**
+ * Handle charge.refunded webhook event
+ * Updates order status to refunded
+ * @param {Object} charge - The Stripe Charge object
+ */
+async function handleChargeRefunded(charge) {
+  const piId = charge.payment_intent;
+  const chargeId = charge.id;
+
+  logger.info('stripeWebhook: charge.refunded', {
+    chargeId,
+    piId,
+    amountRefunded: charge.amount_refunded,
+    refunded: charge.refunded,
+  });
+
+  if (!piId) {
+    logger.warn('stripeWebhook: Refund missing payment_intent', { chargeId });
+    return { skipped: true, reason: 'no_payment_intent' };
+  }
+
+  // Update fulfillment status
+  try {
+    const fulfillRef = db.collection('fulfillments').doc(piId);
+    const fulfillSnap = await fulfillRef.get();
+
+    if (fulfillSnap.exists) {
+      const data = fulfillSnap.data();
+      await fulfillRef.update({
+        status: 'refunded',
+        refundedAt: admin.firestore.FieldValue.serverTimestamp(),
+        refundChargeId: chargeId,
+        amountRefunded: charge.amount_refunded,
+        previousStatus: data.status,
+      });
+
+      // If we have an order number, update the purchase record too
+      if (data.orderNumber) {
+        const purchaseRef = db.collection('purchases').doc(data.orderNumber);
+        const purchaseSnap = await purchaseRef.get();
+        if (purchaseSnap.exists) {
+          await purchaseRef.update({
+            status: 'refunded',
+            refundedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+        }
+      }
+
+      logger.info('stripeWebhook: Order marked as refunded', {
+        piId,
+        orderNumber: data.orderNumber,
+      });
+    } else {
+      logger.warn('stripeWebhook: Fulfillment not found for refund', { piId });
+    }
+
+    return { updated: true, piId };
+  } catch (err) {
+    logger.error('stripeWebhook: Failed to update refund status', {
+      piId,
+      chargeId,
+      error: err?.message,
+    });
+    throw err;
+  }
+}
+
+/**
+ * Handle charge.dispute.created - Alert admin of chargeback
+ * @param {Object} dispute - The Stripe Dispute object
+ */
+async function handleDisputeCreated(dispute) {
+  const piId = dispute.payment_intent;
+  logger.warn('stripeWebhook: charge.dispute.created', {
+    disputeId: dispute.id,
+    piId,
+    amount: dispute.amount,
+    reason: dispute.reason,
+  });
+
+  // Record dispute
+  await db.collection('disputes').doc(dispute.id).set({
+    disputeId: dispute.id,
+    paymentIntentId: piId,
+    chargeId: dispute.charge,
+    amount: dispute.amount,
+    reason: dispute.reason,
+    status: dispute.status,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  // Update fulfillment if exists
+  if (piId) {
+    const fulfillRef = db.collection('fulfillments').doc(piId);
+    const snap = await fulfillRef.get();
+    if (snap.exists) {
+      await fulfillRef.update({
+        disputeStatus: 'open',
+        disputeId: dispute.id,
+        disputeReason: dispute.reason,
+        disputeOpenedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+  }
+
+  return { recorded: true, disputeId: dispute.id };
+}
+
+/**
+ * Handle charge.dispute.closed - Track dispute resolution
+ * @param {Object} dispute - The Stripe Dispute object
+ */
+async function handleDisputeClosed(dispute) {
+  logger.info('stripeWebhook: charge.dispute.closed', {
+    disputeId: dispute.id,
+    status: dispute.status, // 'won', 'lost', 'withdrawn'
+  });
+
+  await db.collection('disputes').doc(dispute.id).update({
+    status: dispute.status,
+    closedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  if (dispute.payment_intent) {
+    const fulfillRef = db.collection('fulfillments').doc(dispute.payment_intent);
+    const snap = await fulfillRef.get();
+    if (snap.exists) {
+      await fulfillRef.update({
+        disputeStatus: dispute.status,
+        disputeClosedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+  }
+
+  return { updated: true, disputeId: dispute.id };
+}
+
+/**
+ * Handle payment_intent.canceled - Cleanup abandoned intents
+ * @param {Object} paymentIntent - The Stripe PaymentIntent object
+ */
+async function handlePaymentCanceled(paymentIntent) {
+  const piId = paymentIntent.id;
+  logger.info('stripeWebhook: payment_intent.canceled', {
+    piId,
+    reason: paymentIntent.cancellation_reason,
+  });
+
+  // Record cancellation for analytics
+  await db.collection('canceledPayments').doc(piId).set({
+    paymentIntentId: piId,
+    amount: paymentIntent.amount,
+    reason: paymentIntent.cancellation_reason,
+    firebaseId: paymentIntent.metadata?.firebaseId || null,
+    isGuest: paymentIntent.metadata?.isGuest === 'true',
+    canceledAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  return { recorded: true, piId };
+}
+
+/**
+ * Stripe Webhook Handler
+ * Endpoint: POST /stripeWebhook
+ * Verifies Stripe signature and routes events to handlers
+ */
+exports.stripeWebhook = onRequest(
+  {
+    secrets: [STRIPE_SECRET, STRIPE_WEBHOOK_SECRET],
+    invoker: 'public',
+  },
+  async (req, res) => {
+    // Only accept POST requests
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const stripe = getStripe();
+    if (!stripe) {
+      logger.error('stripeWebhook: Stripe not configured');
+      return res.status(503).json({ error: 'Stripe not configured' });
+    }
+
+    const sig = req.headers['stripe-signature'];
+    const webhookSecret = STRIPE_WEBHOOK_SECRET.value() || process.env.STRIPE_WEBHOOK_SECRET;
+
+    if (!webhookSecret) {
+      logger.error('stripeWebhook: Webhook secret not configured');
+      return res.status(503).json({ error: 'Webhook secret not configured' });
+    }
+
+    if (!sig) {
+      logger.warn('stripeWebhook: Missing stripe-signature header');
+      return res.status(400).json({ error: 'Missing stripe-signature header' });
+    }
+
+    let event;
+    try {
+      // Use rawBody for signature verification (Firebase preserves this)
+      const rawBody = req.rawBody || req.body;
+      event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
+    } catch (err) {
+      logger.error('stripeWebhook: Signature verification failed', {
+        error: err?.message,
+      });
+      return res.status(400).json({ error: `Webhook signature verification failed: ${err.message}` });
+    }
+
+    logger.info('stripeWebhook: Event received', {
+      type: event.type,
+      id: event.id,
+    });
+
+    try {
+      switch (event.type) {
+        case 'payment_intent.succeeded':
+          await handlePaymentSucceeded(event.data.object);
+          break;
+
+        case 'payment_intent.payment_failed':
+          await handlePaymentFailed(event.data.object);
+          break;
+
+        case 'payment_intent.canceled':
+          await handlePaymentCanceled(event.data.object);
+          break;
+
+        case 'charge.refunded':
+          await handleChargeRefunded(event.data.object);
+          break;
+
+        case 'charge.dispute.created':
+          await handleDisputeCreated(event.data.object);
+          break;
+
+        case 'charge.dispute.closed':
+          await handleDisputeClosed(event.data.object);
+          break;
+
+        default:
+          logger.info('stripeWebhook: Unhandled event type', { type: event.type });
+      }
+
+      return res.json({ received: true, type: event.type });
+    } catch (err) {
+      logger.error('stripeWebhook: Handler error', {
+        type: event.type,
+        error: err?.message,
+        stack: err?.stack,
+      });
+      // Return 200 to prevent Stripe from retrying (we've logged the error)
+      // In production, you may want to return 500 for certain errors to trigger retry
+      return res.json({ received: true, error: err.message });
     }
   },
 );

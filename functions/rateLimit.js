@@ -42,6 +42,28 @@ const RATE_LIMIT_CONFIGS = {
     windowMs: 60 * 1000,
     keyPrefix: 'auth_action',
   },
+  // Order lookup for guests: 5 calls per 5 minutes per IP
+  // Prevents enumeration attacks on guest orders
+  ORDER_LOOKUP: {
+    collection: 'rateLimits',
+    maxAttempts: 5,
+    windowMs: 5 * 60 * 1000, // 5 minutes
+    keyPrefix: 'order_lookup',
+  },
+  // Create payment intent: 15 per minute for authenticated, 5 per minute for guests
+  // Prevents Stripe spam and potential abuse
+  CREATE_PAYMENT_INTENT_AUTH: {
+    collection: 'rateLimits',
+    maxAttempts: 15,
+    windowMs: 60 * 1000, // 1 minute
+    keyPrefix: 'create_pi_auth',
+  },
+  CREATE_PAYMENT_INTENT_GUEST: {
+    collection: 'rateLimits',
+    maxAttempts: 5,
+    windowMs: 60 * 1000, // 1 minute
+    keyPrefix: 'create_pi_guest',
+  },
 };
 
 /**

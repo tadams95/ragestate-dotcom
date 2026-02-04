@@ -7,11 +7,15 @@ import { useDispatch, useSelector } from 'react-redux';
 import XMarkIcon from '@heroicons/react/20/solid/XMarkIcon';
 
 import {
+  clearGuestInfo,
   decrementQuantity,
   incrementQuantity,
   removeFromCart,
   selectCartItems,
+  selectCheckoutMode,
+  selectGuestEmail,
   setCheckoutPrice,
+  setGuestEmail,
 } from '../../../lib/features/cartSlice';
 
 import storage from '@/utils/storage';
@@ -29,9 +33,12 @@ const API_PROXY = '/api/payments';
 export default function Cart() {
   const dispatch = useDispatch();
   const cartItems = useSelector(selectCartItems);
+  const guestEmail = useSelector(selectGuestEmail);
+  const checkoutMode = useSelector(selectCheckoutMode);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [addressDetails, setAddressDetails] = useState(null);
+  const [guestMarketingOptIn, setGuestMarketingOptIn] = useState(false);
 
   // Promo code state
   const [promoCode, setPromoCode] = useState(null); // { code, promoId, promoCollection }
@@ -127,6 +134,39 @@ export default function Cart() {
     setPromoError('');
   }, []);
 
+  // Guest checkout handlers
+  const handleGuestEmailSubmit = useCallback(
+    (email, marketingOptIn) => {
+      dispatch(setGuestEmail(email));
+      setGuestMarketingOptIn(marketingOptIn);
+    },
+    [dispatch],
+  );
+
+  const handleSwitchToLogin = useCallback(() => {
+    dispatch(clearGuestInfo());
+  }, [dispatch]);
+
+  // Check if cart contains event tickets (require auth for tickets)
+  const hasEventTickets = useMemo(() => {
+    return cartItems.some((item) => {
+      // Event tickets have isDigital: true or eventDetails
+      if (item.isDigital === true) return true;
+      if (item.eventDetails != null) return true;
+      // Check if productId doesn't look like a Shopify product ID
+      const productId = String(item.productId || '');
+      // Shopify IDs are long numeric or contain 'gid://shopify'
+      if (productId.includes('gid://shopify')) return false;
+      if (/^\d{10,}$/.test(productId)) return false;
+      // Short alphanumeric IDs are likely Firestore event IDs
+      if (productId.length < 30 && !/^\d+$/.test(productId)) return true;
+      return false;
+    });
+  }, [cartItems]);
+
+  // Determine if user is in guest checkout mode
+  const isGuest = checkoutMode === 'guest' && !!guestEmail;
+
   // Re-validate promo when cart items change (not on every subtotal recalc)
   const cartItemsKey = useMemo(
     () => cartItems.map((i) => `${i.productId}-${i.quantity}`).join(','),
@@ -208,7 +248,13 @@ export default function Cart() {
       userEmail: email || '',
       userId: userId || '',
     }));
-  }, []);
+
+    // FIX: Clear guest state when user is authenticated
+    // Prevents ambiguous state where both isGuest and authenticated conditions are true
+    if (userId && idToken) {
+      dispatch(clearGuestInfo());
+    }
+  }, [dispatch]);
 
   const taxRate = 0.075;
   const taxTotal = (state.cartSubtotal * taxRate).toFixed(2);
@@ -262,12 +308,16 @@ export default function Cart() {
         setErrorMessage('');
 
         // Build request body with optional promo code
+        // Support both authenticated and guest checkout
         const requestBody = {
           amount: currentStripeTotal,
-          customerEmail: state.userEmail,
-          name: state.userName,
-          firebaseId: state.userId,
+          customerEmail: isGuest ? guestEmail : state.userEmail,
+          name: isGuest ? '' : state.userName,
           cartItems,
+          // For guest checkout, don't send firebaseId
+          ...(isGuest
+            ? { isGuest: true, guestEmail, guestMarketingOptIn }
+            : { firebaseId: state.userId }),
         };
 
         // Include promo code if applied (server will re-validate)
@@ -279,7 +329,8 @@ export default function Cart() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(state.idToken && { Authorization: `Bearer ${state.idToken}` }),
+            // Only send auth header for authenticated users
+            ...(state.idToken && !isGuest && { Authorization: `Bearer ${state.idToken}` }),
           },
           body: JSON.stringify(requestBody),
         });
@@ -314,7 +365,11 @@ export default function Cart() {
       }
     };
 
-    if (state.userName && state.userEmail && state.userId) {
+    // Fetch for authenticated user OR guest with email
+    const canFetchAuthenticated = state.userName && state.userEmail && state.userId;
+    const canFetchGuest = isGuest && guestEmail;
+
+    if (canFetchAuthenticated || canFetchGuest) {
       fetchClientSecret();
     } else {
       setIsLoading(false);
@@ -324,7 +379,7 @@ export default function Cart() {
     }
     // Use paymentKey to stabilize - only re-fetch when cart items or promo code identity changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.userName, state.userEmail, state.userId, paymentKey]);
+  }, [state.userName, state.userEmail, state.userId, paymentKey, isGuest, guestEmail]);
 
   // Get current theme for Stripe appearance
   const { resolvedTheme } = useTheme();
@@ -454,6 +509,12 @@ export default function Cart() {
               promoLoading={promoLoading}
               onApplyPromo={handleApplyPromo}
               onRemovePromo={handleRemovePromo}
+              // Guest checkout props
+              isGuest={isGuest}
+              guestEmail={guestEmail}
+              onGuestEmailSubmit={handleGuestEmailSubmit}
+              onSwitchToLogin={handleSwitchToLogin}
+              hasEventTickets={hasEventTickets}
             />
           </div>
         </div>

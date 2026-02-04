@@ -531,6 +531,28 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Guest Orders: Server-only access (indexed by email hash for privacy)
+    // SECURITY: No client access - only Cloud Functions can read/write
+    // Prevents enumeration attacks via predictable email hashes
+    match /guestOrders/{emailHash} {
+      allow read, write: if false;
+      match /orders/{orderId} {
+        allow read, write: if false;
+      }
+    }
+
+    // Merchandise Orders: Server-only for writes, admin can read
+    match /merchandiseOrders/{orderId} {
+      allow read: if isAdmin();
+      allow write: if false; // Only via Cloud Functions
+    }
+
+    // Fulfillments: Server-only access (order processing records)
+    match /fulfillments/{piId} {
+      allow read: if isAdmin();
+      allow write: if false; // Only via Cloud Functions
+    }
+
     // Default deny
     match /{document=**} {
       allow read, write: if false;

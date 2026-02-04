@@ -2,6 +2,26 @@ import fs from 'fs';
 import { NextResponse } from 'next/server';
 import path from 'path';
 
+/**
+ * Verify Firebase ID token and return decoded token
+ * SECURITY FIX: Added to verify claimerUserId matches authenticated user
+ * @param {Request} request
+ * @returns {Promise<{uid: string, email?: string}|null>}
+ */
+async function verifyAuth(request) {
+  const authHeader = request.headers.get('authorization') || '';
+  const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!idToken) return null;
+
+  try {
+    const { authAdmin } = await import('../../../../../lib/server/firebaseAdmin');
+    return await authAdmin.verifyIdToken(idToken);
+  } catch (e) {
+    console.warn('Claim-ticket auth verification failed:', e?.code || e?.message);
+    return null;
+  }
+}
+
 function getFunctionBases() {
   const explicit = process.env.STRIPE_FN_URL || process.env.NEXT_PUBLIC_STRIPE_FN_URL;
   const bases = [];
@@ -57,6 +77,44 @@ export async function POST(request) {
         { error: 'Missing required fields: claimToken, claimerUserId' },
         { status: 400 },
       );
+    }
+
+    // SECURITY FIX: Verify that claimerUserId matches the authenticated user
+    // This prevents users from claiming tickets on behalf of other users
+    const decoded = await verifyAuth(request);
+    if (!decoded) {
+      return NextResponse.json(
+        { error: 'Authentication required to claim tickets', code: 'UNAUTHENTICATED' },
+        { status: 401 },
+      );
+    }
+
+    if (decoded.uid !== payload.claimerUserId) {
+      console.warn('Claim-ticket security violation: claimerUserId mismatch', {
+        authenticatedUid: decoded.uid,
+        claimerUserId: payload.claimerUserId,
+      });
+      return NextResponse.json(
+        { error: 'Cannot claim ticket for another user', code: 'FORBIDDEN' },
+        { status: 403 },
+      );
+    }
+
+    // Ensure claimerEmail matches if provided
+    if (payload.claimerEmail && decoded.email) {
+      const normalizedPayloadEmail = payload.claimerEmail.toLowerCase().trim();
+      const normalizedTokenEmail = decoded.email.toLowerCase().trim();
+      if (normalizedPayloadEmail !== normalizedTokenEmail) {
+        console.warn('Claim-ticket email mismatch (using token email)', {
+          payloadEmail: normalizedPayloadEmail,
+          tokenEmail: normalizedTokenEmail,
+        });
+        // Use the verified email from the token instead
+        payload.claimerEmail = decoded.email;
+      }
+    } else if (decoded.email && !payload.claimerEmail) {
+      // Add verified email if not provided
+      payload.claimerEmail = decoded.email;
     }
 
     let lastError = null;

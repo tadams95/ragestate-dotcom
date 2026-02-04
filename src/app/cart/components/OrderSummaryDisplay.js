@@ -7,6 +7,7 @@ import { useState } from 'react';
 import AddressForm from '../../../../components/AddressForm'; // Adjusted path
 import AuthGateModal from '../../../../components/AuthGateModal';
 import CheckoutForm from '../../../../components/CheckoutForm'; // Adjusted path
+import GuestEmailForm from './GuestEmailForm';
 
 export default function OrderSummaryDisplay({
   cartSubtotal,
@@ -30,10 +31,19 @@ export default function OrderSummaryDisplay({
   promoLoading,
   onApplyPromo,
   onRemovePromo,
+  // Guest checkout props
+  isGuest,
+  guestEmail,
+  onGuestEmailSubmit,
+  onSwitchToLogin,
+  hasEventTickets, // If cart contains event tickets, require auth
 }) {
   const [showAuthGate, setShowAuthGate] = useState(false);
   const [promoInput, setPromoInput] = useState('');
   const pathname = usePathname?.() || '/cart';
+
+  // Determine if user is authenticated
+  const isAuthenticated = !!(idToken && refreshToken);
 
   const handleApplyPromo = () => {
     if (promoInput.trim() && onApplyPromo) {
@@ -49,7 +59,6 @@ export default function OrderSummaryDisplay({
   };
 
   // Calculate totals with discount
-  const discountedSubtotal = Math.max(0, cartSubtotal - (promoDiscount || 0) / 100);
   const displayTotal = promoDiscount
     ? Math.max(0, parseFloat(finalTotal) - promoDiscount / 100).toFixed(2)
     : finalTotal;
@@ -181,7 +190,8 @@ export default function OrderSummaryDisplay({
       </dl>
 
       <div className="mt-10">
-        {idToken && refreshToken && clientSecret && stripePromise ? (
+        {/* Authenticated user with payment ready */}
+        {isAuthenticated && clientSecret && stripePromise ? (
           <>
             <Elements key={clientSecret} stripe={stripePromise} options={options}>
               {hasPhysicalItems && (
@@ -191,20 +201,96 @@ export default function OrderSummaryDisplay({
               )}
               <CheckoutForm
                 addressDetails={addressDetails}
-                isLoading={isLoading} // Pass the general loading state
+                isLoading={isLoading}
                 clientSecret={clientSecret}
-                hasPhysicalItems={hasPhysicalItems} // FIX: Pass for address validation
-                idToken={idToken} // FIX: Pass for API authentication
+                hasPhysicalItems={hasPhysicalItems}
+                idToken={idToken}
+                isGuest={false}
               />
             </Elements>
           </>
-        ) : isLoading && idToken && refreshToken ? ( // Show loading if auth'd but clientSecret is pending
+        ) : /* Guest checkout with payment ready */
+        isGuest && guestEmail && clientSecret && stripePromise ? (
+          <>
+            <div className="mb-4 rounded-lg bg-[var(--bg-elev-2)] p-3">
+              <p className="text-sm text-[var(--text-secondary)]">
+                Checking out as: <span className="font-medium text-[var(--text-primary)]">{guestEmail}</span>
+              </p>
+              <button
+                type="button"
+                onClick={onSwitchToLogin}
+                className="mt-1 text-xs text-[var(--accent)] hover:underline"
+              >
+                Use a different email or log in
+              </button>
+            </div>
+            <Elements key={clientSecret} stripe={stripePromise} options={options}>
+              {hasPhysicalItems && (
+                <div className="mt-4">
+                  <AddressForm onAddressChange={handleAddressChange} />
+                </div>
+              )}
+              <CheckoutForm
+                addressDetails={addressDetails}
+                isLoading={isLoading}
+                clientSecret={clientSecret}
+                hasPhysicalItems={hasPhysicalItems}
+                isGuest={true}
+                guestEmail={guestEmail}
+              />
+            </Elements>
+          </>
+        ) : /* Loading state for authenticated user */
+        isLoading && isAuthenticated ? (
           <div className="flex items-center justify-center py-4">
             <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-red-500"></div>
-            <span className="ml-2 text-white">Updating payment details...</span>
+            <span className="ml-2 text-[var(--text-primary)]">Updating payment details...</span>
+          </div>
+        ) : /* Loading state for guest */
+        isLoading && isGuest && guestEmail ? (
+          <div className="flex items-center justify-center py-4">
+            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-red-500"></div>
+            <span className="ml-2 text-[var(--text-primary)]">Setting up guest checkout...</span>
+          </div>
+        ) : /* Guest email collection (only for merchandise, not event tickets) */
+        !isAuthenticated && !hasEventTickets ? (
+          <div className="space-y-4">
+            {/* Guest checkout option */}
+            {!isGuest ? (
+              <>
+                <GuestEmailForm onSubmit={onGuestEmailSubmit} isLoading={isLoading} />
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-[var(--border-subtle)]" />
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="bg-[var(--bg-elev-1)] px-2 text-[var(--text-tertiary)]">or</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAuthGate(true)}
+                  className="w-full rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] px-8 py-3 text-base font-medium text-[var(--text-primary)] hover:bg-[var(--bg-elev-1)] transition-colors"
+                >
+                  Log in for faster checkout
+                </button>
+              </>
+            ) : (
+              /* Guest provided email but payment not ready yet */
+              <div className="text-center py-4">
+                <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-red-500 mx-auto"></div>
+                <span className="block mt-2 text-[var(--text-secondary)]">Preparing checkout...</span>
+              </div>
+            )}
           </div>
         ) : (
-          <div className="flex flex-col items-center">
+          /* Require login for event tickets or default state */
+          <div className="flex flex-col items-center space-y-3">
+            {hasEventTickets && (
+              <p className="text-sm text-[var(--text-secondary)] text-center">
+                Account required for event tickets to access your tickets after purchase.
+              </p>
+            )}
             <button
               type="button"
               onClick={() => setShowAuthGate(true)}

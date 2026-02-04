@@ -70,9 +70,29 @@ export async function POST(request) {
 
     const payload = await request.json().catch(() => ({}));
 
-    // Security: Verify authenticated user matches firebaseId in payload
-    // This prevents users from finalizing orders for other users
-    if (payload.firebaseId) {
+    // Guest checkout: Allow without authentication if isGuest flag is set
+    const isGuestCheckout = payload.isGuest === true;
+
+    if (isGuestCheckout) {
+      // Guest checkout requires a valid email
+      // FIX: Use proper email regex instead of just checking for '@'
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!payload.guestEmail || typeof payload.guestEmail !== 'string' || !emailRegex.test(payload.guestEmail)) {
+        return NextResponse.json(
+          { error: 'Valid email required for guest checkout', code: 'INVALID_EMAIL' },
+          { status: 400 },
+        );
+      }
+      // Guest checkout should not have firebaseId
+      if (payload.firebaseId) {
+        return NextResponse.json(
+          { error: 'Cannot provide firebaseId for guest checkout', code: 'INVALID_REQUEST' },
+          { status: 400 },
+        );
+      }
+    } else if (payload.firebaseId) {
+      // Security: Verify authenticated user matches firebaseId in payload
+      // This prevents users from finalizing orders for other users
       const decoded = await verifyAuth(request);
       if (!decoded) {
         return NextResponse.json(

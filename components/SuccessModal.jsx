@@ -5,9 +5,11 @@ import { CheckCircleIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
+import PostPurchaseAccountPrompt from './PostPurchaseAccountPrompt';
 
-export default function SuccessModal({ orderNumber, items = [], userEmail, onClose }) {
+export default function SuccessModal({ orderNumber, items = [], userEmail, onClose, isGuest = false }) {
   const [open, setOpen] = useState(true);
+  const [showAccountPrompt, setShowAccountPrompt] = useState(false);
 
   const handleClose = () => {
     setOpen(false);
@@ -90,20 +92,44 @@ export default function SuccessModal({ orderNumber, items = [], userEmail, onClo
             ) : null}
 
             <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
-              <Link
-                href="/account"
-                onClick={handleClose}
-                className="inline-flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 sm:ml-3 sm:w-auto"
-              >
-                View my tickets
-              </Link>
-              <Link
-                href="/"
-                onClick={handleClose}
-                className="mt-3 inline-flex w-full justify-center rounded-md bg-gray-800 px-3 py-2 text-sm font-semibold text-gray-100 shadow-sm ring-1 ring-inset ring-gray-700 hover:bg-gray-700 sm:mt-0 sm:w-auto"
-              >
-                Continue shopping
-              </Link>
+              {isGuest ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleClose();
+                      setShowAccountPrompt(true);
+                    }}
+                    className="inline-flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 sm:ml-3 sm:w-auto"
+                  >
+                    Create account
+                  </button>
+                  <Link
+                    href="/shop"
+                    onClick={handleClose}
+                    className="mt-3 inline-flex w-full justify-center rounded-md bg-gray-800 px-3 py-2 text-sm font-semibold text-gray-100 shadow-sm ring-1 ring-inset ring-gray-700 hover:bg-gray-700 sm:mt-0 sm:w-auto"
+                  >
+                    Continue shopping
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/account"
+                    onClick={handleClose}
+                    className="inline-flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 sm:ml-3 sm:w-auto"
+                  >
+                    View my orders
+                  </Link>
+                  <Link
+                    href="/shop"
+                    onClick={handleClose}
+                    className="mt-3 inline-flex w-full justify-center rounded-md bg-gray-800 px-3 py-2 text-sm font-semibold text-gray-100 shadow-sm ring-1 ring-inset ring-gray-700 hover:bg-gray-700 sm:mt-0 sm:w-auto"
+                  >
+                    Continue shopping
+                  </Link>
+                </>
+              )}
               <button type="button" onClick={handleClose} className="sr-only">
                 Close
               </button>
@@ -111,6 +137,16 @@ export default function SuccessModal({ orderNumber, items = [], userEmail, onClo
           </DialogPanel>
         </div>
       </div>
+
+      {/* Guest account creation prompt */}
+      {isGuest && showAccountPrompt && (
+        <PostPurchaseAccountPrompt
+          open={showAccountPrompt}
+          onClose={() => setShowAccountPrompt(false)}
+          email={userEmail}
+          orderNumber={orderNumber}
+        />
+      )}
     </Dialog>
   );
 }
