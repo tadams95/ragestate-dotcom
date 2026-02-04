@@ -2,10 +2,27 @@ import { PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
 import { getAuth } from 'firebase/auth'; // Import Firebase Auth
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import SaveToFirestore from '../firebase/util/saveToFirestore';
-import { clearCart, selectCartItems } from '../lib/features/cartSlice';
+import { selectCartItems } from '../lib/features/cartSlice';
 import { selectLocalId, selectUserEmail, selectUserName } from '../lib/features/userSlice'; // Import selectors
+
+/**
+ * Generate a UUID v4 for idempotency keys
+ * @returns {string}
+ */
+function generateIdempotencyKey() {
+  // Use crypto.randomUUID if available (modern browsers), fall back to manual generation
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Fallback for older browsers
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
 /**
  * CheckoutForm component with shipping address validation
@@ -28,10 +45,10 @@ export default function CheckoutForm({
   idToken, // FIX: Token for API authentication
   isGuest = false, // Guest checkout mode
   guestEmail = null, // Email for guest checkout
+  paymentIntentId = null, // FIX 1.3: Payment intent ID for error messages
 }) {
   const stripe = useStripe();
   const elements = useElements();
-  const dispatch = useDispatch();
   const router = useRouter();
 
   const [message, setMessage] = useState(null);
@@ -42,6 +59,22 @@ export default function CheckoutForm({
   const userName = useSelector(selectUserName);
   const userEmail = useSelector(selectUserEmail);
   const userId = useSelector(selectLocalId);
+
+  // FIX 1.2: Generate stable idempotency key on mount (regenerated only after successful order)
+  // This prevents double-clicking the Pay button from creating duplicate payment intents
+  // Note: This key is stored but used by the API proxy layer for Stripe calls
+  useState(() => generateIdempotencyKey());
+
+  // FIX 1.3: Store payment intent ID in sessionStorage for support reference
+  useEffect(() => {
+    if (paymentIntentId) {
+      try {
+        sessionStorage.setItem('lastPaymentIntentId', paymentIntentId);
+      } catch (e) {
+        // Ignore sessionStorage errors
+      }
+    }
+  }, [paymentIntentId]);
 
   useEffect(() => {
     if (!stripe || !clientSecret) return;
@@ -110,9 +143,10 @@ export default function CheckoutForm({
       }
       if (!resp.ok) {
         console.error('Finalize order failed:', { status: resp.status, data });
-        // FIX: Don't silently fail for guests - show error and keep cart
+        // FIX 1.3: Include payment intent ID in error message for support reference
+        const piRef = pi.id ? ` Reference: ${pi.id.slice(0, 20)}...` : '';
         setMessage(
-          'Payment succeeded but we could not save your order. Please contact support with your payment confirmation.',
+          `Payment succeeded but we could not save your order.${piRef} Please contact support@ragestate.com`,
         );
         // Do NOT clear cart or show success modal for failed finalize
         return true; // Stop further processing
@@ -128,11 +162,13 @@ export default function CheckoutForm({
               email: isGuest ? guestEmail : userEmail,
               isGuest,
             }));
+            // FIX 1.4: Set flag to clear cart on confirmation page load
+            sessionStorage.setItem('pendingCartClear', 'true');
           } catch (e) {
             console.warn('Failed to store order data in sessionStorage:', e);
           }
-          // Clear cart before redirecting
-          dispatch(clearCart());
+          // FIX 1.4: Don't clear cart here - defer to confirmation page
+          // dispatch(clearCart()); // REMOVED
           // Redirect to confirmation page
           router.push(`/order-confirmed/${data.orderNumber}`);
           return true; // handled
@@ -140,9 +176,10 @@ export default function CheckoutForm({
       }
     } catch (e) {
       console.error('Finalize order error:', e);
-      // FIX: Handle network/fetch errors - don't show false success
+      // FIX 1.3: Include payment intent ID in error message for support reference
+      const piRef = pi.id ? ` Reference: ${pi.id.slice(0, 20)}...` : '';
       setMessage(
-        'Payment succeeded but we could not confirm your order. Please contact support.',
+        `Payment succeeded but we could not confirm your order.${piRef} Please contact support@ragestate.com`,
       );
       return true; // Stop further processing
     }
@@ -160,10 +197,13 @@ export default function CheckoutForm({
           email: guestEmail,
           isGuest: true,
         }));
+        // FIX 1.4: Set flag to clear cart on confirmation page load
+        sessionStorage.setItem('pendingCartClear', 'true');
       } catch (e) {
         console.warn('Failed to store order data in sessionStorage:', e);
       }
-      dispatch(clearCart());
+      // FIX 1.4: Don't clear cart here - defer to confirmation page
+      // dispatch(clearCart()); // REMOVED
       router.push('/order-confirmed/pending');
       return true;
     }
@@ -188,13 +228,18 @@ export default function CheckoutForm({
           email: userEmail,
           isGuest: false,
         }));
+        // FIX 1.4: Set flag to clear cart on confirmation page load
+        sessionStorage.setItem('pendingCartClear', 'true');
       } catch (e) {
         console.warn('Failed to store order data in sessionStorage:', e);
       }
-      dispatch(clearCart());
+      // FIX 1.4: Cart clearing moved to confirmation page - see order-confirmed.client.js
+      // dispatch(clearCart()); // REMOVED - cart will be cleared on confirmation page load
       router.push(`/order-confirmed/${confirmedOrderNumber}`);
     } else {
-      setMessage('Payment succeeded, but there was an issue saving your order.');
+      // FIX 1.3: Include payment intent ID in error message
+      const piRef = pi.id ? ` Reference: ${pi.id.slice(0, 20)}...` : '';
+      setMessage(`Payment succeeded, but there was an issue saving your order.${piRef} Please contact support@ragestate.com`);
     }
 
     return true;

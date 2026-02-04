@@ -1,6 +1,7 @@
 'use client';
 
 import { loadStripe } from '@stripe/stripe-js';
+import { getAuth } from 'firebase/auth';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -27,6 +28,32 @@ import CartItemDisplay from './components/CartItemDisplay';
 import CrossSellSection from './components/CrossSellSection';
 import OrderSummaryDisplay from './components/OrderSummaryDisplay';
 
+/**
+ * FIX 3.4: Get a fresh auth token, refreshing if necessary
+ * Long checkout sessions can have expired tokens
+ * @returns {Promise<string|null>}
+ */
+async function getFreshAuthToken() {
+  try {
+    const auth = getAuth();
+    const user = auth.currentUser;
+    if (!user) return null;
+    // Force refresh if token is close to expiration (within 5 minutes)
+    const tokenResult = await user.getIdTokenResult();
+    const expirationTime = new Date(tokenResult.expirationTime).getTime();
+    const now = Date.now();
+    const fiveMinutes = 5 * 60 * 1000;
+    if (expirationTime - now < fiveMinutes) {
+      // Token expires soon, force refresh
+      return await user.getIdToken(true);
+    }
+    return tokenResult.token;
+  } catch (e) {
+    console.warn('Failed to refresh auth token:', e);
+    return null;
+  }
+}
+
 // Call our Next.js API proxy to avoid CORS/redirects
 const API_PROXY = '/api/payments';
 
@@ -52,6 +79,7 @@ export default function Cart() {
     totalPrice: 0,
     stripePromise: null,
     clientSecret: '',
+    paymentIntentId: '', // FIX 1.3: Store payment intent ID for error messages
     userName: '',
     userEmail: '',
     userId: '',
@@ -307,6 +335,22 @@ export default function Cart() {
         setIsLoading(true);
         setErrorMessage('');
 
+        // FIX 3.4: Refresh auth token if needed before making payment request
+        let currentIdToken = state.idToken;
+        if (!isGuest && state.userId) {
+          try {
+            const freshToken = await getFreshAuthToken();
+            if (freshToken && freshToken !== state.idToken) {
+              currentIdToken = freshToken;
+              // Update state and storage with fresh token
+              setState((prevState) => ({ ...prevState, idToken: freshToken }));
+              storage.write('idToken', freshToken);
+            }
+          } catch (e) {
+            console.warn('Token refresh failed, using existing token:', e);
+          }
+        }
+
         // Build request body with optional promo code
         // Support both authenticated and guest checkout
         const requestBody = {
@@ -329,8 +373,8 @@ export default function Cart() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            // Only send auth header for authenticated users
-            ...(state.idToken && !isGuest && { Authorization: `Bearer ${state.idToken}` }),
+            // FIX 3.4: Use the refreshed token for authenticated users
+            ...(currentIdToken && !isGuest && { Authorization: `Bearer ${currentIdToken}` }),
           },
           body: JSON.stringify(requestBody),
         });
@@ -348,7 +392,11 @@ export default function Cart() {
         }
 
         const data = await response.json();
-        setState((prevState) => ({ ...prevState, clientSecret: data.client_secret }));
+        setState((prevState) => ({
+          ...prevState,
+          clientSecret: data.client_secret,
+          paymentIntentId: data.paymentIntentId || '', // FIX 1.3: Store payment intent ID
+        }));
 
         // Note: Don't update promoDiscount from server response here to avoid re-render loops
         // The discount is already calculated client-side and server validates it
@@ -492,6 +540,7 @@ export default function Cart() {
               idToken={state.idToken}
               refreshToken={state.refreshToken}
               clientSecret={state.clientSecret}
+              paymentIntentId={state.paymentIntentId} // FIX 1.3: Pass payment intent ID
               stripePromise={state.stripePromise}
               options={options}
               hasPhysicalItems={hasPhysicalItems}

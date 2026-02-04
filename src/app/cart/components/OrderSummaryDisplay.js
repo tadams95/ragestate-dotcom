@@ -17,6 +17,7 @@ export default function OrderSummaryDisplay({
   idToken,
   refreshToken,
   clientSecret,
+  paymentIntentId, // FIX 1.3: Payment intent ID for error messages
   stripePromise,
   options,
   hasPhysicalItems,
@@ -206,6 +207,7 @@ export default function OrderSummaryDisplay({
                 hasPhysicalItems={hasPhysicalItems}
                 idToken={idToken}
                 isGuest={false}
+                paymentIntentId={paymentIntentId}
               />
             </Elements>
           </>
@@ -237,6 +239,7 @@ export default function OrderSummaryDisplay({
                 hasPhysicalItems={hasPhysicalItems}
                 isGuest={true}
                 guestEmail={guestEmail}
+                paymentIntentId={paymentIntentId}
               />
             </Elements>
           </>

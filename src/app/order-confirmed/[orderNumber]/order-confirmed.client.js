@@ -4,6 +4,8 @@ import { CheckCircleIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { clearCart } from '../../../../lib/features/cartSlice';
 
 /**
  * @typedef {Object} OrderData
@@ -19,10 +21,25 @@ import { useEffect, useMemo, useState } from 'react';
  * @param {{ orderNumber: string }} props
  */
 export default function OrderConfirmedClient({ orderNumber }) {
+  const dispatch = useDispatch();
   const [orderData, setOrderData] = useState(/** @type {OrderData|null} */ (null));
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // FIX 1.4: Clear cart on confirmation page load (deferred from checkout)
+    // This ensures cart is only cleared after successful navigation to confirmation
+    try {
+      const pendingClear = sessionStorage.getItem('pendingCartClear');
+      if (pendingClear === 'true') {
+        dispatch(clearCart());
+        sessionStorage.removeItem('pendingCartClear');
+        console.log('Cart cleared on order confirmation page');
+      }
+    } catch (e) {
+      // Fallback: clear cart anyway on order confirmation
+      dispatch(clearCart());
+    }
+
     // Try to get order data from sessionStorage
     try {
       const stored = sessionStorage.getItem('lastOrder');
@@ -39,7 +56,7 @@ export default function OrderConfirmedClient({ orderNumber }) {
       console.warn('Failed to parse order data from sessionStorage:', e);
     }
     setLoading(false);
-  }, [orderNumber]);
+  }, [orderNumber, dispatch]);
 
   const displayItems = useMemo(() => {
     if (!orderData?.items || !Array.isArray(orderData.items)) return [];

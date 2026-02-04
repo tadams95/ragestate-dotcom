@@ -462,8 +462,36 @@ app.post('/create-payment-intent', async (req, res) => {
       idempotencyKey ? { idempotencyKey } : undefined,
     );
 
+    // FIX 1.1: Store cart data in pendingOrders for webhook recovery
+    // If client crashes after payment but before finalize-order, webhook can use this data
+    try {
+      const pendingOrderData = {
+        paymentIntentId: pi.id,
+        cartItems: Array.isArray(cartItems) ? cartItems : [],
+        addressDetails: req.body.addressDetails || null,
+        firebaseId: isGuest ? null : (firebaseId || null),
+        email: effectiveEmail,
+        name: isGuest ? '' : (name || ''),
+        amount: finalAmount,
+        currency,
+        isGuest: isGuest || false,
+        guestEmail: isGuest ? guestEmail : null,
+        guestMarketingOptIn: guestMarketingOptIn || false,
+        promoCode: promoValidation?.promoId || null,
+        promoCollection: promoValidation?.promoCollection || null,
+        promoDiscountAmount: promoValidation?.discountAmount || 0,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        status: 'pending',
+      };
+      await db.collection('pendingOrders').doc(pi.id).set(pendingOrderData);
+      logger.info('Stored pendingOrder for webhook recovery', { piId: pi.id, cartSize: pendingOrderData.cartItems.length });
+    } catch (e) {
+      // Non-fatal: log but don't fail the payment intent creation
+      logger.warn('Failed to store pendingOrder (non-fatal)', { piId: pi.id, error: e?.message });
+    }
+
     // Return client secret plus promo info for UI
-    const response = { client_secret: pi.client_secret };
+    const response = { client_secret: pi.client_secret, paymentIntentId: pi.id };
     if (promoValidation?.valid) {
       response.promo = {
         applied: true,
@@ -1590,6 +1618,9 @@ app.post('/finalize-order', async (req, res) => {
       await incrementPromoCodeUsage(promoId, promoCollection, orderNumber);
     }
 
+    // FIX 3.2: Check for partial failures requiring admin review
+    const hasPartialFailure = errors.length > 0 && totalItemsProcessed > 0;
+
     try {
       await fulfillRef.set(
         {
@@ -1607,7 +1638,9 @@ app.post('/finalize-order', async (req, res) => {
           hasMerchandiseItems,
           // FIX: Include any partial failures
           errors: errors.length > 0 ? errors : null,
-          partialSuccess: errors.length > 0 && totalItemsProcessed > 0,
+          partialSuccess: hasPartialFailure,
+          // FIX 3.2: Flag for admin review on partial failures
+          needsAdminReview: hasPartialFailure,
           // Printify fulfillment tracking
           printifyOrderId: printifyOrderResult?.id || null,
           printifyStatus: printifyOrderResult?.status || null,
@@ -1634,6 +1667,35 @@ app.post('/finalize-order', async (req, res) => {
       logger.warn('Failed to update fulfillments record', e);
     }
 
+    // FIX 3.2: Create admin alert for partial failures
+    if (hasPartialFailure) {
+      try {
+        await db.collection('adminAlerts').add({
+          type: 'partial_fulfillment_failure',
+          paymentIntentId: pi.id,
+          orderNumber,
+          errors,
+          totalProcessed: totalItemsProcessed,
+          totalExpected: totalItemsExpected,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          status: 'pending',
+          message: `Order ${orderNumber}: ${totalItemsProcessed}/${totalItemsExpected} items fulfilled`,
+        });
+        logger.warn('Finalize-order: Admin alert created for partial failure', { orderNumber, errors });
+      } catch (e) {
+        logger.warn('Failed to create admin alert (non-fatal)', { orderNumber, error: e?.message });
+      }
+    }
+
+    // FIX 1.1: Clean up pendingOrder after successful fulfillment
+    try {
+      await db.collection('pendingOrders').doc(pi.id).delete();
+      logger.info('Finalize-order: Deleted pendingOrder', { piId: pi.id });
+    } catch (e) {
+      // Non-fatal: pendingOrder may not exist or already deleted
+      logger.info('Finalize-order: No pendingOrder to delete or already deleted', { piId: pi.id });
+    }
+
     // FIX: Enhanced logging with merchandise info
     logger.info('Finalize-order: completed', {
       orderNumber,
@@ -1643,6 +1705,71 @@ app.post('/finalize-order', async (req, res) => {
       errors: errors.length,
       itemTypes,
     });
+
+    // FIX 4.2: Send confirmation email on successful order
+    try {
+      const recipientEmail = effectiveEmail || pi.receipt_email || '';
+      if (recipientEmail && totalItemsProcessed > 0) {
+        const itemsList = sanitizedItems.map(i =>
+          `• ${i.title} (x${i.quantity})`
+        ).join('\n');
+
+        const itemsHtml = sanitizedItems.map(i =>
+          `<tr><td style="padding:8px 0;border-bottom:1px solid #eee">${i.title}</td><td style="padding:8px 0;border-bottom:1px solid #eee;text-align:right">x${i.quantity}</td></tr>`
+        ).join('');
+
+        const totalFormatted = amountStr ? `$${amountStr}` : 'See receipt';
+
+        await sendEmail({
+          to: recipientEmail,
+          from: 'RAGESTATE <orders@ragestate.com>',
+          replyTo: 'support@ragestate.com',
+          subject: `Order Confirmed: ${orderNumber}`,
+          text: `Thank you for your order!\n\nOrder Number: ${orderNumber}\n\nItems:\n${itemsList}\n\nTotal: ${totalFormatted}\n\nQuestions? Contact us at support@ragestate.com`,
+          html: `
+            <div style="background:#f6f6f6;padding:24px 0">
+              <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #eee;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+                <div style="padding:16px 24px;background:#000;color:#fff;text-align:center">
+                  <img src="https://firebasestorage.googleapis.com/v0/b/ragestate-app.appspot.com/o/RSLogo2.png?alt=media&token=d13ebc08-9d8d-4367-99ec-ace3627132d2" alt="RAGESTATE" width="120" style="display:inline-block;border:0;outline:none;text-decoration:none;height:auto" />
+                </div>
+                <div style="height:3px;background:#E12D39"></div>
+                <div style="padding:24px">
+                  <h2 style="margin:0 0 16px;font-size:22px;color:#111;text-align:center">Order Confirmed!</h2>
+                  <p style="margin:0 0 16px;color:#111;font-size:16px;line-height:24px;text-align:center">
+                    Thank you for your purchase.
+                  </p>
+                  <div style="background:#f9f9f9;border-radius:8px;padding:16px;margin:16px 0">
+                    <p style="margin:0 0 8px;font-size:14px;color:#666">Order Number:</p>
+                    <p style="margin:0 0 16px;font-size:18px;font-weight:bold;color:#111">${orderNumber}</p>
+                    <table style="width:100%;border-collapse:collapse">
+                      ${itemsHtml}
+                    </table>
+                    <div style="margin-top:16px;padding-top:16px;border-top:2px solid #111">
+                      <p style="margin:0;font-size:16px;font-weight:bold;color:#111;text-align:right">Total: ${totalFormatted}</p>
+                    </div>
+                  </div>
+                  ${isGuest ? `<p style="margin:16px 0;color:#111;font-size:14px;text-align:center">Track your order at <a href="https://ragestate.com/order-lookup" style="color:#E12D39">ragestate.com/order-lookup</a></p>` : ''}
+                  <p style="margin:16px 0 0;color:#6b7280;font-size:12px;line-height:18px;text-align:center">
+                    Questions? Contact us at <a href="mailto:support@ragestate.com" style="color:#E12D39">support@ragestate.com</a>
+                  </p>
+                </div>
+                <div style="padding:16px 24px;border-top:1px solid #eee;color:#6b7280;font-size:12px;line-height:18px;text-align:center">
+                  <p style="margin:0">RAGESTATE — Your ticket to the next level</p>
+                </div>
+              </div>
+            </div>
+          `,
+          region: process.env.AWS_SES_REGION,
+        });
+        logger.info('Finalize-order: Confirmation email sent', { orderNumber, email: recipientEmail });
+      }
+    } catch (emailErr) {
+      // Non-fatal: log but don't fail the order
+      logger.warn('Finalize-order: Failed to send confirmation email (non-fatal)', {
+        orderNumber,
+        error: emailErr?.message,
+      });
+    }
 
     // FIX: Return comprehensive response including merchandise orders
     return res.json({
@@ -3661,10 +3788,80 @@ async function handlePaymentSucceeded(paymentIntent) {
   const isGuest = metadata.isGuest === 'true' || !firebaseId;
   const guestEmail = metadata.guestEmail || (isGuest ? email : null);
 
-  // For webhook-initiated fulfillment, we need to retrieve cart items from metadata
-  // Note: Large cart data should be stored separately and referenced by PI ID
-  // For now, create a minimal fulfillment record to trigger investigation
-  logger.info('stripeWebhook: Creating webhook-initiated fulfillment', {
+  // FIX 1.1: Try to retrieve cart data from pendingOrders collection
+  // This was stored at create-payment-intent time for webhook recovery
+  let pendingOrderData = null;
+  try {
+    const pendingOrderRef = db.collection('pendingOrders').doc(piId);
+    const pendingOrderSnap = await pendingOrderRef.get();
+    if (pendingOrderSnap.exists) {
+      pendingOrderData = pendingOrderSnap.data();
+      logger.info('stripeWebhook: Found pendingOrder data for recovery', {
+        piId,
+        cartSize: pendingOrderData.cartItems?.length || 0,
+      });
+    }
+  } catch (e) {
+    logger.warn('stripeWebhook: Failed to retrieve pendingOrder (non-fatal)', {
+      piId,
+      error: e?.message,
+    });
+  }
+
+  // If we have cart data from pendingOrders, perform full order fulfillment
+  if (pendingOrderData && Array.isArray(pendingOrderData.cartItems) && pendingOrderData.cartItems.length > 0) {
+    logger.info('stripeWebhook: Performing webhook-based order fulfillment', {
+      piId,
+      cartSize: pendingOrderData.cartItems.length,
+      isGuest: pendingOrderData.isGuest,
+    });
+
+    try {
+      // Mark as processing to prevent duplicate fulfillment
+      await fulfillRef.set({
+        status: 'processing',
+        source: 'stripe_webhook',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        paymentIntentId: piId,
+        firebaseId: pendingOrderData.isGuest ? null : pendingOrderData.firebaseId,
+        email: pendingOrderData.email,
+        isGuestOrder: pendingOrderData.isGuest || false,
+        guestEmail: pendingOrderData.isGuest ? pendingOrderData.guestEmail : null,
+        amount: paymentIntent.amount,
+        currency: paymentIntent.currency,
+      }, { merge: true });
+
+      // Call internal fulfillment logic (reuse from finalize-order)
+      const fulfillResult = await fulfillOrderFromWebhook(paymentIntent, pendingOrderData);
+
+      // Clean up pendingOrder after successful fulfillment
+      try {
+        await db.collection('pendingOrders').doc(piId).delete();
+        logger.info('stripeWebhook: Deleted pendingOrder after fulfillment', { piId });
+      } catch (e) {
+        logger.warn('stripeWebhook: Failed to delete pendingOrder (non-fatal)', { piId, error: e?.message });
+      }
+
+      return fulfillResult;
+    } catch (err) {
+      logger.error('stripeWebhook: Webhook fulfillment failed', {
+        piId,
+        error: err?.message,
+        stack: err?.stack,
+      });
+      // Mark fulfillment as failed for admin review
+      await fulfillRef.set({
+        status: 'webhook_failed',
+        failedAt: admin.firestore.FieldValue.serverTimestamp(),
+        error: err?.message || 'Unknown error',
+        needsAdminReview: true,
+      }, { merge: true });
+      throw err;
+    }
+  }
+
+  // No cart data available - create minimal record for admin attention
+  logger.info('stripeWebhook: No cart data available, creating recovery record', {
     piId,
     firebaseId,
     email,
@@ -3672,8 +3869,6 @@ async function handlePaymentSucceeded(paymentIntent) {
     hasCartSize: !!metadata.cartSize,
   });
 
-  // Create a webhook-initiated fulfillment record
-  // This marks the payment as requiring order recovery
   try {
     await fulfillRef.set({
       status: 'webhook_initiated',
@@ -3686,25 +3881,34 @@ async function handlePaymentSucceeded(paymentIntent) {
       guestEmail: isGuest ? guestEmail : null,
       amount: paymentIntent.amount,
       currency: paymentIntent.currency,
-      // Store metadata for potential manual recovery
       metadata: {
         cartSize: metadata.cartSize || '0',
         promoCode: metadata.promoCode || null,
         originalAmount: metadata.originalAmount || null,
       },
-      // Flag for admin attention - cart items not available in webhook
       needsRecovery: true,
-      recoveryReason: 'webhook_fallback_no_cart_items',
+      needsAdminReview: true,
+      recoveryReason: 'no_pending_order_data',
     }, { merge: true });
 
-    logger.info('stripeWebhook: Webhook fulfillment record created', { piId });
+    // Create admin alert for orders without cart data
+    try {
+      await db.collection('adminAlerts').add({
+        type: 'webhook_recovery_needed',
+        paymentIntentId: piId,
+        amount: paymentIntent.amount,
+        email,
+        isGuest,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        status: 'pending',
+        message: 'Payment succeeded but no cart data available for automatic fulfillment',
+      });
+    } catch (e) {
+      logger.warn('stripeWebhook: Failed to create admin alert (non-fatal)', { piId, error: e?.message });
+    }
 
-    // TODO: In production, consider:
-    // 1. Storing cart items in Firestore at create-payment-intent time (referenced by PI ID)
-    // 2. Calling the finalize-order logic directly with stored cart data
-    // 3. Sending admin notification for manual review
-
-    return { created: true, piId, status: 'webhook_initiated' };
+    logger.info('stripeWebhook: Webhook fulfillment record created (needs recovery)', { piId });
+    return { created: true, piId, status: 'webhook_initiated', needsRecovery: true };
   } catch (err) {
     logger.error('stripeWebhook: Failed to create fulfillment record', {
       piId,
@@ -3712,6 +3916,333 @@ async function handlePaymentSucceeded(paymentIntent) {
     });
     throw err;
   }
+}
+
+/**
+ * Fulfill an order from webhook using pendingOrder data
+ * Reuses logic from finalize-order endpoint
+ * @param {Object} paymentIntent - Stripe PaymentIntent
+ * @param {Object} pendingOrderData - Data from pendingOrders collection
+ */
+async function fulfillOrderFromWebhook(paymentIntent, pendingOrderData) {
+  const piId = paymentIntent.id;
+  const {
+    cartItems,
+    addressDetails,
+    firebaseId,
+    email,
+    name,
+    isGuest,
+    guestEmail,
+    promoCode,
+    promoCollection,
+  } = pendingOrderData;
+
+  const fulfillRef = db.collection('fulfillments').doc(piId);
+  const orderNumber = generateOrderNumber();
+  const { eventItems, merchandiseItems } = categorizeCartItems(cartItems);
+
+  // Guest checkout cannot purchase event tickets
+  if (isGuest && eventItems.length > 0) {
+    logger.error('stripeWebhook: Guest checkout attempted for event tickets', {
+      piId,
+      eventCount: eventItems.length,
+    });
+    await fulfillRef.set({
+      status: 'failed',
+      error: 'Guest checkout not allowed for event tickets',
+      needsAdminReview: true,
+    }, { merge: true });
+    throw new Error('Guest checkout not allowed for event tickets');
+  }
+
+  const created = [];
+  const merchOrdersCreated = [];
+  const errors = [];
+  const crypto = require('crypto');
+  const generateTicketToken = () => crypto.randomBytes(16).toString('hex');
+
+  // Process event tickets
+  for (const item of eventItems) {
+    const eventId = String(item?.productId || '').trim();
+    const qty = Math.max(1, parseInt(item.quantity || 1, 10));
+    if (!eventId) continue;
+
+    try {
+      const eventRef = db.collection('events').doc(eventId);
+      await db.runTransaction(async (tx) => {
+        const snap = await tx.get(eventRef);
+        if (!snap.exists) {
+          throw new Error(`Event ${eventId} not found`);
+        }
+        const data = snap.data() || {};
+        const currentQty = typeof data.quantity === 'number' ? data.quantity : 0;
+        const newQty = Math.max(0, currentQty - qty);
+        tx.update(eventRef, { quantity: newQty });
+
+        const ragersRef = eventRef.collection('ragers');
+        const token = generateTicketToken();
+        const rager = {
+          active: true,
+          email: email || paymentIntent.receipt_email || '',
+          firebaseId: firebaseId,
+          owner: name || '',
+          purchaseDate: admin.firestore.FieldValue.serverTimestamp(),
+          orderNumber,
+          ticketQuantity: qty,
+          paymentIntentId: piId,
+          ticketToken: token,
+          usedCount: 0,
+          source: 'webhook_recovery',
+        };
+        const ragerDoc = ragersRef.doc();
+        tx.set(ragerDoc, rager);
+        const mapRef = db.collection('ticketTokens').doc(token);
+        tx.set(mapRef, {
+          eventId,
+          ragerId: ragerDoc.id,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        const summaryRef = db.collection('eventUsers').doc(eventId).collection('users').doc(firebaseId);
+        tx.set(summaryRef, {
+          totalTickets: admin.firestore.FieldValue.increment(qty),
+          lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+        created.push({ type: 'event', eventId, ragerId: ragerDoc.id, qty, newQty });
+      });
+      logger.info('stripeWebhook: Event ticket created', { eventId, qty, orderNumber });
+    } catch (e) {
+      logger.error('stripeWebhook: Failed to create event ticket', { eventId, error: e?.message });
+      errors.push({ type: 'event', productId: eventId, error: e?.message || 'Unknown error' });
+    }
+  }
+
+  // Process merchandise items
+  for (const item of merchandiseItems) {
+    const productId = String(item?.productId || '').trim();
+    const qty = Math.max(1, parseInt(item.quantity || 1, 10));
+    if (!productId) continue;
+
+    try {
+      const shippingAddr = addressDetails ? {
+        name: addressDetails.name || name || '',
+        line1: addressDetails.address?.line1 || '',
+        line2: addressDetails.address?.line2 || '',
+        city: addressDetails.address?.city || '',
+        state: addressDetails.address?.state || '',
+        postalCode: addressDetails.address?.postal_code || '',
+        country: addressDetails.address?.country || 'US',
+      } : null;
+
+      const effectiveEmail = isGuest ? guestEmail : (email || paymentIntent.receipt_email || '');
+      const merchOrderDoc = {
+        orderNumber,
+        paymentIntentId: piId,
+        firebaseId: isGuest ? null : (firebaseId || null),
+        productId,
+        variantId: item.variantId || null,
+        title: item.title || item.name || productId,
+        quantity: qty,
+        price: typeof item.price === 'number' ? item.price : parseFloat(item.price) || null,
+        productImageSrc: item.productImageSrc || item.imageSrc || null,
+        color: item.color || item.selectedColor || null,
+        size: item.size || item.selectedSize || null,
+        customerEmail: effectiveEmail,
+        customerName: isGuest ? '' : (name || ''),
+        shippingAddress: shippingAddr,
+        status: 'pending_fulfillment',
+        fulfillmentStatus: 'unfulfilled',
+        isGuestOrder: isGuest || false,
+        guestEmail: isGuest ? guestEmail : null,
+        source: 'webhook_recovery',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      };
+
+      const merchRef = db.collection('merchandiseOrders').doc();
+      await merchRef.set(merchOrderDoc);
+      merchOrdersCreated.push({
+        type: 'merchandise',
+        orderId: merchRef.id,
+        productId,
+        qty,
+      });
+      logger.info('stripeWebhook: Merchandise order created', { productId, qty, orderNumber });
+    } catch (e) {
+      logger.error('stripeWebhook: Failed to create merchandise order', { productId, error: e?.message });
+      errors.push({ type: 'merchandise', productId, error: e?.message || 'Unknown error' });
+    }
+  }
+
+  // Check for complete failure
+  const totalProcessed = created.length + merchOrdersCreated.length;
+  const totalExpected = eventItems.length + merchandiseItems.length;
+  const hasPartialFailure = errors.length > 0 && totalProcessed > 0;
+
+  // Update fulfillment status
+  const effectiveEmail = isGuest ? guestEmail : (email || paymentIntent.receipt_email || '');
+  await fulfillRef.set({
+    status: totalProcessed > 0 ? 'completed' : 'failed',
+    source: 'stripe_webhook',
+    completedAt: admin.firestore.FieldValue.serverTimestamp(),
+    orderNumber,
+    createdTickets: created.length,
+    createdMerchOrders: merchOrdersCreated.length,
+    details: [...created, ...merchOrdersCreated],
+    errors: errors.length > 0 ? errors : null,
+    partialFailure: hasPartialFailure,
+    needsAdminReview: hasPartialFailure || totalProcessed === 0,
+  }, { merge: true });
+
+  // Increment promo code usage if applicable
+  if (promoCode && promoCollection && totalProcessed > 0) {
+    await incrementPromoCodeUsage(promoCode, promoCollection, orderNumber);
+  }
+
+  // Create purchase record
+  const sanitizedItems = cartItems.map((i) => ({
+    productId: i.productId,
+    title: i.title || i.name || i.productId,
+    price: typeof i.price === 'number' ? i.price : parseFloat(i.price) || null,
+    quantity: Math.max(1, parseInt(i.quantity || 1, 10)),
+    productImageSrc: i.productImageSrc || i.imageSrc || null,
+    itemType: isShopifyMerchandise(i.productId, i) ? 'merchandise' : 'event',
+  }));
+
+  const purchaseDoc = {
+    addressDetails: addressDetails || null,
+    customerEmail: effectiveEmail,
+    customerId: isGuest ? null : firebaseId,
+    customerName: isGuest ? '' : (name || ''),
+    itemCount: sanitizedItems.length,
+    items: sanitizedItems,
+    orderDate: admin.firestore.FieldValue.serverTimestamp(),
+    orderNumber,
+    paymentIntentId: piId,
+    status: 'completed',
+    totalAmount: paymentIntent.amount / 100,
+    isGuestOrder: isGuest || false,
+    guestEmail: isGuest ? guestEmail : null,
+    source: 'webhook_recovery',
+  };
+
+  try {
+    await db.collection('purchases').doc(orderNumber).set(purchaseDoc);
+    if (isGuest && guestEmail) {
+      // FIX 4.1: Use same structure as finalize-order for consistent lookup
+      // guestOrders/{emailHash}/orders/{orderNumber}
+      const crypto = require('crypto');
+      const emailHash = crypto.createHash('sha256').update(guestEmail.toLowerCase().trim()).digest('hex');
+      await db.collection('guestOrders').doc(emailHash).collection('orders').doc(orderNumber).set({
+        orderNumber,
+        email: guestEmail,
+        emailHash,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        source: 'webhook_recovery',
+      });
+    }
+  } catch (e) {
+    logger.warn('stripeWebhook: Failed to create purchase record (non-fatal)', { orderNumber, error: e?.message });
+  }
+
+  // Create admin alert if there were partial failures
+  if (hasPartialFailure) {
+    try {
+      await db.collection('adminAlerts').add({
+        type: 'partial_fulfillment_failure',
+        paymentIntentId: piId,
+        orderNumber,
+        errors,
+        totalProcessed,
+        totalExpected,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        status: 'pending',
+      });
+    } catch (e) {
+      logger.warn('stripeWebhook: Failed to create admin alert (non-fatal)', { piId, error: e?.message });
+    }
+  }
+
+  // FIX 4.2: Send confirmation email for webhook-fulfilled orders
+  if (effectiveEmail && totalProcessed > 0) {
+    try {
+      const itemsList = sanitizedItems.map(i =>
+        `• ${i.title} (x${i.quantity})`
+      ).join('\n');
+
+      const itemsHtml = sanitizedItems.map(i =>
+        `<tr><td style="padding:8px 0;border-bottom:1px solid #eee">${i.title}</td><td style="padding:8px 0;border-bottom:1px solid #eee;text-align:right">x${i.quantity}</td></tr>`
+      ).join('');
+
+      const totalFormatted = `$${(paymentIntent.amount / 100).toFixed(2)}`;
+
+      await sendEmail({
+        to: effectiveEmail,
+        from: 'RAGESTATE <orders@ragestate.com>',
+        replyTo: 'support@ragestate.com',
+        subject: `Order Confirmed: ${orderNumber}`,
+        text: `Thank you for your order!\n\nOrder Number: ${orderNumber}\n\nItems:\n${itemsList}\n\nTotal: ${totalFormatted}\n\nQuestions? Contact us at support@ragestate.com`,
+        html: `
+          <div style="background:#f6f6f6;padding:24px 0">
+            <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #eee;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+              <div style="padding:16px 24px;background:#000;color:#fff;text-align:center">
+                <img src="https://firebasestorage.googleapis.com/v0/b/ragestate-app.appspot.com/o/RSLogo2.png?alt=media&token=d13ebc08-9d8d-4367-99ec-ace3627132d2" alt="RAGESTATE" width="120" style="display:inline-block;border:0;outline:none;text-decoration:none;height:auto" />
+              </div>
+              <div style="height:3px;background:#E12D39"></div>
+              <div style="padding:24px">
+                <h2 style="margin:0 0 16px;font-size:22px;color:#111;text-align:center">Order Confirmed!</h2>
+                <p style="margin:0 0 16px;color:#111;font-size:16px;line-height:24px;text-align:center">
+                  Thank you for your purchase.
+                </p>
+                <div style="background:#f9f9f9;border-radius:8px;padding:16px;margin:16px 0">
+                  <p style="margin:0 0 8px;font-size:14px;color:#666">Order Number:</p>
+                  <p style="margin:0 0 16px;font-size:18px;font-weight:bold;color:#111">${orderNumber}</p>
+                  <table style="width:100%;border-collapse:collapse">
+                    ${itemsHtml}
+                  </table>
+                  <div style="margin-top:16px;padding-top:16px;border-top:2px solid #111">
+                    <p style="margin:0;font-size:16px;font-weight:bold;color:#111;text-align:right">Total: ${totalFormatted}</p>
+                  </div>
+                </div>
+                ${isGuest ? `<p style="margin:16px 0;color:#111;font-size:14px;text-align:center">Track your order at <a href="https://ragestate.com/order-lookup" style="color:#E12D39">ragestate.com/order-lookup</a></p>` : ''}
+                <p style="margin:16px 0 0;color:#6b7280;font-size:12px;line-height:18px;text-align:center">
+                  Questions? Contact us at <a href="mailto:support@ragestate.com" style="color:#E12D39">support@ragestate.com</a>
+                </p>
+              </div>
+              <div style="padding:16px 24px;border-top:1px solid #eee;color:#6b7280;font-size:12px;line-height:18px;text-align:center">
+                <p style="margin:0">RAGESTATE — Your ticket to the next level</p>
+              </div>
+            </div>
+          </div>
+        `,
+        region: process.env.AWS_SES_REGION,
+      });
+      logger.info('stripeWebhook: Confirmation email sent', { orderNumber, email: effectiveEmail });
+    } catch (emailErr) {
+      // Non-fatal: log but don't fail the webhook
+      logger.warn('stripeWebhook: Failed to send confirmation email (non-fatal)', {
+        orderNumber,
+        error: emailErr?.message,
+      });
+    }
+  }
+
+  logger.info('stripeWebhook: Order fulfilled via webhook', {
+    piId,
+    orderNumber,
+    ticketsCreated: created.length,
+    merchCreated: merchOrdersCreated.length,
+    errors: errors.length,
+  });
+
+  return {
+    ok: true,
+    source: 'webhook',
+    orderNumber,
+    createdTickets: created.length,
+    createdMerchOrders: merchOrdersCreated.length,
+    errors: errors.length > 0 ? errors : null,
+  };
 }
 
 /**
@@ -4005,9 +4536,41 @@ exports.stripeWebhook = onRequest(
         error: err?.message,
         stack: err?.stack,
       });
-      // Return 200 to prevent Stripe from retrying (we've logged the error)
-      // In production, you may want to return 500 for certain errors to trigger retry
-      return res.json({ received: true, error: err.message });
+
+      // FIX 3.1: Determine if error is retryable
+      // Retryable errors (return 500 so Stripe retries):
+      // - Firestore timeout/connection errors
+      // - Temporary network failures
+      // Non-retryable errors (return 200 to prevent infinite retry):
+      // - Validation errors
+      // - Business logic errors (already fulfilled, etc.)
+      const isRetryableError = (error) => {
+        const errorMessage = error?.message || '';
+        const errorCode = error?.code || '';
+        // Firestore/network errors are retryable
+        if (errorCode === 'UNAVAILABLE' || errorCode === 'DEADLINE_EXCEEDED') return true;
+        if (errorCode === 'ABORTED' || errorCode === 'INTERNAL') return true;
+        if (errorMessage.includes('ETIMEDOUT') || errorMessage.includes('ECONNRESET')) return true;
+        if (errorMessage.includes('deadline-exceeded') || errorMessage.includes('unavailable')) return true;
+        // Rate limiting should retry
+        if (errorCode === 'RESOURCE_EXHAUSTED') return true;
+        return false;
+      };
+
+      if (isRetryableError(err)) {
+        logger.warn('stripeWebhook: Returning 500 for retryable error', {
+          type: event.type,
+          errorCode: err?.code,
+        });
+        return res.status(500).json({
+          error: 'Temporary error, please retry',
+          retryable: true,
+          message: err?.message,
+        });
+      }
+
+      // Non-retryable error - return 200 to acknowledge receipt
+      return res.json({ received: true, error: err.message, retryable: false });
     }
   },
 );

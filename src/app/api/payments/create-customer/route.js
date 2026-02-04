@@ -2,6 +2,25 @@ import fs from 'fs';
 import { NextResponse } from 'next/server';
 import path from 'path';
 
+/**
+ * FIX 2.1: Verify Firebase ID token and return decoded token
+ * @param {Request} request
+ * @returns {Promise<{uid: string}|null>}
+ */
+async function verifyAuth(request) {
+  const authHeader = request.headers.get('authorization') || '';
+  const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!idToken) return null;
+
+  try {
+    const { authAdmin } = await import('../../../../lib/server/firebaseAdmin');
+    return await authAdmin.verifyIdToken(idToken);
+  } catch (e) {
+    console.warn('create-customer auth verification failed:', e?.code || e?.message);
+    return null;
+  }
+}
+
 function getFunctionBaseUrl() {
   const explicit = process.env.STRIPE_FN_URL || process.env.NEXT_PUBLIC_STRIPE_FN_URL;
   if (explicit) return explicit;
@@ -45,7 +64,27 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Stripe function URL not configured' }, { status: 503 });
     }
 
+    // FIX 2.1: Require authentication for create-customer endpoint
+    const decoded = await verifyAuth(request);
+    if (!decoded) {
+      return NextResponse.json(
+        { error: 'Authentication required', code: 'UNAUTHENTICATED' },
+        { status: 401 },
+      );
+    }
+
     const payload = await request.json().catch(() => ({}));
+
+    // FIX 2.1: Verify authenticated user matches the uid being created
+    if (payload.uid && payload.uid !== decoded.uid) {
+      return NextResponse.json(
+        { error: 'Cannot create customer for another user', code: 'FORBIDDEN' },
+        { status: 403 },
+      );
+    }
+
+    // Ensure uid is set to the authenticated user's uid
+    payload.uid = decoded.uid;
 
     const headers = {
       'Content-Type': 'application/json',

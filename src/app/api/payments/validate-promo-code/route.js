@@ -1,6 +1,7 @@
 import fs from 'fs';
 import { NextResponse } from 'next/server';
 import path from 'path';
+import { checkRateLimit, getClientIp } from '../../../../lib/server/rateLimit';
 
 function getFunctionBases() {
   const explicit = process.env.STRIPE_FN_URL || process.env.NEXT_PUBLIC_STRIPE_FN_URL;
@@ -53,6 +54,21 @@ export async function POST(request) {
     const bases = getFunctionBases();
     if (!bases || bases.length === 0) {
       return NextResponse.json({ error: 'Stripe function URL not configured' }, { status: 503 });
+    }
+
+    // FIX 2.3: Rate limit promo code validation to prevent enumeration attacks
+    const clientIp = getClientIp(request);
+    const rateLimitResult = await checkRateLimit('PROMO_VALIDATION', clientIp);
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        {
+          valid: false,
+          error: 'rate_limited',
+          message: rateLimitResult.message,
+          resetAt: rateLimitResult.resetAt ? rateLimitResult.resetAt.toISOString() : null,
+        },
+        { status: 429 },
+      );
     }
 
     const payload = await request.json().catch(() => ({}));
