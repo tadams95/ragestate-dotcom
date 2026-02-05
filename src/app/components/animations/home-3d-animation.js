@@ -58,7 +58,7 @@ function FloatingParticles({ color = '#EF4E4E', intensity = 1, count = 2000, isD
         <PointMaterial
           transparent
           color={color}
-          size={isDark ? 0.05 : 0.12}
+          size={isDark ? 0.05 : 0.16}
           sizeAttenuation={true}
           depthWrite={false}
           blending={isDark ? THREE.AdditiveBlending : THREE.NormalBlending}
@@ -74,7 +74,7 @@ function Scene({ color, intensity, particleCount, bgColor, isDark, enableBloom }
   return (
     <>
       <color attach="background" args={[bgColor]} />
-      <fog attach="fog" args={[bgColor, isDark ? 10 : 18, isDark ? 25 : 35]} />
+      <fog attach="fog" args={[bgColor, isDark ? 10 : 25, isDark ? 25 : 50]} />
       <FloatingParticles
         color={color}
         intensity={intensity}
@@ -85,9 +85,9 @@ function Scene({ color, intensity, particleCount, bgColor, isDark, enableBloom }
       {enableBloom && (
         <EffectComposer>
           <Bloom
-            intensity={isDark ? 1.2 : 0.6}
-            luminanceThreshold={isDark ? 0.4 : 0.1}
-            luminanceSmoothing={isDark ? 0.9 : 0.4}
+            intensity={isDark ? 1.2 : 1.5}
+            luminanceThreshold={isDark ? 0.4 : 0.05}
+            luminanceSmoothing={isDark ? 0.9 : 0.3}
             mipmapBlur
           />
         </EffectComposer>
