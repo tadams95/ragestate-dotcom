@@ -361,6 +361,10 @@ body {
     transition: none;
   }
 
+  .btn-wipe-border::before {
+    transition: none;
+  }
+
   .img-hover-zoom,
   .group:hover .img-hover-zoom {
     transform: none;
@@ -540,6 +544,26 @@ body {
 .nav-link-underline:hover::after {
   width: 100%;
   left: 0;
+}
+
+/* Button border wipe - accent border reveals from cursor entry direction */
+.btn-wipe-border {
+  position: relative;
+}
+
+.btn-wipe-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--accent);
+  border-radius: inherit;
+  clip-path: var(--wipe-clip, inset(0 100% 0 0));
+  transition: clip-path 0.35s ease-out;
+  pointer-events: none;
+}
+
+.btn-wipe-border.no-transition::before {
+  transition: none;
 }
 
 /* Mobile menu stagger animation */
