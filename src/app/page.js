@@ -111,11 +111,13 @@ export default function Home() {
 
               <Link href="/create-account">
                 <motion.button
-                  className="rounded-lg bg-[var(--accent)] px-8 py-2 text-lg font-medium text-white transition-all hover:opacity-90"
+                  className="btn-wipe-fill rounded-lg border border-[var(--border-subtle)] bg-transparent px-8 py-2 text-lg font-medium text-[var(--text-primary)] transition-colors dark:hover:text-white"
                   whileHover={prefersReducedMotion ? undefined : { scale: 1.05 }}
                   whileTap={prefersReducedMotion ? undefined : { scale: 0.95 }}
+                  onMouseEnter={handleMouseEnter}
+                  onMouseLeave={handleMouseLeave}
                 >
-                  CREATE ACCOUNT
+                  <span className="relative z-10">CREATE ACCOUNT</span>
                 </motion.button>
               </Link>
             </div>

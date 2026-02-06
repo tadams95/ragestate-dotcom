@@ -361,7 +361,8 @@ body {
     transition: none;
   }
 
-  .btn-wipe-border::before {
+  .btn-wipe-border::before,
+  .btn-wipe-fill::before {
     transition: none;
   }
 
@@ -563,6 +564,26 @@ body {
 }
 
 .btn-wipe-border.no-transition::before {
+  transition: none;
+}
+
+/* Button background wipe - accent background reveals from cursor entry direction */
+.btn-wipe-fill {
+  position: relative;
+}
+
+.btn-wipe-fill::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: var(--accent);
+  border-radius: inherit;
+  clip-path: var(--wipe-clip, inset(0 100% 0 0));
+  transition: clip-path 0.35s ease-out;
+  pointer-events: none;
+}
+
+.btn-wipe-fill.no-transition::before {
   transition: none;
 }
 
