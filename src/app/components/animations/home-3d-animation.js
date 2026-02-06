@@ -57,7 +57,7 @@ function FloatingParticles({ color = '#EF4E4E', intensity = 1, count = 2000, isD
         <PointMaterial
           transparent
           color={color}
-          size={isDark ? 0.05 : 0.16}
+          size={0.05}
           sizeAttenuation={true}
           depthWrite={false}
           blending={isDark ? THREE.AdditiveBlending : THREE.NormalBlending}
@@ -130,7 +130,7 @@ export default function Home3DAnimation({ intensity = 1 }) {
   const particleCount = isMobile ? 1500 : 3000;
 
   // Fixed red color - brand accent for light mode visibility
-  const particleColor = isDark ? '#EF4E4E' : '#ff1f42';
+  const particleColor = '#ff1f42';
 
   return (
     <div className="absolute inset-0 z-0">
