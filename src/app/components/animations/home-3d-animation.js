@@ -2,7 +2,6 @@
 
 import { PointMaterial, Points } from '@react-three/drei';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 
@@ -54,7 +53,7 @@ function FloatingParticles({ color = '#EF4E4E', intensity = 1, count = 2000, isD
 
   return (
     <group rotation={[0, 0, 0]}>
-      <Points ref={ref} positions={particles} stride={3} frustumCulled={false}>
+      <Points key={count} ref={ref} positions={particles} stride={3} frustumCulled={false}>
         <PointMaterial
           transparent
           color={color}
@@ -70,7 +69,7 @@ function FloatingParticles({ color = '#EF4E4E', intensity = 1, count = 2000, isD
 }
 
 // Scene component that receives background color and theme as props
-function Scene({ color, intensity, particleCount, bgColor, isDark, enableBloom }) {
+function Scene({ color, intensity, particleCount, bgColor, isDark }) {
   return (
     <>
       <color attach="background" args={[bgColor]} />
@@ -81,17 +80,6 @@ function Scene({ color, intensity, particleCount, bgColor, isDark, enableBloom }
         count={particleCount}
         isDark={isDark}
       />
-
-      {enableBloom && (
-        <EffectComposer>
-          <Bloom
-            intensity={isDark ? 1.2 : 1.5}
-            luminanceThreshold={isDark ? 0.4 : 0.05}
-            luminanceSmoothing={isDark ? 0.9 : 0.3}
-            mipmapBlur
-          />
-        </EffectComposer>
-      )}
     </>
   );
 }
@@ -129,14 +117,13 @@ export default function Home3DAnimation({ intensity = 1 }) {
   }, []);
 
   // Prefer fewer particles on smaller screens and for users who prefer reduced motion
-  const isMobile =
-    typeof window !== 'undefined' &&
-    window.matchMedia &&
-    window.matchMedia('(max-width: 768px)').matches;
-  const prefersReducedMotion =
-    typeof window !== 'undefined' &&
-    window.matchMedia &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const [isMobile, setIsMobile] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    setIsMobile(window.matchMedia('(max-width: 768px)').matches);
+    setPrefersReducedMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }, []);
 
   if (prefersReducedMotion) return null;
 
@@ -158,7 +145,6 @@ export default function Home3DAnimation({ intensity = 1 }) {
           particleCount={particleCount}
           bgColor={bgColor}
           isDark={isDark}
-          enableBloom={!isMobile}
         />
       </Canvas>
     </div>
