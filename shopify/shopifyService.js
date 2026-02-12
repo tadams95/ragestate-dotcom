@@ -118,7 +118,7 @@ export async function fetchShopifyProducts() {
       return cacheAllProducts.data;
     }
 
-    const rawProducts = await client.product.fetchAll();
+    const rawProducts = await client.product.fetchAll(250);
     // Serialize products to plain objects to avoid SDK Model getter issues
     const products = rawProducts.map(serializeProduct).filter(Boolean);
     cacheAllProducts = { ts: now(), data: products };
