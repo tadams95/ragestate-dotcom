@@ -6,6 +6,9 @@ import {
 } from '../../../../shopify/shopifyService';
 import ProductDetailClient from './ProductDetailClient';
 
+export const revalidate = 60;
+export const dynamicParams = true;
+
 export async function generateStaticParams() {
   // console.log("generateStaticParams: Start");
 
