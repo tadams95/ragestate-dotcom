@@ -2,6 +2,7 @@
 
 import { track } from '@/app/utils/metrics';
 import { Dialog, DialogPanel } from '@headlessui/react';
+import toast from 'react-hot-toast';
 import { EyeSlashIcon } from '@heroicons/react/24/outline';
 import { collection, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
@@ -19,7 +20,7 @@ const DRAFT_KEY = 'postComposer.draft';
 // Video compression constants
 const MAX_CHARS = 2000;
 const MAX_VIDEO_DURATION = 60; // seconds
-const MAX_VIDEO_WIDTH = 1080; // max input resolution allowed
+const MAX_VIDEO_INPUT = 3840; // max input resolution (4K)
 const TARGET_WIDTH = 720; // compressed output width
 const TARGET_BITRATE = 2_000_000; // 2 Mbps
 
@@ -167,7 +168,6 @@ export default function PostComposer() {
   const [mediaType, setMediaType] = useState(null); // 'image' | 'video' | null
   const [previewUrl, setPreviewUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
   const [open, setOpen] = useState(false);
   const [savedDraft, setSavedDraft] = useState('');
   const [isPublic, setIsPublic] = useState(true);
@@ -266,13 +266,13 @@ export default function PostComposer() {
 
       // Validate duration
       if (meta.duration > MAX_VIDEO_DURATION) {
-        setError(`Video too long. Max ${MAX_VIDEO_DURATION} seconds.`);
+        toast.error(`This video is ${Math.round(meta.duration)} seconds — the maximum is 60 seconds.`);
         return null;
       }
 
-      // Validate resolution (allow up to 1080p input)
-      if (meta.width > MAX_VIDEO_WIDTH * 2 || meta.height > MAX_VIDEO_WIDTH * 2) {
-        setError(`Video resolution too high. Max 2160p input.`);
+      // Validate resolution (allow up to 4K / 2160p input)
+      if (meta.width > MAX_VIDEO_INPUT || meta.height > MAX_VIDEO_INPUT) {
+        toast.error('This video\u2019s resolution is too high. The maximum input is 4K (3840\u00d72160).');
         return null;
       }
 
@@ -299,7 +299,7 @@ export default function PostComposer() {
           }
         } catch (err) {
           console.warn('Compression failed, using original:', err);
-          // Fall through to return original
+          toast('Video compression unavailable — uploading original quality.', { icon: '⚠️' });
         } finally {
           setIsCompressing(false);
           setCompressionProgress(0);
@@ -309,9 +309,8 @@ export default function PostComposer() {
       // Return original file (either no compression needed, not supported, or compression failed)
       return videoFile;
     } catch (err) {
-      console.error('Video processing failed:', err);
-      setError('Failed to process video. Please try a different file.');
-      return null;
+      console.warn('Video metadata/processing unavailable, uploading original:', err);
+      return videoFile;
     }
   }, []);
 
@@ -324,18 +323,19 @@ export default function PostComposer() {
       const isVideo = f.type.startsWith('video/');
 
       if (!isImage && !isVideo) {
-        setError('Only image or video files are allowed.');
+        toast.error('Only image and video files are supported.');
         return;
       }
 
       // Video size limit: 100MB, Image: 10MB
-      const maxSize = isVideo ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
-      if (f.size > maxSize) {
-        setError(`File too large. Max ${isVideo ? '100MB' : '10MB'}.`);
+      if (isVideo && f.size > 100 * 1024 * 1024) {
+        toast.error('This video is too large. The maximum size is 100 MB.');
         return;
       }
-
-      setError('');
+      if (isImage && f.size > 10 * 1024 * 1024) {
+        toast.error('This image is too large. The maximum size is 10 MB.');
+        return;
+      }
 
       if (isVideo) {
         // Process video (validate + optionally compress)
@@ -423,7 +423,6 @@ export default function PostComposer() {
     }
     if (!canSubmit) return;
     setSubmitting(true);
-    setError('');
     try {
       // Basic client-side moderation (mirror of server hate/incitement filter). Allows profanity.
       const lower = content.toLowerCase();
@@ -442,7 +441,7 @@ export default function PostComposer() {
       }
       if (flagged.length) {
         setSubmitting(false);
-        setError('Post blocked: contains disallowed hate / incitement language.');
+        toast.error('Post blocked: contains disallowed hate / incitement language.');
         return;
       }
       // Create a new post ref to derive postId for storage path
@@ -481,11 +480,17 @@ export default function PostComposer() {
         } catch {}
       }
 
-      // Resolve usernameLower for linking to profile
+      // Resolve usernameLower and profile photo for linking to profile
       let usernameLower = null;
       try {
         const prof = await getDoc(doc(db, 'profiles', currentUser.uid));
-        usernameLower = prof.exists() ? prof.data()?.usernameLower || null : null;
+        if (prof.exists()) {
+          const profData = prof.data();
+          usernameLower = profData?.usernameLower || null;
+          if (!resolvedPhoto) {
+            resolvedPhoto = profData?.photoURL || null;
+          }
+        }
       } catch {}
 
       const payload = {
@@ -580,7 +585,7 @@ export default function PostComposer() {
       } catch {}
     } catch (err) {
       console.error('Failed to create post:', err);
-      setError('Failed to create post. Please try again.');
+      toast.error('Something went wrong creating your post. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -758,11 +763,6 @@ export default function PostComposer() {
                 </div>
               )}
 
-              {error && (
-                <p className="mt-2 text-sm text-red-400" role="alert">
-                  {error}
-                </p>
-              )}
               {/* Content Warning Input */}
               {showContentWarningInput && (
                 <div className="mt-3 flex items-center gap-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-2">

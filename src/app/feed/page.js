@@ -1,20 +1,39 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import PostSkeleton from '../components/PostSkeleton';
+
+// Composer-shaped shimmer skeleton matching PostComposer's collapsed trigger layout
+function ComposerSkeleton() {
+  return (
+    <div className="mx-auto mb-4 w-full max-w-2xl">
+      <div className="rounded-[14px] border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-4 shadow-[var(--shadow-card)]">
+        <div className="h-5 w-40 animate-shimmer rounded" />
+      </div>
+    </div>
+  );
+}
+
+// Feed shimmer: 3 post skeletons
+function FeedSkeleton() {
+  return (
+    <div>
+      <PostSkeleton />
+      <PostSkeleton />
+      <PostSkeleton />
+    </div>
+  );
+}
 
 // Lazy-load heavy feed components - PostComposer loads immediately for interaction,
 // Feed can load after since it requires data fetch anyway
 const Feed = dynamic(() => import('../components/Feed'), {
-  loading: () => (
-    <div className="flex justify-center py-8">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-red-500 border-t-transparent" />
-    </div>
-  ),
+  loading: () => <FeedSkeleton />,
 });
 
 const PostComposer = dynamic(() => import('../components/PostComposer'), {
   ssr: false,
-  loading: () => <div className="h-32 animate-pulse rounded-xl bg-[var(--bg-elev-1)]" />,
+  loading: () => <ComposerSkeleton />,
 });
 
 export default function FeedPage() {

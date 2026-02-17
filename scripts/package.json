@@ -19,7 +19,10 @@
     "ragers:inactivate:dry": "node inactivateEventRagers.js",
     "ragers:inactivate:live": "node inactivateEventRagers.js --live",
     "export:event:emails": "node exportEventEmails.js",
-    "seed:notification": "node seedNotification.js"
+    "seed:notification": "node seedNotification.js",
+    "backfill:post-photos:dry": "node backfillPostProfilePictures.js",
+    "backfill:post-photos:live": "node backfillPostProfilePictures.js --live",
+    "backfill:post-photos:overwrite": "node backfillPostProfilePictures.js --live --overwrite"
   },
   "dependencies": {
     "firebase-admin": "^11.10.1"

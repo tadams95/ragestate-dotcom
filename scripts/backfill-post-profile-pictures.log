@@ -1,0 +1,10 @@
+--- BACKFILL START ---
+[2026-02-17T02:09:12.649Z] Starting post profile picture backfill: mode=LIVE, overwrite=yes
+[2026-02-17T02:09:13.275Z] posts/6Z897Nl3NTzUS7eauY43: overwrote userProfilePicture for userId=knwH37XxjnM694GxtAwXRszZEQ23
+[2026-02-17T02:09:13.516Z] posts/73a1D1Tf8x08ndovSKfc: overwrote userProfilePicture for userId=knwH37XxjnM694GxtAwXRszZEQ23
+[2026-02-17T02:09:13.779Z] posts/WJ7Po3yrmsrEm7CCuNET: overwrote userProfilePicture for userId=knwH37XxjnM694GxtAwXRszZEQ23
+[2026-02-17T02:09:13.912Z] posts/b7YZpWPI4TaBNct411xG: overwrote userProfilePicture for userId=knwH37XxjnM694GxtAwXRszZEQ23
+[2026-02-17T02:09:14.043Z] posts/ebNnd9zmm120krJpVARr: overwrote userProfilePicture for userId=knwH37XxjnM694GxtAwXRszZEQ23
+[2026-02-17T02:09:14.184Z] posts/gDGPkGCJoZZPLVNkkUqG: overwrote userProfilePicture for userId=knwH37XxjnM694GxtAwXRszZEQ23
+[2026-02-17T02:09:14.426Z] posts/jnMLV6tJ3z4NfUo9pQei: overwrote userProfilePicture for userId=knwH37XxjnM694GxtAwXRszZEQ23
+[2026-02-17T02:09:14.427Z] Backfill complete. scanned=25, updated=7, skipped=18, noProfile=0, cachedProfiles=4
