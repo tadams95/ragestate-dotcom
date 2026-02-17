@@ -14,6 +14,7 @@ import PostActions from './PostActions';
 import PostContent from './PostContent';
 import ReactionBar from './ReactionBar';
 import PostHeader, { VerifiedBadge } from './PostHeader';
+import { useDirectionalWipe } from '../../../lib/hooks/useDirectionalWipe';
 
 // Embedded card for displaying the original post in a repost
 function EmbeddedPost({ repostOf, isVerified = false }) {
@@ -140,6 +141,7 @@ export default function Post({ postData, hideFollow = false }) {
   const [isVerified, setIsVerified] = useState(false);
   const [originalAuthorVerified, setOriginalAuthorVerified] = useState(false);
   const { currentUser } = useAuth();
+  const { onMouseEnter: handleWipeEnter, onMouseLeave: handleWipeLeave } = useDirectionalWipe();
 
   // Handle click on post container to navigate to post detail
   const handlePostClick = useCallback(
@@ -295,7 +297,9 @@ export default function Post({ postData, hideFollow = false }) {
   return (
     <div
       onClick={handlePostClick}
-      className="mb-4 cursor-pointer rounded-[14px] border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-4 shadow-[var(--shadow-card)] transition-all duration-200 hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-modal)] hover:bg-[var(--bg-elev-2)]"
+      onMouseEnter={handleWipeEnter}
+      onMouseLeave={handleWipeLeave}
+      className="card-wipe-border mb-4 cursor-pointer rounded-[14px] border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-4 shadow-[var(--shadow-card)] transition-[box-shadow,background-color] duration-200 hover:shadow-[var(--shadow-modal)] hover:bg-[var(--bg-elev-2)]"
     >
       {/* Repost indicator */}
       {(liveData?.repostOf || postData?.repostOf) && (

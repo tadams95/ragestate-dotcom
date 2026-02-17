@@ -362,7 +362,8 @@ body {
   }
 
   .btn-wipe-border::before,
-  .btn-wipe-fill::before {
+  .btn-wipe-fill::before,
+  .card-wipe-border::before {
     transition: none;
   }
 
@@ -584,6 +585,28 @@ body {
 }
 
 .btn-wipe-fill.no-transition::before {
+  transition: none;
+}
+
+/* Card border wipe - accent border reveals from cursor entry direction */
+.card-wipe-border {
+  position: relative;
+  overflow: hidden;
+}
+
+.card-wipe-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid var(--accent);
+  border-radius: inherit;
+  clip-path: var(--wipe-clip, inset(0 100% 0 0));
+  transition: clip-path 0.35s ease-out;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.card-wipe-border.no-transition::before {
   transition: none;
 }
 
