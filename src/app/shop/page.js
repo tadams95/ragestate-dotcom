@@ -1,6 +1,23 @@
 import { Suspense } from 'react';
 import ShopClient from './ShopClient';
 
+export const metadata = {
+  title: 'Shop | RAGESTATE',
+  description:
+    'Shop official RAGESTATE merchandise, apparel, and gear for the electronic music community.',
+  alternates: { canonical: '/shop' },
+  openGraph: {
+    title: 'Shop | RAGESTATE',
+    description: 'Shop official RAGESTATE merchandise, apparel, and gear.',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Shop | RAGESTATE',
+    description: 'Shop official RAGESTATE merchandise, apparel, and gear.',
+  },
+};
+
 export default function Shop() {
   return (
     <Suspense

@@ -48,6 +48,7 @@ export async function generateMetadata({ params }) {
     return {
       title: product.title,
       description: product.description,
+      alternates: { canonical: `/shop/${slug}` },
       openGraph: {
         title: product.title,
         description: product.description,
