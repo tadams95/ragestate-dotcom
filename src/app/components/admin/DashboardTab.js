@@ -72,7 +72,9 @@ const DashboardTab = ({ setActiveTab }) => {
     }
 
     loadDataWithGuard();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [loadData]);
 
   const totalRevenue = useMemo(() => {
@@ -80,9 +82,8 @@ const DashboardTab = ({ setActiveTab }) => {
   }, [orders]);
 
   const pendingOrders = useMemo(() => {
-    return orders.filter(
-      (order) => order.status === 'pending' || order.status === 'processing',
-    ).length;
+    return orders.filter((order) => order.status === 'pending' || order.status === 'processing')
+      .length;
   }, [orders]);
 
   const handleRetry = useCallback(async () => {
