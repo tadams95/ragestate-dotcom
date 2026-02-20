@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { getProfileCount } from '../../../../lib/firebase/adminService';
 import { getAllPurchases } from '../../../../lib/firebase/purchaseService';
 import { formatCurrency, formatDate, getStatusColor } from '../../../utils/formatters';
@@ -156,6 +157,27 @@ const DashboardTab = ({ setActiveTab }) => {
                 <div className="text-3xl">{stat.icon}</div>
               </div>
             ))}
+          </div>
+
+          {/* Quick Actions */}
+          <div className="mb-8">
+            <Link
+              href="/admin/event-day"
+              className="flex items-center gap-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-5 shadow-md transition-colors hover:bg-[var(--bg-elev-1)]"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-600/20">
+                <svg className="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-semibold text-[var(--text-primary)]">Event Day Command Center</p>
+                <p className="text-sm text-[var(--text-secondary)]">Guest list, manual check-in, and real-time stats</p>
+              </div>
+              <svg className="ml-auto h-5 w-5 text-[var(--text-tertiary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
           </div>
 
           <div className="mb-8 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-5 shadow-md">

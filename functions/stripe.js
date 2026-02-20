@@ -2818,12 +2818,20 @@ app.post('/scan-ticket', async (req, res) => {
       }
     }
 
-    const { token, userId, scannerId, eventId: expectedEventId } = req.body || {};
+    const { token, userId, ragerId, scannerId, eventId: expectedEventId } = req.body || {};
 
     let ragerRef;
     let parentEventId = '';
 
-    if (token && typeof token === 'string') {
+    if (ragerId && typeof ragerId === 'string' && expectedEventId && typeof expectedEventId === 'string') {
+      // Direct lookup by ragerId + eventId (fastest path, no query needed)
+      parentEventId = expectedEventId;
+      ragerRef = db
+        .collection('events')
+        .doc(parentEventId)
+        .collection('ragers')
+        .doc(ragerId);
+    } else if (token && typeof token === 'string') {
       // Fast lookup via token mapping
       let eventIdFromMap = '';
       let ragerIdFromMap = '';
@@ -2898,7 +2906,7 @@ app.post('/scan-ticket', async (req, res) => {
         // Deterministic selection: choose doc with greatest remaining; tiebreaker earliest purchaseDate then lexicographic id
         const enriched = qs.docs.map((d) => {
           const v = d.data() || {};
-          const qty = Math.max(1, parseInt(v.ticketQuantity || 1, 10));
+          const qty = Math.max(1, parseInt(v.ticketQuantity || v.quantity || 1, 10));
           const used = Math.max(0, parseInt(v.usedCount || 0, 10));
           const remaining = Math.max(0, qty - used);
           return {
@@ -2937,65 +2945,92 @@ app.post('/scan-ticket', async (req, res) => {
     }
 
     let result;
-    await db.runTransaction(async (tx) => {
-      const fresh = await tx.get(ragerRef);
-      if (!fresh.exists) throw new Error('Ticket missing');
-      const data = fresh.data() || {};
-      const quantity = Math.max(1, parseInt(data.ticketQuantity || 1, 10));
-      const usedCount = Math.max(0, parseInt(data.usedCount || 0, 10));
-      const uidForSummary = data.firebaseId || userId || '';
-      const active = data.active !== false && usedCount < quantity;
-      if (!active) {
-        result = { status: 409, body: { error: 'Ticket already used', remaining: 0 } };
-        return;
+    try {
+      await db.runTransaction(async (tx) => {
+        const fresh = await tx.get(ragerRef);
+        if (!fresh.exists) throw new Error('Ticket missing');
+        const data = fresh.data() || {};
+        const quantity = Math.max(1, parseInt(data.ticketQuantity || data.quantity || 1, 10));
+        const usedCount = Math.max(0, parseInt(data.usedCount || 0, 10));
+        const uidForSummary = data.firebaseId || userId || '';
+        const active = data.active !== false && usedCount < quantity;
+        if (!active) {
+          result = { status: 409, body: { error: 'Ticket already used', remaining: 0 } };
+          return;
+        }
+        const nextUsed = usedCount + 1;
+        const nextActive = nextUsed < quantity;
+        const update = {
+          usedCount: nextUsed,
+          active: nextActive,
+          lastScanAt: admin.firestore.FieldValue.serverTimestamp(),
+        };
+        if (scannerId && typeof scannerId === 'string') {
+          update.lastScannedBy = scannerId;
+        }
+        tx.update(ragerRef, update);
+        result = {
+          status: 200,
+          _uidForSummary: uidForSummary,
+          body: {
+            ok: true,
+            eventId: parentEventId,
+            ragerId: ragerRef.id,
+            remaining: Math.max(0, quantity - nextUsed),
+            remainingTotal:
+              typeof req.__remainingTotalBefore === 'number'
+                ? Math.max(0, req.__remainingTotalBefore - 1)
+                : undefined,
+            status: nextActive ? 'active' : 'inactive',
+          },
+        };
+      });
+    } catch (txErr) {
+      logger.error('scan-ticket transaction failed', {
+        message: txErr?.message,
+        code: txErr?.code,
+        eventId: parentEventId,
+        ragerId: ragerRef?.id,
+      });
+      if (txErr?.message === 'Ticket missing') {
+        return res.status(404).json({ error: 'Ticket not found', message: 'Rager document missing' });
       }
-      const nextUsed = usedCount + 1;
-      const nextActive = nextUsed < quantity;
-      const update = {
-        usedCount: nextUsed,
-        active: nextActive,
-        lastScanAt: admin.firestore.FieldValue.serverTimestamp(),
-      };
-      if (scannerId && typeof scannerId === 'string') {
-        update.lastScannedBy = scannerId;
-      }
-      tx.update(ragerRef, update);
-      // Update event-user summary if available (no reads; atomic increment)
-      const eventIdForSummary = parentEventId;
-      if (eventIdForSummary && uidForSummary) {
+      return res.status(500).json({
+        error: 'Transaction failed',
+        message: txErr?.message,
+        code: txErr?.code,
+      });
+    }
+
+    if (!result) {
+      return res.status(500).json({ error: 'Unknown scan error' });
+    }
+
+    // Non-critical: update eventUsers summary outside the transaction
+    if (result.status === 200 && result._uidForSummary && parentEventId) {
+      try {
         const summaryRef = db
           .collection('eventUsers')
-          .doc(eventIdForSummary)
+          .doc(parentEventId)
           .collection('users')
-          .doc(uidForSummary);
-        tx.set(
-          summaryRef,
+          .doc(result._uidForSummary);
+        await summaryRef.set(
           {
             usedCount: admin.firestore.FieldValue.increment(1),
             lastScanAt: admin.firestore.FieldValue.serverTimestamp(),
           },
           { merge: true },
         );
+      } catch (_e) {
+        logger.warn('scan-ticket: eventUsers summary update failed (non-fatal)', {
+          message: _e?.message,
+        });
       }
-      result = {
-        status: 200,
-        body: {
-          ok: true,
-          eventId: parentEventId,
-          ragerId: ragerRef.id,
-          remaining: Math.max(0, quantity - nextUsed),
-          remainingTotal:
-            typeof req.__remainingTotalBefore === 'number'
-              ? Math.max(0, req.__remainingTotalBefore - 1)
-              : undefined,
-          status: nextActive ? 'active' : 'inactive',
-        },
-      };
-    });
-
-    if (!result) {
-      return res.status(500).json({ error: 'Unknown scan error' });
     }
+
+    // Strip internal field before response
+    delete result._uidForSummary;
+
     try {
       if (result.status === 200) {
         await incrementEventMetrics(parentEventId, { scansAccepted: 1 });
@@ -3040,7 +3075,7 @@ app.post('/scan-ticket/preview', async (req, res) => {
 
     const items = qs.docs.map((d) => {
       const v = d.data() || {};
-      const qty = Math.max(1, parseInt(v.ticketQuantity || 1, 10));
+      const qty = Math.max(1, parseInt(v.ticketQuantity || v.quantity || 1, 10));
       const used = Math.max(0, parseInt(v.usedCount || 0, 10));
       const remaining = Math.max(0, qty - used);
       const ts = v.purchaseDate && v.purchaseDate.toMillis ? v.purchaseDate.toMillis() : 0;

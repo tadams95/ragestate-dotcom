@@ -219,6 +219,7 @@ export default function CreateAccount() {
       localStorage.setItem('email', email);
       localStorage.setItem('userId', user.uid);
       localStorage.setItem('name', `${firstName} ${lastName}`);
+      dispatch(setUserName(`${firstName} ${lastName}`));
 
       // Send email verification and guide user to verify page
       try {

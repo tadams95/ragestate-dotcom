@@ -22,6 +22,7 @@ import {
 import storage from '@/utils/storage';
 import EmptyCart from '../../../components/EmptyCart';
 import { useTheme } from '../../../lib/context/ThemeContext';
+import { setUserName } from '../../../lib/features/userSlice';
 
 // Import new components
 import CartItemDisplay from './components/CartItemDisplay';
@@ -276,6 +277,11 @@ export default function Cart() {
       userEmail: email || '',
       userId: userId || '',
     }));
+
+    // Sync name to Redux so CheckoutForm can access it
+    if (name) {
+      dispatch(setUserName(name));
+    }
 
     // FIX: Clear guest state when user is authenticated
     // Prevents ambiguous state where both isGuest and authenticated conditions are true

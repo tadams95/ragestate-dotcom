@@ -6,6 +6,7 @@ import { useSelector } from 'react-redux';
 import SaveToFirestore from '../firebase/util/saveToFirestore';
 import { selectCartItems } from '../lib/features/cartSlice';
 import { selectLocalId, selectUserEmail, selectUserName } from '../lib/features/userSlice'; // Import selectors
+import { getUserDisplayInfo } from '../lib/firebase/userService';
 
 /**
  * Generate a UUID v4 for idempotency keys
@@ -92,6 +93,14 @@ export default function CheckoutForm({
 
     const auth = getAuth();
     const firebaseId = isGuest ? null : (userId || auth.currentUser?.uid);
+    // Resolve display name: Redux → Firebase Auth → Firestore fallback
+    let resolvedName = userName || auth.currentUser?.displayName || '';
+    if (!resolvedName && firebaseId) {
+      try {
+        const info = await getUserDisplayInfo(firebaseId);
+        resolvedName = info?.displayName || '';
+      } catch (_) {}
+    }
 
     // For non-guest checkout, require firebaseId
     if (!isGuest && !firebaseId) {
@@ -126,7 +135,7 @@ export default function CheckoutForm({
           paymentIntentId: pi.id,
           firebaseId: isGuest ? null : firebaseId,
           userEmail: orderEmail,
-          userName: isGuest ? '' : userName,
+          userName: isGuest ? '' : resolvedName,
           cartItems,
           addressDetails,
           appliedPromoCode,
