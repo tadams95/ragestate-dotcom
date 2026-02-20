@@ -73,7 +73,7 @@ export default function GuestListTable({ guests, onCheckIn, checkingInId }) {
 
   if (guests.length === 0) {
     return (
-      <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-8 text-center">
+      <div className="card-wipe-border rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-8 text-center">
         <svg className="mx-auto mb-3 h-10 w-10 text-[var(--text-tertiary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
         </svg>

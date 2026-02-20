@@ -36,7 +36,7 @@ export default function AdminTable({ columns, data, renderRow, emptyMessage, pag
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-[var(--border-subtle)]">
+          <tbody className="divide-y divide-[var(--border-subtle)] [&>tr]:border-l-2 [&>tr]:border-l-transparent [&>tr:hover]:border-l-[var(--accent)]">
             {data.map((item, index) => renderRow(item, index))}
           </tbody>
         </table>

@@ -18,6 +18,7 @@ import {
 import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
+  adminButtonOutline,
   adminButtonPrimary,
   adminButtonSecondary,
   adminCard,
@@ -157,9 +158,9 @@ export default function PromoCodesTab() {
   const getStatusBadge = (code) => {
     const status = getCodeStatus(code);
     const styles = {
-      active: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+      active: 'bg-green-500/20 text-[var(--success)]',
       inactive: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400',
-      expired: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+      expired: 'bg-amber-500/20 text-[var(--warning)]',
       exhausted: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
     };
     return (
@@ -304,7 +305,7 @@ export default function PromoCodesTab() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-red-500"></div>
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-[var(--accent)]"></div>
       </div>
     );
   }
@@ -333,16 +334,16 @@ export default function PromoCodesTab() {
         </div>
 
         {/* Stats row */}
-        <div className="mt-4 grid grid-cols-3 gap-4">
-          <div className="rounded-lg bg-[var(--bg-elev-2)] p-3">
+        <div className="wave-in-stagger mt-4 grid grid-cols-3 gap-4">
+          <div className="animate-wave-in rounded-lg bg-[var(--bg-elev-2)] p-3">
             <p className="text-2xl font-bold text-[var(--text-primary)]">{stats.total}</p>
             <p className="text-xs text-[var(--text-secondary)]">Total Codes</p>
           </div>
-          <div className="rounded-lg bg-[var(--bg-elev-2)] p-3">
-            <p className="text-2xl font-bold text-green-500">{stats.active}</p>
+          <div className="animate-wave-in rounded-lg bg-[var(--bg-elev-2)] p-3">
+            <p className="text-2xl font-bold text-[var(--success)]">{stats.active}</p>
             <p className="text-xs text-[var(--text-secondary)]">Active</p>
           </div>
-          <div className="rounded-lg bg-[var(--bg-elev-2)] p-3">
+          <div className="animate-wave-in rounded-lg bg-[var(--bg-elev-2)] p-3">
             <p className="text-2xl font-bold text-[var(--text-primary)]">{stats.totalUses}</p>
             <p className="text-xs text-[var(--text-secondary)]">Total Uses</p>
           </div>
@@ -496,7 +497,7 @@ export default function PromoCodesTab() {
         </div>
         <button
           onClick={fetchPromoCodes}
-          className="rounded-md border border-[var(--border-subtle)] px-3 py-1.5 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elev-2)]"
+          className={adminButtonOutline}
         >
           Refresh
         </button>
@@ -547,7 +548,7 @@ export default function PromoCodesTab() {
                 filteredCodes.map((code) => (
                   <tr
                     key={`${code.collection}-${code.id}`}
-                    className="transition-colors hover:bg-[var(--bg-elev-2)]"
+                    className="border-l-2 border-l-transparent transition-colors hover:border-l-[var(--accent)] hover:bg-[var(--bg-elev-2)]"
                   >
                     <td className="whitespace-nowrap px-4 py-3">
                       <div>
@@ -590,8 +591,8 @@ export default function PromoCodesTab() {
                           onClick={() => handleToggleActive(code)}
                           className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
                             code.active !== false
-                              ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:hover:bg-yellow-900/50'
-                              : 'bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50'
+                              ? 'bg-amber-500/20 text-[var(--warning)] hover:bg-amber-500/30'
+                              : 'bg-green-500/20 text-[var(--success)] hover:bg-green-500/30'
                           }`}
                           title={code.active !== false ? 'Deactivate' : 'Activate'}
                         >

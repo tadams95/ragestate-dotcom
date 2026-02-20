@@ -47,7 +47,7 @@ export default function AdminBreadcrumb({ items = [] }) {
               ) : (
                 <Link
                   href={item.href}
-                  className="text-[var(--text-secondary)] transition-colors hover:text-red-500"
+                  className="text-[var(--text-secondary)] transition-colors hover:text-[var(--accent)]"
                 >
                   {item.label}
                 </Link>

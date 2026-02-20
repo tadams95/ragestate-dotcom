@@ -1,21 +1,21 @@
+'use client';
+
+import { useDirectionalWipe } from '../../../../../lib/hooks/useDirectionalWipe';
+
 /**
  * Reusable stat card component for admin dashboard
  * @param {string} title - The stat label
  * @param {string|number} value - The stat value
  * @param {string} icon - Emoji or icon to display
- * @param {'blue'|'green'|'purple'|'yellow'} variant - Color variant
  */
-export default function AdminStatCard({ title, value, icon, variant = 'blue' }) {
-  const variantClasses = {
-    blue: 'bg-[var(--bg-accent-blue-subtle)] border-[var(--border-accent-blue-subtle)]',
-    green: 'bg-[var(--bg-accent-green-subtle)] border-[var(--border-accent-green-subtle)]',
-    purple: 'bg-[var(--bg-accent-purple-subtle)] border-[var(--border-accent-purple-subtle)]',
-    yellow: 'bg-[var(--bg-accent-yellow-subtle)] border-[var(--border-accent-yellow-subtle)]',
-  };
+export default function AdminStatCard({ title, value, icon }) {
+  const { onMouseEnter, onMouseLeave } = useDirectionalWipe();
 
   return (
     <div
-      className={`${variantClasses[variant] || variantClasses.blue} flex items-center justify-between rounded-lg border p-6 shadow-md`}
+      className="card-wipe-border flex items-center justify-between rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-6 shadow-md transition-shadow hover:shadow-lg"
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       <div>
         <p className="text-sm font-medium text-[var(--text-secondary)]">{title}</p>

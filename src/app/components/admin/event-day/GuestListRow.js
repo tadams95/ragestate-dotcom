@@ -14,18 +14,18 @@ function GuestListRow({ guest, onCheckIn, isCheckingIn }) {
   // Status badge
   let badgeClass, badgeText;
   if (usedCount === 0) {
-    badgeClass = 'bg-green-500/20 text-green-500';
+    badgeClass = 'bg-green-500/20 text-[var(--success)]';
     badgeText = 'Not scanned';
   } else if (usedCount < quantity) {
-    badgeClass = 'bg-yellow-500/20 text-yellow-500';
+    badgeClass = 'bg-amber-500/20 text-[var(--warning)]';
     badgeText = `${usedCount}/${quantity} used`;
   } else {
-    badgeClass = 'bg-red-500/20 text-red-500';
+    badgeClass = 'bg-red-500/20 text-[var(--danger)]';
     badgeText = 'Exhausted';
   }
 
   return (
-    <tr className="transition-colors hover:bg-[var(--bg-elev-1)]">
+    <tr className="border-l-2 border-l-transparent transition-colors hover:border-l-[var(--accent)] hover:bg-[var(--bg-elev-1)]">
       {/* Name */}
       <td className="whitespace-nowrap px-4 py-3 sm:px-6">
         <div className="flex items-center gap-3">

@@ -11,6 +11,7 @@ import {
   adminCard,
   adminInput,
 } from './shared/adminStyles';
+import { useDirectionalWipe } from '../../../../lib/hooks/useDirectionalWipe';
 
 /**
  * CampaignsTab - Admin tool for managing email captures and sending campaigns
@@ -30,6 +31,7 @@ export default function CampaignsTab() {
   const [previewMode, setPreviewMode] = useState(false);
 
   const db = getFirestore();
+  const { onMouseEnter, onMouseLeave } = useDirectionalWipe();
 
   // Fetch email captures
   const fetchCaptures = useCallback(async () => {
@@ -164,8 +166,8 @@ export default function CampaignsTab() {
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className={adminCard}>
+      <div className="wave-in-stagger grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className={`${adminCard} card-wipe-border animate-wave-in transition-shadow hover:shadow-lg`} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/10">
               <EnvelopeIcon className="h-5 w-5 text-red-500" />
@@ -176,10 +178,10 @@ export default function CampaignsTab() {
             </div>
           </div>
         </div>
-        <div className={adminCard}>
+        <div className={`${adminCard} card-wipe-border animate-wave-in transition-shadow hover:shadow-lg`} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500/10">
-              <UserGroupIcon className="h-5 w-5 text-green-500" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent-muted)]">
+              <UserGroupIcon className="h-5 w-5 text-[var(--accent)]" />
             </div>
             <div>
               <p className="text-2xl font-bold text-[var(--text-primary)]">{stats.subscribed}</p>
@@ -187,10 +189,10 @@ export default function CampaignsTab() {
             </div>
           </div>
         </div>
-        <div className={adminCard}>
+        <div className={`${adminCard} card-wipe-border animate-wave-in transition-shadow hover:shadow-lg`} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/10">
-              <PaperAirplaneIcon className="h-5 w-5 text-blue-500" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--bg-elev-2)]">
+              <PaperAirplaneIcon className="h-5 w-5 text-[var(--text-secondary)]" />
             </div>
             <div>
               <p className="text-2xl font-bold text-[var(--text-primary)]">{filteredCount}</p>
@@ -323,7 +325,7 @@ export default function CampaignsTab() {
 
         {loading ? (
           <div className="flex h-32 items-center justify-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-red-500"></div>
+            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-[var(--accent)]"></div>
           </div>
         ) : captures.length === 0 ? (
           <p className="py-8 text-center text-[var(--text-secondary)]">
@@ -343,7 +345,7 @@ export default function CampaignsTab() {
               </thead>
               <tbody>
                 {captures.slice(0, 50).map((cap) => (
-                  <tr key={cap.id} className="border-b border-[var(--border-subtle)] last:border-0">
+                  <tr key={cap.id} className="border-l-2 border-l-transparent border-b border-[var(--border-subtle)] transition-colors hover:border-l-[var(--accent)] last:border-0">
                     <td className="py-2 pr-4 text-[var(--text-primary)]">{cap.email}</td>
                     <td className="py-2 pr-4 text-[var(--text-secondary)]">{cap.source || '—'}</td>
                     <td className="py-2 pr-4 font-mono text-xs text-[var(--text-tertiary)]">
@@ -359,7 +361,7 @@ export default function CampaignsTab() {
                     </td>
                     <td className="py-2">
                       {cap.subscribed !== false ? (
-                        <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-xs text-green-500">
+                        <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-xs text-[var(--success)]">
                           Subscribed
                         </span>
                       ) : (

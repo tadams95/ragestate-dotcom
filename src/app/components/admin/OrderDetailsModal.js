@@ -14,7 +14,7 @@ const OrderDetailsModal = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-      <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] shadow-xl">
+      <div className="animate-modal-enter max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] shadow-xl">
         <div className="p-6">
           <div className="mb-6 flex items-center justify-between">
             <h2 className="text-xl font-bold text-[var(--text-primary)]">

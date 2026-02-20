@@ -8,7 +8,7 @@ import {
   getProfileCount,
   searchAdminProfiles,
 } from '../../../../lib/firebase/adminService';
-import { adminInput } from './shared/adminStyles';
+import { adminButtonOutline, adminInput } from './shared/adminStyles';
 import { AdminErrorState, UsersTabSkeleton } from './shared';
 import UserDetailModal from './UserDetailModal';
 
@@ -274,7 +274,7 @@ export default function UsersTab() {
                   </thead>
                   <tbody className="divide-y divide-[var(--border-subtle)]">
                     {displayedUsers.map((user) => (
-                      <tr key={user.id} className="transition-colors hover:bg-[var(--bg-elev-1)]">
+                      <tr key={user.id} className="border-l-2 border-l-transparent transition-colors hover:border-l-[var(--accent)] hover:bg-[var(--bg-elev-1)]">
                         <td className="whitespace-nowrap px-6 py-4">
                           <div className="flex items-center gap-3">
                             {user.photoURL || user.profilePicture ? (
@@ -305,10 +305,10 @@ export default function UsersTab() {
                           <span
                             className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold leading-5 ${
                               user.isAdmin
-                                ? 'bg-purple-500/20 text-purple-500'
+                                ? 'bg-[var(--accent-muted)] text-[var(--accent)]'
                                 : user.disabled
-                                  ? 'bg-red-500/20 text-red-500'
-                                  : 'bg-green-500/20 text-green-500'
+                                  ? 'bg-red-500/20 text-[var(--danger)]'
+                                  : 'bg-green-500/20 text-[var(--success)]'
                             }`}
                           >
                             {user.isAdmin ? 'Admin' : user.disabled ? 'Disabled' : 'Active'}
@@ -356,18 +356,14 @@ export default function UsersTab() {
                     <button
                       onClick={handlePrevPage}
                       disabled={!hasPrevPage}
-                      className={`rounded-md border border-[var(--border-subtle)] px-3 py-1 text-[var(--text-secondary)] hover:bg-[var(--bg-elev-2)] ${
-                        !hasPrevPage ? 'cursor-not-allowed opacity-50' : ''
-                      }`}
+                      className={`${adminButtonOutline} ${!hasPrevPage ? 'cursor-not-allowed opacity-50' : ''}`}
                     >
                       Previous
                     </button>
                     <button
                       onClick={handleNextPage}
                       disabled={!hasNextPage}
-                      className={`rounded-md border border-[var(--border-subtle)] px-3 py-1 text-[var(--text-secondary)] hover:bg-[var(--bg-elev-2)] ${
-                        !hasNextPage ? 'cursor-not-allowed opacity-50' : ''
-                      }`}
+                      className={`${adminButtonOutline} ${!hasNextPage ? 'cursor-not-allowed opacity-50' : ''}`}
                     >
                       Next
                     </button>

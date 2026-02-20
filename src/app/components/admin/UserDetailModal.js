@@ -128,10 +128,10 @@ export default function UserDetailModal({ userId, isOpen, onClose, onUserUpdated
   };
 
   const statusBadge = isAdmin
-    ? 'bg-purple-500/20 text-purple-500'
+    ? 'bg-[var(--accent-muted)] text-[var(--accent)]'
     : isDisabled
-      ? 'bg-red-500/20 text-red-500'
-      : 'bg-green-500/20 text-green-500';
+      ? 'bg-red-500/20 text-[var(--danger)]'
+      : 'bg-green-500/20 text-[var(--success)]';
   const statusLabel = isAdmin ? 'Admin' : isDisabled ? 'Disabled' : 'Active';
 
   return (
@@ -141,7 +141,7 @@ export default function UserDetailModal({ userId, isOpen, onClose, onUserUpdated
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] shadow-xl">
+      <div className="animate-modal-enter max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] shadow-xl">
         {/* Close button */}
         <div className="flex justify-end p-4 pb-0">
           <button
@@ -273,7 +273,7 @@ export default function UserDetailModal({ userId, isOpen, onClose, onUserUpdated
                       disabled={actionLoading}
                       className={`rounded-md px-3 py-1.5 text-sm font-semibold text-white ${
                         isDisabled
-                          ? 'bg-green-600 hover:bg-green-500'
+                          ? 'bg-[var(--success)] hover:opacity-90'
                           : 'bg-red-600 hover:bg-red-500'
                       } disabled:opacity-50`}
                     >
@@ -293,7 +293,7 @@ export default function UserDetailModal({ userId, isOpen, onClose, onUserUpdated
                     onClick={() => setShowBanConfirm(true)}
                     className={`rounded-md px-4 py-2 text-sm font-semibold text-white ${
                       isDisabled
-                        ? 'bg-green-600 hover:bg-green-500'
+                        ? 'bg-[var(--success)] hover:opacity-90'
                         : 'bg-red-600 hover:bg-red-500'
                     }`}
                   >

@@ -113,40 +113,32 @@ const DashboardTab = ({ setActiveTab }) => {
         />
       ) : (
         <>
-          <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-4">
+          <div className="wave-in-stagger mb-8 grid grid-cols-1 gap-6 md:grid-cols-4">
             {[
               {
                 title: 'Total Orders',
                 value: orders.length,
                 icon: '📦',
-                color:
-                  'bg-[var(--bg-accent-blue-subtle)] border-[var(--border-accent-blue-subtle)]',
               },
               {
                 title: 'Total Revenue',
                 value: `$${totalRevenue.toFixed(2)}`,
                 icon: '💰',
-                color:
-                  'bg-[var(--bg-accent-green-subtle)] border-[var(--border-accent-green-subtle)]',
               },
               {
                 title: 'Total Users',
                 value: userCount,
                 icon: '👥',
-                color:
-                  'bg-[var(--bg-accent-purple-subtle)] border-[var(--border-accent-purple-subtle)]',
               },
               {
                 title: 'Pending Orders',
                 value: pendingOrders,
                 icon: '⏱️',
-                color:
-                  'bg-[var(--bg-accent-yellow-subtle)] border-[var(--border-accent-yellow-subtle)]',
               },
             ].map((stat, idx) => (
               <div
                 key={idx}
-                className={`${stat.color} flex items-center justify-between rounded-lg border p-6 shadow-md`}
+                className="animate-wave-in flex items-center justify-between rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-6 shadow-md"
               >
                 <div>
                   <p className="text-sm font-medium text-[var(--text-secondary)]">{stat.title}</p>

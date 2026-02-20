@@ -58,16 +58,6 @@
   /* Hover backgrounds */
   --bg-hover: rgba(0, 0, 0, 0.04);
 
-  /* Admin Dashboard Stats */
-  --bg-accent-blue-subtle: rgba(59, 130, 246, 0.1);
-  --border-accent-blue-subtle: rgba(59, 130, 246, 0.2);
-  --bg-accent-green-subtle: rgba(34, 197, 94, 0.1);
-  --border-accent-green-subtle: rgba(34, 197, 94, 0.2);
-  --bg-accent-purple-subtle: rgba(168, 85, 247, 0.1);
-  --border-accent-purple-subtle: rgba(168, 85, 247, 0.2);
-  --bg-accent-yellow-subtle: rgba(234, 179, 8, 0.1);
-  --border-accent-yellow-subtle: rgba(234, 179, 8, 0.2);
-
   /* Legacy variables (for backwards compatibility) */
   --foreground-rgb: 17, 17, 19;
   --background-start-rgb: 250, 250, 250;
@@ -111,16 +101,6 @@
 
   /* Hover backgrounds */
   --bg-hover: rgba(255, 255, 255, 0.05);
-
-  /* Admin Dashboard Stats */
-  --bg-accent-blue-subtle: rgba(59, 130, 246, 0.2);
-  --border-accent-blue-subtle: rgba(59, 130, 246, 0.4);
-  --bg-accent-green-subtle: rgba(34, 197, 94, 0.2);
-  --border-accent-green-subtle: rgba(34, 197, 94, 0.4);
-  --bg-accent-purple-subtle: rgba(168, 85, 247, 0.2);
-  --border-accent-purple-subtle: rgba(168, 85, 247, 0.4);
-  --bg-accent-yellow-subtle: rgba(234, 179, 8, 0.2);
-  --border-accent-yellow-subtle: rgba(234, 179, 8, 0.4);
 
   /* Legacy variables */
   --foreground-rgb: 245, 246, 247;
@@ -562,6 +542,10 @@ body {
   clip-path: var(--wipe-clip, inset(0 100% 0 0));
   transition: clip-path 0.35s ease-out;
   pointer-events: none;
+}
+
+.btn-wipe-border:hover::before {
+  clip-path: inset(0 0 0 0);
 }
 
 .btn-wipe-border.no-transition::before {

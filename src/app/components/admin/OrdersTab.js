@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { getAllPurchases, getPurchaseCount } from '../../../../lib/firebase/purchaseService';
 import { formatCurrency, formatDate, getStatusColor } from '../../../utils/formatters';
-import { adminInput } from './shared/adminStyles';
+import { adminButtonOutline, adminInput } from './shared/adminStyles';
 import { AdminErrorState, OrdersTabSkeleton } from './shared';
 import OrderDetailsModal from './OrderDetailsModal';
 
@@ -185,7 +185,7 @@ export default function OrdersTab() {
                   </thead>
                   <tbody className="divide-y divide-[var(--border-subtle)]">
                     {displayedOrders.map((order) => (
-                      <tr key={order.id} className="transition-colors hover:bg-[var(--bg-elev-1)]">
+                      <tr key={order.id} className="border-l-2 border-l-transparent transition-colors hover:border-l-[var(--accent)] hover:bg-[var(--bg-elev-1)]">
                         <td className="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">
                           {order.orderNumber || order.id.substring(0, 8)}
                         </td>
@@ -240,18 +240,14 @@ export default function OrdersTab() {
                   <button
                     onClick={handlePrevPage}
                     disabled={!hasPrevPage}
-                    className={`rounded-md border border-[var(--border-subtle)] px-3 py-1 text-[var(--text-secondary)] hover:bg-[var(--bg-elev-2)] ${
-                      !hasPrevPage ? 'cursor-not-allowed opacity-50' : ''
-                    }`}
+                    className={`${adminButtonOutline} ${!hasPrevPage ? 'cursor-not-allowed opacity-50' : ''}`}
                   >
                     Previous
                   </button>
                   <button
                     onClick={handleNextPage}
                     disabled={!hasNextPage}
-                    className={`rounded-md border border-[var(--border-subtle)] px-3 py-1 text-[var(--text-secondary)] hover:bg-[var(--bg-elev-2)] ${
-                      !hasNextPage ? 'cursor-not-allowed opacity-50' : ''
-                    }`}
+                    className={`${adminButtonOutline} ${!hasNextPage ? 'cursor-not-allowed opacity-50' : ''}`}
                   >
                     Next
                   </button>

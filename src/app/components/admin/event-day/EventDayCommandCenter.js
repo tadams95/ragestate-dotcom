@@ -11,6 +11,7 @@ import GuestListTable from './GuestListTable';
 import CheckInConfirmModal from './CheckInConfirmModal';
 import AddGuestModal from './AddGuestModal';
 import { useEventDayData } from './useEventDayData';
+import { adminButtonOutline } from '../shared/adminStyles';
 
 export default function EventDayCommandCenter() {
   const [selectedEventId, setSelectedEventId] = useState(() => {
@@ -130,7 +131,7 @@ export default function EventDayCommandCenter() {
           <button
             onClick={refreshGuests}
             disabled={loading || !selectedEventId}
-            className="inline-flex items-center gap-1.5 rounded-md border border-[var(--border-subtle)] px-3 py-1.5 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elev-2)] disabled:cursor-not-allowed disabled:opacity-50"
+            className={`${adminButtonOutline} inline-flex items-center gap-1.5 px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-50`}
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -140,7 +141,7 @@ export default function EventDayCommandCenter() {
           <button
             onClick={() => setShowAddGuest(true)}
             disabled={loading || !selectedEventId}
-            className="inline-flex items-center gap-1.5 rounded-md border border-[var(--border-subtle)] px-3 py-1.5 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elev-2)] disabled:cursor-not-allowed disabled:opacity-50"
+            className={`${adminButtonOutline} inline-flex items-center gap-1.5 px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-50`}
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
@@ -151,7 +152,7 @@ export default function EventDayCommandCenter() {
             <Link
               href="/admin/scanner"
               onClick={handleOpenScanner}
-              className="inline-flex items-center gap-1.5 rounded-md border border-[var(--border-subtle)] px-3 py-1.5 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elev-2)]"
+              className={`${adminButtonOutline} inline-flex items-center gap-1.5 px-3 py-1.5 text-sm`}
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />

@@ -20,7 +20,7 @@ export default function AdminErrorState({
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="max-w-md text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10">
+          <div className="animate-error-shake mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10">
             <svg
               className="h-8 w-8 text-red-500"
               fill="none"
@@ -59,7 +59,7 @@ export default function AdminErrorState({
   }
 
   return (
-    <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4">
+    <div className="animate-error-shake rounded-lg border border-red-500/30 bg-red-500/10 p-4">
       <div className="flex items-start">
         <div className="flex-shrink-0">
           <svg

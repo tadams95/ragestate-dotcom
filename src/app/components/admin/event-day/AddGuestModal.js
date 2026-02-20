@@ -147,7 +147,7 @@ function AddGuestModal({ isOpen, eventId, onClose, onGuestAdded }) {
         if (e.target === e.currentTarget && !isSubmitting) onClose();
       }}
     >
-      <div className="w-full max-w-md rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-6 shadow-2xl">
+      <div className="animate-modal-enter w-full max-w-md rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-6 shadow-2xl">
         <h3 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">Add Guest</h3>
 
         {step === 1 ? (
@@ -266,8 +266,8 @@ function AddGuestModal({ isOpen, eventId, onClose, onGuestAdded }) {
             />
 
             {/* Info callout */}
-            <div className="mb-4 rounded-md bg-blue-500/10 p-3">
-              <p className="text-sm text-blue-400">
+            <div className="mb-4 rounded-md bg-[var(--accent-muted)] p-3">
+              <p className="text-sm text-[var(--accent)]">
                 This will create a complimentary ticket ({quantity === 1 ? '1 entry' : `${quantity} entries`}).
               </p>
             </div>

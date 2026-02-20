@@ -22,13 +22,13 @@ function getStatusBadge(status) {
       return {
         label: 'Claimed',
         icon: CheckCircleIcon,
-        className: 'bg-green-500/20 text-green-400',
+        className: 'bg-green-500/20 text-[var(--success)]',
       };
     case 'pending':
       return {
         label: 'Pending',
         icon: ClockIcon,
-        className: 'bg-amber-500/20 text-amber-400',
+        className: 'bg-amber-500/20 text-[var(--warning)]',
       };
     case 'expired':
       return {
@@ -337,7 +337,7 @@ export default function TransfersTab() {
 
       {/* Error State */}
       {error && (
-        <div className="mb-4 rounded-md border border-red-500/50 bg-red-500/10 p-3 text-sm text-red-400">
+        <div className="animate-error-shake mb-4 rounded-md border border-red-500/50 bg-red-500/10 p-3 text-sm text-red-400">
           {error}
         </div>
       )}
@@ -345,7 +345,7 @@ export default function TransfersTab() {
       {/* Results */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-red-500"></div>
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-[var(--accent)]"></div>
         </div>
       ) : searched && transfers.length === 0 ? (
         <div className="py-12 text-center text-[var(--text-tertiary)]">
@@ -384,7 +384,7 @@ export default function TransfersTab() {
                 {transfers.map((transfer) => {
                   const { label, icon: StatusIcon, className } = getStatusBadge(transfer.status);
                   return (
-                    <tr key={transfer.id} className="transition hover:bg-[var(--bg-elev-3)]">
+                    <tr key={transfer.id} className="border-l-2 border-l-transparent transition hover:border-l-[var(--accent)] hover:bg-[var(--bg-elev-3)]">
                       <td className="whitespace-nowrap px-4 py-3">
                         <span
                           className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${className}`}
@@ -459,7 +459,7 @@ export default function TransfersTab() {
       {/* Cancel Confirmation Modal */}
       {cancelModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="relative w-full max-w-md rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-6 shadow-xl">
+          <div className="animate-modal-enter relative w-full max-w-md rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-6 shadow-xl">
             <button
               onClick={() => {
                 setCancelModal({ open: false, transfer: null });
@@ -494,7 +494,7 @@ export default function TransfersTab() {
             </div>
 
             {cancelError && (
-              <div className="mb-4 rounded-md border border-red-500/50 bg-red-500/10 p-3 text-sm text-red-400">
+              <div className="animate-error-shake mb-4 rounded-md border border-red-500/50 bg-red-500/10 p-3 text-sm text-red-400">
                 {cancelError}
               </div>
             )}

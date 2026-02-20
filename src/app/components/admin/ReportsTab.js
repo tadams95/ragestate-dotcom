@@ -9,13 +9,14 @@ import {
   REPORT_STATUS_LABELS,
   CONTENT_TYPE_LABELS,
 } from '../../../../lib/types/report';
+import { adminInput } from './shared/adminStyles';
 import { AdminErrorState } from './shared';
 
 const STATUS_COLORS = {
-  pending: 'bg-yellow-500/20 text-yellow-500',
-  reviewed: 'bg-blue-500/20 text-blue-500',
-  resolved: 'bg-green-500/20 text-green-500',
-  dismissed: 'bg-gray-500/20 text-gray-400',
+  pending: 'bg-amber-500/20 text-[var(--warning)]',
+  reviewed: 'bg-red-500/20 text-[var(--accent)]',
+  resolved: 'bg-green-500/20 text-[var(--success)]',
+  dismissed: 'bg-gray-500/20 text-[var(--text-tertiary)]',
 };
 
 const ReportsTab = () => {
@@ -130,9 +131,6 @@ const ReportsTab = () => {
     });
   };
 
-  const inputStyling =
-    'block w-full bg-[var(--bg-elev-2)] rounded-md border-0 py-1.5 px-3 text-[var(--text-primary)] shadow-sm ring-1 ring-inset ring-[var(--border-subtle)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-red-500 sm:text-sm sm:leading-6';
-
   return (
     <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-6 shadow-xl">
       {/* Header */}
@@ -146,7 +144,7 @@ const ReportsTab = () => {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className={inputStyling + ' sm:w-40'}
+          className={adminInput + ' sm:w-40'}
         >
           <option value="all">All Reports</option>
           <option value="pending">Pending ({counts.pending})</option>
@@ -157,11 +155,11 @@ const ReportsTab = () => {
       </div>
 
       {/* Stats */}
-      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="wave-in-stagger mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
         {Object.entries(counts).map(([status, count]) => (
           <div
             key={status}
-            className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-4"
+            className="animate-wave-in rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-4"
           >
             <p className="text-sm text-[var(--text-tertiary)]">{REPORT_STATUS_LABELS[status]}</p>
             <p className="mt-1 text-2xl font-semibold text-[var(--text-primary)]">{count}</p>
@@ -178,7 +176,7 @@ const ReportsTab = () => {
         />
       ) : loading && reports.length === 0 ? (
         <div className="flex h-32 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-red-500" />
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-[var(--accent)]" />
         </div>
       ) : reports.length === 0 ? (
         <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-8 text-center">
@@ -216,7 +214,7 @@ const ReportsTab = () => {
             return (
               <div
                 key={report.id}
-                className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-4"
+                className="card-wipe-border rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-4 transition-shadow hover:shadow-lg"
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   {/* Report info */}
@@ -290,7 +288,7 @@ const ReportsTab = () => {
                         <button
                           onClick={() => handleStatusChange(report.id, 'reviewed')}
                           disabled={isUpdating}
-                          className="rounded-md bg-blue-500/20 px-3 py-1.5 text-sm text-blue-400 transition-colors hover:bg-blue-500/30 disabled:opacity-50"
+                          className="rounded-md bg-[var(--accent-muted)] px-3 py-1.5 text-sm text-[var(--accent)] transition-colors hover:bg-red-500/30 disabled:opacity-50"
                         >
                           Start Review
                         </button>
@@ -312,7 +310,7 @@ const ReportsTab = () => {
                             if (action) handleStatusChange(report.id, 'resolved', action);
                           }}
                           disabled={isUpdating}
-                          className="rounded-md bg-green-500/20 px-3 py-1.5 text-sm text-green-400 transition-colors hover:bg-green-500/30 disabled:opacity-50"
+                          className="rounded-md bg-green-500/20 px-3 py-1.5 text-sm text-[var(--success)] transition-colors hover:bg-green-500/30 disabled:opacity-50"
                         >
                           Resolve
                         </button>

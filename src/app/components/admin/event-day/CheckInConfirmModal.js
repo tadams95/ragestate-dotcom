@@ -33,7 +33,7 @@ function CheckInConfirmModal({ guest, isOpen, isLoading, onConfirm, onCancel }) 
         if (e.target === e.currentTarget && !isLoading) onCancel();
       }}
     >
-      <div className="w-full max-w-md rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-6 shadow-2xl">
+      <div className="animate-modal-enter w-full max-w-md rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-6 shadow-2xl">
         <h3 className="mb-1 text-lg font-semibold text-[var(--text-primary)]">
           Confirm Check-In
         </h3>
@@ -51,7 +51,7 @@ function CheckInConfirmModal({ guest, isOpen, isLoading, onConfirm, onCancel }) 
         </div>
 
         <div className="mb-4 rounded-md bg-amber-500/10 p-3">
-          <p className="text-sm text-amber-400">
+          <p className="text-sm text-[var(--warning)]">
             This will use 1 ticket entry.
           </p>
         </div>
