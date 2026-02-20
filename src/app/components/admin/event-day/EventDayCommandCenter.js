@@ -9,6 +9,7 @@ import EventSelector from './EventSelector';
 import CheckInStats from './CheckInStats';
 import GuestListTable from './GuestListTable';
 import CheckInConfirmModal from './CheckInConfirmModal';
+import AddGuestModal from './AddGuestModal';
 import { useEventDayData } from './useEventDayData';
 
 export default function EventDayCommandCenter() {
@@ -26,6 +27,7 @@ export default function EventDayCommandCenter() {
 
   const [confirmGuest, setConfirmGuest] = useState(null);
   const [checkingInId, setCheckingInId] = useState(null);
+  const [showAddGuest, setShowAddGuest] = useState(false);
 
   const handleEventChange = useCallback((eventId) => {
     setSelectedEventId(eventId);
@@ -135,6 +137,16 @@ export default function EventDayCommandCenter() {
             </svg>
             Refresh
           </button>
+          <button
+            onClick={() => setShowAddGuest(true)}
+            disabled={loading || !selectedEventId}
+            className="inline-flex items-center gap-1.5 rounded-md border border-[var(--border-subtle)] px-3 py-1.5 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elev-2)] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+            Add Guest
+          </button>
           {selectedEventId && (
             <Link
               href="/admin/scanner"
@@ -194,6 +206,13 @@ export default function EventDayCommandCenter() {
         isLoading={!!checkingInId}
         onConfirm={handleConfirmCheckIn}
         onCancel={handleCancelModal}
+      />
+
+      <AddGuestModal
+        isOpen={showAddGuest}
+        eventId={selectedEventId}
+        onClose={() => setShowAddGuest(false)}
+        onGuestAdded={refreshGuests}
       />
     </div>
   );
