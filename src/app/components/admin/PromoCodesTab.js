@@ -7,10 +7,12 @@ import {
   doc,
   getDocs,
   getFirestore,
+  limit,
   orderBy,
   query,
   serverTimestamp,
   setDoc,
+  startAfter,
   updateDoc,
 } from 'firebase/firestore';
 import { useCallback, useEffect, useState } from 'react';
@@ -42,6 +44,9 @@ export default function PromoCodesTab() {
     expiresAt: '',
   });
 
+  const [lastPromoDoc, setLastPromoDoc] = useState(null);
+  const [hasMorePromos, setHasMorePromos] = useState(true);
+
   const db = getFirestore();
 
   // Fetch promo codes from both collections
@@ -50,9 +55,9 @@ export default function PromoCodesTab() {
     try {
       const allCodes = [];
 
-      // Fetch from new promoCodes collection
+      // Fetch from new promoCodes collection (limited)
       const promoRef = collection(db, 'promoCodes');
-      const promoQuery = query(promoRef, orderBy('createdAt', 'desc'));
+      const promoQuery = query(promoRef, orderBy('createdAt', 'desc'), limit(50));
       const promoSnap = await getDocs(promoQuery);
       promoSnap.docs.forEach((doc) => {
         allCodes.push({
@@ -64,6 +69,8 @@ export default function PromoCodesTab() {
           lastUsed: doc.data().lastUsed?.toDate?.() || null,
         });
       });
+      setLastPromoDoc(promoSnap.docs[promoSnap.docs.length - 1] || null);
+      setHasMorePromos(promoSnap.docs.length === 50);
 
       // Fetch from legacy promoterCodes collection
       const legacyRef = collection(db, 'promoterCodes');
@@ -266,6 +273,33 @@ export default function PromoCodesTab() {
       toast.error('Failed to delete code');
     }
   };
+
+  const loadMorePromoCodes = useCallback(async () => {
+    if (!lastPromoDoc || !hasMorePromos) return;
+    try {
+      const q = query(
+        collection(db, 'promoCodes'),
+        orderBy('createdAt', 'desc'),
+        startAfter(lastPromoDoc),
+        limit(50),
+      );
+      const snap = await getDocs(q);
+      const newCodes = snap.docs.map((d) => ({
+        id: d.id,
+        collection: 'promoCodes',
+        ...d.data(),
+        createdAt: d.data().createdAt?.toDate?.() || null,
+        expiresAt: d.data().expiresAt?.toDate?.() || null,
+        lastUsed: d.data().lastUsed?.toDate?.() || null,
+      }));
+      setCodes((prev) => [...prev, ...newCodes]);
+      setLastPromoDoc(snap.docs[snap.docs.length - 1] || null);
+      setHasMorePromos(snap.docs.length === 50);
+    } catch (err) {
+      console.error('Failed to load more promo codes:', err);
+      toast.error('Failed to load more codes');
+    }
+  }, [db, lastPromoDoc, hasMorePromos]);
 
   if (loading) {
     return (
@@ -542,7 +576,7 @@ export default function PromoCodesTab() {
                       {!code.maxUses && <span className="text-[var(--text-tertiary)]"> / ∞</span>}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-[var(--text-secondary)]">
-                      {code.minPurchase ? `$${(code.minPurchase / 100).toFixed(0)}` : '—'}
+                      {code.minPurchase ? `$${(code.minPurchase / 100).toFixed(2)}` : '—'}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-[var(--text-secondary)]">
                       {formatDate(code.expiresAt)}
@@ -579,6 +613,18 @@ export default function PromoCodesTab() {
           </table>
         </div>
       </div>
+
+      {/* Load More */}
+      {hasMorePromos && (
+        <div className="flex justify-center pt-4">
+          <button
+            onClick={loadMorePromoCodes}
+            className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] px-4 py-2 text-sm font-semibold text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elev-1)]"
+          >
+            Load More Codes
+          </button>
+        </div>
+      )}
 
       {/* Info note */}
       <p className="text-center text-xs text-[var(--text-tertiary)]">

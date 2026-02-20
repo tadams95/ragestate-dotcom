@@ -1,39 +1,119 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
+import { getAllPurchases, getPurchaseCount } from '../../../../lib/firebase/purchaseService';
+import { formatCurrency, formatDate, getStatusColor } from '../../../utils/formatters';
+import { adminInput } from './shared/adminStyles';
 import { AdminErrorState, OrdersTabSkeleton } from './shared';
+import OrderDetailsModal from './OrderDetailsModal';
 
-const OrdersTab = ({
-  loading,
-  error,
-  orders,
-  formatDate,
-  formatCurrency,
-  getStatusColor,
-  viewOrderDetails,
-  inputStyling,
-}) => {
+const PAGE_SIZE = 20;
+
+export default function OrdersTab() {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [totalCount, setTotalCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageCache, setPageCache] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [orderDetailsOpen, setOrderDetailsOpen] = useState(false);
 
-  // Filter orders based on search query and status
-  const filteredOrders = useMemo(() => {
-    return orders.filter((order) => {
-      // Search filter
-      const query = searchQuery.toLowerCase();
+  // Load initial data
+  useEffect(() => {
+    let cancelled = false;
+    async function loadInitial() {
+      setLoading(true);
+      setError(null);
+      try {
+        const [countResult, ordersResult] = await Promise.allSettled([
+          getPurchaseCount(),
+          getAllPurchases(null, PAGE_SIZE),
+        ]);
+
+        if (cancelled) return;
+
+        if (countResult.status === 'fulfilled') {
+          setTotalCount(countResult.value);
+        }
+
+        if (ordersResult.status === 'fulfilled') {
+          const { purchases, lastDoc } = ordersResult.value;
+          setOrders(purchases);
+          setPageCache({ 1: { orders: purchases, lastDoc } });
+          setCurrentPage(1);
+        } else {
+          throw ordersResult.reason || new Error('Failed to load orders');
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Error loading orders:', err);
+          setError(err.message || 'Failed to load orders');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadInitial();
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleNextPage = useCallback(async () => {
+    const nextPage = currentPage + 1;
+    if (pageCache[nextPage]) {
+      setOrders(pageCache[nextPage].orders);
+      setCurrentPage(nextPage);
+      return;
+    }
+
+    const currentCached = pageCache[currentPage];
+    if (!currentCached?.lastDoc) return;
+
+    setLoading(true);
+    try {
+      const { purchases, lastDoc } = await getAllPurchases(currentCached.lastDoc, PAGE_SIZE);
+      setPageCache((prev) => ({ ...prev, [nextPage]: { orders: purchases, lastDoc } }));
+      setOrders(purchases);
+      setCurrentPage(nextPage);
+    } catch (err) {
+      console.error('Error loading next page:', err);
+      toast.error('Failed to load next page');
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, pageCache]);
+
+  const handlePrevPage = useCallback(() => {
+    const prevPage = currentPage - 1;
+    if (prevPage < 1 || !pageCache[prevPage]) return;
+    setOrders(pageCache[prevPage].orders);
+    setCurrentPage(prevPage);
+  }, [currentPage, pageCache]);
+
+  // Client-side filter on current page
+  const displayedOrders = useMemo(() => {
+    return (orders || []).filter((order) => {
+      const q = searchQuery.toLowerCase();
       const matchesSearch =
-        !query ||
-        (order.orderNumber || order.id || '').toLowerCase().includes(query) ||
-        (order.customerName || order.name || '').toLowerCase().includes(query) ||
-        (order.email || '').toLowerCase().includes(query);
+        !q ||
+        (order.orderNumber || order.id || '').toLowerCase().includes(q) ||
+        (order.customerName || order.name || '').toLowerCase().includes(q) ||
+        (order.email || '').toLowerCase().includes(q);
 
-      // Status filter
       const matchesStatus =
         statusFilter === 'all' || (order.status || '').toLowerCase() === statusFilter;
 
       return matchesSearch && matchesStatus;
     });
   }, [orders, searchQuery, statusFilter]);
+
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+  const hasNextPage = currentPage < totalPages && pageCache[currentPage]?.lastDoc;
+  const hasPrevPage = currentPage > 1;
 
   return (
     <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-6 shadow-xl">
@@ -45,12 +125,12 @@ const OrdersTab = ({
             placeholder="Search by ID, name, or email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className={inputStyling + ' sm:w-64'}
+            className={`${adminInput} sm:w-64`}
           />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className={inputStyling + ' sm:w-36'}
+            className={`${adminInput} sm:w-36`}
           >
             <option value="all">All Status</option>
             <option value="pending">Pending</option>
@@ -63,15 +143,15 @@ const OrdersTab = ({
 
       {loading ? (
         <OrdersTabSkeleton />
-      ) : error.orders ? (
+      ) : error ? (
         <AdminErrorState
           title="Error loading orders"
-          message={error.orders}
+          message={error}
           onRetry={() => window.location.reload()}
         />
       ) : (
         <div className="overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] shadow-md">
-          {filteredOrders.length === 0 ? (
+          {displayedOrders.length === 0 ? (
             <div className="p-8 text-center text-[var(--text-tertiary)]">
               {searchQuery || statusFilter !== 'all'
                 ? 'No orders match your search criteria.'
@@ -104,7 +184,7 @@ const OrdersTab = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--border-subtle)]">
-                    {filteredOrders.map((order) => (
+                    {displayedOrders.map((order) => (
                       <tr key={order.id} className="transition-colors hover:bg-[var(--bg-elev-1)]">
                         <td className="whitespace-nowrap px-6 py-4 text-sm text-[var(--text-secondary)]">
                           {order.orderNumber || order.id.substring(0, 8)}
@@ -129,16 +209,13 @@ const OrdersTab = ({
                         </td>
                         <td className="whitespace-nowrap px-6 py-4 text-sm">
                           <button
-                            onClick={() => viewOrderDetails(order.id)}
-                            className="mr-3 text-red-500 hover:text-red-400"
+                            onClick={() => {
+                              setSelectedOrder(order);
+                              setOrderDetailsOpen(true);
+                            }}
+                            className="text-red-500 hover:text-red-400"
                           >
                             View
-                          </button>
-                          <button
-                            onClick={() => alert(`Edit order ${order.id}`)}
-                            className="text-blue-500 hover:text-blue-400"
-                          >
-                            Edit
                           </button>
                         </td>
                       </tr>
@@ -148,17 +225,56 @@ const OrdersTab = ({
               </div>
               <div className="flex items-center justify-between border-t border-[var(--border-subtle)] px-6 py-3">
                 <div className="text-sm text-[var(--text-tertiary)]">
-                  Showing <span className="font-medium">{filteredOrders.length}</span> of{' '}
-                  <span className="font-medium">{orders.length}</span> total orders
-                  {(searchQuery || statusFilter !== 'all') && ' (filtered)'}
+                  Showing{' '}
+                  <span className="font-medium">
+                    {displayedOrders.length > 0 ? (currentPage - 1) * PAGE_SIZE + 1 : 0}
+                  </span>{' '}
+                  to{' '}
+                  <span className="font-medium">
+                    {(currentPage - 1) * PAGE_SIZE + displayedOrders.length}
+                  </span>{' '}
+                  of <span className="font-medium">{totalCount}</span> orders
+                  {(searchQuery || statusFilter !== 'all') && ' (filter applies to current page)'}
+                </div>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={handlePrevPage}
+                    disabled={!hasPrevPage}
+                    className={`rounded-md border border-[var(--border-subtle)] px-3 py-1 text-[var(--text-secondary)] hover:bg-[var(--bg-elev-2)] ${
+                      !hasPrevPage ? 'cursor-not-allowed opacity-50' : ''
+                    }`}
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={handleNextPage}
+                    disabled={!hasNextPage}
+                    className={`rounded-md border border-[var(--border-subtle)] px-3 py-1 text-[var(--text-secondary)] hover:bg-[var(--bg-elev-2)] ${
+                      !hasNextPage ? 'cursor-not-allowed opacity-50' : ''
+                    }`}
+                  >
+                    Next
+                  </button>
                 </div>
               </div>
             </>
           )}
         </div>
       )}
+
+      {orderDetailsOpen && (
+        <OrderDetailsModal
+          selectedOrder={selectedOrder}
+          isOpen={orderDetailsOpen}
+          onClose={() => {
+            setOrderDetailsOpen(false);
+            setSelectedOrder(null);
+          }}
+          formatDate={formatDate}
+          formatCurrency={formatCurrency}
+          getStatusColor={getStatusColor}
+        />
+      )}
     </div>
   );
-};
-
-export default OrdersTab;
+}

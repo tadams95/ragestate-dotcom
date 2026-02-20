@@ -11,6 +11,7 @@ import {
 import { collection, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
 import { useCallback, useEffect, useState } from 'react';
 import { db } from '../../../../firebase/firebase';
+import { adminInput } from './shared/adminStyles';
 
 /**
  * Get status badge styling
@@ -65,7 +66,8 @@ function formatTimestamp(ts) {
   });
 }
 
-export default function TransfersTab({ inputStyling }) {
+export default function TransfersTab() {
+  const inputStyling = adminInput;
   const [searchType, setSearchType] = useState('email'); // 'email' | 'userEmail' | 'event'
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEventId, setSelectedEventId] = useState('');

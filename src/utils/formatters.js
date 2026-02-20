@@ -4,15 +4,21 @@ import { format } from "date-fns";
 export const formatDate = (date) => {
   if (!date) return "N/A";
   try {
-    // Ensure date is a Date object or valid string/number for Date constructor
-    const dateObj = date instanceof Date ? date : new Date(date);
-    // Check if the date is valid after conversion
+    try {
+      if (date && typeof date.toDate === "function") {
+        date = date.toDate();
+      }
+    } catch {
+      return "Invalid Date";
+    }
+
+    const dateObj = new Date(date);
     if (isNaN(dateObj.getTime())) {
       return "Invalid Date";
     }
+
     return format(dateObj, "MMM d, yyyy h:mm a");
-  } catch (err) {
-    console.error("Error formatting date:", date, err);
+  } catch {
     return "Invalid Date";
   }
 };
@@ -29,7 +35,7 @@ export const formatCurrency = (amount) => {
 // Helper function to get status color class
 export const getStatusColor = (status) => {
   if (!status) return "bg-gray-500/20 text-gray-500";
-  const statusLower = status.toLowerCase();
+  const statusLower = String(status).toLowerCase();
   if (statusLower.includes("completed")) {
     return "bg-green-500/20 text-green-500";
   } else if (statusLower.includes("processing")) {

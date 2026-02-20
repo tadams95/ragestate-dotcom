@@ -1,26 +1,112 @@
+'use client';
+
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { getProfileCount } from '../../../../lib/firebase/adminService';
+import { getAllPurchases } from '../../../../lib/firebase/purchaseService';
+import { formatCurrency, formatDate, getStatusColor } from '../../../utils/formatters';
 import { AdminErrorState, DashboardSkeleton } from './shared';
 
-const DashboardTab = ({
-  loading,
-  error,
-  orders,
-  userCount,
-  formatDate, // Prop received from AdminPage
-  formatCurrency, // Prop received from AdminPage
-  getStatusColor, // Prop received from AdminPage
-  setActiveTab,
-}) => {
+const toAmount = (value) => {
+  if (typeof value === 'number') {
+    return value === value && value !== Infinity && value !== -Infinity ? value : 0;
+  }
+
+  if (typeof value === 'string') {
+    const parsed = parseFloat(value);
+    return parsed === parsed && parsed !== Infinity && parsed !== -Infinity ? parsed : 0;
+  }
+
+  return 0;
+};
+
+const normalizeOrder = (order = {}, index = 0) => {
+  return {
+    ...order,
+    id: order.id || `order-${index}`,
+    status: typeof order.status === 'string' ? order.status.toLowerCase() : 'unknown',
+    totalAmount: toAmount(order.totalAmount),
+    orderDate: order.orderDate || order.dateTime || null,
+  };
+};
+
+const DashboardTab = ({ setActiveTab }) => {
+  const [orders, setOrders] = useState([]);
+  const [userCount, setUserCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    const results = await Promise.allSettled([getAllPurchases(null, 10), getProfileCount()]);
+
+    if (results[0].status === 'fulfilled') {
+      const normalizedOrders = (results[0].value.purchases || []).map((order, index) =>
+        normalizeOrder(order, index),
+      );
+      setOrders(normalizedOrders);
+    } else {
+      throw results[0].reason || new Error('Failed to load orders');
+    }
+
+    if (results[1].status === 'fulfilled') {
+      setUserCount(results[1].value);
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadDataWithGuard() {
+      try {
+        await loadData();
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Error loading dashboard data:', err);
+          setError(err.message || 'Failed to load dashboard data');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadDataWithGuard();
+    return () => { cancelled = true; };
+  }, [loadData]);
+
+  const totalRevenue = useMemo(() => {
+    return orders.reduce((sum, order) => sum + toAmount(order.totalAmount), 0);
+  }, [orders]);
+
+  const pendingOrders = useMemo(() => {
+    return orders.filter(
+      (order) => order.status === 'pending' || order.status === 'processing',
+    ).length;
+  }, [orders]);
+
+  const handleRetry = useCallback(async () => {
+    try {
+      await loadData();
+    } catch (err) {
+      console.error('Error loading dashboard data:', err);
+      setError(err.message || 'Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  }, [loadData]);
+
   return (
     <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-6 shadow-xl">
       <h2 className="mb-6 text-2xl font-bold text-[var(--text-primary)]">Dashboard Overview</h2>
 
       {loading ? (
         <DashboardSkeleton />
-      ) : error.general ? (
+      ) : error ? (
         <AdminErrorState
           title="Error loading dashboard"
-          message={error.general}
-          onRetry={() => window.location.reload()}
+          message={error}
+          onRetry={handleRetry}
           variant="fullPage"
         />
       ) : (
@@ -36,17 +122,7 @@ const DashboardTab = ({
               },
               {
                 title: 'Total Revenue',
-                value: `$${orders
-                  .reduce((sum, order) => {
-                    const amount =
-                      typeof order.totalAmount === 'number'
-                        ? order.totalAmount
-                        : typeof order.totalAmount === 'string'
-                          ? parseFloat(order.totalAmount) || 0
-                          : 0;
-                    return sum + amount;
-                  }, 0)
-                  .toFixed(2)}`,
+                value: `$${totalRevenue.toFixed(2)}`,
                 icon: '💰',
                 color:
                   'bg-[var(--bg-accent-green-subtle)] border-[var(--border-accent-green-subtle)]',
@@ -60,9 +136,7 @@ const DashboardTab = ({
               },
               {
                 title: 'Pending Orders',
-                value: orders.filter(
-                  (order) => order.status === 'pending' || order.status === 'processing',
-                ).length,
+                value: pendingOrders,
                 icon: '⏱️',
                 color:
                   'bg-[var(--bg-accent-yellow-subtle)] border-[var(--border-accent-yellow-subtle)]',

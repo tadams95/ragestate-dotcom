@@ -89,6 +89,40 @@ export function OrdersTabSkeleton() {
   );
 }
 
+export function UserDetailSkeleton() {
+  return (
+    <div className="animate-pulse space-y-6 p-6">
+      {/* Avatar + name */}
+      <div className="flex items-center gap-4">
+        <div className="h-20 w-20 rounded-full bg-[var(--bg-elev-2)]" />
+        <div className="space-y-2">
+          <div className="h-5 w-40 rounded bg-[var(--bg-elev-2)]" />
+          <div className="h-4 w-28 rounded bg-[var(--bg-elev-2)]" />
+          <div className="h-5 w-16 rounded bg-[var(--bg-elev-2)]" />
+        </div>
+      </div>
+      {/* Info grid */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="space-y-1">
+            <div className="h-3 w-16 rounded bg-[var(--bg-elev-2)]" />
+            <div className="h-4 w-full max-w-[200px] rounded bg-[var(--bg-elev-2)]" />
+          </div>
+        ))}
+      </div>
+      {/* Stats row */}
+      <div className="grid grid-cols-3 gap-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="rounded-lg bg-[var(--bg-elev-2)] p-4">
+            <div className="mx-auto h-6 w-8 rounded bg-[var(--bg-elev-1)]" />
+            <div className="mx-auto mt-1 h-3 w-16 rounded bg-[var(--bg-elev-1)]" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function UsersTabSkeleton() {
   return (
     <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-6 shadow-xl">

@@ -2,239 +2,35 @@
 
 import ArrowsRightLeftIcon from '@heroicons/react/24/outline/ArrowsRightLeftIcon';
 import ClipboardDocumentListIcon from '@heroicons/react/24/outline/ClipboardDocumentListIcon';
-import Cog6ToothIcon from '@heroicons/react/24/outline/Cog6ToothIcon';
 import EnvelopeIcon from '@heroicons/react/24/outline/EnvelopeIcon';
 import FlagIcon from '@heroicons/react/24/outline/FlagIcon';
 import ShoppingBagIcon from '@heroicons/react/24/outline/ShoppingBagIcon';
 import TicketIcon from '@heroicons/react/24/outline/TicketIcon';
 import UsersIcon from '@heroicons/react/24/outline/UsersIcon';
-import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
-import { useAuth } from '../../../firebase/context/FirebaseContext';
-import { getAllUsers, getUserCount } from '../../../lib/firebase/adminService';
-import { getEvents } from '../../../lib/firebase/eventService';
-import { getAllPurchases } from '../../../lib/firebase/purchaseService';
-import { formatCurrency, formatDate, getStatusColor } from '../../utils/formatters';
+import { useState } from 'react';
 import AdminProtected from '../components/AdminProtected';
-// Lazy-load admin tabs and modal to keep them out of initial/shared chunks
-const DashboardTab = dynamic(() => import('../components/admin/DashboardTab'), {
-  loading: () => (
-    <div className="flex h-32 items-center justify-center">
-      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-red-500"></div>
-    </div>
-  ),
-});
-const OrdersTab = dynamic(() => import('../components/admin/OrdersTab'), {
-  loading: () => (
-    <div className="flex h-32 items-center justify-center">
-      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-red-500"></div>
-    </div>
-  ),
-});
-const UsersTab = dynamic(() => import('../components/admin/UsersTab'), {
-  loading: () => (
-    <div className="flex h-32 items-center justify-center">
-      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-red-500"></div>
-    </div>
-  ),
-});
-const SettingsTab = dynamic(() => import('../components/admin/SettingsTab'), {
-  loading: () => (
-    <div className="flex h-32 items-center justify-center">
-      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-red-500"></div>
-    </div>
-  ),
-});
-const TransfersTab = dynamic(() => import('../components/admin/TransfersTab'), {
-  loading: () => (
-    <div className="flex h-32 items-center justify-center">
-      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-red-500"></div>
-    </div>
-  ),
-});
-const CampaignsTab = dynamic(() => import('../components/admin/CampaignsTab'), {
-  loading: () => (
-    <div className="flex h-32 items-center justify-center">
-      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-red-500"></div>
-    </div>
-  ),
-});
-const PromoCodesTab = dynamic(() => import('../components/admin/PromoCodesTab'), {
-  loading: () => (
-    <div className="flex h-32 items-center justify-center">
-      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-red-500"></div>
-    </div>
-  ),
-});
-const ReportsTab = dynamic(() => import('../components/admin/ReportsTab'), {
-  loading: () => (
-    <div className="flex h-32 items-center justify-center">
-      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-red-500"></div>
-    </div>
-  ),
-});
-const OrderDetailsModal = dynamic(() => import('../components/admin/OrderDetailsModal'), {
-  loading: () => null, // avoid layout shift; modal will pop in when ready
-});
-
+import CampaignsTab from '../components/admin/CampaignsTab';
+import DashboardTab from '../components/admin/DashboardTab';
+import OrdersTab from '../components/admin/OrdersTab';
+import PromoCodesTab from '../components/admin/PromoCodesTab';
+import ReportsTab from '../components/admin/ReportsTab';
+import TransfersTab from '../components/admin/TransfersTab';
+import UsersTab from '../components/admin/UsersTab';
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [orders, setOrders] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState({});
-  const [selectedOrder, setSelectedOrder] = useState(null);
-  const [orderDetailsOpen, setOrderDetailsOpen] = useState(false);
-  const [userCount, setUserCount] = useState(0);
-  const [currentUserPage, setCurrentUserPage] = useState(1);
-  const usersPerPage = 10;
-
-  const { currentUser, loading: authLoading } = useAuth();
-
-  useEffect(() => {
-    if (authLoading) return;
-
-    if (!currentUser) {
-      return;
-    }
-
-    async function loadData() {
-      setLoading(true);
-      setError({});
-
-      try {
-        const results = await Promise.allSettled([
-          getAllPurchases(null, 100),
-          getAllUsers(1000),
-          getEvents(null, 50),
-          getUserCount(),
-        ]);
-
-        if (results[0].status === 'fulfilled') {
-          setOrders(results[0].value.purchases || []);
-        } else {
-          console.error('Error loading orders:', results[0].reason);
-          setError((prev) => ({ ...prev, orders: results[0].reason.message }));
-        }
-
-        if (results[1].status === 'fulfilled') {
-          setUsers(results[1].value);
-        } else {
-          console.error('Error loading users:', results[1].reason);
-          setError((prev) => ({ ...prev, users: results[1].reason.message }));
-        }
-
-        if (results[2].status === 'fulfilled') {
-          setEvents(results[2].value.events || []);
-        } else {
-          console.error('Error loading events:', results[2].reason);
-          setError((prev) => ({ ...prev, events: results[2].reason.message }));
-        }
-
-        if (results[3].status === 'fulfilled') {
-          setUserCount(results[3].value);
-        }
-      } catch (err) {
-        console.error('General error loading admin data:', err);
-        setError({ general: err.message });
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadData();
-  }, [currentUser, authLoading]);
-
-  const viewOrderDetails = (orderId) => {
-    const orderToView = orders.find((order) => order.id === orderId);
-    if (orderToView) {
-      setSelectedOrder(orderToView);
-      setOrderDetailsOpen(true);
-    } else {
-      console.error('Could not find order with ID:', orderId);
-    }
-  };
-
-  const loadingState = (
-    <div className="flex h-64 items-center justify-center">
-      <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-red-500"></div>
-    </div>
-  );
-
-  const errorState = (
-    <div className="rounded-md border border-red-500 bg-red-500/20 p-4 text-white">
-      <h3 className="text-lg font-medium">Error loading data</h3>
-      <p>{error?.general || 'An unknown error occurred'}</p>
-      <button
-        onClick={() => window.location.reload()}
-        className="mt-2 rounded bg-red-500 px-4 py-2 text-white hover:bg-red-600"
-      >
-        Retry
-      </button>
-    </div>
-  );
-
-  const handleUserPageChange = (direction) => {
-    if (direction === 'next' && currentUserPage * usersPerPage < userCount) {
-      setCurrentUserPage(currentUserPage + 1);
-    } else if (direction === 'prev' && currentUserPage > 1) {
-      setCurrentUserPage(currentUserPage - 1);
-    }
-  };
-
-  const buttonStyling =
-    'flex justify-center rounded-md bg-transparent px-3 py-1.5 text-sm font-semibold leading-6 text-[var(--text-primary)] shadow-sm hover:bg-red-500 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 border-2 border-[var(--border-subtle)] transition-all duration-200';
-  const inputStyling =
-    'block w-full bg-[var(--bg-elev-2)] rounded-md border-0 py-1.5 px-3 text-[var(--text-primary)] shadow-sm ring-1 ring-inset ring-[var(--border-subtle)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-red-500 sm:text-sm sm:leading-6';
 
   // Render only the active tab to avoid evaluating all tabs on first paint
   const renderActiveTab = () => {
     switch (activeTab) {
       case 'dashboard':
-        return (
-          <DashboardTab
-            loading={loading}
-            error={error}
-            orders={orders}
-            userCount={userCount}
-            formatDate={formatDate}
-            formatCurrency={formatCurrency}
-            getStatusColor={getStatusColor}
-            setActiveTab={setActiveTab}
-          />
-        );
+        return <DashboardTab setActiveTab={setActiveTab} />;
       case 'orders':
-        return (
-          <OrdersTab
-            loading={loading}
-            error={error}
-            orders={orders}
-            formatDate={formatDate}
-            formatCurrency={formatCurrency}
-            getStatusColor={getStatusColor}
-            viewOrderDetails={viewOrderDetails}
-            inputStyling={inputStyling}
-          />
-        );
+        return <OrdersTab />;
       case 'users':
-        return (
-          <UsersTab
-            loading={loading}
-            error={error}
-            users={users}
-            userCount={userCount}
-            currentUserPage={currentUserPage}
-            usersPerPage={usersPerPage}
-            handleUserPageChange={handleUserPageChange}
-            inputStyling={inputStyling}
-          />
-        );
-      case 'settings':
-        return <SettingsTab inputStyling={inputStyling} buttonStyling={buttonStyling} />;
+        return <UsersTab />;
       case 'transfers':
-        return <TransfersTab inputStyling={inputStyling} />;
+        return <TransfersTab />;
       case 'campaigns':
         return <CampaignsTab />;
       case 'promo-codes':
@@ -343,17 +139,6 @@ export default function AdminPage() {
                       Promo Codes
                     </button>
                     <button
-                      onClick={() => setActiveTab('settings')}
-                      className={`${
-                        activeTab === 'settings'
-                          ? 'border-red-700 text-red-500'
-                          : 'border-transparent text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]'
-                      } flex flex-shrink-0 items-center whitespace-nowrap border-b-2 px-1 py-3 text-sm font-medium`}
-                    >
-                      <Cog6ToothIcon className="mr-2 h-5 w-5" aria-hidden="true" />
-                      Settings
-                    </button>
-                    <button
                       onClick={() => setActiveTab('reports')}
                       className={`${
                         activeTab === 'reports'
@@ -372,16 +157,6 @@ export default function AdminPage() {
           </div>
         </main>
         {/* Footer is rendered globally in RootLayout */}
-        {orderDetailsOpen && (
-          <OrderDetailsModal
-            selectedOrder={selectedOrder}
-            isOpen={orderDetailsOpen}
-            onClose={() => setOrderDetailsOpen(false)}
-            formatDate={formatDate}
-            formatCurrency={formatCurrency}
-            getStatusColor={getStatusColor}
-          />
-        )}
       </div>
     </AdminProtected>
   );

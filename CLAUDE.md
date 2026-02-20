@@ -116,6 +116,15 @@ export function useMyHook(param) {
 }
 ```
 
+### Render Safety Pattern
+```javascript
+// Keep render paths pure:
+// - No setState during render
+// - No router/navigation side effects during render
+// - No console.error in formatter/render helper functions
+// Normalize API/Firestore data before rendering UI lists/tables.
+```
+
 ### Firebase/Firestore Pattern
 ```javascript
 import { collection, doc, getDoc, getDocs, query, where, onSnapshot } from 'firebase/firestore';
