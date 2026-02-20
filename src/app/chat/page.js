@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../../firebase/context/FirebaseContext';
 import { useChatList } from '../../../lib/hooks/useChatList';
@@ -13,6 +14,7 @@ import { ChatListItem, ChatListSkeleton, EmptyChat } from './components';
  */
 export default function ChatListPage() {
   const { currentUser, loading: authLoading } = useAuth();
+  const router = useRouter();
   const { chats, isLoading, error } = useChatList();
 
   // Show toast for chat list errors
@@ -106,7 +108,7 @@ export default function ChatListPage() {
 
         {/* Empty state */}
         {!isLoading && !error && chats.length === 0 && (
-          <EmptyChat onNewChat={() => (window.location.href = '/chat/new')} />
+          <EmptyChat onNewChat={() => router.push('/chat/new')} />
         )}
 
         {/* Chat list */}

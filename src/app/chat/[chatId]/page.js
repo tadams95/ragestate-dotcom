@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../../../firebase/context/FirebaseContext';
 import { db } from '../../../../firebase/firebase';
-import { getUserDisplayInfo } from '../../../../lib/firebase/chatService';
+import { getUserDisplayInfo, toggleMuteChat } from '../../../../lib/firebase/chatService';
 import { useChat } from '../../../../lib/hooks/useChat';
 import { ChatInput, ImageViewerDialog, MessageBubble } from '../components';
 
@@ -30,13 +30,16 @@ export default function ChatRoomPage() {
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerImageUrl, setViewerImageUrl] = useState('');
 
+  // Mute state
+  const [isMuted, setIsMuted] = useState(false);
+
   // Message list ref for auto-scroll
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const lastMessageCountRef = useRef(0);
 
   // Chat hook
-  const { messages, isLoading, isLoadingMore, hasMore, error, isSending, sendMessage, loadMore } =
+  const { messages, isLoading, isLoadingMore, hasMore, error, isSending, sendMessage, loadMore, deleteMessage } =
     useChat(chatId);
 
   // Fetch chat metadata
@@ -94,6 +97,12 @@ export default function ChatRoomPage() {
           ...chatData,
           ...displayInfo,
         });
+
+        // Fetch muted status from user's chat summary
+        const summaryDoc = await getDoc(doc(db, `users/${currentUser.uid}/chatSummaries/${chatId}`));
+        if (summaryDoc.exists()) {
+          setIsMuted(summaryDoc.data().muted || false);
+        }
       } catch (err) {
         console.error('Failed to fetch chat metadata:', err);
         setMetaError(err);
@@ -147,6 +156,33 @@ export default function ChatRoomPage() {
       }
     },
     [sendMessage],
+  );
+
+  // Handle mute toggle
+  const handleToggleMute = useCallback(async () => {
+    if (!currentUser?.uid || !chatId) return;
+    const newMuted = !isMuted;
+    setIsMuted(newMuted);
+    try {
+      await toggleMuteChat(currentUser.uid, chatId, newMuted);
+      toast(newMuted ? 'Chat muted' : 'Chat unmuted');
+    } catch {
+      setIsMuted(!newMuted);
+      toast.error('Failed to update mute status');
+    }
+  }, [currentUser?.uid, chatId, isMuted]);
+
+  // Handle message deletion
+  const handleDeleteMessage = useCallback(
+    async (messageId) => {
+      try {
+        await deleteMessage(messageId);
+        toast('Message deleted');
+      } catch {
+        toast.error('Failed to delete message');
+      }
+    },
+    [deleteMessage],
   );
 
   // Auth loading state
@@ -230,8 +266,11 @@ export default function ChatRoomPage() {
                 {chatMeta.displayName}
               </span>
             </Link>
-          ) : (
-            <div className="flex min-w-0 flex-1 items-center gap-3">
+          ) : chatMeta?.eventId ? (
+            <Link
+              href={`/events/${chatMeta.eventId}`}
+              className="flex min-w-0 flex-1 items-center gap-3 transition-opacity hover:opacity-80"
+            >
               <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-[var(--bg-elev-2)]">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -249,9 +288,72 @@ export default function ChatRoomPage() {
                 </svg>
               </div>
               <span className="truncate font-semibold text-[var(--text-primary)]">
+                {chatMeta.displayName || 'Event Chat'}
+              </span>
+            </Link>
+          ) : (
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-[var(--bg-elev-2)]">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="h-5 w-5 text-[var(--text-tertiary)]"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"
+                  />
+                </svg>
+              </div>
+              <span className="truncate font-semibold text-[var(--text-primary)]">
                 {chatMeta?.displayName || 'Chat'}
               </span>
             </div>
+          )}
+
+          {/* Mute toggle */}
+          {!metaLoading && chatMeta && (
+            <button
+              onClick={handleToggleMute}
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elev-1)] hover:text-[var(--text-primary)]"
+              aria-label={isMuted ? 'Unmute chat' : 'Mute chat'}
+            >
+              {isMuted ? (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="h-5 w-5"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9.143 17.082a24.248 24.248 0 0 0 3.844.148m-3.844-.148a23.856 23.856 0 0 1-5.455-1.31 8.964 8.964 0 0 0 2.3-5.542m3.155 6.852a3 3 0 0 0 5.667 1.97m1.965-2.277L21 21m-4.225-4.225a23.906 23.906 0 0 0 3.658-1.944l.37-.216a.681.681 0 0 0 0-1.18 23.93 23.93 0 0 0-3.84-1.83m.28-.773A23.98 23.98 0 0 0 15.074 7.9a8.963 8.963 0 0 1 .79-3.458A.75.75 0 0 0 15.113 3H8.887a.75.75 0 0 0-.752 1.442 8.96 8.96 0 0 1 1.403 4.587m0 0a23.882 23.882 0 0 0-5.302 3.186.681.681 0 0 0 0 1.18l.37.216M3 3l3.537 3.537"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="h-5 w-5"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"
+                  />
+                </svg>
+              )}
+            </button>
           )}
         </div>
       </div>
@@ -327,6 +429,7 @@ export default function ChatRoomPage() {
                   isOwn={message.senderId === currentUser?.uid}
                   showSender={isEvent}
                   onImageClick={handleImageClick}
+                  onDelete={handleDeleteMessage}
                 />
               ))}
             </div>

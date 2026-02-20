@@ -1,6 +1,10 @@
 'use client';
 
 import { memo, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
+
+const MAX_FILE_SIZE_MB = 10;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 /**
  * @typedef {Object} ChatInputProps
@@ -22,11 +26,19 @@ function ChatInput({ onSend, isSending = false, placeholder = 'Message...' }) {
 
   const handleFileSelect = (e) => {
     const file = e.target.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      setSelectedImage(file);
-      setImagePreview(URL.createObjectURL(file));
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Only image files are supported');
+      e.target.value = '';
+      return;
     }
-    // Reset input so same file can be selected again
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      toast.error(`Image must be under ${MAX_FILE_SIZE_MB}MB`);
+      e.target.value = '';
+      return;
+    }
+    setSelectedImage(file);
+    setImagePreview(URL.createObjectURL(file));
     e.target.value = '';
   };
 
