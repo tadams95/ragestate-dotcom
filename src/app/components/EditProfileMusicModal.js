@@ -191,7 +191,7 @@ function EditProfileMusicModal({
       );
 
       invalidateProfileCache(userId);
-      onSave({ profileMusic: null, profileSongUrl: '' });
+      onSave({ profileMusic: null, profileSongUrl: null });
       toast.success('Profile song cleared');
       onClose();
     } catch (err) {

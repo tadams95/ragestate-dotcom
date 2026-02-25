@@ -6,8 +6,10 @@ import Cog6ToothIcon from '@heroicons/react/24/outline/Cog6ToothIcon';
 import ShoppingBagIcon from '@heroicons/react/24/outline/ShoppingBagIcon';
 import TicketIcon from '@heroicons/react/24/outline/TicketIcon';
 import UserCircleIcon from '@heroicons/react/24/outline/UserCircleIcon';
+import { doc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { db } from '../../../firebase/firebase';
 import { useUnreadNotificationsCount } from '../../../lib/hooks';
 
 import Image from 'next/image';
@@ -34,6 +36,7 @@ export default function Account() {
   const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [hasUsername, setHasUsername] = useState(true); // default true to avoid flash
   const [unreadCount] = useUnreadNotificationsCount(userId);
 
   const inputStyling =
@@ -162,6 +165,22 @@ export default function Account() {
     fetchUserData();
   }, []);
 
+  // Check if user has a username set
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    getDoc(doc(db, 'profiles', userId))
+      .then((snap) => {
+        if (!cancelled) {
+          setHasUsername(!!(snap.exists() && snap.data()?.usernameLower));
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
   const handleLogout = useCallback(
     async (event) => {
       event.preventDefault();
@@ -271,6 +290,20 @@ export default function Account() {
                   Manage your profile, view your QR code, and update your account settings.
                 </p>
               </div>
+
+              {!hasUsername && (
+                <div className="mb-6 rounded-lg border border-[var(--accent)]/30 bg-[var(--accent)]/10 p-4">
+                  <p className="text-sm text-[var(--text-primary)]">
+                    Your profile URL is not set yet.{' '}
+                    <a
+                      href="/onboarding/username"
+                      className="font-semibold text-[var(--accent)] underline"
+                    >
+                      Claim your username
+                    </a>
+                  </p>
+                </div>
+              )}
 
               <div className="mb-8 mt-6">
                 <div className="border-b border-[var(--border-subtle)]">

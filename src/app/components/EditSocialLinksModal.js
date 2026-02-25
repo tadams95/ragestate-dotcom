@@ -3,6 +3,7 @@
 import {
   createEmptySocialLinks,
   isValidSocialUrl,
+  normalizeSocialUrl,
   SOCIAL_PLATFORMS,
   SOCIAL_PLATFORM_ORDER,
 } from '@/utils/socialLinks';
@@ -103,12 +104,15 @@ function EditSocialLinksModal({ isOpen, onClose, userId, initialSocialLinks, onS
   const handleSave = useCallback(async () => {
     if (saving || !userId) return;
 
-    // Validate all non-empty URLs
+    // Validate all non-empty URLs (normalize first, then validate strictly)
     const errors = {};
     for (const platform of SOCIAL_PLATFORM_ORDER) {
       const url = (socialLinks[platform] || '').trim();
-      if (url && !isValidSocialUrl(platform, url)) {
-        errors[platform] = `Invalid ${SOCIAL_PLATFORMS[platform]?.name || platform} URL`;
+      if (url) {
+        const normalized = normalizeSocialUrl(platform, url);
+        if (!isValidSocialUrl(platform, normalized, { strict: true })) {
+          errors[platform] = `Invalid ${SOCIAL_PLATFORMS[platform]?.name || platform} URL`;
+        }
       }
     }
 
@@ -119,12 +123,12 @@ function EditSocialLinksModal({ isOpen, onClose, userId, initialSocialLinks, onS
 
     setSaving(true);
     try {
-      // Build cleaned object (strip empty strings)
+      // Build cleaned object (strip empty strings, normalize URLs)
       const cleaned = {};
       for (const platform of SOCIAL_PLATFORM_ORDER) {
         const url = (socialLinks[platform] || '').trim();
         if (url) {
-          cleaned[platform] = url;
+          cleaned[platform] = normalizeSocialUrl(platform, url);
         }
       }
 

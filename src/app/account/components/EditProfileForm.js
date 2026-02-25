@@ -5,19 +5,15 @@ import {
   SOCIAL_PLATFORM_ORDER,
   createEmptySocialLinks,
   isValidSocialUrl,
+  normalizeSocialUrl,
 } from '@/utils/socialLinks';
 import { doc, getDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../../../firebase/context/FirebaseContext';
 import { db } from '../../../../firebase/firebase';
-
-function normalizeUsername(input) {
-  const v = String(input || '')
-    .trim()
-    .toLowerCase();
-  return v.replace(/[^a-z0-9._]/g, '').slice(0, 20);
-}
+import { invalidateProfileCache } from '../../../../lib/firebase/cachedServices';
+import { normalizeUsername } from '../../../../lib/utils/username';
 
 export default function EditProfileForm({ inputStyling, buttonStyling, cardStyling }) {
   const { currentUser } = useAuth();
@@ -119,12 +115,15 @@ export default function EditProfileForm({ inputStyling, buttonStyling, cardStyli
       setError('That username is taken.');
       return;
     }
-    // Validate social links before saving
+    // Validate social links before saving (normalize first, then validate strictly)
     const linkErrors = {};
     for (const platform of SOCIAL_PLATFORM_ORDER) {
-      const url = socialLinks[platform]?.trim();
-      if (url && !isValidSocialUrl(platform, url)) {
-        linkErrors[platform] = `Invalid ${SOCIAL_PLATFORMS[platform].name} URL`;
+      const url = (socialLinks[platform] || '').trim();
+      if (url) {
+        const normalized = normalizeSocialUrl(platform, url);
+        if (!isValidSocialUrl(platform, normalized, { strict: true })) {
+          linkErrors[platform] = `Invalid ${SOCIAL_PLATFORMS[platform].name} URL`;
+        }
       }
     }
     if (Object.keys(linkErrors).length > 0) {
@@ -148,12 +147,18 @@ export default function EditProfileForm({ inputStyling, buttonStyling, cardStyli
         } else {
           tx.set(userRef, { uid: currentUser.uid, createdAt: serverTimestamp() });
         }
+
+        // Delete old username document if username is changing
+        if (initialUsername && initialUsername !== userKey) {
+          tx.delete(doc(db, 'usernames', initialUsername));
+        }
+
         const profileRef = doc(db, 'profiles', currentUser.uid);
-        // Clean social links (remove empty strings)
+        // Clean social links (remove empty strings, normalize URLs)
         const cleanedSocialLinks = {};
         for (const platform of SOCIAL_PLATFORM_ORDER) {
-          const url = socialLinks[platform]?.trim();
-          if (url) cleanedSocialLinks[platform] = url;
+          const url = (socialLinks[platform] || '').trim();
+          if (url) cleanedSocialLinks[platform] = normalizeSocialUrl(platform, url);
         }
         const profileData = {
           displayName: (displayName || '').trim(),
@@ -163,6 +168,8 @@ export default function EditProfileForm({ inputStyling, buttonStyling, cardStyli
         };
         tx.set(profileRef, profileData, { merge: true });
       });
+      setInitialUsername(desired);
+      invalidateProfileCache(currentUser.uid);
       setMessage('Saved.');
       toast.success('Saved');
     } catch (e) {

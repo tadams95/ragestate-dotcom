@@ -1,9 +1,26 @@
 'use client';
 
 import { applyActionCode, onAuthStateChanged, reload, sendEmailVerification } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { auth } from '../../../firebase/firebase';
+import { auth, db } from '../../../firebase/firebase';
+
+/**
+ * Determine where to send the user after email verification.
+ * If they have no username yet, send them to onboarding.
+ */
+async function getPostVerifyDestination(user, nextParam) {
+  try {
+    const snap = await getDoc(doc(db, 'profiles', user.uid));
+    if (!snap.exists() || !snap.data()?.usernameLower) {
+      return nextParam
+        ? `/onboarding/username?next=${encodeURIComponent(nextParam)}`
+        : '/onboarding/username';
+    }
+  } catch (_) {}
+  return nextParam || '/account';
+}
 
 export default function VerifyEmailClient() {
   const router = useRouter();
@@ -39,7 +56,8 @@ export default function VerifyEmailClient() {
           setVerified(true);
           if (auth.currentUser) {
             await reload(auth.currentUser);
-            router.push('/account');
+            const dest = await getPostVerifyDestination(auth.currentUser, params.get('next'));
+            router.push(dest);
           }
         } catch (e) {
           setError('The verification link is invalid or expired.');
@@ -60,7 +78,8 @@ export default function VerifyEmailClient() {
         if (auth.currentUser?.emailVerified) {
           setVerified(true);
           clearInterval(pollRef.current);
-          router.push('/account');
+          const dest = await getPostVerifyDestination(auth.currentUser, params.get('next'));
+          router.push(dest);
         }
       } catch (e) {
         // ignore
@@ -109,7 +128,11 @@ export default function VerifyEmailClient() {
     try {
       await reload(u);
       setVerified(Boolean(auth.currentUser?.emailVerified));
-      if (auth.currentUser?.emailVerified) router.push('/account');
+      if (auth.currentUser?.emailVerified) {
+        getPostVerifyDestination(auth.currentUser, params.get('next')).then((dest) =>
+          router.push(dest),
+        );
+      }
     } catch (e) {
       setError('Could not refresh status. Please try again.');
     }

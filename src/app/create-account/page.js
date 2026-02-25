@@ -266,7 +266,7 @@ export default function CreateAccount() {
     setIsGoogleLoading(true);
     setFormError('');
     try {
-      const { user, userData } = await signInWithGoogle();
+      const { user, userData, isNewUser } = await signInWithGoogle();
 
       // Handle authentication state
       dispatch(
@@ -303,7 +303,15 @@ export default function CreateAccount() {
         typeof window !== 'undefined'
           ? new URLSearchParams(window.location.search).get('next')
           : null;
-      router.push(next || '/');
+      if (isNewUser) {
+        router.push(
+          next
+            ? `/onboarding/username?next=${encodeURIComponent(next)}`
+            : '/onboarding/username',
+        );
+      } else {
+        router.push(next || '/');
+      }
     } catch (error) {
       console.error('Error signing up with Google:', error.message);
       setFormError(error.message);

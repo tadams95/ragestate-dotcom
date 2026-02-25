@@ -156,6 +156,7 @@ export default function ProfileMusicPlayer({ url, profileMusic, className = '', 
         {/* Embed iframe */}
         {!error && (
           <iframe
+            key={embedUrl}
             src={embedUrl}
             title={`${platformInfo.name} player`}
             width={dimensions?.width}
