@@ -1,6 +1,7 @@
 'use client';
 
 import { formatDate } from '@/utils/formatters';
+import { hasSocialLinks } from '@/utils/socialLinks';
 import {
   collection,
   doc,
@@ -17,6 +18,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../../firebase/context/FirebaseContext';
 import { db } from '../../../firebase/firebase';
 import { getOrCreateDmChat } from '../../../lib/firebase/chatService';
+import EditProfileMusicModal from '../components/EditProfileMusicModal';
+import EditSocialLinksModal from '../components/EditSocialLinksModal';
 import Post from '../components/Post';
 import { VerifiedBadge } from '../components/PostHeader';
 import ProfileMusicPlayer from '../components/ProfileMusicPlayer';
@@ -43,6 +46,10 @@ export default function ProfileView({ params }) {
   const [profileLoading, setProfileLoading] = useState(true);
   const [isCreatingChat, setIsCreatingChat] = useState(false);
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
+  const [isSocialLinksModalOpen, setIsSocialLinksModalOpen] = useState(false);
+  const [isMusicModalOpen, setIsMusicModalOpen] = useState(false);
+
+  const isOwner = !!(currentUser?.uid && resolvedUid && currentUser.uid === resolvedUid);
 
   const [posts, setPosts] = useState([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
@@ -198,6 +205,14 @@ export default function ProfileView({ params }) {
     }
   }, [currentUser?.uid, resolvedUid, router, isCreatingChat]);
 
+  const handleSocialLinksSave = useCallback((updated) => {
+    setProfile((prev) => ({ ...prev, socialLinks: updated }));
+  }, []);
+
+  const handleMusicSave = useCallback(({ profileMusic, profileSongUrl }) => {
+    setProfile((prev) => ({ ...prev, profileMusic, profileSongUrl: profileSongUrl || '' }));
+  }, []);
+
   return (
     <div className="min-h-screen bg-[var(--bg-root)] text-[var(--text-primary)] transition-colors duration-200">
       {/* Header is rendered by layout.js */}
@@ -266,7 +281,34 @@ export default function ProfileView({ params }) {
                 </p>
               )}
               {/* Social Links */}
-              <SocialLinksRow socialLinks={profile.socialLinks} className="mt-4" />
+              {hasSocialLinks(profile.socialLinks) ? (
+                <div className="mt-4 flex items-center gap-2">
+                  <SocialLinksRow socialLinks={profile.socialLinks} />
+                  {isOwner && (
+                    <button
+                      type="button"
+                      onClick={() => setIsSocialLinksModalOpen(true)}
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[var(--text-tertiary)] transition-colors hover:bg-[var(--bg-elev-2)] hover:text-[var(--text-primary)]"
+                      aria-label="Edit social links"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                        <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              ) : isOwner ? (
+                <button
+                  type="button"
+                  onClick={() => setIsSocialLinksModalOpen(true)}
+                  className="mt-4 flex items-center gap-1.5 text-sm text-[var(--text-tertiary)] transition-colors hover:text-[var(--accent)]"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                    <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                  </svg>
+                  Add social links
+                </button>
+              ) : null}
 
               {/* Message Button - only for other users */}
               {currentUser?.uid && resolvedUid && currentUser.uid !== resolvedUid && (
@@ -324,7 +366,19 @@ export default function ProfileView({ params }) {
 
             {/* Profile Music Player - supports multiple platforms */}
             {profile.profileMusic?.url || profile.profileSongUrl ? (
-              <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-4 transition-colors duration-200">
+              <div className="relative rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elev-1)] p-4 transition-colors duration-200">
+                {isOwner && (
+                  <button
+                    type="button"
+                    onClick={() => setIsMusicModalOpen(true)}
+                    className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--bg-elev-2)]/80 text-[var(--text-tertiary)] backdrop-blur-sm transition-colors hover:bg-[var(--bg-elev-2)] hover:text-[var(--text-primary)]"
+                    aria-label="Edit profile song"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                      <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
+                    </svg>
+                  </button>
+                )}
                 {/* Compact player on mobile */}
                 <div className="md:hidden">
                   <ProfileMusicPlayer
@@ -341,6 +395,17 @@ export default function ProfileView({ params }) {
                   />
                 </div>
               </div>
+            ) : isOwner ? (
+              <button
+                type="button"
+                onClick={() => setIsMusicModalOpen(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[var(--border-subtle)] p-8 text-sm text-[var(--text-tertiary)] transition-colors hover:border-[var(--accent)]/50 hover:text-[var(--accent)]"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
+                  <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                </svg>
+                Add a profile song
+              </button>
             ) : null}
           </aside>
 
@@ -378,6 +443,27 @@ export default function ProfileView({ params }) {
         imageUrl={profile.photoURL}
         alt={profile.displayName || 'Profile photo'}
       />
+
+      {/* Inline edit modals (owner only) */}
+      {isOwner && (
+        <>
+          <EditSocialLinksModal
+            isOpen={isSocialLinksModalOpen}
+            onClose={() => setIsSocialLinksModalOpen(false)}
+            userId={resolvedUid}
+            initialSocialLinks={profile.socialLinks}
+            onSave={handleSocialLinksSave}
+          />
+          <EditProfileMusicModal
+            isOpen={isMusicModalOpen}
+            onClose={() => setIsMusicModalOpen(false)}
+            userId={resolvedUid}
+            initialProfileMusic={profile.profileMusic}
+            initialProfileSongUrl={profile.profileSongUrl}
+            onSave={handleMusicSave}
+          />
+        </>
+      )}
     </div>
   );
 }
