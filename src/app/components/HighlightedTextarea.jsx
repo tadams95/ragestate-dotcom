@@ -1,6 +1,8 @@
 'use client';
 
-import { forwardRef, memo } from 'react';
+import { forwardRef, memo, useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 /**
  * Renders text with highlighted mentions
@@ -22,18 +24,14 @@ function renderHighlightedText(text, confirmedMentions) {
 
     // Text before mention
     if (match.index > lastIndex) {
-      parts.push(
-        <span key={`text-${lastIndex}`} className="text-[var(--text-primary)]">
-          {text.slice(lastIndex, match.index)}
-        </span>,
-      );
+      parts.push(<span key={`text-${lastIndex}`}>{text.slice(lastIndex, match.index)}</span>);
     }
 
     // Mention (highlighted only if confirmed)
     parts.push(
       <span
         key={`mention-${match.index}`}
-        className={isConfirmed ? 'font-medium text-[#ff1f42]' : 'text-[var(--text-primary)]'}
+        className={isConfirmed ? 'font-medium text-[#ff1f42]' : ''}
       >
         {match[0]}
       </span>,
@@ -44,16 +42,16 @@ function renderHighlightedText(text, confirmedMentions) {
 
   // Remaining text
   if (lastIndex < text.length) {
-    parts.push(
-      <span key={`text-${lastIndex}`} className="text-[var(--text-primary)]">
-        {text.slice(lastIndex)}
-      </span>,
-    );
+    parts.push(<span key={`text-${lastIndex}`}>{text.slice(lastIndex)}</span>);
   }
 
   // Add a trailing space to match textarea behavior
   if (text.endsWith('\n')) {
-    parts.push(<br key="trailing-br" />);
+    parts.push(
+      <span key="trailing-space" className="invisible">
+        {' '}
+      </span>,
+    );
   }
 
   return parts;
@@ -86,18 +84,47 @@ const HighlightedTextarea = forwardRef(function HighlightedTextarea(
   },
   ref,
 ) {
+  const overlayRef = useRef(null);
+  const internalRef = useRef(null);
+
+  // Merge forwarded ref with internal ref so parent (PostComposer) and
+  // auto-resize both have access to the textarea DOM node
+  const setRefs = useCallback(
+    (node) => {
+      internalRef.current = node;
+      if (typeof ref === 'function') ref(node);
+      else if (ref) ref.current = node;
+    },
+    [ref],
+  );
+
+  // Auto-resize textarea to fit content (pattern from ChatInput.jsx)
+  useIsomorphicLayoutEffect(() => {
+    const textarea = internalRef.current;
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }, [value]);
+
+  const handleScroll = useCallback((e) => {
+    if (overlayRef.current) {
+      overlayRef.current.scrollTop = e.target.scrollTop;
+    }
+  }, []);
+
   return (
     <div
-      className="relative"
+      className="relative w-full"
       role="combobox"
       aria-expanded={mentionOpen}
       aria-haspopup="listbox"
       aria-owns="mention-listbox"
       aria-controls="mention-listbox"
     >
-      {/* Highlighted text overlay - renders visible text on top of transparent textarea */}
+      {/* Highlighted text overlay - renders visible text behind transparent textarea */}
       <div
-        className="pointer-events-none absolute inset-0 z-10 overflow-y-auto whitespace-pre-wrap break-words p-3"
+        ref={overlayRef}
+        className={`${className} pointer-events-none absolute inset-0 z-0 max-h-[300px] overflow-y-auto whitespace-pre-wrap break-words !border-transparent !text-[var(--text-primary)]`}
         aria-hidden="true"
       >
         {renderHighlightedText(value || '', confirmedMentions)}
@@ -105,11 +132,12 @@ const HighlightedTextarea = forwardRef(function HighlightedTextarea(
 
       {/* Actual textarea - transparent text, caret visible, receives input */}
       <textarea
-        ref={ref}
-        className={`${className} relative z-0 bg-[var(--bg-elev-2)] text-transparent caret-[var(--text-primary)] selection:bg-[var(--accent-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]`}
+        ref={setRefs}
+        className={`${className} relative z-10 m-0 block max-h-[300px] overflow-y-auto !bg-transparent !text-transparent caret-[var(--text-primary)] selection:bg-[var(--accent-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]`}
         value={value}
         onChange={onChange}
         onKeyDown={onKeyDown}
+        onScroll={handleScroll}
         onSelect={onSelect}
         aria-autocomplete="list"
         {...props}

@@ -2,6 +2,7 @@
 
 import { formatDate } from '@/utils/formatters';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../../firebase/context/FirebaseContext';
 import InlineComments from '../../components/InlineComments';
 import Post from '../../components/Post';
@@ -11,6 +12,7 @@ import Post from '../../components/Post';
  * Handles auth checks for private posts and renders inline comments.
  */
 export default function PostDetailClient({ postId, initialPost }) {
+  const router = useRouter();
   const { currentUser } = useAuth();
 
   // Check if user can view private post
@@ -81,7 +83,7 @@ export default function PostDetailClient({ postId, initialPost }) {
         </Link>
 
         {/* Post */}
-        <Post postData={postData} hideFollow={false} />
+        <Post postData={postData} hideFollow={false} onDeleted={() => router.push('/feed')} />
 
         {/* Inline comments (not a sheet) */}
         <InlineComments postId={postId} postOwnerId={initialPost?.userId} />

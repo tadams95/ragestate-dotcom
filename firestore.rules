@@ -223,7 +223,7 @@ service cloud.firestore {
         && request.resource.data.userId == request.auth.uid
         && isString(request.resource.data.userId)
         && (!request.resource.data.keys().hasAny(['userDisplayName']) || isString(request.resource.data.userDisplayName))
-        && (!request.resource.data.keys().hasAny(['userProfilePicture']) || isString(request.resource.data.userProfilePicture))
+        && (!request.resource.data.keys().hasAny(['userProfilePicture']) || request.resource.data.userProfilePicture == null || isString(request.resource.data.userProfilePicture))
         && (!request.resource.data.keys().hasAny(['content']) || isMaxLen500(request.resource.data.content))
         && (!request.resource.data.keys().hasAny(['mediaUrls']) || (isList(request.resource.data.mediaUrls)))
         && isBool(request.resource.data.isPublic)
@@ -248,7 +248,7 @@ service cloud.firestore {
         && request.resource.data.commentCount == resource.data.commentCount
         && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['isProcessing', 'optimizedMediaUrls', 'repostCount', 'repostOf']))
         && (!request.resource.data.keys().hasAny(['userDisplayName']) || isString(request.resource.data.userDisplayName))
-        && (!request.resource.data.keys().hasAny(['userProfilePicture']) || isString(request.resource.data.userProfilePicture))
+        && (!request.resource.data.keys().hasAny(['userProfilePicture']) || request.resource.data.userProfilePicture == null || isString(request.resource.data.userProfilePicture))
         && (!request.resource.data.keys().hasAny(['content']) || isMaxLen500(request.resource.data.content))
         && (!request.resource.data.keys().hasAny(['mediaUrls']) || isList(request.resource.data.mediaUrls))
         && (!request.resource.data.keys().hasAny(['isPublic']) || isBool(request.resource.data.isPublic))

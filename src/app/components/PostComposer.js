@@ -18,7 +18,7 @@ import MentionAutocomplete from './MentionAutocomplete';
 const DRAFT_KEY = 'postComposer.draft';
 
 // Video compression constants
-const MAX_CHARS = 2000;
+const MAX_CHARS = 500;
 const MAX_VIDEO_DURATION = 60; // seconds
 const MAX_VIDEO_INPUT = 3840; // max input resolution (4K)
 const TARGET_WIDTH = 720; // compressed output width
@@ -360,6 +360,20 @@ export default function PostComposer() {
     setCompressionProgress(0);
   };
 
+  // Notify user when paste is trimmed by maxLength
+  const handlePaste = useCallback(
+    (e) => {
+      const paste = e.clipboardData?.getData('text') || '';
+      const { selectionStart, selectionEnd } = e.target;
+      const wouldBeLength =
+        content.length - (selectionEnd - selectionStart) + paste.length;
+      if (wouldBeLength > MAX_CHARS) {
+        toast('Text was trimmed to fit the 500-character limit');
+      }
+    },
+    [content],
+  );
+
   // Mention autocomplete handlers
   const handleContentChange = useCallback(
     (e) => {
@@ -650,15 +664,16 @@ export default function PostComposer() {
               <div className="relative">
                 <HighlightedTextarea
                   ref={textareaRef}
-                  className="min-h-[120px] w-full resize-none rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-3 text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none transition-colors duration-200 focus:border-[var(--border-strong)]"
+                  className="min-h-[120px] w-full resize-none rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elev-2)] p-3 placeholder-[var(--text-tertiary)] outline-none transition-colors duration-200 focus:border-[var(--border-strong)]"
                   placeholder="What's happening?"
                   value={content}
                   confirmedMentions={confirmedMentions}
                   mentionOpen={mentionState.isOpen}
                   onChange={handleContentChange}
                   onKeyDown={handleKeyDown}
+                  onPaste={handlePaste}
                   onSelect={(e) => handleMentionChange(content, e.target.selectionStart)}
-                  maxLength={2000}
+                  maxLength={MAX_CHARS}
                   autoFocus
                 />
 

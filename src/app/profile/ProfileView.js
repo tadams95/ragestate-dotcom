@@ -209,6 +209,10 @@ export default function ProfileView({ params }) {
     setProfile((prev) => ({ ...prev, socialLinks: updated }));
   }, []);
 
+  const handlePostDeleted = useCallback((postId) => {
+    setPosts((prev) => prev.filter((p) => p.id !== postId));
+  }, []);
+
   const handleMusicSave = useCallback(({ profileMusic, profileSongUrl }) => {
     setProfile((prev) => ({ ...prev, profileMusic, profileSongUrl: profileSongUrl || '' }));
   }, []);
@@ -413,7 +417,7 @@ export default function ProfileView({ params }) {
           <main className="md:col-span-8">
             <div className="space-y-4">
               {posts.map((p) => (
-                <Post key={p.id} postData={{ ...p, usernameLower: profile.usernameLower }} />
+                <Post key={p.id} postData={{ ...p, usernameLower: profile.usernameLower }} onDeleted={handlePostDeleted} />
               ))}
               {loadingPosts && (
                 <p className="py-4 text-center text-[var(--text-tertiary)]">Loading…</p>

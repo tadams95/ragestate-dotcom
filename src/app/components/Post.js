@@ -1,13 +1,12 @@
 'use client';
 import { track } from '@/app/utils/metrics';
 import { formatDate } from '@/utils/formatters';
-import { doc, getDoc, onSnapshot, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { deleteDoc, doc, getDoc, onSnapshot, serverTimestamp, updateDoc } from 'firebase/firestore';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../../../firebase/context/FirebaseContext';
 import { db } from '../../../firebase/firebase';
-import { softDelete } from '../../../lib/firebase/softDelete';
 import CommentsSheet from './CommentsSheet';
 import EditPostModal from './EditPostModal';
 import PostActions from './PostActions';
@@ -125,7 +124,7 @@ function EmbeddedPost({ repostOf, isVerified = false }) {
   );
 }
 
-export default function Post({ postData, hideFollow = false }) {
+export default function Post({ postData, hideFollow = false, onDeleted }) {
   // Use dummy data if postData is not provided
   const data = postData || {
     author: 'Default User',
@@ -284,10 +283,12 @@ export default function Post({ postData, hideFollow = false }) {
     if (!postData?.id || !isAuthor) return;
     if (!confirm('Delete this post?')) return;
     try {
-      await softDelete('posts', postData.id, currentUser.uid);
+      await deleteDoc(doc(db, 'posts', postData.id));
       try {
         track('post_delete', { postId: postData.id });
       } catch {}
+      onDeleted?.(postData.id);
+      window.dispatchEvent(new CustomEvent('feed:post-deleted', { detail: { postId: postData.id } }));
     } catch (e) {
       console.error('Delete failed', e);
       alert('Failed to delete post');

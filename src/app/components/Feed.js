@@ -159,6 +159,7 @@ export default function Feed({ forcePublic = false }) {
   }, [currentUser, resetAndLoad]);
 
   // Listen for new posts created locally to prepend without refresh
+  // and for deleted posts to remove from the list
   useEffect(() => {
     function onNewPost(e) {
       const post = e?.detail;
@@ -169,12 +170,19 @@ export default function Feed({ forcePublic = false }) {
         setPendingNew((prev) => [post, ...prev.filter((p) => p.id !== post.id)]);
       }
     }
+    function onPostDeleted(e) {
+      const postId = e?.detail?.postId;
+      if (!postId) return;
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
+    }
     if (typeof window !== 'undefined') {
       window.addEventListener('feed:new-post', onNewPost);
+      window.addEventListener('feed:post-deleted', onPostDeleted);
     }
     return () => {
       if (typeof window !== 'undefined') {
         window.removeEventListener('feed:new-post', onNewPost);
+        window.removeEventListener('feed:post-deleted', onPostDeleted);
       }
     };
     // We intentionally do not include isAtTop here to avoid re-binding the handler per scroll.
@@ -284,6 +292,10 @@ export default function Feed({ forcePublic = false }) {
     topObserver.current.observe(topSentinelRef.current);
     return () => topObserver.current && topObserver.current.disconnect();
   }, [topSentinelRef]);
+
+  const handlePostDeleted = useCallback((postId) => {
+    setPosts((prev) => prev.filter((p) => p.id !== postId));
+  }, []);
 
   const applyPending = useCallback(() => {
     if (pendingNew.length === 0) return;
@@ -515,7 +527,7 @@ export default function Feed({ forcePublic = false }) {
                 transform: `translateY(${virtualRow.start}px)`,
               }}
             >
-              <Post postData={post} hideFollow />
+              <Post postData={post} hideFollow onDeleted={handlePostDeleted} />
             </div>
           );
         })}
