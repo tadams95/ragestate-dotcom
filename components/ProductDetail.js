@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 
 import { useDispatch } from 'react-redux';
 import { addToCart } from '../lib/features/cartSlice';
+import { event as fbEvent } from '../lib/fpixel';
 
 const policies = [
   {
@@ -293,6 +294,7 @@ export default function ProductDetails({ product, focusRestoreRef }) {
       console.log('Product Added: ', productToAdd);
       // Implement dispatch or function to add to cart
       dispatch(addToCart(productToAdd));
+      fbEvent('AddToCart', { content_name: title, content_ids: [id], content_type: 'product', value: price, currency: 'USD' });
 
       // Brief loading state then success animation
       setTimeout(() => {

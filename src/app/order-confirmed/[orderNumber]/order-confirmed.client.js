@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { clearCart } from '../../../../lib/features/cartSlice';
+import { event as fbEvent } from '../../../../lib/fpixel';
 
 /**
  * @typedef {Object} OrderData
@@ -48,6 +49,13 @@ export default function OrderConfirmedClient({ orderNumber }) {
         // Verify the order number matches
         if (parsed.orderNumber === orderNumber) {
           setOrderData(parsed);
+          // Fire Purchase event once (deduplicated per order)
+          if (!sessionStorage.getItem('purchaseFired:' + orderNumber)) {
+            const itemIds = (parsed.items || []).map((i) => i.productId || i.id).filter(Boolean);
+            const totalQty = (parsed.items || []).reduce((sum, i) => sum + (parseInt(i.quantity ?? i.selectedQuantity ?? 1, 10) || 1), 0);
+            fbEvent('Purchase', { value: parsed.total, currency: 'USD', content_ids: itemIds, content_type: 'product', num_items: totalQty, order_id: orderNumber });
+            sessionStorage.setItem('purchaseFired:' + orderNumber, '1');
+          }
         }
         // Clear after reading so it doesn't persist across sessions
         sessionStorage.removeItem('lastOrder');

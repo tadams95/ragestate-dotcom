@@ -7,6 +7,7 @@ import { ChatUnreadProvider } from '../../lib/context/ChatUnreadProvider';
 import { ThemeProvider } from '../../lib/context/ThemeContext';
 import StoreProvider from './StoreProvider';
 import AuthCheck from './auth/AuthCheck';
+import FacebookPixel from './components/FacebookPixel';
 import Footer from './components/Footer';
 import Header from './components/Header';
 import './globals.css';
@@ -68,6 +69,7 @@ export default function RootLayout({ children }) {
               <Footer />
               <SpeedInsights />
               <Analytics />
+              <FacebookPixel />
             </div>
           </ThemeProvider>
         </body>

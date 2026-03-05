@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../../../../firebase/context/FirebaseContext';
 import { db } from '../../../../firebase/firebase';
 import { invalidateProfileCache } from '../../../../lib/firebase/cachedServices';
+import { event as fbEvent } from '../../../../lib/fpixel';
 import {
   checkUsernameAvailability,
   claimUsername,
@@ -139,6 +140,7 @@ export default function OnboardingUsernameClient() {
         await claimUsername(currentUser.uid, desired, { displayName, bio: '' });
         invalidateProfileCache(currentUser.uid);
         toast.success('Username claimed!');
+        fbEvent('CompleteRegistration', { content_name: 'username_claimed', status: true });
         router.push(next || '/');
       } catch (e) {
         const msg = e?.message || 'Failed to claim username.';
@@ -170,6 +172,7 @@ export default function OnboardingUsernameClient() {
         await claimUsername(currentUser.uid, target, { displayName, bio: '' });
         invalidateProfileCache(currentUser.uid);
         toast.success('Username claimed!');
+        fbEvent('CompleteRegistration', { content_name: 'username_skipped', status: true });
         router.push(next || '/');
         return;
       } catch (e) {

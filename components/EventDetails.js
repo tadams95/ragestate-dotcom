@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { addToCart } from '../lib/features/cartSlice';
+import { event as fbEvent } from '../lib/fpixel';
 import AuthGateModal from './AuthGateModal';
 
 export default function EventDetails({ event }) {
@@ -101,6 +102,7 @@ export default function EventDetails({ event }) {
             isDigital: canonicalEvent.isDigital,
           };
           dispatch(addToCart(cartItem));
+          fbEvent('AddToCart', { content_name: canonicalEvent.name, content_ids: [eventIdentifier], content_type: 'product', value: canonicalEvent.price, currency: 'USD' });
           sessionStorage.setItem(addedKey, '1');
           toast.success('Event added to cart!', {
             duration: 3000,
@@ -146,6 +148,7 @@ export default function EventDetails({ event }) {
 
       // Dispatch the addToCart action with the cart item
       dispatch(addToCart(cartItem));
+      fbEvent('AddToCart', { content_name: canonicalEvent.name, content_ids: [eventIdentifier], content_type: 'product', value: canonicalEvent.price, currency: 'USD' });
 
       // Brief loading state then success animation
       setTimeout(() => {

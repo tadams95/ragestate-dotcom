@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import EmailCaptureModal from '../../../../components/EmailCaptureModal';
 import EventDetails from '../../../../components/EventDetails';
+import { event as fbEvent } from '../../../../lib/fpixel';
 
 /**
  * @typedef {Object} EventDetailClientProps
@@ -86,6 +87,12 @@ export default function EventDetailClient({ slug, initialEvent }) {
       cancelled = true;
     };
   }, [initialEvent, currentUser, db]);
+
+  // ViewContent pixel event for event detail
+  useEffect(() => {
+    if (!event?.name || !slug) return;
+    fbEvent('ViewContent', { content_name: event.name, content_ids: [slug], content_type: 'event', value: event.price || 0, currency: 'USD' });
+  }, [event?.name, slug]);
 
   // Email capture modal: show after 30s for non-logged-in users (once per session)
   useEffect(() => {

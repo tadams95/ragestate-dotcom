@@ -5,6 +5,7 @@ import { EnvelopeIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { addDoc, collection, getFirestore, serverTimestamp } from 'firebase/firestore';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
+import { event as fbEvent } from '../lib/fpixel';
 
 /**
  * Email capture modal for non-logged-in users.
@@ -50,6 +51,7 @@ export default function EmailCaptureModal({
         subscribed: true,
       });
       setSuccess(true);
+      fbEvent('Lead', { content_name: eventName || 'email_capture', content_category: source });
       toast.success("You're on the list!");
       // Auto-close after success
       setTimeout(() => {

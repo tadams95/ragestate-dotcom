@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { addToCart } from '../lib/features/cartSlice';
+import { event as fbEvent } from '../lib/fpixel';
 
 export default function QuickViewModal({ open, onClose, product }) {
   const dispatch = useDispatch();
@@ -162,6 +163,7 @@ export default function QuickViewModal({ open, onClose, product }) {
         isDigital: false,
       };
       dispatch(addToCart(productToAdd));
+      fbEvent('AddToCart', { content_name: product?.title, content_ids: [product?.id], content_type: 'product', value: productToAdd.price, currency: 'USD' });
       toast.success('Added to cart!', { duration: 2500 });
     },
     [currentVariant, images, basePrice, dispatch, product, selectedSize, selectedColor],

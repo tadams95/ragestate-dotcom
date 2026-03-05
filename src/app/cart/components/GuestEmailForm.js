@@ -1,6 +1,7 @@
 'use client';
 
 import { memo, useCallback, useState } from 'react';
+import { event as fbEvent } from '../../../../lib/fpixel';
 
 /**
  * @typedef {Object} GuestEmailFormProps
@@ -32,6 +33,7 @@ function GuestEmailForm({ onSubmit, initialEmail = '', isLoading = false }) {
         return;
       }
       setError(null);
+      fbEvent('Lead', { content_name: 'guest_checkout_email', content_category: 'checkout' });
       onSubmit(trimmedEmail, marketingOptIn);
     },
     [email, marketingOptIn, onSubmit],

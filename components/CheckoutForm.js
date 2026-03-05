@@ -6,6 +6,7 @@ import { useSelector } from 'react-redux';
 import SaveToFirestore from '../firebase/util/saveToFirestore';
 import { selectCartItems } from '../lib/features/cartSlice';
 import { selectLocalId, selectUserEmail, selectUserName } from '../lib/features/userSlice'; // Import selectors
+import { event as fbEvent } from '../lib/fpixel';
 import { getUserDisplayInfo } from '../lib/firebase/userService';
 
 /**
@@ -170,6 +171,7 @@ export default function CheckoutForm({
               items: cartItems || [],
               email: isGuest ? guestEmail : userEmail,
               isGuest,
+              total: pi.amount / 100,
             }));
             // FIX 1.4: Set flag to clear cart on confirmation page load
             sessionStorage.setItem('pendingCartClear', 'true');
@@ -205,6 +207,7 @@ export default function CheckoutForm({
           items: cartItems || [],
           email: guestEmail,
           isGuest: true,
+          total: pi.amount / 100,
         }));
         // FIX 1.4: Set flag to clear cart on confirmation page load
         sessionStorage.setItem('pendingCartClear', 'true');
@@ -236,6 +239,7 @@ export default function CheckoutForm({
           items: cartItems || [],
           email: userEmail,
           isGuest: false,
+          total: pi.amount / 100,
         }));
         // FIX 1.4: Set flag to clear cart on confirmation page load
         sessionStorage.setItem('pendingCartClear', 'true');
@@ -266,6 +270,14 @@ export default function CheckoutForm({
       console.log('Waiting for client secret update...');
       return;
     }
+
+    const cartValue = (cartItems || []).reduce((sum, item) => {
+      const qty = parseInt(item.quantity ?? item.selectedQuantity ?? 1, 10) || 1;
+      return sum + (parseFloat(item.price) || 0) * qty;
+    }, 0);
+    const totalQty = (cartItems || []).reduce((sum, item) => sum + (parseInt(item.quantity ?? item.selectedQuantity ?? 1, 10) || 1), 0);
+    const productIds = (cartItems || []).map((item) => item.productId || item.id).filter(Boolean);
+    fbEvent('InitiateCheckout', { value: cartValue, currency: 'USD', num_items: totalQty, content_ids: productIds, content_type: 'product' });
 
     setIsProcessing(true);
     setMessage(null);

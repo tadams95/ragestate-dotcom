@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 // import { useInView } from 'react-intersection-observer';
 import ProductDetails from '../../../../components/ProductDetail';
 import RelatedProducts from '../../../../components/RelatedProducts';
+import { event as fbEvent } from '../../../../lib/fpixel';
 
 export default function ProductDetailClient({ product: initialProduct }) {
   const [loading, setLoading] = useState(true);
@@ -47,6 +48,13 @@ export default function ProductDetailClient({ product: initialProduct }) {
       clearTimeout(timer);
     };
   }, [initialProduct]);
+
+  // ViewContent pixel event
+  useEffect(() => {
+    if (!selectedProduct?.id) return;
+    const price = parseFloat(selectedProduct.variants?.[0]?.price?.amount || '0');
+    fbEvent('ViewContent', { content_name: selectedProduct.title, content_ids: [selectedProduct.id], content_type: 'product', value: Number.isFinite(price) ? price : 0, currency: 'USD' });
+  }, [selectedProduct?.id]);
 
   // Sticky ATC bar has been removed on mobile; no scroll-based hide logic needed anymore.
 
