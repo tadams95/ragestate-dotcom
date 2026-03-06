@@ -126,6 +126,20 @@ export default function Login() {
         storage.set('profilePicture', userData?.profilePicture || '/assets/user.png');
       }
 
+      // Claim any guest tickets purchased with this email (non-blocking)
+      try {
+        await fetch('/api/payments/claim-guest-tickets', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${user.stsTokenManager.accessToken}`,
+          },
+          body: JSON.stringify({ userId: user.uid }),
+        });
+      } catch (e) {
+        console.warn('Guest ticket claim skipped:', e);
+      }
+
       // Redirect to intended destination if provided
       setEmail('');
       setPassword('');
@@ -186,6 +200,20 @@ export default function Login() {
       // Set profile picture
       const photoURL = userData?.photoURL || user.photoURL || '/assets/user.png';
       storage.set('profilePicture', photoURL);
+
+      // Claim any guest tickets purchased with this email (non-blocking)
+      try {
+        await fetch('/api/payments/claim-guest-tickets', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${user.stsTokenManager.accessToken}`,
+          },
+          body: JSON.stringify({ userId: user.uid }),
+        });
+      } catch (e) {
+        console.warn('Guest ticket claim skipped:', e);
+      }
 
       dispatch(setAuthenticated(true));
       setIsGoogleLoading(false);

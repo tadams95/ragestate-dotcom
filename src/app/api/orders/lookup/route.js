@@ -147,17 +147,42 @@ export async function POST(request) {
       console.warn('Failed to fetch merchandise order details:', merchErr);
     }
 
+    // Enrich with ticket details if order has tickets
+    let ticketItems = [];
+    if (orderData.hasTickets && Array.isArray(orderData.ticketDetails)) {
+      try {
+        for (const ticket of orderData.ticketDetails) {
+          if (!ticket.eventId) continue;
+          const eventDoc = await firestoreAdmin.collection('events').doc(ticket.eventId).get();
+          const eventData = eventDoc.exists ? eventDoc.data() : {};
+          ticketItems.push({
+            title: eventData.name || 'Event Ticket',
+            quantity: ticket.qty || 1,
+            image: eventData.imgURL || null,
+            type: 'ticket',
+            eventDate: eventData.date?.toDate?.()?.toISOString() ||
+              eventData.dateTime?.toDate?.()?.toISOString() || null,
+            location: eventData.location || null,
+          });
+        }
+      } catch (ticketErr) {
+        console.warn('Failed to fetch ticket details:', ticketErr);
+      }
+    }
+
     // Sanitize order data for response (no sensitive fields)
+    const allItems = [...enrichedItems, ...ticketItems];
     const sanitizedOrder = {
       orderNumber: orderData.orderNumber,
       status: orderData.status || 'completed',
-      createdAt: orderData.createdAt?.toDate?.()?.toISOString() ||
-        orderData.createdAt?._seconds
+      createdAt: orderData.createdAt?.toDate?.()?.toISOString() ??
+        (orderData.createdAt?._seconds
           ? new Date(orderData.createdAt._seconds * 1000).toISOString()
-          : null,
-      items: enrichedItems.length > 0 ? enrichedItems : undefined,
+          : null),
+      items: allItems.length > 0 ? allItems : undefined,
       totalAmount: orderData.totalAmount || null,
-      itemCount: orderData.itemCount || enrichedItems.length || 0,
+      itemCount: orderData.itemCount || allItems.length || 0,
+      hasTickets: orderData.hasTickets || false,
       shippingStatus: shippingStatus || undefined,
       trackingNumber: trackingNumber || undefined,
       trackingUrl: trackingUrl || undefined,

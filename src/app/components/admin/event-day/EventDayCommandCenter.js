@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
+import { getAuth } from 'firebase/auth';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { StatCardSkeleton, TableSkeleton } from '../shared/AdminSkeleton';
@@ -44,25 +45,22 @@ export default function EventDayCommandCenter() {
   const handleConfirmCheckIn = useCallback(async () => {
     if (!confirmGuest) return;
 
-    const baseUrl = process.env.NEXT_PUBLIC_FUNCTIONS_BASE_URL;
-    const proxyKey = process.env.NEXT_PUBLIC_PROXY_KEY;
-
-    if (!baseUrl || !proxyKey) {
-      toast.error('Missing environment configuration');
+    const idToken = await getAuth().currentUser?.getIdToken();
+    if (!idToken) {
+      toast.error('Not authenticated — please log in');
       return;
     }
 
     setCheckingInId(confirmGuest.id);
 
     try {
-      const resp = await fetch(`${baseUrl}/scan-ticket`, {
+      const resp = await fetch('/api/admin/tickets/scan', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-proxy-key': proxyKey,
+          Authorization: `Bearer ${idToken}`,
         },
         cache: 'no-store',
-        credentials: 'omit',
         body: JSON.stringify({
           userId: confirmGuest.userId,
           ragerId: confirmGuest.id,

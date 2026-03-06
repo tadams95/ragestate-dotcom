@@ -203,6 +203,20 @@ export default function CreateAccount() {
         console.warn('Stripe customer creation skipped:', e);
       }
 
+      // Claim any guest tickets purchased with this email (non-blocking)
+      try {
+        await fetch('/api/payments/claim-guest-tickets', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${user.stsTokenManager.accessToken}`,
+          },
+          body: JSON.stringify({ userId: user.uid }),
+        });
+      } catch (e) {
+        console.warn('Guest ticket claim skipped:', e);
+      }
+
       // Handle authentication state
       dispatch(
         loginSuccess({
@@ -294,6 +308,20 @@ export default function CreateAccount() {
       // Set profile picture
       const photoURL = userData?.photoURL || user.photoURL || '/assets/user.png';
       storage.set('profilePicture', photoURL);
+
+      // Claim any guest tickets purchased with this email (non-blocking)
+      try {
+        await fetch('/api/payments/claim-guest-tickets', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${user.stsTokenManager.accessToken}`,
+          },
+          body: JSON.stringify({ userId: user.uid }),
+        });
+      } catch (e) {
+        console.warn('Guest ticket claim skipped:', e);
+      }
 
       dispatch(setAuthenticated(true));
       setIsGoogleLoading(false);

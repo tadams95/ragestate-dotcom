@@ -1,6 +1,7 @@
 'use client';
 
 import { collection, getDocs } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { db } from '../../../../firebase/firebase';
 
@@ -120,22 +121,22 @@ export default function ScannerPage() {
         }
         lastTokenRef.current = { token: extracted, ts: now };
 
-        const proxyKey = process.env.NEXT_PUBLIC_PROXY_KEY;
-        if (!proxyKey) {
-          setError('Missing NEXT_PUBLIC_PROXY_KEY');
-          return;
-        }
-        const baseUrl = process.env.NEXT_PUBLIC_FUNCTIONS_BASE_URL;
-        if (!baseUrl) {
-          setError('Missing NEXT_PUBLIC_FUNCTIONS_BASE_URL');
-          return;
-        }
-        const url = `${baseUrl}/scan-ticket`;
         // Build body based on detection
         if (useUserId && !resolvedEventId) {
           setError('Event ID required to scan by user ID');
           return;
         }
+
+        const idToken = await getAuth().currentUser?.getIdToken();
+        if (!idToken) {
+          setError('Not authenticated — please log in');
+          return;
+        }
+        const authHeaders = {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        };
+
         const reqBody = useUserId
           ? { userId: extracted, eventId: resolvedEventId || undefined, scannerId: 'admin-scanner' }
           : { token: extracted, scannerId: 'admin-scanner' };
@@ -143,14 +144,10 @@ export default function ScannerPage() {
         // For userId scans, fetch a non-mutating preview first to display aggregate info
         if (useUserId) {
           try {
-            const previewResp = await fetch(`${baseUrl}/scan-ticket/preview`, {
+            const previewResp = await fetch('/api/admin/tickets/scan-preview', {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-proxy-key': proxyKey,
-              },
+              headers: authHeaders,
               cache: 'no-store',
-              credentials: 'omit',
               body: JSON.stringify({ userId: extracted, eventId: resolvedEventId }),
             });
             if (previewResp.ok) {
@@ -163,14 +160,10 @@ export default function ScannerPage() {
             setPreview(null);
           }
         }
-        const resp = await fetch(url, {
+        const resp = await fetch('/api/admin/tickets/scan', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-proxy-key': proxyKey,
-          },
+          headers: authHeaders,
           cache: 'no-store',
-          credentials: 'omit',
           body: JSON.stringify(reqBody),
         });
         let data;
@@ -661,11 +654,6 @@ export default function ScannerPage() {
         </section>
       )}
 
-      {!process.env.NEXT_PUBLIC_PROXY_KEY && (
-        <p className="mt-4 text-xs text-amber-400">
-          Warning: NEXT_PUBLIC_PROXY_KEY not set for this environment.
-        </p>
-      )}
     </div>
   );
 }

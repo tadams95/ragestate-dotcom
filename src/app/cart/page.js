@@ -75,6 +75,7 @@ export default function Cart() {
   const [promoError, setPromoError] = useState('');
   const [promoLoading, setPromoLoading] = useState(false);
 
+  const [stripeConfigError, setStripeConfigError] = useState(false);
   const [state, setState] = useState({
     cartSubtotal: 0,
     totalPrice: 0,
@@ -176,23 +177,6 @@ export default function Cart() {
     dispatch(clearGuestInfo());
   }, [dispatch]);
 
-  // Check if cart contains event tickets (require auth for tickets)
-  const hasEventTickets = useMemo(() => {
-    return cartItems.some((item) => {
-      // Event tickets have isDigital: true or eventDetails
-      if (item.isDigital === true) return true;
-      if (item.eventDetails != null) return true;
-      // Check if productId doesn't look like a Shopify product ID
-      const productId = String(item.productId || '');
-      // Shopify IDs are long numeric or contain 'gid://shopify'
-      if (productId.includes('gid://shopify')) return false;
-      if (/^\d{10,}$/.test(productId)) return false;
-      // Short alphanumeric IDs are likely Firestore event IDs
-      if (productId.length < 30 && !/^\d+$/.test(productId)) return true;
-      return false;
-    });
-  }, [cartItems]);
-
   // Determine if user is in guest checkout mode
   const isGuest = checkoutMode === 'guest' && !!guestEmail;
 
@@ -253,8 +237,12 @@ export default function Cart() {
   }, [cartItems, dispatch]);
 
   useEffect(() => {
-    const publishableKey =
-      'pk_live_51NFhuOHnXmOBmfaDu16tJEuppfYKPUivMapB9XLXaBpiOLqiPRz2uoPAiifxqiLT49dyPCHOSKs74wjBspzJ8zo600yGYluqUe';
+    const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+    if (!publishableKey) {
+      console.error('NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is not configured');
+      setStripeConfigError(true);
+      return;
+    }
     setState((prevState) => ({
       ...prevState,
       stripePromise: loadStripe(publishableKey),
@@ -548,6 +536,7 @@ export default function Cart() {
               clientSecret={state.clientSecret}
               paymentIntentId={state.paymentIntentId} // FIX 1.3: Pass payment intent ID
               stripePromise={state.stripePromise}
+              stripeConfigError={stripeConfigError}
               options={options}
               hasPhysicalItems={hasPhysicalItems}
               handleAddressChange={handleAddressChange}
@@ -569,7 +558,6 @@ export default function Cart() {
               guestEmail={guestEmail}
               onGuestEmailSubmit={handleGuestEmailSubmit}
               onSwitchToLogin={handleSwitchToLogin}
-              hasEventTickets={hasEventTickets}
             />
           </div>
         </div>

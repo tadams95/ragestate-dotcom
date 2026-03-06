@@ -3,24 +3,16 @@
 import storage from '@/utils/storage';
 import Image from 'next/image';
 // Avoid useSearchParams/usePathname to prevent Suspense requirements in some pages
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { addToCart } from '../lib/features/cartSlice';
 import { event as fbEvent } from '../lib/fpixel';
-import AuthGateModal from './AuthGateModal';
 
 export default function EventDetails({ event }) {
   const dispatch = useDispatch();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [showAuthGate, setShowAuthGate] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
   const [addedSuccess, setAddedSuccess] = useState(false);
-  const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
-  const getSearchParam = (key) => {
-    if (typeof window === 'undefined') return null;
-    return new URLSearchParams(window.location.search).get(key);
-  };
 
   const selectedEvent = typeof window !== 'undefined' ? storage.getJSON('selectedEvent') : null;
 
@@ -73,47 +65,6 @@ export default function EventDetails({ event }) {
 
   const location = canonicalEvent?.location || 'Location TBA';
 
-  // Check auth presence in local storage for gentle reminders
-  useEffect(() => {
-    try {
-      const { idToken, userId } = storage.readKeys
-        ? storage.readKeys(['idToken', 'userId'])
-        : { idToken: null, userId: null };
-      setIsLoggedIn(Boolean(idToken && userId));
-    } catch (_) {}
-  }, []);
-
-  // Auto-add support after returning from auth with ?autoAdd=true
-  useEffect(() => {
-    try {
-      if (!canonicalEvent) return;
-      const autoAdd = getSearchParam('autoAdd') === 'true';
-      const addedKey = `autoAdded:${eventIdentifier || canonicalEvent.name || 'event'}`;
-      if (isLoggedIn && autoAdd && !sessionStorage.getItem(addedKey)) {
-        // Create cart item and add once
-        if (canonicalEvent && canonicalEvent.quantity > 0) {
-          const cartItem = {
-            productId: eventIdentifier || canonicalEvent.name,
-            title: canonicalEvent.name,
-            productImageSrc: canonicalEvent.imgURL,
-            selectedQuantity: 1,
-            price: canonicalEvent.price,
-            eventDetails: { location: canonicalEvent.location },
-            isDigital: canonicalEvent.isDigital,
-          };
-          dispatch(addToCart(cartItem));
-          fbEvent('AddToCart', { content_name: canonicalEvent.name, content_ids: [eventIdentifier], content_type: 'product', value: canonicalEvent.price, currency: 'USD' });
-          sessionStorage.setItem(addedKey, '1');
-          toast.success('Event added to cart!', {
-            duration: 3000,
-            position: 'bottom-center',
-            style: { background: '#333', color: '#fff', border: '1px solid #444' },
-          });
-        }
-      }
-    } catch (_) {}
-  }, [isLoggedIn, canonicalEvent, dispatch, eventIdentifier]);
-
   // Function to generate Google Maps link
   const generateGoogleMapsLink = (location) => {
     const encodedLocation = encodeURIComponent(location);
@@ -128,11 +79,6 @@ export default function EventDetails({ event }) {
 
   const handleAddToCart = () => {
     if (canonicalEvent && canonicalEvent.quantity > 0) {
-      if (!isLoggedIn) {
-        setShowAuthGate(true);
-        return;
-      }
-
       setAddingToCart(true);
       const cartItem = {
         productId: eventIdentifier || canonicalEvent.name,
@@ -186,8 +132,6 @@ export default function EventDetails({ event }) {
   // Common card styling with hover effects matching about page
   const cardStyling =
     'bg-[var(--bg-elev-2)] p-5 rounded-lg border border-[var(--border-subtle)] shadow-[var(--shadow-card)] hover:border-red-500/30 transition-all duration-300';
-
-  const nextParam = encodeURIComponent(`${pathname}?autoAdd=true`);
 
   return (
     <>
@@ -277,10 +221,8 @@ export default function EventDetails({ event }) {
                       </svg>
                       Added!
                     </span>
-                  ) : isLoggedIn ? (
-                    'Add to Cart'
                   ) : (
-                    'Log in to add'
+                    'Add to Cart'
                   )}
                 </button>
               </div>
@@ -326,14 +268,6 @@ export default function EventDetails({ event }) {
           </div>
         </div>
       </div>
-      <AuthGateModal
-        open={showAuthGate}
-        onClose={() => setShowAuthGate(false)}
-        title="Log in to add this event"
-        message="Create an account or log in to add to your cart and checkout."
-        loginHref={`/login?next=${nextParam}`}
-        createHref={`/create-account?next=${nextParam}`}
-      />
     </>
   );
 }

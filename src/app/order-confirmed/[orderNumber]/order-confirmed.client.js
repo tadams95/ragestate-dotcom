@@ -80,6 +80,10 @@ export default function OrderConfirmedClient({ orderNumber }) {
 
   const isGuest = orderData?.isGuest ?? false;
   const email = orderData?.email || null;
+  const hasTickets = useMemo(() => {
+    if (!orderData?.items || !Array.isArray(orderData.items)) return false;
+    return orderData.items.some((i) => i.isDigital || i.eventDetails);
+  }, [orderData]);
 
   if (loading) {
     return (
@@ -166,6 +170,14 @@ export default function OrderConfirmedClient({ orderNumber }) {
           </div>
         )}
 
+        {/* Ticket email notice for guests */}
+        {isGuest && hasTickets && email && (
+          <p className="mt-4 text-center text-sm text-[var(--text-secondary)]">
+            Your ticket QR code has been emailed to{' '}
+            <span className="font-medium text-[var(--text-primary)]">{email}</span>
+          </p>
+        )}
+
         {/* Action Buttons */}
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
           {isGuest ? (
@@ -174,7 +186,7 @@ export default function OrderConfirmedClient({ orderNumber }) {
                 href={`/create-account?email=${encodeURIComponent(email || '')}&from=order-confirmed&order=${encodeURIComponent(orderNumber)}`}
                 className="inline-flex items-center justify-center rounded-lg bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
               >
-                Create account
+                {hasTickets ? 'Create account to manage tickets' : 'Create account'}
               </Link>
               <Link
                 href="/order-lookup"

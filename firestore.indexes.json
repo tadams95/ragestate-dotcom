@@ -123,6 +123,14 @@
       ]
     },
     {
+      "collectionGroup": "ragers",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "guestEmail", "order": "ASCENDING" },
+        { "fieldPath": "firebaseId", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "postReposts",
       "queryScope": "COLLECTION",
       "fields": [
@@ -183,6 +191,11 @@
     {
       "collectionGroup": "ragers",
       "fieldPath": "ticketToken",
+      "indexes": [{ "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }]
+    },
+    {
+      "collectionGroup": "ragers",
+      "fieldPath": "guestEmail",
       "indexes": [{ "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }]
     },
     {

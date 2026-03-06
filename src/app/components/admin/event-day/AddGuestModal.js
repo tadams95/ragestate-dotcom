@@ -1,6 +1,7 @@
 'use client';
 
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { getAuth } from 'firebase/auth';
 import toast from 'react-hot-toast';
 import { useUserSearch } from '../../../../../lib/hooks/useUserSearch';
 import { adminButtonPrimary, adminButtonOutline, adminInput } from '../shared/adminStyles';
@@ -87,25 +88,22 @@ function AddGuestModal({ isOpen, eventId, onClose, onGuestAdded }) {
   const handleCreateTicket = useCallback(async () => {
     if (!selectedUser || isSubmitting) return;
 
-    const baseUrl = process.env.NEXT_PUBLIC_FUNCTIONS_BASE_URL;
-    const proxyKey = process.env.NEXT_PUBLIC_PROXY_KEY;
-
-    if (!baseUrl || !proxyKey) {
-      toast.error('Missing environment configuration');
+    const idToken = await getAuth().currentUser?.getIdToken();
+    if (!idToken) {
+      toast.error('Not authenticated — please log in');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      const resp = await fetch(`${baseUrl}/manual-create-ticket`, {
+      const resp = await fetch('/api/admin/tickets/manual-create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-proxy-key': proxyKey,
+          Authorization: `Bearer ${idToken}`,
         },
         cache: 'no-store',
-        credentials: 'omit',
         body: JSON.stringify({
           uid: selectedUser.uid,
           eventId,

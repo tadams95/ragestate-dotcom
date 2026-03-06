@@ -19,6 +19,7 @@ export default function OrderSummaryDisplay({
   clientSecret,
   paymentIntentId, // FIX 1.3: Payment intent ID for error messages
   stripePromise,
+  stripeConfigError,
   options,
   hasPhysicalItems,
   handleAddressChange,
@@ -37,7 +38,6 @@ export default function OrderSummaryDisplay({
   guestEmail,
   onGuestEmailSubmit,
   onSwitchToLogin,
-  hasEventTickets, // If cart contains event tickets, require auth
 }) {
   const [showAuthGate, setShowAuthGate] = useState(false);
   const [promoInput, setPromoInput] = useState('');
@@ -191,8 +191,14 @@ export default function OrderSummaryDisplay({
       </dl>
 
       <div className="mt-10">
-        {/* Authenticated user with payment ready */}
-        {isAuthenticated && clientSecret && stripePromise ? (
+        {stripeConfigError ? (
+          <div className="rounded-lg border border-[var(--danger)] bg-[var(--bg-elev-2)] p-4 text-center">
+            <p className="text-sm font-medium text-[var(--danger)]">
+              Payments are currently unavailable. Please try again later.
+            </p>
+          </div>
+        ) : /* Authenticated user with payment ready */
+        isAuthenticated && clientSecret && stripePromise ? (
           <>
             <Elements key={clientSecret} stripe={stripePromise} options={options}>
               {hasPhysicalItems && (
@@ -255,8 +261,8 @@ export default function OrderSummaryDisplay({
             <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-red-500"></div>
             <span className="ml-2 text-[var(--text-primary)]">Setting up guest checkout...</span>
           </div>
-        ) : /* Guest email collection (only for merchandise, not event tickets) */
-        !isAuthenticated && !hasEventTickets ? (
+        ) : /* Guest email collection */
+        !isAuthenticated ? (
           <div className="space-y-4">
             {/* Guest checkout option */}
             {!isGuest ? (
@@ -287,13 +293,8 @@ export default function OrderSummaryDisplay({
             )}
           </div>
         ) : (
-          /* Require login for event tickets or default state */
+          /* Default: unauthenticated fallback */
           <div className="flex flex-col items-center space-y-3">
-            {hasEventTickets && (
-              <p className="text-sm text-[var(--text-secondary)] text-center">
-                Account required for event tickets to access your tickets after purchase.
-              </p>
-            )}
             <button
               type="button"
               onClick={() => setShowAuthGate(true)}
