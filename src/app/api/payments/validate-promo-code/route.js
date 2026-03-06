@@ -74,7 +74,7 @@ export async function POST(request) {
     const payload = await request.json().catch(() => ({}));
 
     let lastError = null;
-    // Note: validate-promo-code doesn't require proxy key (public endpoint)
+    const proxyKey = process.env.PROXY_KEY;
     for (const base of bases) {
       const endpoint = base.replace(/\/$/, '') + '/validate-promo-code';
       try {
@@ -82,6 +82,7 @@ export async function POST(request) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            ...(proxyKey ? { 'x-proxy-key': proxyKey } : {}),
           },
           body: JSON.stringify(payload),
           cache: 'no-store',

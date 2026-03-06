@@ -64,6 +64,13 @@ const RATE_LIMIT_CONFIGS = {
     windowMs: 60 * 1000, // 1 minute
     keyPrefix: 'create_pi_guest',
   },
+  // Promo code validation at CF level (defense in depth)
+  PROMO_VALIDATION_CF: {
+    collection: 'rateLimits',
+    maxAttempts: 10,
+    windowMs: 60 * 1000, // 1 minute
+    keyPrefix: 'promo_validate_cf',
+  },
 };
 
 /**

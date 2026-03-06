@@ -407,26 +407,100 @@ app.post('/create-payment-intent', async (req, res) => {
       }
     }
 
-    // Validate and apply promo code if provided
-    let finalAmount = parsedAmount;
+    // Reject empty carts before any downstream processing (promo validation, price checks)
+    if (!Array.isArray(cartItems) || cartItems.length === 0) {
+      return res.status(400).json({ error: 'cartItems is required and must not be empty' });
+    }
+
+    // Validate and apply promo code first (needed for price comparison)
     let promoValidation = null;
     if (promoCode && typeof promoCode === 'string' && promoCode.trim()) {
       promoValidation = await validatePromoCodeInternal(promoCode.trim(), parsedAmount);
-      if (promoValidation.valid) {
-        finalAmount = Math.max(MIN_AMOUNT, parsedAmount - promoValidation.discountAmount);
-        logger.info('Promo code applied to payment intent', {
-          originalAmount: parsedAmount,
-          discountAmount: promoValidation.discountAmount,
-          finalAmount,
-          promoCode: promoValidation.promoId,
-        });
-      } else {
-        // Promo code invalid - return error so client can handle
+      if (!promoValidation.valid) {
         return res.status(400).json({
           error: 'Invalid promo code',
           promoError: promoValidation.message,
         });
       }
+    }
+
+    // Server-side price verification — never trust client-supplied amount
+
+    let serverTotalCents = 0;
+    let serverGrossCents = 0;
+    {
+      const { eventItems, merchandiseItems } = categorizeCartItems(cartItems);
+
+      for (const item of eventItems) {
+        const qty = Math.max(1, parseInt(item.quantity, 10) || 1);
+        const productId = String(item.productId || '').trim();
+        const eventSnap = await db.collection('events').doc(productId).get();
+        if (!eventSnap.exists) {
+          return res.status(400).json({ error: `Event ${productId} not found` });
+        }
+        const eventData = eventSnap.data();
+        const ticketTiers = eventData.ticketTiers || [];
+        const tier = item.ticketType
+          ? ticketTiers.find((t) => t.name === item.ticketType)
+          : ticketTiers[0];
+        if (item.ticketType && !tier) {
+          return res.status(400).json({
+            error: `Invalid ticket type "${item.ticketType}" for event ${productId}`,
+          });
+        }
+        const unitPriceDollars = tier?.price ?? eventData.price ?? 0;
+        serverTotalCents += Math.round(unitPriceDollars * 100) * qty;
+      }
+
+      for (const item of merchandiseItems) {
+        const qty = Math.max(1, parseInt(item.quantity, 10) || 1);
+        const productId = String(item.productId || '').trim();
+        const productSnap = await db.collection('products').doc(productId).get();
+        if (productSnap.exists) {
+          const productData = productSnap.data();
+          const unitPriceDollars = productData.price ?? 0;
+          serverTotalCents += Math.round(unitPriceDollars * 100) * qty;
+        }
+      }
+
+      if (serverTotalCents <= 0) {
+        return res.status(400).json({ error: 'Could not verify cart item prices' });
+      }
+
+      const serverTaxCents = Math.round(serverTotalCents * 0.075);
+      serverGrossCents = serverTotalCents + serverTaxCents;
+
+      // Account for validated promo discount when comparing
+      const promoDiscountCents = promoValidation?.valid ? (promoValidation.discountAmount || 0) : 0;
+      const expectedClientAmount = serverGrossCents - promoDiscountCents;
+
+      // Allow small rounding tolerance (1 cent) but reject mismatches
+      if (Math.abs(parsedAmount - expectedClientAmount) > 1) {
+        logger.warn('create-payment-intent: amount mismatch', {
+          clientAmount: parsedAmount,
+          serverGross: serverGrossCents,
+          promoDiscount: promoDiscountCents,
+          expectedClient: expectedClientAmount,
+        });
+        return res.status(400).json({
+          error: 'Amount mismatch — please refresh your cart',
+          code: 'AMOUNT_MISMATCH',
+        });
+      }
+    } // end price verification block
+
+    // Apply promo discount to final amount
+    // NOTE: parsedAmount is already client-discounted AND server-verified against
+    // (serverGrossCents - promoDiscountCents). No further subtraction needed.
+    let finalAmount = parsedAmount;
+    if (promoValidation?.valid) {
+      finalAmount = Math.max(MIN_AMOUNT, parsedAmount);
+      logger.info('Promo code applied to payment intent', {
+        originalAmount: serverGrossCents,
+        discountAmount: promoValidation.discountAmount,
+        finalAmount,
+        promoCode: promoValidation.promoId,
+      });
     }
 
     const idempotencyKey = req.get('x-idempotency-key') || undefined;
@@ -452,7 +526,7 @@ app.post('/create-payment-intent', async (req, res) => {
           promoDiscountAmount: promoValidation?.discountAmount
             ? String(promoValidation.discountAmount)
             : '',
-          originalAmount: promoValidation?.valid ? String(parsedAmount) : '',
+          originalAmount: promoValidation?.valid ? String(serverGrossCents) : '',
           // Guest checkout tracking
           isGuest: isGuest ? 'true' : 'false',
           guestEmail: isGuest ? guestEmail : '',
@@ -841,6 +915,27 @@ async function incrementPromoCodeUsage(promoId, promoCollection, orderNumber) {
  */
 app.post('/validate-promo-code', async (req, res) => {
   try {
+    // Enforce proxy key (defense in depth — prevent direct CF access)
+    const expectedProxyKey = PROXY_KEY.value() || process.env.PROXY_KEY;
+    if (expectedProxyKey) {
+      const provided = req.get('x-proxy-key');
+      if (!provided || provided !== expectedProxyKey) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+    }
+
+    // Rate limit at CF level (defense in depth)
+    const rateLimitIdentifier = req.ip || req.headers['x-forwarded-for'] || 'unknown_ip';
+    const rateLimitResult = await checkRateLimit('PROMO_VALIDATION_CF', rateLimitIdentifier);
+    if (!rateLimitResult.allowed) {
+      return res.status(429).json({
+        valid: false,
+        discountAmount: 0,
+        displayCode: null,
+        message: rateLimitResult.message,
+      });
+    }
+
     const { code, cartTotal } = req.body;
     const cartTotalCents = parseInt(cartTotal, 10) || 0;
 
@@ -1014,21 +1109,6 @@ app.post('/finalize-order', async (req, res) => {
     // Reference: MERCH_CHECKOUT_FIXES.md - Issue #1: finalize-order treats all items as events
     const { eventItems, merchandiseItems } = categorizeCartItems(items);
 
-    // SECURITY FIX: Block guest checkout for event tickets
-    // Event tickets require a firebaseId to properly track ownership and for ticket scanning
-    // Guest checkout is only supported for merchandise
-    if (isGuest && eventItems.length > 0) {
-      logger.warn('Guest checkout attempted for event tickets', {
-        eventCount: eventItems.length,
-        guestEmail,
-        orderNumber,
-      });
-      return res.status(400).json({
-        error: 'Event tickets require an account. Please create an account or sign in to purchase tickets.',
-        code: 'GUEST_TICKETS_NOT_ALLOWED',
-      });
-    }
-
     logger.info('Finalize-order: received and categorized items', {
       totalCount: items.length,
       eventCount: eventItems.length,
@@ -1062,7 +1142,7 @@ app.post('/finalize-order', async (req, res) => {
       const eventRef = db.collection('events').doc(eventId);
       logger.info('Finalize-order: processing EVENT ticket', { eventId, qty, orderNumber });
       try {
-        await db.runTransaction(async (tx) => {
+        const txResult = await db.runTransaction(async (tx) => {
           const snap = await tx.get(eventRef);
           if (!snap.exists) {
             // FIX: This should only happen for actual event items now
@@ -1071,16 +1151,22 @@ app.post('/finalize-order', async (req, res) => {
           }
           const data = snap.data() || {};
           const currentQty = typeof data.quantity === 'number' ? data.quantity : 0;
-          const newQty = Math.max(0, currentQty - qty);
+          if (currentQty < qty) {
+            throw new Error(`Insufficient ticket stock for event ${eventId}: have ${currentQty}, need ${qty}`);
+          }
+          const newQty = currentQty - qty;
           tx.update(eventRef, { quantity: newQty });
 
           const ragersRef = eventRef.collection('ragers');
           const token = generateTicketToken();
+          const effectiveEmail = isGuest ? guestEmail : (userEmail || pi.receipt_email || '');
           const rager = {
             active: true,
-            email: userEmail || pi.receipt_email || '',
-            firebaseId: firebaseId,
-            owner: userName || '',
+            email: effectiveEmail,
+            firebaseId: firebaseId || null,
+            guestEmail: isGuest ? guestEmail : null,
+            isGuestPurchase: isGuest || false,
+            owner: isGuest ? '' : (userName || ''),
             purchaseDate: admin.firestore.FieldValue.serverTimestamp(),
             orderNumber,
             ticketQuantity: qty,
@@ -1098,21 +1184,25 @@ app.post('/finalize-order', async (req, res) => {
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
           });
           // Update event-user summary totals (userId-first model)
-          const summaryRef = db
-            .collection('eventUsers')
-            .doc(eventId)
-            .collection('users')
-            .doc(firebaseId);
-          tx.set(
-            summaryRef,
-            {
-              totalTickets: admin.firestore.FieldValue.increment(qty),
-              lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-            },
-            { merge: true },
-          );
-          created.push({ type: 'event', eventId, ragerId: ragerDoc.id, qty, newQty });
+          // Skip for guest purchases — will be created when tickets are claimed
+          if (firebaseId) {
+            const summaryRef = db
+              .collection('eventUsers')
+              .doc(eventId)
+              .collection('users')
+              .doc(firebaseId);
+            tx.set(
+              summaryRef,
+              {
+                totalTickets: admin.firestore.FieldValue.increment(qty),
+                lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+              },
+              { merge: true },
+            );
+          }
+          return { type: 'event', eventId, ragerId: ragerDoc.id, qty, newQty, token };
         });
+        created.push(txResult);
         logger.info('Finalize-order: EVENT ticket created successfully', { eventId, qty });
       } catch (e) {
         // FIX: Log as ERROR not warn for event ticket failures (these are critical)
@@ -1478,7 +1568,8 @@ app.post('/finalize-order', async (req, res) => {
 
     // Build purchase payloads (server-side mirror of client SaveToFirestore)
     const amountTotal = typeof pi.amount === 'number' ? pi.amount : 0;
-    const amountStr = (amountTotal / 100).toFixed(2);
+    const amountDollars = amountTotal / 100;
+    const amountStr = amountDollars.toFixed(2);
 
     // FIX: Add itemType to each item for better tracking
     // Reference: MERCH_CHECKOUT_FIXES.md - Phase 2: Purchase records now indicate item types
@@ -1525,7 +1616,7 @@ app.post('/finalize-order', async (req, res) => {
       orderNumber,
       paymentIntentId: pi.id,
       status: 'completed',
-      totalAmount: amountStr,
+      totalAmount: amountDollars,
       currency: pi.currency || 'usd',
       discountAmount:
         appliedPromoCode && appliedPromoCode.discountValue ? appliedPromoCode.discountValue : 0,
@@ -1577,7 +1668,7 @@ app.post('/finalize-order', async (req, res) => {
             email: purchaseDoc.customerEmail,
             stripeId: pi.id,
             cartItems: sanitizedItems,
-            total: amountStr,
+            total: amountDollars,
           }),
           { merge: true },
         );
@@ -1589,13 +1680,23 @@ app.post('/finalize-order', async (req, res) => {
           const crypto = require('crypto');
           const emailHash = crypto.createHash('sha256').update(guestEmail.toLowerCase().trim()).digest('hex');
           const guestOrderRef = db.collection('guestOrders').doc(emailHash).collection('orders').doc(orderNumber);
+          const ticketDetails = created
+            .filter((c) => c.type === 'event')
+            .map((c) => ({
+              eventId: c.eventId,
+              ragerId: c.ragerId,
+              ticketToken: c.token,
+              qty: c.qty,
+            }));
           await guestOrderRef.set({
             orderNumber,
             email: guestEmail,
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            totalAmount: amountStr,
+            totalAmount: amountDollars,
             itemCount: sanitizedItems.length,
             status: 'completed',
+            hasTickets: ticketDetails.length > 0,
+            ticketDetails: ticketDetails.length > 0 ? ticketDetails : [],
           }, { merge: true });
         } catch (guestErr) {
           logger.warn('Failed to write guest order index (non-fatal)', { error: guestErr?.message });
@@ -2686,7 +2787,10 @@ app.post('/manual-create-ticket', async (req, res) => {
         if (!evt.exists) throw new Error('Event not found');
         const data = evt.data() || {};
         const currentQty = typeof data.quantity === 'number' ? data.quantity : 0;
-        const newQty = Math.max(0, currentQty - quantity);
+        if (currentQty < quantity) {
+          throw new Error(`Insufficient ticket stock: have ${currentQty}, need ${quantity}`);
+        }
+        const newQty = currentQty - quantity;
         tx.update(eventRef, { quantity: newQty });
 
         const rager = {
@@ -2745,7 +2849,7 @@ app.post('/manual-create-ticket', async (req, res) => {
       orderNumber,
       paymentIntentId: paymentIntentId || `pi_manual_${Date.now()}`,
       status: 'completed',
-      totalAmount: amountStr,
+      totalAmount: amountCents / 100,
       currency: cur,
       discountAmount: 0,
       promoCodeUsed: null,
@@ -2766,7 +2870,7 @@ app.post('/manual-create-ticket', async (req, res) => {
             email: purchaseDoc.customerEmail,
             stripeId: purchaseDoc.paymentIntentId,
             cartItems: purchaseDoc.items,
-            total: amountStr,
+            total: amountCents / 100,
           }),
           { merge: true },
         );
@@ -3588,6 +3692,111 @@ app.post('/run-daily-aggregation', async (req, res) => {
   }
 });
 
+// ============================================================================
+// CLAIM GUEST TICKETS
+// When a guest creates an account or logs in, claim any tickets purchased
+// with their email by setting the firebaseId on the rager docs.
+// ============================================================================
+app.post('/claim-guest-tickets', async (req, res) => {
+  try {
+    const expectedProxyKey = PROXY_KEY.value() || process.env.PROXY_KEY;
+    if (expectedProxyKey) {
+      const provided = req.get('x-proxy-key');
+      if (!provided || provided !== expectedProxyKey) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+    }
+
+    const { userId, userEmail } = req.body || {};
+    if (!userId || !userEmail) {
+      return res.status(400).json({ error: 'userId and userEmail are required' });
+    }
+
+    const normalizedEmail = userEmail.toLowerCase().trim();
+    logger.info('claim-guest-tickets: starting', { userId, email: normalizedEmail });
+
+    // Find all unclaimed guest tickets for this email
+    const ragersQuery = await db
+      .collectionGroup('ragers')
+      .where('guestEmail', '==', normalizedEmail)
+      .where('firebaseId', '==', null)
+      .get();
+
+    if (ragersQuery.empty) {
+      logger.info('claim-guest-tickets: no unclaimed tickets found', { userId, email: normalizedEmail });
+      return res.json({ claimed: true, ticketCount: 0, tickets: [] });
+    }
+
+    const claimedTickets = [];
+
+    for (const ragerDoc of ragersQuery.docs) {
+      try {
+        // Extract eventId from the document path: events/{eventId}/ragers/{ragerId}
+        const pathParts = ragerDoc.ref.path.split('/');
+        const eventId = pathParts[1]; // events/{eventId}/ragers/{ragerId}
+
+        let didClaim = false;
+        await db.runTransaction(async (tx) => {
+          const freshSnap = await tx.get(ragerDoc.ref);
+          if (!freshSnap.exists || freshSnap.data().firebaseId !== null) {
+            return; // Already claimed or deleted
+          }
+
+          tx.update(ragerDoc.ref, {
+            firebaseId: userId,
+            claimedAt: admin.firestore.FieldValue.serverTimestamp(),
+            claimedByUid: userId,
+          });
+
+          // Create eventUsers summary
+          const summaryRef = db
+            .collection('eventUsers')
+            .doc(eventId)
+            .collection('users')
+            .doc(userId);
+          const ragerData = freshSnap.data();
+          tx.set(
+            summaryRef,
+            {
+              totalTickets: admin.firestore.FieldValue.increment(ragerData.ticketQuantity || 1),
+              lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+            },
+            { merge: true },
+          );
+          didClaim = true;
+        });
+
+        if (didClaim) {
+          claimedTickets.push({
+            ragerId: ragerDoc.id,
+            eventId,
+          });
+        }
+      } catch (claimErr) {
+        logger.warn('claim-guest-tickets: failed to claim individual ticket', {
+          ragerId: ragerDoc.id,
+          error: claimErr?.message,
+        });
+      }
+    }
+
+    logger.info('claim-guest-tickets: completed', {
+      userId,
+      email: normalizedEmail,
+      ticketCount: claimedTickets.length,
+    });
+
+    return res.json({
+      claimed: true,
+      ticketCount: claimedTickets.length,
+      tickets: claimedTickets,
+    });
+  } catch (err) {
+    logger.error('claim-guest-tickets: error', { message: err?.message, stack: err?.stack });
+    return res.status(500).json({ error: 'Failed to claim tickets', message: err?.message });
+  }
+});
+
 exports.stripePayment = onRequest(
   {
     secrets: [
@@ -3800,21 +4009,8 @@ async function handlePaymentSucceeded(paymentIntent) {
     status: paymentIntent.status,
   });
 
-  // Check if already fulfilled (idempotency guard)
+  // Atomic idempotency check — mirrors finalize-order pattern
   const fulfillRef = db.collection('fulfillments').doc(piId);
-  const fulfillSnap = await fulfillRef.get();
-
-  if (fulfillSnap.exists) {
-    const data = fulfillSnap.data();
-    if (data.status === 'completed' || data.status === 'processing') {
-      logger.info('stripeWebhook: Already fulfilled, skipping', {
-        piId,
-        status: data.status,
-        orderNumber: data.orderNumber,
-      });
-      return { skipped: true, reason: 'already_fulfilled', orderNumber: data.orderNumber };
-    }
-  }
 
   // Extract metadata from PaymentIntent
   const metadata = paymentIntent.metadata || {};
@@ -3822,6 +4018,59 @@ async function handlePaymentSucceeded(paymentIntent) {
   const email = metadata.email || metadata.guestEmail || paymentIntent.receipt_email || '';
   const isGuest = metadata.isGuest === 'true' || !firebaseId;
   const guestEmail = metadata.guestEmail || (isGuest ? email : null);
+
+  let decision; // { action: 'skip'|'fulfill'|'recover', ... }
+  try {
+    decision = await db.runTransaction(async (tx) => {
+      const snap = await tx.get(fulfillRef);
+
+      if (snap.exists) {
+        const data = snap.data();
+        if (data.status === 'completed') {
+          return { action: 'skip', reason: 'already_fulfilled', orderNumber: data.orderNumber };
+        }
+        if (data.status === 'processing') {
+          const processingAge = data.createdAt?.toDate
+            ? Date.now() - data.createdAt.toDate().getTime()
+            : Infinity;
+          if (processingAge < 15 * 60 * 1000) {
+            return { action: 'skip', reason: 'currently_processing', orderNumber: data.orderNumber };
+          }
+          // Stale — fall through to recovery
+        }
+        // Stale or failed — claim for recovery
+        tx.update(fulfillRef, {
+          status: 'processing',
+          source: 'stripe_webhook',
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        return { action: 'recover' };
+      }
+
+      // No fulfillment record exists — claim it
+      tx.set(fulfillRef, {
+        status: 'processing',
+        source: 'stripe_webhook',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        paymentIntentId: piId,
+        firebaseId: isGuest ? null : firebaseId,
+        email,
+        isGuestOrder: isGuest,
+        guestEmail: isGuest ? guestEmail : null,
+        amount: paymentIntent.amount,
+        currency: paymentIntent.currency,
+      });
+      return { action: 'fulfill' };
+    });
+  } catch (txErr) {
+    logger.error('stripeWebhook: Fulfillment lock transaction failed', { piId, error: txErr?.message });
+    throw txErr;
+  }
+
+  if (decision.action === 'skip') {
+    logger.info('stripeWebhook: Skipping', { piId, ...decision });
+    return { skipped: true, ...decision };
+  }
 
   // FIX 1.1: Try to retrieve cart data from pendingOrders collection
   // This was stored at create-payment-intent time for webhook recovery
@@ -3852,20 +4101,6 @@ async function handlePaymentSucceeded(paymentIntent) {
     });
 
     try {
-      // Mark as processing to prevent duplicate fulfillment
-      await fulfillRef.set({
-        status: 'processing',
-        source: 'stripe_webhook',
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        paymentIntentId: piId,
-        firebaseId: pendingOrderData.isGuest ? null : pendingOrderData.firebaseId,
-        email: pendingOrderData.email,
-        isGuestOrder: pendingOrderData.isGuest || false,
-        guestEmail: pendingOrderData.isGuest ? pendingOrderData.guestEmail : null,
-        amount: paymentIntent.amount,
-        currency: paymentIntent.currency,
-      }, { merge: true });
-
       // Call internal fulfillment logic (reuse from finalize-order)
       const fulfillResult = await fulfillOrderFromWebhook(paymentIntent, pendingOrderData);
 
@@ -3977,20 +4212,6 @@ async function fulfillOrderFromWebhook(paymentIntent, pendingOrderData) {
   const orderNumber = generateOrderNumber();
   const { eventItems, merchandiseItems } = categorizeCartItems(cartItems);
 
-  // Guest checkout cannot purchase event tickets
-  if (isGuest && eventItems.length > 0) {
-    logger.error('stripeWebhook: Guest checkout attempted for event tickets', {
-      piId,
-      eventCount: eventItems.length,
-    });
-    await fulfillRef.set({
-      status: 'failed',
-      error: 'Guest checkout not allowed for event tickets',
-      needsAdminReview: true,
-    }, { merge: true });
-    throw new Error('Guest checkout not allowed for event tickets');
-  }
-
   const created = [];
   const merchOrdersCreated = [];
   const errors = [];
@@ -4005,23 +4226,29 @@ async function fulfillOrderFromWebhook(paymentIntent, pendingOrderData) {
 
     try {
       const eventRef = db.collection('events').doc(eventId);
-      await db.runTransaction(async (tx) => {
+      const txResult = await db.runTransaction(async (tx) => {
         const snap = await tx.get(eventRef);
         if (!snap.exists) {
           throw new Error(`Event ${eventId} not found`);
         }
         const data = snap.data() || {};
         const currentQty = typeof data.quantity === 'number' ? data.quantity : 0;
-        const newQty = Math.max(0, currentQty - qty);
+        if (currentQty < qty) {
+          throw new Error(`Insufficient ticket stock for event ${eventId}: have ${currentQty}, need ${qty}`);
+        }
+        const newQty = currentQty - qty;
         tx.update(eventRef, { quantity: newQty });
 
         const ragersRef = eventRef.collection('ragers');
         const token = generateTicketToken();
+        const effectiveEmail = isGuest ? guestEmail : (email || paymentIntent.receipt_email || '');
         const rager = {
           active: true,
-          email: email || paymentIntent.receipt_email || '',
-          firebaseId: firebaseId,
-          owner: name || '',
+          email: effectiveEmail,
+          firebaseId: firebaseId || null,
+          guestEmail: isGuest ? guestEmail : null,
+          isGuestPurchase: isGuest || false,
+          owner: isGuest ? '' : (name || ''),
           purchaseDate: admin.firestore.FieldValue.serverTimestamp(),
           orderNumber,
           ticketQuantity: qty,
@@ -4038,13 +4265,16 @@ async function fulfillOrderFromWebhook(paymentIntent, pendingOrderData) {
           ragerId: ragerDoc.id,
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
-        const summaryRef = db.collection('eventUsers').doc(eventId).collection('users').doc(firebaseId);
-        tx.set(summaryRef, {
-          totalTickets: admin.firestore.FieldValue.increment(qty),
-          lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-        }, { merge: true });
-        created.push({ type: 'event', eventId, ragerId: ragerDoc.id, qty, newQty });
+        if (firebaseId) {
+          const summaryRef = db.collection('eventUsers').doc(eventId).collection('users').doc(firebaseId);
+          tx.set(summaryRef, {
+            totalTickets: admin.firestore.FieldValue.increment(qty),
+            lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+          }, { merge: true });
+        }
+        return { type: 'event', eventId, ragerId: ragerDoc.id, qty, newQty, token };
       });
+      created.push(txResult);
       logger.info('stripeWebhook: Event ticket created', { eventId, qty, orderNumber });
     } catch (e) {
       logger.error('stripeWebhook: Failed to create event ticket', { eventId, error: e?.message });
@@ -4168,12 +4398,25 @@ async function fulfillOrderFromWebhook(paymentIntent, pendingOrderData) {
       // guestOrders/{emailHash}/orders/{orderNumber}
       const crypto = require('crypto');
       const emailHash = crypto.createHash('sha256').update(guestEmail.toLowerCase().trim()).digest('hex');
+      const ticketDetails = created
+        .filter((c) => c.type === 'event')
+        .map((c) => ({
+          eventId: c.eventId,
+          ragerId: c.ragerId,
+          ticketToken: c.token,
+          qty: c.qty,
+        }));
       await db.collection('guestOrders').doc(emailHash).collection('orders').doc(orderNumber).set({
         orderNumber,
         email: guestEmail,
         emailHash,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        totalAmount: paymentIntent.amount / 100,
+        itemCount: sanitizedItems.length,
+        status: 'completed',
         source: 'webhook_recovery',
+        hasTickets: ticketDetails.length > 0,
+        ticketDetails: ticketDetails.length > 0 ? ticketDetails : [],
       });
     }
   } catch (e) {
