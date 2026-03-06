@@ -23,10 +23,12 @@ const logErr = (m, e) => {
   fs.appendFileSync(errFile, line);
 };
 
-// Flags: --live to write, --overwrite to replace existing values
+// Flags: --live to write, --overwrite to replace existing values, --user <uid> to target one user
 const args = process.argv.slice(2);
 const LIVE = args.includes('--live');
 const OVERWRITE = args.includes('--overwrite');
+const userIdx = args.indexOf('--user');
+const TARGET_USER = userIdx !== -1 ? args[userIdx + 1] : null;
 
 async function main() {
   try {
@@ -43,7 +45,7 @@ async function main() {
     const db = getFirestore();
 
     log(
-      `Starting post profile picture backfill: mode=${LIVE ? 'LIVE' : 'DRY'}, overwrite=${OVERWRITE ? 'yes' : 'no'}`,
+      `Starting post profile picture backfill: mode=${LIVE ? 'LIVE' : 'DRY'}, overwrite=${OVERWRITE ? 'yes' : 'no'}, targetUser=${TARGET_USER || 'ALL'}`,
     );
 
     let scanned = 0;
@@ -69,12 +71,14 @@ async function main() {
       }
     };
 
-    // Paginate through posts collection
+    // Paginate through posts collection (optionally filtered by user)
     const pageSize = 500;
     let lastDoc = null;
 
     while (true) {
-      let q = db.collection('posts').orderBy(FieldPath.documentId()).limit(pageSize);
+      let q = TARGET_USER
+        ? db.collection('posts').where('userId', '==', TARGET_USER).orderBy(FieldPath.documentId()).limit(pageSize)
+        : db.collection('posts').orderBy(FieldPath.documentId()).limit(pageSize);
       if (lastDoc) q = q.startAfter(lastDoc.id);
       const snap = await q.get();
       if (snap.empty) break;

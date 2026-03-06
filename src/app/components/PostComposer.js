@@ -486,26 +486,26 @@ export default function PostComposer() {
         resolvedName = currentUser.email?.split('@')[0] || 'User';
       }
 
-      let resolvedPhoto = currentUser.photoURL || null;
-      if (!resolvedPhoto) {
-        try {
-          const lsPhoto = localStorage.getItem('profilePicture');
-          if (lsPhoto) resolvedPhoto = lsPhoto;
-        } catch {}
-      }
-
-      // Resolve usernameLower and profile photo for linking to profile
+      // Resolve profile photo and usernameLower from Firestore (canonical source)
+      let resolvedPhoto = null;
       let usernameLower = null;
       try {
         const prof = await getDoc(doc(db, 'profiles', currentUser.uid));
         if (prof.exists()) {
           const profData = prof.data();
           usernameLower = profData?.usernameLower || null;
-          if (!resolvedPhoto) {
-            resolvedPhoto = profData?.photoURL || null;
-          }
+          resolvedPhoto = profData?.photoURL || null;
         }
       } catch {}
+      if (!resolvedPhoto) {
+        try {
+          const lsPhoto = localStorage.getItem('profilePicture');
+          if (lsPhoto) resolvedPhoto = lsPhoto;
+        } catch {}
+      }
+      if (!resolvedPhoto) {
+        resolvedPhoto = currentUser.photoURL || null;
+      }
 
       const payload = {
         userId: currentUser.uid,
